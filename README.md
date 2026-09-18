@@ -82,10 +82,8 @@ universe-wormhole      Minimum gate-space path between dialects, as a braid + Jo
 vox-ce                 Lift EVM/WASM hex into an IMASM word and verdict its control-flow closure
 consciousness-lath     Single-axis mutation that most raises the C-score with both gates open
 paradox-engine         Hunt words that are dialetheias by four readings at once (B, price, gate1, C=0)
-key-dissolver          SIC-narrowed bounded window before a BSGS split
 compiler               Compile a braid to imasm/jones/lean, or a token word back to a braid
 catalogue              Synthesize candidate operators; rank by novelty against the catalog
-sk_forge               Crystal Harvester: BIP39-SIC integrated structural gap analysis against O_∞ carriers. Commands: forge, tuple, word, verify, carriers, bip39-sic, bip39-pipeline (alias sk-forge)
 museum                 The permanent collection of failed constructions — append-only negative knowledge
 phase                  Phase as an object: orbit spectrum, phase period, and two-word interference
 demonstrate            Run a claim as an experiment: INPUT/OPERATION/OUTPUT/CHECK, computed live (alias demo)
@@ -98,9 +96,7 @@ crystal-scope          Substitution microscope: distance, tier, dS, gate jump, a
 minimal                Shortest word achieving a target property
 repair                 Ranked program/proof surgery with a proof-diff
 mersearch              Mersenne search: run|ll. Composite exponents answer at once (alias msearch)
-pk2sk                  PK→SK recovery: bounded-range ECDLP on secp256k1 — recover the scalar in [lo, hi) from its compressed public key, curve-gated, imscribed
 fde                    FDE(n) tower navigation: embed | restrict | walk | roundtrip | trans | report — ascend/descend the truth-value lattice at any depth
-rsa                    RSA decrypter via BSGS period-finding on ord_N(C): word | period | verify | <C> <N> <e> — only closes when that order is small, not for real RSA moduli
 combo                  cycle a word, then run weight | banked | insert | repair on every distinct rotation it produces, formatted as one report; add 'brief' for repair's cheapest candidate only
 combo2                 combo (brief) on a word, then weight | banked | insert | repair again on every distinct word the first pass's repairs produced
 millennium             run weight | banked | insert on a Millennium conjecture's promotion word and print its live executed crystal address and tuple; no argument lists the seven names, 'all' runs every one
@@ -110,13 +106,10 @@ bi                     Draw a braid word — strand diagram in the terminal, SVG
 jp                     Jones polynomial at the 1/5 winding; signed Artin generators (alias jones_polynomial)
 bg                     Braid word to grammar tuple (alias braid-grammar); winding is a closed form in the writhe
 shor                   Belnap Shor pipeline + dialetheic Fibonacci Shor (word ⊢∈≻⋈⊞∈⊤≻⊥≺∋⊙⋈⊡⊣); N=15,21
-shors_btc_2            Shor over secp256k1 ECDLP: recover a Bitcoin private key from a public key (x,y)
 prime_winding          Winding period of the primes on the number line - ob3ect-backed: find | factor | cycle | tuple | verdict
 oneshot_prime_winder   One-shot primality test using IMASM word ⊢∈≻⊤⋈⊙≺⊥⊞∋⊡⊣ winding certificate
 dyn_nest               Dynamic Nesting Prime Finder - pipes oneshot verdict, searches optimal nesting depth d=1,2,3,...; period P(d)=5d+7, closure-derived seed
 qft                    Quantum Fourier Transform: circuit | phases | iqft | iqft braid | braid, on n qubits
-btc_oneshot            BTC Secret Key Oneshot Operator — structural verification & phase steps
-secp256k1_unwinder     19-glyph morphism sequence for secp256k1 scalar recovery: word | steps | mapping | walk [k] | verdict [k] | tuple | constants
 baryon_asymmetry       baryon asymmetry as a banked survival: the word run through the live weight + banked instruments (report | word | mapping | reading)
 theta-link             IUTT housed in the paraconsistent ambient: the Θ-link closes yet holds register A (four-valued B, the Inclosure), unreachable by the Boolean adjoints (alias iutt)
 winding                Period as a torus winding: order | factor | closure | factorgen (alias wperiod)
@@ -130,7 +123,6 @@ hop                    Universe hopping, cross-framework transport
 manifold               Topological manifold operations
 triple                 Triple-frame von Neumann superoperator algebra
 sic                    SIC-POVM d=12 identity, three lattice proofs
-bip39                  BIP39-SIC-POVM: search | words | verify | map | gap
 d12                    d=12 SIC Phase VI: tower, magnitudes, orbits, existence, duallink, z0
 d2048                  d=2048 moduli tower ascent (alias d2k)
 dqi                    Decoded Quantum Interferometry operator: word | period | phase | verdict <arm> | syndrome <bits> | tuple | report
