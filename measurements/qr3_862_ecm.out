@@ -1,0 +1,8 @@
+bash: cannot set terminal process group (1015850): Inappropriate ioctl for device
+bash: no job control in this shell
+gpu_ecm bsgs: bits=862 limbs=14 devices=2 B1=250000 B2=25000000 D=210 baby=24 — NVRTC then launch
+bash: [1015853: 2 (255)] tcsetattr: Inappropriate ioctl for device
+
+real	0m26.521s
+user	0m0.005s
+sys	0m0.006s

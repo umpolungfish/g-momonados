@@ -1,0 +1,18 @@
+gpu_gnfs: bits=14 B=40 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=5 coeff_score=7 f(m)=N — g(x)=x - 20
+gpu_gnfs ⊢/alfs: B=40 |rat|=12 |alg|=13 ncols=26
+gpu_gnfs ≻ GPU classical log-line |A|=320 Bmax=80 fudge=6.640 mark=exact+log on device 0
+gpu_gnfs ≻ tile 1/1: relations=59/59 cells=51280 hits_cum=62
+gpu_gnfs ≻ GPU log-line done: cells=51280 hit-launches=62 1 ms relations=59/59
+gpu_gnfs ≻ sieve: pairs=10527 relations=59/59 |A|=320 Bmax=80 ncols=26 gpu=true
+gpu_gnfs ⋈≻: 59 relations → 33 dependencies
+gpu_gnfs: B=40 failed — gpu_gnfs ∋: gcd trivial dep [2,6,8,10,14,15,17,19,21,22,58] x=6664 y=10390
+gpu_gnfs: bits=14 B=80 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=5 coeff_score=7 f(m)=N — g(x)=x - 20
+gpu_gnfs ⊢/alfs: B=80 |rat|=22 |alg|=19 ncols=42
+gpu_gnfs ≻ GPU classical log-line |A|=640 Bmax=160 fudge=7.888 mark=exact+log on device 0
+gpu_gnfs ≻ tile 1/1: relations=75/75 cells=204960 hits_cum=87
+gpu_gnfs ≻ GPU log-line done: cells=204960 hit-launches=87 2 ms relations=75/75
+gpu_gnfs ≻ sieve: pairs=4723 relations=75/75 |A|=640 Bmax=160 ncols=42 gpu=true
+gpu_gnfs ⋈≻: 75 relations → 33 dependencies
+gpu_gnfs ∋⊤: factor 103 via dep [3,4,6,9,11,23,25,28,30,31,32,34,38,40] (x=5878 y=5452)

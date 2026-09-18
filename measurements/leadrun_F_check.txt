@@ -1,0 +1,2 @@
+checked 150 numbers, mismatches: 0
+distinct T values seen: {3}

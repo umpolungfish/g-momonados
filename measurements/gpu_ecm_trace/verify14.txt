@@ -1,0 +1,1 @@
+gpu_ecm verify_width 14: 64 products, wrong 0

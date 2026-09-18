@@ -1,0 +1,4 @@
+gpu_gnfs: bits=862 B=10000 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈8 — ⊢ opening
+gpu_gnfs ⊙: d=8 m_bits=108 coeff_score=740 f(m)=N — g(x)=x - 261866853502364802537290931184864
+gpu_gnfs ⊢/alfs: B=10000 |rat|=1229 |alg|=1224 ncols=2454
+gpu_gnfs ≻ GPU skipped — m bits=108 (need ≤64 for device norms)

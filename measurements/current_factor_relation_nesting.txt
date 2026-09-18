@@ -1,0 +1,87 @@
+◇ CIRCUIT  current_factor_relation_nesting   40 nodes, 42 wires   open forks 0
+  weight = Belnap register delta: ↑ true  ↓ false  ↑↓ both  · none   «B» paradox held   ⚡ truth flip   ═▶ cross-branch
+
+  0 ⊢ VINIT    ·   
+     └─▶  1 ∈   [o→i]  ·
+  1 ∈ FSPLIT   ·     ┐ fork
+     ├─▶  2 ≻   [T→i]  ↑
+     └─▶  5 ⊥   [F→i]  ↑↓ «B»
+  2 ≻ AFWD     ↑   
+     └─▶  3 ⊤   [o→i]  ↑→↑
+  3 ⊤ EVALT    ↑   
+     └─▶  4 ≺   [o→i]  ↑→↑↓ «B»
+  4 ≺ AREV     ↑↓  
+     └─▶ 35 ∋   [o→T]  ↑↓→↑ «B»
+  5 ⊥ EVALF    ↑↓  
+     └─▶  6 ⋈   [o→i]  ↑↓→↑↓ «B»
+  6 ⋈ CLINK    ↑↓  
+     └─▶  7 ⊢   [o→i]  ↑↓→· «B»
+  7 ⊢ VINIT    ·   
+     └─▶ 30 ⊡   [o→i]  ↑
+  8 ∈ FSPLIT   ·     ┐ fork
+     ├─▶  9 ≻   [T→i]  ↑
+     └─▶ 12 ⊥   [F→i]  ↑↓ «B»
+  9 ≻ AFWD     ↑   
+     └─▶ 10 ⊤   [o→i]  ↑→↑
+ 10 ⊤ EVALT    ↑   
+     └─▶ 11 ≺   [o→i]  ↑→↑↓ «B»
+ 11 ≺ AREV     ↑↓  
+     └─▶ 29 ∋   [o→T]  ↑↓→↑ «B»
+ 12 ⊥ EVALF    ↑↓  
+     └─▶ 13 ⋈   [o→i]  ↑↓→↑↓ «B»
+ 13 ⋈ CLINK    ↑↓  
+     └─▶ 14 ⊢   [o→i]  ↑↓→· «B»
+ 14 ⊢ VINIT    ·   
+     └─▶ 24 ⊡   [o→i]  ↑
+ 15 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 16 ≻   [T→i]  ↑
+     └─▶ 19 ⊥   [F→i]  ↑↓ «B»
+ 16 ≻ AFWD     ↑   
+     └─▶ 17 ⊤   [o→i]  ↑→↑
+ 17 ⊤ EVALT    ↑   
+     └─▶ 18 ≺   [o→i]  ↑→↑↓ «B»
+ 18 ≺ AREV     ↑↓  
+     └─▶ 23 ∋   [o→T]  ↑↓→↑ «B»
+ 19 ⊥ EVALF    ↑↓  
+     └─▶ 20 ⋈   [o→i]  ↑↓→↑↓ «B»
+ 20 ⋈ CLINK    ↑↓  
+     └─▶ 21 ⊙   [o→i]  ↑↓→↑↓ «B»
+ 21 ⊙ IMSCRIB  ↑↓  
+     └─▶ 22 ⊞   [o→i]  ↑↓→↑↓ «B»
+ 22 ⊞ ENGAGR   ↑↓  
+     └─▶ 23 ∋   [o→F]  ↑↓→↑ «B»
+ 23 ∋ FFUSE    ↑     ┘ join
+     └─▶ 29 ∋   [o→T]  ↑→↑
+ 24 ⊡ IFIX     ↑   
+     └─▶ 25 ⋈   [o→i]  ↑→↑
+ 25 ⋈ CLINK    ↑   
+     └─▶ 26 ⊙   [o→i]  ↑→↑
+ 26 ⊙ IMSCRIB  ↑   
+     └─▶ 27 ⊣   [o→i]  ↑→↑
+ 27 ⊣ TANCH    ↑   
+     └─▶ 28 ⊞   [o→i]  ↑→↑
+ 28 ⊞ ENGAGR   ↑   
+     └─▶ 29 ∋   [o→F]  ↑→↑
+ 29 ∋ FFUSE    ↑     ┘ join
+     └─▶ 35 ∋   [o→T]  ↑→↑
+ 30 ⊡ IFIX     ↑   
+     └─▶ 31 ⋈   [o→i]  ↑→↑
+ 31 ⋈ CLINK    ↑   
+     └─▶ 32 ⊙   [o→i]  ↑→↑
+ 32 ⊙ IMSCRIB  ↑   
+     └─▶ 33 ⊣   [o→i]  ↑→↑
+ 33 ⊣ TANCH    ↑   
+     └─▶ 34 ⊞   [o→i]  ↑→↑
+ 34 ⊞ ENGAGR   ↑   
+     └─▶ 35 ∋   [o→F]  ↑→↑
+ 35 ∋ FFUSE    ↑     ┘ join
+     └─▶ 36 ⊡   [o→i]  ↑→↑
+ 36 ⊡ IFIX     ↑   
+     └─▶ 37 ⋈   [o→i]  ↑→↑
+ 37 ⋈ CLINK    ↑   
+     └─▶ 38 ⊙   [o→i]  ↑→↑
+ 38 ⊙ IMSCRIB  ↑   
+     └─▶ 39 ⊣   [o→i]  ↑→↑
+ 39 ⊣ TANCH    ↑   
+
+  walk: CLOSED   final register ↑
