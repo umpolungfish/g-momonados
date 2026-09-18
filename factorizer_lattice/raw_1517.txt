@@ -1,0 +1,100 @@
+[2;37m[boot][0m Interrupts: none — the host owns the IDT, no periodic slot
+[2;37m[boot][0m Heap: host allocator, 1133 bytes counted, 48MB declared budget
+[2;37m[boot][0m IG Catalog: 8682 entries loaded
+[2;37m[boot][0m Kernel online — graph execution, token-arity driven
+[2;37m[boot][0m Canonical ordinal check...
+[2;37m[boot][0m Ordinal faithfulness: [1;32mall 44 values match Lean canonical[0m
+[2;37m[boot][0m Clay Millennium status: 2 closed, 1 one-bump-short, 3 unclosed
+[2;37m[boot][0m SIC-POVM d=12: Crystal-forced (dual lattice), Shavian count 49=7², WH group |orbit|=144
+[2;37m[boot][0m Frobenius identity check...
+[2;37m[boot][0m Frobenius identity: hamming=3, weighted=3.1000 — kernel is grammar operationalized
+[2;37m[boot][0m Bootstrap: IMSCRIB→AREV→FSPLIT→AFWD→FFUSE→CLINK→IFIX→IMSCRIB (cyclic)
+                       F unitary: PASS
+  Pentagon form (F^2=I, anti-diag, a^2+b^2=1): PASS
+            Braid relation (Y-B): PASS
+                 Spin-statistics: PASS
+                       S unitary: PASS
+        Charge conjugation S^2=I: PASS
+                 TQFT identities: PASS
+                Verlinde formula: PASS
+              Braid Artin B_n<=8: PASS
+  Phase lattice = tenths of a winding: PASS
+    Constants derivable from PHI: PASS
+[2;37m[boot][0m Fibonacci anyon QC: algebra verified = true
+[36m[TORUS][0m kernel wound: ⊢⊙∈⊤⋈∋⊡⊞≺⋈⊣  (11 tokens, pinch=0.0000)
+[2;37m[boot][0m Crystal FS: 17280000 addresses
+[2;37m[boot][0m 29 total programs (I–XXIX): 12 canonical + 4 continuous + 4 novel + 9 shunted
+
+
+   [1;35m⊙[0m   [1;37mG-mOMonadOS[0m
+   [2;37mGPU-native build, mOMonadOS ported to run via CUDA[0m
+   [1;33mμ∘δ = id[0m
+
+   [2;37mFrobenius core · Belnap FOUR · crystal FS · graph execution[0m
+
+   [1;34mhelp[0m for commands, [1;34m?[0m for the menu, Tab completes.
+
+   [1;34mask[0m runs a structural dry-run here; the full wet-run is on the host:
+   [2;37m./ask --file <path> | ./ask --ask "…" | ./ask -i[0m
+
+⊙> trilattice_factor read 1517
+trilattice_factor read 1517:
+  hex-digit word   : ⊢⊤≻⋈≺⊞⊙⊡⊣⊢∈≻⋈⊥≺⋈⊞∋⊙⊡⊣⊢∈⊤≻⋈≺⋈⊞∋⊙⊡⊣
+  period 33, 8 winding-commit cut(s) over the orbit
+  native word      : ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣
+  dialect register : 111111111111  (U[9, 25, 32, 35, 40, 43, 52, 54, 66, 72, 76, 83])
+  crystal address  : 16389838 of 17280000
+⊙> trilattice_factor squares 1517
+trilattice_factor squares 1517:
+  ∈ BRIDGE_EXIST: a bridge of comparable size, |y| ∼ |x| ∼ √n
+  ⊙ n = a² - b² = (a-b)(a+b), the congruence of squares
+  1517 = 37 × 41   read off the difference of squares
+⊙> trilattice_factor winding 1517
+trilattice_factor winding 1517:
+  base 3: winding r = 8988717220915103784 (a ROTAT period of 3 mod 1517, from a leaper crossing)
+  winding fixed as its native numeral (⊡ immutable_record): ⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+  ⊡ ZWIND holonomy: ∮ A = 2π·8988717220915103784, the integer winding of the orbit loop
+  a^(r/2) ± 1 splits it: 1517 = 37 × 41   read off the winding, no table
+⊙> trilattice_factor bridge 1517
+trilattice_factor bridge 1517:
+  ⊞ MOAT_BRIDGE_TYPE: one factor's winding is 300000-smooth, the other is not
+  ⊡ WIND_BRIDGE: gcd(a^M - 1, n) crosses to the bridged factor
+  1517 = 37 × 41   read off the winding-bridge
+⊙> oneshot_prime_winder 1517
+F
+⊙> dyn_nest 1517
+oneshot[winder] verdict: F (composite) — proceeding to dynamic nesting
+Searching optimal nesting depth for N (4 digits), max_d=8
+  d=1: word=⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⊣ (period=12)
+  → CLOSURE at d=1! factor = 37
+  Witness: c=249 (depth-d closure seed).
+  Result: μ∘δ = id at depth 1 with non-trivial fold.
+⊙> prime_winding factor 1517
+prime_winding factor 1517: 1517 = 37 × 41
+⊙> prime_winding cycle 1517
+prime_winding cycle — ROTAT orbit of ⊢⊙∈≻⊤⋈≺⊥⊞∋⊡⋈⊙⊣
+  period: 14
+  phase-bearing: true
+  distinct landings: 4 (A, Ftf, tf, T)
+  landing register by cut:
+    k =  0  A
+    k =  1  A
+    k =  2  A
+    k =  3  Ftf
+    k =  4  Ftf
+    k =  5  Ftf
+    k =  6  Ftf
+    k =  7  Ftf
+    k =  8  tf
+    k =  9  T
+    k = 10  T
+    k = 11  A
+    k = 12  A
+    k = 13  A
+
+⊙> quit
+Halting. μ∘δ=id.
+[SHUTDOWN] μ∘δ=id. Goodbye.
+nested hosted executable: process ⊢∈≻⋈⊙⊤≻⋈⊥≺⋈⊞∋⊡⋈⊙⊣
+  IMASM entry nesting depth=64; executable mark ticks=17
+nested hosted kernel reached its terminal anchor
