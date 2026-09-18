@@ -34,15 +34,6 @@ GPU commands need an exposed CUDA device; CPU and Vox commands work without one.
 ## Useful commands
 
 ```text
-help
-fibqc help
-vox help
-gpu16_3 verify [n] [device]
-gpu_sixteen3_tensor_kernel [n]
-gpu_crystal_full_space
-abc stream [eps] <cutoff...>
-abc closure [eps] <cutoff...>
-abc champions [eps] <max_c>
 ig                     IG tuple + crystal address
 classify               Nearest-catalog classification
 frob                   Frobenius harness status
@@ -244,18 +235,18 @@ dyn_nest               Optimal oneshot nesting depth: the least depth at which t
 yz                     Yamakawa-Zhandry verifiable-quantum-advantage retranslation (r/c/Inc) run as real code, not read as a document
 yz_list                Theorem 11.1's L-list mechanism from the YZ-retranslation, run for real rather than left open
 anyon-sync             Dialetheic FOUR-valued Carrier16 register walked over THE_WORD, showing where the T/F/t/f lanes sync (alias: anyon_sync)
-prime_winding grounded_add a+b plus every operand's own real Grammar-native type, sourced from imscribe generate grounding through digit_type_tensor, not read off the arithmetic
-prime_winding grounded_mul a*b plus every operand's own real Grammar-native type, same grounding as grounded_add
-prime_winding grounded_sub a-b plus every operand's own real Grammar-native type, same grounding as grounded_add
-prime_winding grounded_mod a mod b plus every operand's own real Grammar-native type, same grounding as grounded_add
-prime_winding grounded_divmod a=q*b+r plus all four numbers' own real Grammar-native type, same grounding as grounded_add
-prime_winding grounded_gcd gcd(a,b) plus every operand's own real Grammar-native type, same grounding as grounded_add
-prime_winding grounded_factor N's real prime factorization plus N's and every distinct factor's own real Grammar-native type
-gpu_catalog_crystal    Batch the real catalog's crystal addresses on GPU: fixed-width crystal encode over every live entry
-gpu_crystal_full_space Checks phase_5's 17.28-million-entry Crystal type-space claim at its actual scale, not just the live catalog
-gpu_imasm_cycle        The full imasm-cycle round trip, forward and reverse legs, batched on GPU
-gpu_ipc_no_serialization Measures phase_5's no-serialization IPC claim for real, both paths run and compared
-gpu_sixteen3_tensor_kernel The sixteen3_gpu_tensor_kernel ob3ect's own batched-register protocol shape, not the flat per-lane version
+prime_winding grounded_add a+b
+prime_winding grounded_mul a*b
+prime_winding grounded_sub a-b
+prime_winding grounded_mod a mod b
+prime_winding grounded_divmod a=q*b+r 
+prime_winding grounded_gcd gcd(a,b)
+prime_winding grounded_factor
+gpu_catalog_crystal
+gpu_crystal_full_space
+gpu_imasm_cycle
+gpu_ipc_no_serialization 
+gpu_sixteen3_tensor_kernel 
 ```
 
 `--json` forms feed the Lean certificate scripts; champion traces enumerate
