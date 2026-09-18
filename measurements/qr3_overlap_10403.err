@@ -1,0 +1,19 @@
+bash: cannot set terminal process group (995556): Inappropriate ioctl for device
+bash: no job control in this shell
+gpu_gnfs: bits=14 B=2000 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=5 coeff_score=7 f(m)=N — g(x)=x - 20
+gpu_gnfs ⊢/alfs: B=2000 |rat|=303 |alg|=296 ncols=600
+gpu_gnfs ≻ GPU: cached PTX → target/gnfs_smooth_169dd4adeb9c5361.ptx
+gpu_gnfs ≻ GPU classical log-line |A|=16000 Bmax=4000 fudge=13.682 mark=exact+log on device 0 (RTX 4070)
+gpu_gnfs ≻ hit tables: rat=378 alg=352 prep=0ms (once, not per tile)
+gpu_gnfs ≻ tile 1/7: relations=0/633 cells=19968624 gpu_ms=592 host_verify_ms_cum=0 survivors_queued=137900 (rat≈378 alg≈352)
+gpu_gnfs ≻ tile 2/7: relations=633/633 cells=39937248 gpu_ms=562 host_verify_ms_cum=3 survivors_queued=91194 (rat≈378 alg≈352)
+gpu_gnfs ≻ host drain: survivors=0 relations=633 verify_ms=0
+gpu_gnfs ≻ GPU log-line done: cells=39937248 hit-launches=4 gpu_ms=1154 host_verify_ms=3 wall_ms=1172 relations=633/633
+gpu_gnfs ≻ sieve: pairs=30477 relations=633/633 |A|=16000 Bmax=4000 ncols=600 gpu=true device=0 gpu_ms=1154 cells=39937248
+gpu_gnfs ⋈≻: 633 relations → 64 dependencies
+gpu_gnfs ∋⊤: factor 101 via dep [6,36,64,76,80,97,130,133,161,163,170,172,188,190,198,206,207,213,215,217,223,236,244,264,265,268,271,274,299,300,301,302,307,308,314,317,319,322,324,327,329,342,347,350,364,367,370,374,378,379,380,391,394,407,421,427] (x=8484 y=0)
+
+real	0m2.633s
+user	0m2.401s
+sys	0m0.155s

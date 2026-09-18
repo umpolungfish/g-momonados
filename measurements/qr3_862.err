@@ -1,0 +1,41 @@
+bash: cannot set terminal process group (990832): Inappropriate ioctl for device
+bash: no job control in this shell
+gpu_gnfs: bits=862 B=10000 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈7 — ⊢ opening
+gpu_gnfs ⊙: d=7 m_bits=124 coeff_score=732 f(m)=N — g(x)=x - 11200435033649908259828598718744796845
+gpu_gnfs ⊢/alfs: B=10000 |rat|=1229 |alg|=1254 ncols=2484
+gpu_gnfs ≻ GPU: cached PTX → target/gnfs_smooth_169dd4adeb9c5361.ptx
+gpu_gnfs ≻ GPU classical log-line |A|=20000 Bmax=20000 fudge=16.579 mark=log|norm| on device 0 (RTX 4070)
+gpu_gnfs ≻ tile 1/41: relations=0/2623 cells=19960499 batch-launches=2 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 2/41: relations=0/2623 cells=39920998 batch-launches=4 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 3/41: relations=0/2623 cells=59881497 batch-launches=6 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 4/41: relations=0/2623 cells=79841996 batch-launches=8 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 5/41: relations=0/2623 cells=99802495 batch-launches=10 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 6/41: relations=0/2623 cells=119762994 batch-launches=12 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 7/41: relations=0/2623 cells=139723493 batch-launches=14 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 8/41: relations=0/2623 cells=159683992 batch-launches=16 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 9/41: relations=0/2623 cells=179644491 batch-launches=18 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 10/41: relations=0/2623 cells=199604990 batch-launches=20 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 11/41: relations=0/2623 cells=219565489 batch-launches=22 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 12/41: relations=0/2623 cells=239525988 batch-launches=24 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 13/41: relations=0/2623 cells=259486487 batch-launches=26 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 14/41: relations=0/2623 cells=279446986 batch-launches=28 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 15/41: relations=0/2623 cells=299407485 batch-launches=30 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 16/41: relations=0/2623 cells=319367984 batch-launches=32 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 17/41: relations=0/2623 cells=339328483 batch-launches=34 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 18/41: relations=0/2623 cells=359288982 batch-launches=36 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 19/41: relations=0/2623 cells=379249481 batch-launches=38 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 20/41: relations=0/2623 cells=399209980 batch-launches=40 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 21/41: relations=0/2623 cells=419170479 batch-launches=42 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 22/41: relations=0/2623 cells=439130978 batch-launches=44 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 23/41: relations=0/2623 cells=459091477 batch-launches=46 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 24/41: relations=0/2623 cells=479051976 batch-launches=48 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 25/41: relations=0/2623 cells=499012475 batch-launches=50 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 26/41: relations=0/2623 cells=518972974 batch-launches=52 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 27/41: relations=0/2623 cells=538933473 batch-launches=54 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 28/41: relations=0/2623 cells=558893972 batch-launches=56 (rat_primes≈1311 alg_primes≈1351)
+gpu_gnfs ≻ tile 29/41: relations=0/2623 cells=578854471 batch-launches=58 (rat_primes≈1311 alg_primes≈1351)
+bash: [990834: 3 (255)] tcsetattr: Inappropriate ioctl for device
+
+real	0m46.657s
+user	0m0.011s
+sys	0m0.002s

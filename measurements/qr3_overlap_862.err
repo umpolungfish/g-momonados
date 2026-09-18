@@ -1,0 +1,34 @@
+bash: cannot set terminal process group (995948): Inappropriate ioctl for device
+bash: no job control in this shell
+gpu_gnfs: bits=862 B=10000 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈7 — ⊢ opening
+gpu_gnfs ⊙: d=7 m_bits=124 coeff_score=732 f(m)=N — g(x)=x - 11200435033649908259828598718744796845
+gpu_gnfs ⊢/alfs: B=10000 |rat|=1229 |alg|=1254 ncols=2484
+gpu_gnfs ≻ GPU: cached PTX → target/gnfs_smooth_169dd4adeb9c5361.ptx
+gpu_gnfs ≻ GPU classical log-line |A|=20000 Bmax=20000 fudge=16.579 mark=log|norm| on device 0 (RTX 4070)
+gpu_gnfs ≻ hit tables: rat=1311 alg=1351 prep=1ms (once, not per tile)
+gpu_gnfs ≻ tile 1/41: relations=0/2623 cells=19960499 gpu_ms=1594 host_verify_ms_cum=0 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 2/41: relations=0/2623 cells=39920998 gpu_ms=1590 host_verify_ms_cum=13 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 3/41: relations=0/2623 cells=59881497 gpu_ms=1561 host_verify_ms_cum=24 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 4/41: relations=0/2623 cells=79841996 gpu_ms=1581 host_verify_ms_cum=35 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 5/41: relations=0/2623 cells=99802495 gpu_ms=1556 host_verify_ms_cum=46 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 6/41: relations=0/2623 cells=119762994 gpu_ms=1576 host_verify_ms_cum=57 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 7/41: relations=0/2623 cells=139723493 gpu_ms=1554 host_verify_ms_cum=68 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 8/41: relations=0/2623 cells=159683992 gpu_ms=1573 host_verify_ms_cum=80 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 9/41: relations=0/2623 cells=179644491 gpu_ms=1571 host_verify_ms_cum=91 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 10/41: relations=0/2623 cells=199604990 gpu_ms=1494 host_verify_ms_cum=102 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 11/41: relations=0/2623 cells=219565489 gpu_ms=1480 host_verify_ms_cum=112 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 12/41: relations=0/2623 cells=239525988 gpu_ms=1478 host_verify_ms_cum=122 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 13/41: relations=0/2623 cells=259486487 gpu_ms=1475 host_verify_ms_cum=132 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 14/41: relations=0/2623 cells=279446986 gpu_ms=1478 host_verify_ms_cum=142 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 15/41: relations=0/2623 cells=299407485 gpu_ms=1522 host_verify_ms_cum=152 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 16/41: relations=0/2623 cells=319367984 gpu_ms=1578 host_verify_ms_cum=163 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 17/41: relations=0/2623 cells=339328483 gpu_ms=1581 host_verify_ms_cum=174 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 18/41: relations=0/2623 cells=359288982 gpu_ms=1587 host_verify_ms_cum=185 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 19/41: relations=0/2623 cells=379249481 gpu_ms=1595 host_verify_ms_cum=196 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 20/41: relations=0/2623 cells=399209980 gpu_ms=1586 host_verify_ms_cum=207 survivors_queued=0 (rat≈1311 alg≈1351)
+gpu_gnfs ≻ tile 21/41: relations=0/2623 cells=419170479 gpu_ms=1548 host_verify_ms_cum=218 survivors_queued=0 (rat≈1311 alg≈1351)
+bash: [995949: 3 (255)] tcsetattr: Inappropriate ioctl for device
+
+real	0m35.363s
+user	0m0.003s
+sys	0m0.009s

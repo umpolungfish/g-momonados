@@ -1,0 +1,8 @@
+gpu_gnfs: bits=14 B=500 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=5 coeff_score=7 f(m)=N — g(x)=x - 20
+gpu_gnfs ⊢/alfs: B=500 |rat|=95 |alg|=91 ncols=187
+gpu_gnfs ≻ GPU sieve grid |A|=4000 Bmax=1000 on device 0
+gpu_gnfs ≻ GPU grid: tested 8001000 pairs → 2560286 rational-smooth survivors
+gpu_gnfs ≻ sieve: pairs=8001000 relations=219/219 |A|=4000 Bmax=1000 ncols=187 gpu=true
+gpu_gnfs ⋈≻: 219 relations → 64 dependencies
+gpu_gnfs ∋⊤: factor 101 via dep [5,9,11,13,16,18,26,29,30,31,33,39,45,54,59,60,61,63,65,67,68,70,71,77,78,80,82,85,90,91,92,96,110,111,112,121,122,123,124,125,128,130,136,137] (x=8181 y=0)
