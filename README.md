@@ -46,39 +46,39 @@ algebra                distance|meet|join|tensor vs ZFC
 cl8nk                  CLINK Layer 8: cl8nk <action> [name]
 c4                     Belnap C₄ complex plane (i²=B)
 cscore                 Consciousness score (dual-gate)
-constants              MoDoT constant closure: fine-structure, proton-electron, lepton, boson, gravity
+constants              MoDoT constant closure
 ovm                    OVM Computation Tools
-oneshots               the 10 exotic fixed-point nestings: inner already at outer's fixed point
-ctc                    nest a value in an action; closure imposed where the action has none, priced by the width it smears
-collatz                the Collatz block nesting: blocks to one, the budget spectrum, and the records
-straus                 the Erdős–Straus ladder: which rung r closes 4/n, and the spectrum across a range
-nesting                read a point against a map: q=r2/r1 splits attracted from never-arrives where one gap cannot
-carriers               census of the mu-delta=id carriers by class: one fixed point seen many ways, or a family
-substrate              closure constant, content bifurcating: the conservative substrate read on both observables
+oneshots               the 10 exotic fixed-point nestings
+ctc                    nest a value in an action
+collatz                the Collatz block nesting
+straus                 the Erdős–Straus ladder
+nesting                read a point against a map
+carriers               census of the mu-delta=id carriers by class
+substrate              closure constant, content bifurcating
 stark                  Stark unit extraction: formula,fibqc,tower,exponents,verify
 riemann                Riemann-SIC report; sub-actions available
 distance               Hamming + weighted distance vs the ZFC baseline tuple (alias dist)
 join                   join of the active IG tuple with the ZFC baseline
 sigma                  sigma <n> — analyze the Sigma(n) divisor ring
-ringspec               ringspec <w1> <w2> <w3> — the spectrum of a ring, in integers: bond weights around a cycle, clean bond 1, cross-link its reaction centres; three is the minimum
+ringspec               ringspec <w1> <w2> <w3> — the spectrum of a ring, in integers
 clay                   Clay Millennium structural status (machine-checked)
 psm                    dialetheic alignment + measurement tests
 entropy                entropy experiment: dS vs tier promotion
 invariant              Discover invariants under transformations: ROTAT, IMSCRIB, FSPLIT/FFUSE
-redteam                Adversarial testing: analyze|stress|mutate, and audit <theory> for hidden assumptions
+redteam                Adversarial testing
 witness                Smallest executable object standing behind a claim
-counterfactual         Perturb one glyph: invariants held/broken, reversibility, smallest repair (alias cf)
-basin                  Fixed-point archaeology: orbit, attractor, transient depth, exact basin size
-ouroboros-inverse      Inverse grammar: shortest IMASM word imscribing a tuple, plus its braid (alias oinv)
+counterfactual         Perturb one glyph
+basin                  Fixed-point archaeology
+ouroboros-inverse      Inverse grammar
 frobenius-fuzzer       Mine the word space for programs the braid reproduces exactly (alias fuzz)
-oracle                 Adversarial: hunt the cheapest structural counterexample; surviving is not proof
+oracle                 Adversarial
 blackbox               Infer a law from integer observations, ranked by fit minus complexity
-dialetheic-compiler    Lift a classical gate into Belnap FOUR; show where a row rests on a paradox
+dialetheic-compiler    Lift a classical gate into Belnap FOUR
 stark-geometer         SIC Stark arithmetic for dimension d: m_d, unit, ramified primes
 dialect-necromancer    Imscribe a fragment and recover its nearest catalog ghost
 braid-apocrypha        Search braid words for a target Jones magnitude; first hit is shortest
 proof-braider          Lift a claim to a braid and back; PASS iff Frobenius closure survives
-universe-wormhole      Minimum gate-space path between two hop frameworks, as a braid + Jones
+universe-wormhole      Minimum gate-space path between dialects, as a braid + Jones
 vox-ce                 Lift EVM/WASM hex into an IMASM word and verdict its control-flow closure
 consciousness-lath     Single-axis mutation that most raises the C-score with both gates open
 paradox-engine         Hunt words that are dialetheias by four readings at once (B, price, gate1, C=0)
