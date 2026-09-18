@@ -1,10 +1,11 @@
-# G-mOMonadOS
+# G-mOMonadOS{$G-m⊙^2$}
 
 ![Rust](https://img.shields.io/badge/language-Rust-CE422B?style=for-the-badge&logo=rust&logoColor=white)
 ![GPU](https://img.shields.io/badge/CUDA-GPU%20path-76B900?style=for-the-badge&logo=nvidia)
 ![License](https://img.shields.io/badge/license-Unlicense-1A1A1A?style=for-the-badge)
 
-G-mOMonadOS is the hosted, GPU-native build of the mOMonadOS architecture.
+$G-m⊙^2$ is the hosted, GPU-native build of the $m⊙^2$ architecture.
+
 It runs the Imscribing Grammar, IMASM words, trilattice state, quantum and
 Vox tooling, and ABC/IUTT measurement readers from one Rust executable.
 
@@ -15,10 +16,14 @@ THINK → ACT → OBSERVE → UPDATE
 ```
 
 The hosted runtime enters through one recursively enclosed IMASM process vessel.
+
 Each REPL command is admitted into that vessel, executes at its inner action
-leaf, and emits through its terminal surface. The Crystal is the Grammar's
-finite address space; the trilattice retains truth, falsity, information, and
-held states. The GPU path batches the same gate operations as the CPU reference.
+leaf, and emits through its terminal surface. 
+
+The Crystal is the Grammar's finite address space; the trilattice retains truth, falsity, information, and
+held states.
+
+The GPU path batches the same gate operations as the CPU reference.
 
 ## Start here
 
@@ -240,9 +245,7 @@ gpu_imasm_cycle
 gpu_ipc_no_serialization 
 gpu_sixteen3_tensor_kernel 
 ```
-
-`--json` forms feed the Lean certificate scripts; champion traces enumerate
-displacement events. See `docs/abc_champions_trilattice.md` for the format.
+---
 
 ## Repository map
 
