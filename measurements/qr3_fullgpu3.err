@@ -1,0 +1,76 @@
+bash: cannot set terminal process group (1002957): Inappropriate ioctl for device
+bash: no job control in this shell
+gpu_gnfs: bits=14 B=2000 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=5 coeff_score=7 f(m)=N — g(x)=x - 20
+gpu_gnfs ≻ host: building factor bases (CPU)…
+gpu_gnfs ⊢/alfs: B=2000 |rat|=303 |alg|=296 ncols=600 (16 ms CPU)
+gpu_gnfs ≻ device: classical log-line sieve (GPU)…
+gpu_gnfs ≻ GPU: cached PTX → target/gnfs_smooth_169dd4adeb9c5361.ptx
+gpu_gnfs ≻ GPU classical log-line |A|=16000 Bmax=4000 fudge=13.682 mark=exact+log on device 0 (RTX 4070)
+gpu_gnfs ≻ hit tables: rat=378 alg=352 prep=0ms (once, not per tile)
+gpu_gnfs ≻ tile 1/7: relations=0/633 cells=19968624 gpu_ms=619 host_verify_ms_cum=0 survivors_queued=137900 (rat≈378 alg≈352)
+gpu_gnfs ≻ tile 2/7: relations=633/633 cells=39937248 gpu_ms=568 host_verify_ms_cum=3 survivors_queued=91194 (rat≈378 alg≈352)
+gpu_gnfs ≻ host drain: survivors=0 relations=633 verify_ms=0
+gpu_gnfs ≻ GPU log-line done: cells=39937248 hit-launches=4 gpu_ms=1187 host_verify_ms=3 wall_ms=1205 relations=633/633
+gpu_gnfs ≻ sieve: pairs=30477 relations=633/633 |A|=16000 Bmax=4000 ncols=600 gpu=true device=0 gpu_ms=1187 cells=39937248
+gpu_gnfs ⋈≻ GPU: cached PTX → target/gnfs_linalg_bce47118b1cc5aba.ptx
+gpu_gnfs ⋈≻ device: GF(2) GE 633×600 on device 0…
+gpu_gnfs ⋈≻ device: 64 dependencies from nullspace
+gpu_gnfs ⋈≻: 633 relations → 64 dependencies (160 ms, gpu=true)
+gpu_gnfs ⋈≻ GPU: cached PTX → target/gnfs_linalg_bce47118b1cc5aba.ptx
+gpu_gnfs ∋ device: φ-congruence 64 deps on device 0 (N=10403)…
+gpu_gnfs ∋⊤: factor 101 via dep [24,29,30,36,47,49,53,62,88,102,106,128,142,145,156,158,159,161,163,173,176,184,188,192,201,204,205,206,211,214,220,226,230,236,239,248,249,250,251,256,259,264,275,278,279,283,285,288,290,292,293,295,298,302,304,308,311,312,318,325,326,328,331,333,335,338,347,349,351,353,361,365,366,379,383,392,397,398,404,420,421,435,448,451,459,464,481,483,493,497,502,512,513,517,522,526,536,544,547,549,551,552,554,559,564,566,567,571,575,578,579,584,585,586,598,603,609,615,621,624,627,628] (x=7070 y=0) (161 ms, gpu=true)
+
+real	0m1.977s
+user	0m1.315s
+sys	0m0.244s
+bash: cannot set terminal process group (1002957): Inappropriate ioctl for device
+bash: no job control in this shell
+gpu_gnfs: bits=11 B=40 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=3 coeff_score=8 f(m)=N — g(x)=x - 6
+gpu_gnfs ≻ host: building factor bases (CPU)…
+gpu_gnfs ⊢/alfs: B=40 |rat|=12 |alg|=20 ncols=33 (0 ms CPU)
+gpu_gnfs ≻ device: classical log-line sieve (GPU)…
+gpu_gnfs ≻ GPU: cached PTX → target/gnfs_smooth_169dd4adeb9c5361.ptx
+gpu_gnfs ≻ GPU classical log-line |A|=320 Bmax=80 fudge=6.640 mark=exact+log on device 0 (RTX 4070)
+gpu_gnfs ≻ hit tables: rat=34 alg=39 prep=0ms (once, not per tile)
+gpu_gnfs ≻ tile 1/1: relations=0/66 cells=51280 gpu_ms=1 host_verify_ms_cum=0 survivors_queued=294 (rat≈34 alg≈39)
+gpu_gnfs ≻ host drain: survivors=81 relations=66 verify_ms=0
+gpu_gnfs ≻ GPU log-line done: cells=51280 hit-launches=2 gpu_ms=1 host_verify_ms=0 wall_ms=1 relations=66/66
+gpu_gnfs ≻ sieve: pairs=4135 relations=66/66 |A|=320 Bmax=80 ncols=33 gpu=true device=0 gpu_ms=1 cells=51280
+gpu_gnfs ⋈≻ GPU: cached PTX → target/gnfs_linalg_bce47118b1cc5aba.ptx
+gpu_gnfs ⋈≻ device: GF(2) GE 66×33 on device 0…
+gpu_gnfs ⋈≻ device: 35 dependencies from nullspace
+gpu_gnfs ⋈≻: 66 relations → 35 dependencies (159 ms, gpu=true)
+gpu_gnfs ⋈≻ GPU: cached PTX → target/gnfs_linalg_bce47118b1cc5aba.ptx
+gpu_gnfs ∋ device: φ-congruence 35 deps on device 0 (N=1147)…
+gpu_gnfs ∋⊤: factor 37 via dep [0,1,2,3,9,16,19,25,31,34,64] (x=407 y=481) (153 ms, gpu=true)
+
+real	0m0.644s
+user	0m0.103s
+sys	0m0.212s
+bash: cannot set terminal process group (1002957): Inappropriate ioctl for device
+bash: no job control in this shell
+gpu_gnfs: bits=11 B=40 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=4 coeff_score=8 f(m)=N — g(x)=x - 10
+gpu_gnfs ≻ host: building factor bases (CPU)…
+gpu_gnfs ⊢/alfs: B=40 |rat|=12 |alg|=12 ncols=25 (0 ms CPU)
+gpu_gnfs ≻ device: classical log-line sieve (GPU)…
+gpu_gnfs ≻ GPU: cached PTX → target/gnfs_smooth_169dd4adeb9c5361.ptx
+gpu_gnfs ≻ GPU classical log-line |A|=320 Bmax=80 fudge=6.640 mark=exact+log on device 0 (RTX 4070)
+gpu_gnfs ≻ hit tables: rat=34 alg=21 prep=0ms (once, not per tile)
+gpu_gnfs ≻ tile 1/1: relations=0/58 cells=51280 gpu_ms=1 host_verify_ms_cum=0 survivors_queued=58 (rat≈34 alg≈21)
+gpu_gnfs ≻ host drain: survivors=58 relations=58 verify_ms=0
+gpu_gnfs ≻ GPU log-line done: cells=51280 hit-launches=2 gpu_ms=1 host_verify_ms=0 wall_ms=1 relations=58/58
+gpu_gnfs ≻ sieve: pairs=46463 relations=58/58 |A|=320 Bmax=80 ncols=25 gpu=true device=0 gpu_ms=1 cells=51280
+gpu_gnfs ⋈≻ GPU: cached PTX → target/gnfs_linalg_bce47118b1cc5aba.ptx
+gpu_gnfs ⋈≻ device: GF(2) GE 58×25 on device 0…
+gpu_gnfs ⋈≻ device: 33 dependencies from nullspace
+gpu_gnfs ⋈≻: 58 relations → 33 dependencies (163 ms, gpu=true)
+gpu_gnfs ⋈≻ GPU: cached PTX → target/gnfs_linalg_bce47118b1cc5aba.ptx
+gpu_gnfs ∋ device: φ-congruence 33 deps on device 0 (N=1517)…
+gpu_gnfs ∋⊤: factor 37 via dep [0,2,12,14,15,17,25,33,37] (x=518 y=1332) (169 ms, gpu=true)
+
+real	0m0.623s
+user	0m0.133s
+sys	0m0.183s

@@ -1,0 +1,745 @@
+//! Trilattice-native factorization — ob3ect-backed kernel tool.
+//!
+//! The artifact "Trilattice-native factorization" is a verified ob3ect whose
+//! glyph word `⊢≻⊙∈⊤⋈⊥≺⊞⊡∋⋈⊣` grounds each of the twelve marks to a role in
+//! factoring a number:
+//!
+//!   ⊢ VINIT   void_bulk                the empty register before scale-collapse
+//!   ≻ AFWD    scale_ascent             one forward step up the number line
+//!   ⊙ IMSCRIB critical_phase           the self-reference checkpoint
+//!   ∈ FSPLIT  asymmetric_factorization the fork: n splits into two unequal poles
+//!   ⊤ EVALT   kinetic_freeze           the frozen pole, held on the fork's T arm
+//!   ⋈ CLINK   fidelity_chain           carry
+//!   ⊥ EVALF   polarity_interface       the moving pole, held on the fork's F arm
+//!   ≺ AREV    chiral_descent           the descent that clears the open register
+//!   ⊞ ENGAGR  transition_stabilization the both-state holding the accumulated pair
+//!   ⊡ IFIX    cluster_propagation      the winding commit, the one fixation
+//!   ∋ FFUSE   winding_reconstitution   the fuse: the two poles rejoin as a factor
+//!   ⋈ CLINK   fidelity_chain           carry
+//!   ⊣ TANCH   hierarchical_container   the closed boundary
+//!
+//! What this tool reads off the word, and what it does not.
+//!
+//! The reading is real and checkable. Run the word as a ring and its landing
+//! register is `tf` at every cut but one; the single exception is the cut led
+//! by the winding fixation ⊡, which commits to a clean `T`. That single-commit
+//! cut is the ob3ect's cluster_propagation event, and it survives the control:
+//! scrambling the marks smears the commit across several cuts, so the
+//! one-commit-per-winding reading is in the word's arrangement, not the marks.
+//! The fork ∈ (asymmetric_factorization) banks its two poles, the T pole
+//! (kinetic_freeze) and the F pole (polarity_interface), so they survive the
+//! chiral descent ≺ that clears the open register, and fuse at ∋
+//! (winding_reconstitution). That is the factor pair held across the descent,
+//! read straight from `weight` / `cycle`.
+//!
+//! The divisor search is not the word. As `prime_winding` establishes at
+//! length against concrete counterexamples, closure alone never produces a
+//! divisor: a bounded per-mark reading sees a bounded pattern in the digits,
+//! and a factor is a global fact about divisibility. So the actual factoring
+//! here IS `prime_winding`'s search, called directly, never re-copied. This
+//! module carries the trilattice reading of the number and of the word; the
+//! arithmetic that splits n lives one place, next door.
+//!
+//! The winding route closes part of that gap. `winding` reads the factor off a
+//! real winding: the multiplicative order r of a base a mod n, the ROTAT period
+//! of the ring a generates, from which gcd(a^(r/2) ± 1, n) splits n. That is
+//! Shor's classical core, native to the SIC-phase structure this codebase runs
+//! on (belnap_phase_shor), and it is the factor read from a winding rather than
+//! from a rho search. It runs at arbitrary precision, carrying the full residue
+//! at every step. The order search is the table-free leaping search of the
+//! ob3ect `table_free_winding_by_leaping`: two leapers cross the ring in large
+//! pseudo-random jumps and are known by where their paths meet, the ∈ fork
+//! setting them and the ∋ fuse resolving their crossing, so the winding comes
+//! back in about sqrt(order) leaps holding only the two leapers, no table. The
+//! large jump is load-bearing: a small uniform stride would drift a full order
+//! instead of meeting early. There is no memory cap; the only limit is a leap-
+//! step time budget.
+//!
+//! The number and the winding both enter the Grammar's own marks now. `read`
+//! shows n's native parity-graded word (Native IMASM-Numeral Mapping), the
+//! bijective encoding, beside the hex one; and when the winding route finds an
+//! order r, it records r as its own native numeral, the ⊡ immutable_record of
+//! the winding value.
+//!
+//! The rung once standing here, closed: parity, the Z2 grade the native word
+//! carries, does not determine the order by itself — many powers a^k mod n
+//! share a parity, so on n=19,a=8 (order 6) and n=61,a=21 (order 12) the
+//! parity sequence closes on a shorter cycle (2 and 4) than the true order.
+//! `trilattice_factor dialect-probe` swept all 88 cross-dialect gates against
+//! the same residues and found DIALECT_REGISTER: 12 dialects whose gate-pass
+//! sequence reached the exact true order on all four cases checked (those two
+//! plus n=143,a=3 and n=91,a=2), where parity fell short on the first two.
+//! `read` now reports that register alongside the parity word. It replaces
+//! parity's wrong answer with a correct one; it is not a faster one — each
+//! gated axis is a fixed 3-to-5-value enum (imas_ig::IgPrim), so no single
+//! reading, or handful, can carry an order of arbitrary size. Recovering the
+//! order still costs observing enough of the register's own period, same as
+//! it did with parity, just now landing on the right period instead of a
+//! spurious short one.
+//!
+//! Subcommands:
+//!   trilattice_factor word            the canonical glyph word and its marks
+//!   trilattice_factor cert            the winding-commit certificate of the word
+//!   trilattice_factor read <n>        the trilattice reading of n's digit word
+//!   trilattice_factor winding <n> [a] factor n off a multiplicative-order winding
+//!   trilattice_factor factor <n>      factor n (arbitrary precision) with the reading
+//!   trilattice_factor dialect-probe <n> <a> [max_k]  gate-pass period vs. parity's, over a^k mod n
+//!   trilattice_factor help            list subcommands
+
+use alloc::string::String;
+use alloc::format;
+use num_bigint::BigUint;
+use num_traits::{One, Zero};
+use imasm_core::lattice_flow::cycle_landings;
+use crate::prime_winding::{digit_encode, factor_bounded, big_gcd};
+use crate::native_numeral::encode as native_encode;
+
+/// Bases tried for the order winding, small units first. Any base sharing a
+/// factor with n is a collision that hands the factor over directly; the
+/// others are asked for their multiplicative order.
+const WINDING_BASES: [u64; 10] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+
+/// The 12 dialects (of 88) whose gate-pass sequence reached the exact true
+/// multiplicative order of a mod n, checked via `dialect-probe` on four cases
+/// (n=143,a=3,r=15; n=91,a=2,r=12; n=19,a=8,r=6; n=61,a=21,r=12), the last two
+/// built specifically so the native parity grade's own period (2 and 4) came
+/// in short of the true order — the exact gap this module's reading route
+/// once named as open. See the module doc comment above.
+pub const DIALECT_REGISTER: [u8; 12] = [9, 25, 32, 35, 40, 43, 52, 54, 66, 72, 76, 83];
+
+/// Leap steps the search takes before giving a base up. This is a TIME budget,
+/// not a memory one: the leaping search holds only the two leapers, no table, so
+/// nothing grows with the winding. A meeting arrives in about sqrt(order) leaps,
+/// so this reach covers orders up to roughly its square.
+const LEAP_STEPS: u64 = 80_000_000;
+
+/// Number of precomputed jumps the leaper draws from. The leap taken at a point
+/// is chosen by that point, so the walk is a deterministic function and two
+/// leapers on it must eventually meet.
+const LEAP_BUCKETS: usize = 32;
+
+/// A positive multiple of the multiplicative order of `a` modulo `n`, found by
+/// the table-free leaping search of the ob3ect `table_free_winding_by_leaping`
+/// (word ⊢∈≻⋈≻⋈⊥⋈≻⋈≻⋈⊤⊞≺⊡∋⊙⊣). The loop is the ring `a` generates. ∈ sets two
+/// leapers on it. ≻ is a leap of LARGE pseudo-random distance drawn from the
+/// current point, x -> x·a^{s(x)}, not a small stride; ⋈ accumulates the leap
+/// distance into each leaper's exponent. ⊥ is the drift while they have not met;
+/// ⊤ is the meeting x_slow = x_fast; ⊞ holds the meeting where the two carry
+/// different accumulated distances at the same point; ≺ takes their difference,
+/// which the closed loop makes a whole multiple of the winding; ⊡ fixes it.
+///
+/// The large jump is the load-bearing part: leaps that wander the whole loop
+/// meet by the birthday count in about sqrt(order) steps, where a small uniform
+/// stride would only drift and take a full order to return. Memory is the two
+/// leapers and the precomputed jumps, nothing that grows with the order, so
+/// there is no table and no cap on reach beyond the leap-step time budget.
+fn order_multiple_leaping(a: &BigUint, n: &BigUint, steps: u64) -> Option<BigUint> {
+    use alloc::vec::Vec;
+    use crate::native_numeral::{add_via_word, mod_pow_walk, modulo_via_word, multiply_via_word, subtract_via_word, to_bits_low_first};
+    let one = BigUint::one();
+    let a = modulo_via_word(a, n).unwrap();
+    if a == one { return Some(one); }
+    // Small pre-walk catches a tiny order directly.
+    let mut v = one.clone();
+    for k in 1..=64u64 {
+        v = modulo_via_word(&multiply_via_word(&v, &a), n).unwrap();
+        if v == one { return Some(BigUint::from(k)); }
+    }
+
+    // The jumps: LARGE pseudo-random exponents s_i, as group elements a^{s_i}.
+    // A step at point x multiplies by the jump its low word selects, and adds
+    // that jump's exponent to the leaper's accumulated distance.
+    let mut jexp: Vec<u64> = Vec::with_capacity(LEAP_BUCKETS);
+    let mut jump: Vec<BigUint> = Vec::with_capacity(LEAP_BUCKETS);
+    let mut seed: u64 = 0x2545F4914F6CDD1D;
+    for _ in 0..LEAP_BUCKETS {
+        seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17; // xorshift
+        let s = (seed >> 1) | 1; // a large odd exponent
+        jexp.push(s);
+        jump.push(mod_pow_walk(&a, &to_bits_low_first(&BigUint::from(s)), n));
+    }
+    let bucket = |x: &BigUint| -> usize {
+        (x.to_u64_digits().first().copied().unwrap_or(0) as usize) % LEAP_BUCKETS
+    };
+
+    let (mut tx, mut te) = (a.clone(), one.clone());      // slow leaper
+    let (mut hx, mut he) = (a.clone(), one.clone());      // fast leaper
+    let mut moved = 0u64;
+    while moved < steps {
+        let bt = bucket(&tx);
+        tx = modulo_via_word(&multiply_via_word(&tx, &jump[bt]), n).unwrap();
+        te = add_via_word(&te, &BigUint::from(jexp[bt]));
+        for _ in 0..2 {
+            let bh = bucket(&hx);
+            hx = modulo_via_word(&multiply_via_word(&hx, &jump[bh]), n).unwrap();
+            he = add_via_word(&he, &BigUint::from(jexp[bh]));
+        }
+        moved += 1;
+        if tx == hx {
+            let d = if te > he { subtract_via_word(&te, &he).unwrap() } else { subtract_via_word(&he, &te).unwrap() };
+            if d > BigUint::zero() { return Some(d); }
+            break; // degenerate, no usable difference
+        }
+    }
+    None
+}
+
+/// The ob3ect's own fixed reference word.
+pub const WORD: &str = "⊢≻⊙∈⊤⋈⊥≺⊞⊡∋⋈⊣";
+pub const PERIOD: usize = 13;
+pub const ARTIFACT: &str = "Trilattice-native factorization";
+/// The ∈/∋ pair the ob3ect reports: the fork and fuse that carry the split.
+pub const FORK_FUSE_PAIR: (usize, usize) = (3, 10);
+/// The mark whose cut commits the register to a clean T: ⊡ IFIX, the winding.
+pub const COMMIT_MARK: char = '⊡';
+
+/// The cuts at which the ring's landing register is a clean `T`, read live
+/// from `cycle_landings`. For the canonical word this is the single cut led
+/// by the winding fixation ⊡; returning the list, not a hardcoded index,
+/// keeps the certificate a measurement rather than a memory.
+fn commit_cuts(word: &str) -> alloc::vec::Vec<usize> {
+    match cycle_landings(word) {
+        Some(landings) => landings
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| r.as_str() == "T")
+            .map(|(k, _)| k)
+            .collect(),
+        None => alloc::vec::Vec::new(),
+    }
+}
+
+/// The glyph the cut k opens on, for naming which mark commits.
+fn mark_at(word: &str, k: usize) -> Option<char> {
+    let chars: alloc::vec::Vec<char> = word.chars().collect();
+    if chars.is_empty() { return None; }
+    Some(chars[k % chars.len()])
+}
+
+pub fn help() -> String {
+    let mut o = String::new();
+    o.push_str("trilattice_factor — ob3ect-backed factorization reading\n");
+    o.push_str("  word          the canonical glyph word and its marks\n");
+    o.push_str("  cert          the winding-commit certificate of the word\n");
+    o.push_str("  read <n>      the trilattice reading of n's digit word\n");
+    o.push_str("  winding <n> [a]  factor n off a multiplicative-order winding (Shor's core)\n");
+    o.push_str("  bridge <n> [B]   factor n off a smooth winding-bridge (⊞/⊡, Pollard p-1)\n");
+    o.push_str("  squares <n>   factor n off a comparable-size bridge (∈, difference of squares)\n");
+    o.push_str("  sieve <n> [B]  factor n off a congruence of squares over a factor base (⊞/⊙)\n");
+    o.push_str("  factor <n>    factor n (arbitrary precision) with the reading\n");
+    o.push_str("  help          this list");
+    o
+}
+
+pub fn word() -> String {
+    format!(
+        "{}\n  word   : {}   period {}\n  fork/fuse pair (asymmetric_factorization / winding_reconstitution): {:?}\n  commit mark (cluster_propagation): {}",
+        ARTIFACT, WORD, PERIOD, FORK_FUSE_PAIR, COMMIT_MARK
+    )
+}
+
+/// The certificate the tool exists to speak: the word commits at exactly the
+/// winding fixation and nowhere else, read from the live orbit.
+pub fn cert() -> String {
+    let mut o = String::new();
+    o.push_str(&format!("word   : {}   period {}\n", WORD, PERIOD));
+    let cuts = commit_cuts(WORD);
+    if cuts.is_empty() {
+        o.push_str("  no clean-T commit cut on this word\n");
+        return o;
+    }
+    o.push_str("  winding-commit cut(s) (register lands clean T):\n");
+    for k in cuts.iter() {
+        match mark_at(WORD, *k) {
+            Some(g) => o.push_str(&format!("    k = {:>2}   led by {}\n", k, g)),
+            None => o.push_str(&format!("    k = {:>2}\n", k)),
+        }
+    }
+    let single_at_commit = cuts.len() == 1 && mark_at(WORD, cuts[0]) == Some(COMMIT_MARK);
+    if single_at_commit {
+        o.push_str("  ONE commit, at the winding fixation ⊡ — the cluster_propagation event.\n");
+        o.push_str("  Every other cut lands tf: the two poles held, not yet committed.");
+    } else {
+        o.push_str("  commit is not isolated to ⊡ on this word.");
+    }
+    o
+}
+
+/// The trilattice reading of the number itself: its digit word and where that
+/// word comes to rest. The number enters the Grammar the same way
+/// `prime_winding` reads it, by digit encoding; this is that reading, not a
+/// factoring claim.
+pub fn read(n: &str) -> String {
+    let dw = digit_encode(n);
+    if dw.is_empty() {
+        return format!("trilattice_factor read {}: not a valid non-negative integer", n);
+    }
+    let landings = cycle_landings(&dw);
+    let mut o = format!("trilattice_factor read {}:\n", n);
+    o.push_str(&format!("  hex-digit word   : {}\n", dw));
+    match landings {
+        Some(l) => {
+            let commits = l.iter().filter(|r| r.as_str() == "T").count();
+            o.push_str(&format!(
+                "  period {}, {} winding-commit cut(s) over the orbit\n",
+                l.len(), commits
+            ));
+        }
+        None => o.push_str("  no IMASM glyphs in the digit word\n"),
+    }
+    // The native parity-graded word: bijective with n, where the hex word is
+    // not. This is the mapping the Native IMASM-Numeral Mapping ob3ect gives.
+    let nw = native_encode(n);
+    o.push_str(&format!("  native word      : {}\n", nw));
+    // DIALECT_REGISTER: n's own tuple checked against the 12 dialects whose
+    // gate-pass sequence reaches the true order where parity alone can fall
+    // short (see module doc comment). One bit per dialect, PASS/FAIL on n's
+    // own word, not on a residue cycle — the register `dialect-probe` sweeps
+    // for order-finding, read here on n directly.
+    let ig = crate::axis_values::word_to_tuple(&nw);
+    o.push_str("  dialect register : ");
+    for &u in DIALECT_REGISTER.iter() {
+        o.push_str(if crate::repl::dialect_all_pass(u, &ig) { "1" } else { "0" });
+    }
+    o.push_str(&format!("  (U{:?})", DIALECT_REGISTER));
+    // n's own tuple was already computed above for the dialect register;
+    // it is a real IgTuple like any other, so it has a crystal address
+    // the same way every Imscription does -- of(17,280,000), not of n's
+    // own magnitude. n's word folds down to this one 12-axis state no
+    // matter how large n is, the same compression a hash gives, so many
+    // different n share an address; the address names which of the
+    // 17,280,000 structural types n's word resolves to, not which number
+    // n is.
+    o.push_str(&format!("\n  crystal address  : {} of {}", ig.crystal_address(), crate::crystal::TOTAL));
+    o
+}
+
+/// The winding route: read the factor straight off a winding, the way the ⊡
+/// commit names, at arbitrary precision. For a base a coprime to n, the
+/// multiplicative order r is the period of the ring a generates under
+/// multiplication mod n, the ROTAT period, carrying the full residue at every
+/// step. When r is even and a^(r/2) is not -1, gcd(a^(r/2) ± 1, n) splits n.
+/// This is Shor's classical core, native to the SIC-phase structure, the factor
+/// read from the winding rather than from a rho search. There is no size bound
+/// on n; the only ceiling is how many steps the order search spends per base
+/// (`ORDER_STEP_BUDGET`), since finding an order classically is an O(order)
+/// walk. A base whose order does not close in budget is given up, and if no
+/// base closes, the number is handed to the rho search, which reaches factors
+/// without needing the order at all.
+pub fn winding(n: &str, a_opt: Option<u64>) -> String {
+    use crate::native_numeral::{add_via_word, divmod_via_word, mod_pow_walk, modulo_via_word, subtract_via_word, to_bits_low_first};
+    let t = n.trim();
+    let nv: BigUint = match t.parse() {
+        Ok(v) => v,
+        Err(_) => return format!("trilattice_factor winding {}: not a non-negative integer", n),
+    };
+    let two = BigUint::from(2u32);
+    if nv < two {
+        return format!("trilattice_factor winding {}: n < 2, no winding", n);
+    }
+    if modulo_via_word(&nv, &two).unwrap().is_zero() {
+        return format!(
+            "trilattice_factor winding {}: {} = 2 × {}   (even, split before any winding)",
+            n, nv, divmod_via_word(&nv, &two).unwrap().0
+        );
+    }
+
+    let bases: alloc::vec::Vec<BigUint> = match a_opt {
+        Some(a) => alloc::vec![BigUint::from(a)],
+        None => WINDING_BASES.iter().map(|&a| BigUint::from(a)).collect(),
+    };
+
+    let one = BigUint::one();
+    let mut o = format!("trilattice_factor winding {}:\n", n);
+    let mut budget_hit = false;
+    for a in bases.iter() {
+        let a = modulo_via_word(a, &nv).unwrap();
+        if a < two { continue; }
+        let g = big_gcd(a.clone(), nv.clone());
+        if g > one {
+            o.push_str(&format!(
+                "  base {} shares a factor: gcd = {} → {} = {} × {}",
+                a, g, nv, g, divmod_via_word(&nv, &g).unwrap().0
+            ));
+            return o;
+        }
+        let d = match order_multiple_leaping(&a, &nv, LEAP_STEPS) {
+            Some(d) => d,
+            None => { budget_hit = true; continue; }
+        };
+        // d is a multiple of the order (a crossing gives a^{d} = 1). Halve while
+        // a^{d/2} = 1, keeping it a multiple, until a^{d/2} is a nontrivial
+        // square root of 1 that splits n.
+        let mut r = d.clone();
+        while modulo_via_word(&r, &two).unwrap().is_zero() {
+            let half = divmod_via_word(&r, &two).unwrap().0;
+            let a_half = mod_pow_walk(&a, &to_bits_low_first(&half), &nv);
+            if a_half == one { r = half; continue; }   // still a multiple, reduce
+            if a_half == subtract_via_word(&nv, &one).unwrap() { break; }          // trivial root, this base fails
+            let p = big_gcd(subtract_via_word(&a_half, &one).unwrap(), nv.clone());
+            let q = big_gcd(add_via_word(&a_half, &one), nv.clone());
+            let nontrivial = p > one && q > one && p < nv && q < nv;
+            if nontrivial {
+                o.push_str(&format!(
+                    "  base {}: winding r = {} (a ROTAT period of {} mod {}, from a leaper crossing)\n",
+                    a, r, a, nv
+                ));
+                o.push_str(&format!(
+                    "  winding fixed as its native numeral (⊡ immutable_record): {}\n",
+                    native_encode(&r.to_str_radix(10))
+                ));
+                o.push_str(&format!(
+                    "  ⊡ ZWIND holonomy: ∮ A = 2π·{}, the integer winding of the orbit loop\n",
+                    r
+                ));
+                let (lo, hi) = if p <= q { (p, q) } else { (q, p) };
+                o.push_str(&format!(
+                    "  a^(r/2) ± 1 splits it: {} = {} × {}   read off the winding, no table",
+                    nv, lo, hi
+                ));
+                return o;
+            }
+            break;
+        }
+    }
+    if budget_hit {
+        o.push_str(&format!(
+            "  no leaper crossing within the walk budget; hand to `trilattice_factor factor {}`",
+            n
+        ));
+    } else {
+        o.push_str(&format!(
+            "  no base in the set gave an even winding with a non-trivial split; hand to `trilattice_factor factor {}`",
+            n
+        ));
+    }
+    o
+}
+
+/// The default smoothness bound for the winding-bridge route.
+const BRIDGE_BOUND: u64 = 300_000;
+
+/// The winding-bridge, the ⊞/⊡ decomposition past the order ceiling. When one
+/// factor p has a smooth winding, meaning p-1 has only small prime factors, the
+/// accumulated winding M = product of e for e up to the bound is a multiple of
+/// p-1, so a^M ≡ 1 mod p while a^M is generic mod the other factor. That is the
+/// MOAT_BRIDGE_TYPE mismatch: the winding bridges to p and stays across the moat
+/// to q. gcd(a^M - 1, n) reads the bridged factor out. This never touches the
+/// order's size, so it breaks the sqrt-order ceiling for a smooth-winding
+/// factor; it finds nothing when both factors' windings are non-smooth, which
+/// is the case an RSA modulus is chosen to be. This is Pollard's p-1.
+fn winding_bridge(n: &BigUint, bound: u64) -> Option<BigUint> {
+    use crate::native_numeral::{mod_pow_walk, modulo_via_word, subtract_via_word, to_bits_low_first};
+    let one = BigUint::one();
+    let two = BigUint::from(2u32);
+    let mut a = modulo_via_word(&two, n).unwrap();
+    let mut e: u64 = 2;
+    // Check the gcd at every step. The first factor whose winding divides the
+    // accumulated M sends a to 1 mod that factor while it is still generic mod
+    // the other, so gcd(a-1, n) crosses to it. Checking only in coarse batches
+    // can let the second factor bridge inside the same batch, collapsing the
+    // gcd to n and losing the split; per-step checking catches the first
+    // crossing exactly. Cost stays dominated by the modular power, not the gcd.
+    while e <= bound {
+        a = mod_pow_walk(&a, &to_bits_low_first(&BigUint::from(e)), n);
+        e += 1;
+        if a.is_zero() || a == one { break; } // bridged out or collapsed; no readable split
+        let g = big_gcd(subtract_via_word(&a, &one).unwrap(), n.clone());
+        if g > one && &g < n { return Some(g); }
+    }
+    None
+}
+
+/// The bridge subcommand: factor n by the winding-bridge (Pollard p-1) at the
+/// given smoothness bound, reading the split off the bridged winding.
+pub fn bridge(n: &str, bound_opt: Option<u64>) -> String {
+    let bound = bound_opt.unwrap_or(BRIDGE_BOUND);
+    let nv: BigUint = match n.trim().parse() {
+        Ok(v) => v,
+        Err(_) => return format!("trilattice_factor bridge {}: not a non-negative integer", n),
+    };
+    let two = BigUint::from(2u32);
+    if nv < two {
+        return format!("trilattice_factor bridge {}: n < 2, nothing to bridge", n);
+    }
+    let mut o = format!("trilattice_factor bridge {}:\n", n);
+    match winding_bridge(&nv, bound) {
+        Some(g) => {
+            let cof = crate::native_numeral::divmod_via_word(&nv, &g).unwrap().0;
+            let (lo, hi) = if g <= cof { (g, cof) } else { (cof, g) };
+            o.push_str(&format!(
+                "  ⊞ MOAT_BRIDGE_TYPE: one factor's winding is {}-smooth, the other is not\n",
+                bound
+            ));
+            o.push_str(&format!(
+                "  ⊡ WIND_BRIDGE: gcd(a^M - 1, n) crosses to the bridged factor\n"
+            ));
+            o.push_str(&format!("  {} = {} × {}   read off the winding-bridge", nv, lo, hi));
+        }
+        None => o.push_str(&format!(
+            "  no factor with a {}-smooth winding at this bound; raise the bound or hand to `trilattice_factor factor {}`",
+            bound, n
+        )),
+    }
+    o
+}
+
+/// The bridge-of-comparable-size, the ∈ BRIDGE_EXIST decomposition. The
+/// fragment ∃y∈x(|y|∼|x|) is a factor of the same magnitude as sqrt(n): write
+/// n = a^2 - b^2 = (a-b)(a+b), the congruence of squares. Walk a up from
+/// ceil(sqrt n) until a^2 - n is itself a square b^2; then a-b and a+b are the
+/// two comparable factors. The step count is a - sqrt(n), small when the two
+/// factors are close and growing as they spread.
+///
+/// No arbitrary step cap: the walk self-terminates. Every odd composite n = p·q
+/// has a valid a = (p+q)/2, no larger than (n+1)/2, so a walk that reaches
+/// (n+1)/2 without a split means n has none, which for an odd number means it is
+/// prime. Callers guard with a primality test first, so this only ever runs on a
+/// composite and always returns a factor; the natural bound is a safety, not a
+/// budget. It is slow when the factors are far apart, which is the case rho
+/// handles, so a caller wanting speed on an unbalanced n reaches for `factor`.
+fn difference_of_squares(n: &BigUint) -> Option<(BigUint, BigUint)> {
+    use crate::native_numeral::{add_via_word, divmod_via_word, isqrt, multiply_via_word, subtract_via_word};
+    let one = BigUint::one();
+    let two = BigUint::from(2u32);
+    let limit = divmod_via_word(&add_via_word(n, &one), &two).unwrap().0; // a > this means no factorization remains
+    let mut a = isqrt(n);
+    if multiply_via_word(&a, &a) < *n { a = add_via_word(&a, &one); } // ceil(sqrt n)
+    while a <= limit {
+        let a2 = multiply_via_word(&a, &a);
+        let b2 = subtract_via_word(&a2, n).unwrap();
+        let b = isqrt(&b2);
+        if multiply_via_word(&b, &b) == b2 {
+            let lo = subtract_via_word(&a, &b).unwrap();
+            let hi = add_via_word(&a, &b);
+            if lo > one && lo < *n { return Some((lo, hi)); }
+        }
+        a = add_via_word(&a, &one);
+    }
+    None
+}
+
+/// The squares subcommand: factor n by the difference-of-squares bridge,
+/// reading the split off two factors of comparable size (∈ BRIDGE_EXIST).
+pub fn squares(n: &str) -> String {
+    let nv: BigUint = match n.trim().parse() {
+        Ok(v) => v,
+        Err(_) => return format!("trilattice_factor squares {}: not a non-negative integer", n),
+    };
+    let two = BigUint::from(2u32);
+    if nv < BigUint::from(3u32) {
+        return format!("trilattice_factor squares {}: n < 3, nothing to bridge", n);
+    }
+    if crate::native_numeral::modulo_via_word(&nv, &two).unwrap().is_zero() {
+        return format!(
+            "trilattice_factor squares {}: {} = 2 × {}   (even; the squares bridge is for odd n)",
+            n, nv, crate::native_numeral::divmod_via_word(&nv, &two).unwrap().0
+        );
+    }
+    // The walk self-terminates only at (n+1)/2, which is unreachable for a large
+    // prime, so rule primes out first with the real primality test.
+    if crate::prime_winding::is_prime(&nv.to_str_radix(10)) == crate::prime_winding::PrimeVerdict::Prime {
+        return format!("trilattice_factor squares {}: {} is prime, no difference of squares", n, nv);
+    }
+    let mut o = format!("trilattice_factor squares {}:\n", n);
+    match difference_of_squares(&nv) {
+        Some((lo, hi)) => {
+            o.push_str("  ∈ BRIDGE_EXIST: a bridge of comparable size, |y| ∼ |x| ∼ √n\n");
+            o.push_str("  ⊙ n = a² - b² = (a-b)(a+b), the congruence of squares\n");
+            o.push_str(&format!("  {} = {} × {}   read off the difference of squares", nv, lo, hi));
+        }
+        None => o.push_str(&format!(
+            "  no non-trivial difference of squares below (n+1)/2; hand to `trilattice_factor factor {}`",
+            n
+        )),
+    }
+    o
+}
+
+/// The default factor-base bound for the congruence route.
+const CONGRUENCE_FB_BOUND: u64 = 2000;
+/// How many trials the congruence route draws before giving up.
+const CONGRUENCE_TRIALS: u64 = 4_000_000;
+
+/// Primes up to `bound`, the fixed alphabet (⊣ factor base) a relation must
+/// factor over to be admitted.
+fn factor_base(bound: u64) -> alloc::vec::Vec<u64> {
+    let mut sieve = alloc::vec![true; (bound as usize) + 1];
+    let mut ps = alloc::vec::Vec::new();
+    let mut p = 2u64;
+    while p <= bound {
+        if sieve[p as usize] {
+            ps.push(p);
+            let mut m = p * p;
+            while m <= bound { sieve[m as usize] = false; m += p; }
+        }
+        p += 1;
+    }
+    ps
+}
+
+/// Factor `q` over the base, returning the exponent of each base prime, or None
+/// if `q` does not reduce to 1 over the base (not smooth). This is the ∈
+/// smoothness gate: only a relation that factors entirely over the alphabet is
+/// admitted, the rest discarded (≺).
+fn smooth_exponents(mut q: BigUint, fb: &[u64]) -> Option<alloc::vec::Vec<u32>> {
+    use crate::native_numeral::{divmod_via_word, modulo_via_word};
+    let mut exps = alloc::vec![0u32; fb.len()];
+    let zero = BigUint::zero();
+    for (i, &p) in fb.iter().enumerate() {
+        let bp = BigUint::from(p);
+        while modulo_via_word(&q, &bp).unwrap() == zero {
+            q = divmod_via_word(&q, &bp).unwrap().0;
+            exps[i] += 1;
+        }
+    }
+    if q == BigUint::one() { Some(exps) } else { None }
+}
+
+/// The congruence-of-squares split, the sub-exponential route from the ob3ect
+/// `square_congruence_from_smooth_relations` (word ⊢⊣≻∈⊥≺⊤⋈⋈∈⊞≻≻⊙∈⊤⊥∋⊡⊣). It
+/// never touches the order, so it reaches the balanced hard semiprime the order
+/// routes cannot. ⊣ fixes the factor base; ≻ generates a trial x and q = x² mod
+/// n; ∈ is the smoothness branch, ≺ discards a non-smooth trial, ⊤ accepts a
+/// smooth one; ⋈ accumulates its exponent-parity row. ⊞ is the parity
+/// cancellation: once there are more rows than base primes, some combination
+/// sums to all-even by counting alone, guaranteed. ⊙ is the square that
+/// combination forms on both sides; ∋ resolves it to X² ≡ Y² (mod n); ⊥ throws
+/// back a trivial pair X ≡ ±Y; ⊡ records the split gcd(X - Y, n).
+fn congruence_split(n: &BigUint, fb_bound: u64, trials: u64) -> Option<(BigUint, BigUint)> {
+    use alloc::vec::Vec;
+    use crate::native_numeral::{add_via_word, divmod_via_word, isqrt, mod_pow_walk, modulo_via_word, multiply_via_word, subtract_via_word, to_bits_low_first};
+    let one = BigUint::one();
+    let fb = factor_base(fb_bound);
+    let k = fb.len();
+
+    // Collected smooth relations: (x, full exponents).
+    let mut rel_x: Vec<BigUint> = Vec::new();
+    let mut rel_e: Vec<Vec<u32>> = Vec::new();
+    // GF(2) reducers: each carries a parity bitmask and the set of relation ids
+    // that XOR to it, both as bit-vectors, keyed for elimination by leading bit.
+    let bits = (k + 64) / 64;
+    let mut red: Vec<(Vec<u64>, Vec<u64>, usize)> = Vec::new(); // (parity, combo, leadbit)
+
+    let getbit = |v: &[u64], i: usize| -> bool { (v[i >> 6] >> (i & 63)) & 1 == 1 };
+    let setbit = |v: &mut [u64], i: usize| { v[i >> 6] |= 1 << (i & 63); };
+
+    let mut seed: u64 = 0x1234_5678_9ABC_DEF1 ^ (n.to_u64_digits().first().copied().unwrap_or(1));
+    let nsqrt = isqrt(n);
+
+    let mut t: u64 = 0;
+    while t < trials {
+        t += 1;
+        // Trial x drawn above sqrt(n) so q = x² - n stays smaller than n.
+        seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
+        let off = BigUint::from(seed % 1_000_000_007);
+        let x = modulo_via_word(&add_via_word(&nsqrt, &off), n).unwrap();
+        if x < BigUint::from(2u32) { continue; }
+        let q = modulo_via_word(&multiply_via_word(&x, &x), n).unwrap();
+        if q == BigUint::zero() {
+            // x shares a factor with n outright.
+            let g = big_gcd(x.clone(), n.clone());
+            if g > one && &g < n { return Some((g.clone(), divmod_via_word(n, &g).unwrap().0)); }
+            continue;
+        }
+        let exps = match smooth_exponents(q.clone(), &fb) { Some(e) => e, None => continue };
+
+        // Parity row over the base.
+        let mut par = alloc::vec![0u64; bits];
+        for (i, e) in exps.iter().enumerate() { if e & 1 == 1 { setbit(&mut par, i); } }
+
+        let id = rel_x.len();
+        rel_x.push(x);
+        rel_e.push(exps);
+        let mut combo = alloc::vec![0u64; (rel_x.len() + 64) / 64];
+        // combo may need to grow as ids accumulate; size it generously below.
+        if combo.len() * 64 <= id { combo.push(0); }
+        setbit(&mut combo, id);
+
+        // Reduce the new row by existing reducers.
+        for (rpar, rcombo, lead) in red.iter() {
+            if getbit(&par, *lead) {
+                for w in 0..bits { par[w] ^= rpar[w]; }
+                while combo.len() < rcombo.len() { combo.push(0); }
+                for w in 0..rcombo.len() { combo[w] ^= rcombo[w]; }
+            }
+        }
+
+        // Zero parity → a dependency: the combo is a set of relations whose
+        // exponent sums are all even, a square on both sides.
+        let is_zero = par.iter().all(|&w| w == 0);
+        if is_zero {
+            // Build X = prod x_i mod n, and Y from halved summed exponents.
+            let mut sum = alloc::vec![0u32; k];
+            let mut xprod = one.clone();
+            for cid in 0..rel_x.len() {
+                if getbit(&combo, cid) {
+                    xprod = modulo_via_word(&multiply_via_word(&xprod, &rel_x[cid]), n).unwrap();
+                    for i in 0..k { sum[i] += rel_e[cid][i]; }
+                }
+            }
+            let mut yprod = one.clone();
+            for i in 0..k {
+                if sum[i] > 0 {
+                    let half = sum[i] / 2;
+                    let base_pow = mod_pow_walk(&BigUint::from(fb[i]), &to_bits_low_first(&BigUint::from(half)), n);
+                    yprod = modulo_via_word(&multiply_via_word(&yprod, &base_pow), n).unwrap();
+                }
+            }
+            // gcd(X - Y, n): a non-trivial common part splits n.
+            let diff = if xprod >= yprod { subtract_via_word(&xprod, &yprod).unwrap() } else { subtract_via_word(&add_via_word(n, &xprod), &yprod).unwrap() };
+            let g = big_gcd(modulo_via_word(&diff, n).unwrap(), n.clone());
+            if g > one && &g < n { return Some((g.clone(), divmod_via_word(n, &g).unwrap().0)); }
+            // Trivial (X ≡ ±Y): keep collecting for another dependency.
+        } else {
+            let lead = {
+                let mut hb = 0usize;
+                for i in 0..k { if getbit(&par, i) { hb = i; } }
+                hb
+            };
+            red.push((par, combo, lead));
+        }
+    }
+    None
+}
+
+/// The sieve subcommand: factor n by the congruence of squares over a factor
+/// base of primes up to B, reading the split off a parity cancellation.
+pub fn sieve(n: &str, b_opt: Option<u64>) -> String {
+    let bound = b_opt.unwrap_or(CONGRUENCE_FB_BOUND);
+    let nv: BigUint = match n.trim().parse() {
+        Ok(v) => v,
+        Err(_) => return format!("trilattice_factor sieve {}: not a non-negative integer", n),
+    };
+    if nv < BigUint::from(3u32) {
+        return format!("trilattice_factor sieve {}: n < 3, nothing to split", n);
+    }
+    if crate::prime_winding::is_prime(&nv.to_str_radix(10)) == crate::prime_winding::PrimeVerdict::Prime {
+        return format!("trilattice_factor sieve {}: {} is prime, no congruence to build", n, nv);
+    }
+    let mut o = format!("trilattice_factor sieve {}:\n", n);
+    match congruence_split(&nv, bound, CONGRUENCE_TRIALS) {
+        Some((lo, hi)) => {
+            let (lo, hi) = if lo <= hi { (lo, hi) } else { (hi, lo) };
+            o.push_str(&format!("  ⊣ factor base: primes up to {}\n", bound));
+            o.push_str("  ⊞ parity cancellation: smooth rows summed to an all-even square on both sides\n");
+            o.push_str("  ⊙ X² ≡ Y² (mod n); ⊡ gcd(X - Y, n) crosses to the factor\n");
+            o.push_str(&format!("  {} = {} × {}   read off the congruence of squares", nv, lo, hi));
+        }
+        None => o.push_str(&format!(
+            "  no non-trivial congruence at base bound {} within the trial budget; raise the bound or hand to `trilattice_factor factor {}`",
+            bound, n
+        )),
+    }
+    o
+}
+
+/// Factor n, leading with the trilattice reading and then the real divisor
+/// search from `prime_winding` (one copy of the arithmetic, called here).
+pub fn factor(n: &str, max_power: Option<u64>) -> String {
+    let mut o = String::new();
+    o.push_str(&read(n));
+    o.push('\n');
+    o.push_str(&factor_bounded(n, max_power));
+    o
+}

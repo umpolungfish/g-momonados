@@ -1,0 +1,28 @@
+bash: cannot set terminal process group (1012513): Inappropriate ioctl for device
+bash: no job control in this shell
+gpu_gnfs: bits=14 B=2000 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=5 coeff_score=7 f(m)=N — g(x)=x - 20
+gpu_gnfs ≻ device: building factor bases (GPU)…
+gpu_gnfs ⊢/alfs GPU: cached PTX → target/gnfs_fb_f447316f418f2d5b.ptx
+gpu_gnfs ⊢/alfs device: B=2000 |rat|=303 |alg|=296 on device 0 (gpu=true)
+gpu_gnfs ⊢/alfs: B=2000 |rat|=303 |alg|=296 ncols=600 (269 ms, gpu=true)
+gpu_gnfs ≻ device: classical log-line sieve (GPU)…
+gpu_gnfs ≻ GPU: cached PTX → target/gnfs_smooth_169dd4adeb9c5361.ptx
+gpu_gnfs ≻ GPU classical log-line |A|=16000 Bmax=4000 fudge=13.682 mark=exact+log on device 0 (RTX 4070)
+gpu_gnfs ≻ hit tables: rat=378 alg=352 prep=0ms (once, not per tile)
+gpu_gnfs ≻ tile 1/7: relations=0/633 cells=19968624 gpu_ms=589 host_verify_ms_cum=0 survivors_queued=137900 (rat≈378 alg≈352)
+gpu_gnfs ≻ tile 2/7: relations=633/633 cells=39937248 gpu_ms=562 host_verify_ms_cum=3 survivors_queued=91194 (rat≈378 alg≈352)
+gpu_gnfs ≻ host drain: survivors=0 relations=633 verify_ms=0
+gpu_gnfs ≻ GPU log-line done: cells=39937248 hit-launches=4 gpu_ms=1151 host_verify_ms=3 wall_ms=1178 relations=633/633
+gpu_gnfs ≻ sieve: pairs=30477 relations=633/633 |A|=16000 Bmax=4000 ncols=600 gpu=true device=0 gpu_ms=1151 cells=39937248
+gpu_gnfs ⋈≻ GPU: cached PTX → target/gnfs_linalg_91eeace4653e24ed.ptx
+gpu_gnfs ⋈≻ device: GF(2) GE 633×600 on device 0…
+gpu_gnfs ⋈≻ device: 64 dependencies from nullspace
+gpu_gnfs ⋈≻: 633 relations → 64 dependencies (148 ms, gpu=true)
+gpu_gnfs ⋈≻ GPU: cached PTX → target/gnfs_linalg_91eeace4653e24ed.ptx
+gpu_gnfs ∋ device: φ-congruence 64 deps on device 0 (N=10403)…
+gpu_gnfs ∋⊤: factor 101 via dep [9,21,23,24,31,58,63,76,82,90,100,105,112,116,123,131,149,151,159,166,170,179,181,184,188,190,191,207,213,225,232,241,251,256,264,268,273,287,290,292,294,306,317,321,322,323,325,326,327,330,337,341,354,360,364,369,372,374,375,379,386,402,420,429,431,434,435,448,458,469,471,472,483,486,491,492,499,502,503,504,506,507,508,511,512,514,516,518,519,528,531,533,536,541,544,549,553,564,569,572,574,576,579,581,585,586,591,598,599,627,628] (x=7272 y=0) (166 ms, gpu=true)
+
+real	0m1.966s
+user	0m1.281s
+sys	0m0.299s

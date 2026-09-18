@@ -1,0 +1,323 @@
+[
+ {
+  "N": 15,
+  "off": 0,
+  "straddle": 1,
+  "events": [
+   "?",
+   "tf",
+   "tf"
+  ],
+  "nev": 3,
+  "facs": [
+   3,
+   5
+  ],
+  "len": 13
+ },
+ {
+  "N": 21,
+  "off": 1,
+  "straddle": 1,
+  "events": [
+   "tf",
+   "tf",
+   "tf"
+  ],
+  "nev": 3,
+  "facs": [
+   3,
+   7
+  ],
+  "len": 17
+ },
+ {
+  "N": 35,
+  "off": 0,
+  "straddle": 0,
+  "events": [],
+  "nev": 0,
+  "facs": [
+   5,
+   7
+  ],
+  "len": 17
+ },
+ {
+  "N": 51,
+  "off": 0,
+  "straddle": 0,
+  "events": [],
+  "nev": 0,
+  "facs": [
+   3,
+   17
+  ],
+  "len": 18
+ },
+ {
+  "N": 77,
+  "off": 1,
+  "straddle": 1,
+  "events": [
+   "tf",
+   "tf",
+   "Ttf",
+   "tf",
+   "tf"
+  ],
+  "nev": 5,
+  "facs": [
+   7,
+   11
+  ],
+  "len": 20
+ },
+ {
+  "N": 91,
+  "off": 2,
+  "straddle": 1,
+  "events": [
+   "tf",
+   "tf",
+   "TF"
+  ],
+  "nev": 3,
+  "facs": [
+   7,
+   13
+  ],
+  "len": 21
+ },
+ {
+  "N": 143,
+  "off": 0,
+  "straddle": 1,
+  "events": [
+   "A",
+   "tf",
+   "tf",
+   "tf"
+  ],
+  "nev": 4,
+  "facs": [
+   11,
+   13
+  ],
+  "len": 23
+ },
+ {
+  "N": 155,
+  "off": 1,
+  "straddle": 0,
+  "events": [
+   "TF"
+  ],
+  "nev": 1,
+  "facs": [
+   5,
+   31
+  ],
+  "len": 23
+ },
+ {
+  "N": 187,
+  "off": 2,
+  "straddle": 0,
+  "events": [
+   "TF"
+  ],
+  "nev": 1,
+  "facs": [
+   11,
+   17
+  ],
+  "len": 24
+ },
+ {
+  "N": 221,
+  "off": 2,
+  "straddle": 0,
+  "events": [
+   "tf",
+   "tf",
+   "Ttf",
+   "tf",
+   "tf"
+  ],
+  "nev": 5,
+  "facs": [
+   13,
+   17
+  ],
+  "len": 24
+ },
+ {
+  "N": 247,
+  "off": 0,
+  "straddle": 2,
+  "events": [
+   "?",
+   "tf",
+   "tf",
+   "tf",
+   "tf",
+   "tf"
+  ],
+  "nev": 6,
+  "facs": [
+   13,
+   19
+  ],
+  "len": 23
+ },
+ {
+  "N": 323,
+  "off": 1,
+  "straddle": 0,
+  "events": [
+   "tf",
+   "tf"
+  ],
+  "nev": 2,
+  "facs": [
+   17,
+   19
+  ],
+  "len": 25
+ },
+ {
+  "N": 437,
+  "off": 1,
+  "straddle": 1,
+  "events": [
+   "TF",
+   "tf",
+   "tf",
+   "tf"
+  ],
+  "nev": 4,
+  "facs": [
+   19,
+   23
+  ],
+  "len": 29
+ },
+ {
+  "N": 667,
+  "off": 0,
+  "straddle": 0,
+  "events": [
+   "TF"
+  ],
+  "nev": 1,
+  "facs": [
+   23,
+   29
+  ],
+  "len": 31
+ },
+ {
+  "N": 899,
+  "off": 0,
+  "straddle": 0,
+  "events": [],
+  "nev": 0,
+  "facs": [
+   29,
+   31
+  ],
+  "len": 28
+ },
+ {
+  "N": 1517,
+  "off": 2,
+  "straddle": 1,
+  "events": [
+   "tf",
+   "tf",
+   "Ftf",
+   "tf",
+   "tf",
+   "Ttf",
+   "tf",
+   "tf"
+  ],
+  "nev": 8,
+  "facs": [
+   37,
+   41
+  ],
+  "len": 33
+ },
+ {
+  "N": 3233,
+  "off": 1,
+  "straddle": 0,
+  "events": [
+   "tf",
+   "tf",
+   "F"
+  ],
+  "nev": 3,
+  "facs": [
+   53,
+   61
+  ],
+  "len": 30
+ },
+ {
+  "N": 3599,
+  "off": 0,
+  "straddle": 3,
+  "events": [
+   "?",
+   "tf",
+   "tf",
+   "A",
+   "tf",
+   "tf",
+   "tf"
+  ],
+  "nev": 7,
+  "facs": [
+   59,
+   61
+  ],
+  "len": 32
+ },
+ {
+  "N": 8051,
+  "off": 1,
+  "straddle": 2,
+  "events": [
+   "A",
+   "tf",
+   "tf",
+   "tf",
+   "tf",
+   "tf",
+   "tf"
+  ],
+  "nev": 7,
+  "facs": [
+   83,
+   97
+  ],
+  "len": 40
+ },
+ {
+  "N": 10403,
+  "off": 2,
+  "straddle": 0,
+  "events": [
+   "F"
+  ],
+  "nev": 1,
+  "facs": [
+   101,
+   103
+  ],
+  "len": 38
+ }
+]

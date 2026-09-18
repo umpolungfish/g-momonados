@@ -1,0 +1,303 @@
+[
+ {
+  "N": 15,
+  "letters": 13,
+  "n_regions": 1,
+  "paired": 1,
+  "spans": [
+   8
+  ],
+  "verdict": "T",
+  "facs": [
+   3,
+   5
+  ],
+  "hexdigits": 1
+ },
+ {
+  "N": 21,
+  "letters": 17,
+  "n_regions": 0,
+  "paired": 0,
+  "spans": [],
+  "verdict": "N",
+  "facs": [
+   3,
+   7
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 35,
+  "letters": 17,
+  "n_regions": 0,
+  "paired": 0,
+  "spans": [],
+  "verdict": "N",
+  "facs": [
+   5,
+   7
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 51,
+  "letters": 18,
+  "n_regions": 0,
+  "paired": 0,
+  "spans": [],
+  "verdict": "N",
+  "facs": [
+   3,
+   17
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 77,
+  "letters": 20,
+  "n_regions": 1,
+  "paired": 1,
+  "spans": [
+   7
+  ],
+  "verdict": "T",
+  "facs": [
+   7,
+   11
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 91,
+  "letters": 21,
+  "n_regions": 1,
+  "paired": 1,
+  "spans": [
+   7
+  ],
+  "verdict": "T",
+  "facs": [
+   7,
+   13
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 143,
+  "letters": 23,
+  "n_regions": 2,
+  "paired": 2,
+  "spans": [
+   5,
+   8
+  ],
+  "verdict": "T",
+  "facs": [
+   11,
+   13
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 155,
+  "letters": 23,
+  "n_regions": 2,
+  "paired": 2,
+  "spans": [
+   6,
+   7
+  ],
+  "verdict": "T",
+  "facs": [
+   5,
+   31
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 187,
+  "letters": 24,
+  "n_regions": 2,
+  "paired": 2,
+  "spans": [
+   7,
+   7
+  ],
+  "verdict": "T",
+  "facs": [
+   11,
+   17
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 221,
+  "letters": 24,
+  "n_regions": 2,
+  "paired": 2,
+  "spans": [
+   7,
+   7
+  ],
+  "verdict": "T",
+  "facs": [
+   13,
+   17
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 247,
+  "letters": 23,
+  "n_regions": 1,
+  "paired": 1,
+  "spans": [
+   8
+  ],
+  "verdict": "T",
+  "facs": [
+   13,
+   19
+  ],
+  "hexdigits": 2
+ },
+ {
+  "N": 323,
+  "letters": 25,
+  "n_regions": 0,
+  "paired": 0,
+  "spans": [],
+  "verdict": "N",
+  "facs": [
+   17,
+   19
+  ],
+  "hexdigits": 3
+ },
+ {
+  "N": 437,
+  "letters": 29,
+  "n_regions": 1,
+  "paired": 1,
+  "spans": [
+   7
+  ],
+  "verdict": "T",
+  "facs": [
+   19,
+   23
+  ],
+  "hexdigits": 3
+ },
+ {
+  "N": 667,
+  "letters": 31,
+  "n_regions": 2,
+  "paired": 2,
+  "spans": [
+   6,
+   7
+  ],
+  "verdict": "T",
+  "facs": [
+   23,
+   29
+  ],
+  "hexdigits": 3
+ },
+ {
+  "N": 899,
+  "letters": 28,
+  "n_regions": 1,
+  "paired": 1,
+  "spans": [
+   5
+  ],
+  "verdict": "T",
+  "facs": [
+   29,
+   31
+  ],
+  "hexdigits": 3
+ },
+ {
+  "N": 1517,
+  "letters": 33,
+  "n_regions": 2,
+  "paired": 2,
+  "spans": [
+   7,
+   7
+  ],
+  "verdict": "T",
+  "facs": [
+   37,
+   41
+  ],
+  "hexdigits": 3
+ },
+ {
+  "N": 3233,
+  "letters": 30,
+  "n_regions": 2,
+  "paired": 2,
+  "spans": [
+   6,
+   6
+  ],
+  "verdict": "T",
+  "facs": [
+   53,
+   61
+  ],
+  "hexdigits": 3
+ },
+ {
+  "N": 3599,
+  "letters": 32,
+  "n_regions": 2,
+  "paired": 2,
+  "spans": [
+   7,
+   8
+  ],
+  "verdict": "T",
+  "facs": [
+   59,
+   61
+  ],
+  "hexdigits": 3
+ },
+ {
+  "N": 8051,
+  "letters": 40,
+  "n_regions": 1,
+  "paired": 1,
+  "spans": [
+   8
+  ],
+  "verdict": "T",
+  "facs": [
+   83,
+   97
+  ],
+  "hexdigits": 4
+ },
+ {
+  "N": 10403,
+  "letters": 38,
+  "n_regions": 2,
+  "paired": 2,
+  "spans": [
+   5,
+   6
+  ],
+  "verdict": "T",
+  "facs": [
+   101,
+   103
+  ],
+  "hexdigits": 4
+ }
+]

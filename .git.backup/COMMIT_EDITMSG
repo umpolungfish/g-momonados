@@ -1,0 +1,8 @@
+Drop fold_probe: the nested fold already lives in the membrane
+
+fold_probe was a flat-machine Rust reproof of nested folding. The membrane's own
+numeral already carries it: native_numeral::bits_multiply is recursive Karatsuba,
+the nested fold whose depth grows with the value, and factor_membrane uses it
+through multiply_via_word in the word ops that get baked and run by vox. A second
+copy on the flat machine is drift, so the probe goes; the one copy is
+native_numeral.

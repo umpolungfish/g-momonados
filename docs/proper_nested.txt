@@ -1,0 +1,4 @@
+doubly_nested_oneshot	⊢∈⊤∈≻⊤≺⊥⋈⊙⊞∋∋⊡⊣
+nested_prime_factorization	⊢∈⊤≻⊞⋈⊥⊙≺∈⊤⊥∋∋⊡⊣
+nested_instant_tower	⊢∈⊤≻⋈⊙⊥≺⊞∋⋈⊙⊡⊣
+instant_nested_phase	⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⊣

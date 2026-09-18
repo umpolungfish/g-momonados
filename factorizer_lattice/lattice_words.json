@@ -1,0 +1,342 @@
+[
+ {
+  "N": 15,
+  "nat_len": 24,
+  "hex_len": 13,
+  "nat_cyc_period": 24,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 4,
+  "facs": [
+   3,
+   5
+  ]
+ },
+ {
+  "N": 21,
+  "nat_len": 29,
+  "hex_len": 17,
+  "nat_cyc_period": 29,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 5,
+  "facs": [
+   3,
+   7
+  ]
+ },
+ {
+  "N": 35,
+  "nat_len": 34,
+  "hex_len": 17,
+  "nat_cyc_period": 34,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 6,
+  "facs": [
+   5,
+   7
+  ]
+ },
+ {
+  "N": 51,
+  "nat_len": 34,
+  "hex_len": 18,
+  "nat_cyc_period": 34,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 6,
+  "facs": [
+   3,
+   17
+  ]
+ },
+ {
+  "N": 77,
+  "nat_len": 39,
+  "hex_len": 20,
+  "nat_cyc_period": 39,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 7,
+  "facs": [
+   7,
+   11
+  ]
+ },
+ {
+  "N": 91,
+  "nat_len": 39,
+  "hex_len": 21,
+  "nat_cyc_period": 39,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 7,
+  "facs": [
+   7,
+   13
+  ]
+ },
+ {
+  "N": 143,
+  "nat_len": 44,
+  "hex_len": 23,
+  "nat_cyc_period": 44,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 8,
+  "facs": [
+   11,
+   13
+  ]
+ },
+ {
+  "N": 155,
+  "nat_len": 44,
+  "hex_len": 23,
+  "nat_cyc_period": 44,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 8,
+  "facs": [
+   5,
+   31
+  ]
+ },
+ {
+  "N": 187,
+  "nat_len": 44,
+  "hex_len": 24,
+  "nat_cyc_period": 44,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 8,
+  "facs": [
+   11,
+   17
+  ]
+ },
+ {
+  "N": 221,
+  "nat_len": 44,
+  "hex_len": 24,
+  "nat_cyc_period": 44,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 8,
+  "facs": [
+   13,
+   17
+  ]
+ },
+ {
+  "N": 247,
+  "nat_len": 44,
+  "hex_len": 23,
+  "nat_cyc_period": 44,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 8,
+  "facs": [
+   13,
+   19
+  ]
+ },
+ {
+  "N": 323,
+  "nat_len": 49,
+  "hex_len": 25,
+  "nat_cyc_period": 49,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 9,
+  "facs": [
+   17,
+   19
+  ]
+ },
+ {
+  "N": 437,
+  "nat_len": 49,
+  "hex_len": 29,
+  "nat_cyc_period": 49,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 9,
+  "facs": [
+   19,
+   23
+  ]
+ },
+ {
+  "N": 667,
+  "nat_len": 54,
+  "hex_len": 31,
+  "nat_cyc_period": 54,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 10,
+  "facs": [
+   23,
+   29
+  ]
+ },
+ {
+  "N": 899,
+  "nat_len": 54,
+  "hex_len": 28,
+  "nat_cyc_period": 54,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 10,
+  "facs": [
+   29,
+   31
+  ]
+ },
+ {
+  "N": 1517,
+  "nat_len": 59,
+  "hex_len": 33,
+  "nat_cyc_period": 59,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 11,
+  "facs": [
+   37,
+   41
+  ]
+ },
+ {
+  "N": 3233,
+  "nat_len": 64,
+  "hex_len": 30,
+  "nat_cyc_period": 64,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 12,
+  "facs": [
+   53,
+   61
+  ]
+ },
+ {
+  "N": 3599,
+  "nat_len": 64,
+  "hex_len": 32,
+  "nat_cyc_period": 64,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 12,
+  "facs": [
+   59,
+   61
+  ]
+ },
+ {
+  "N": 8051,
+  "nat_len": 69,
+  "hex_len": 40,
+  "nat_cyc_period": 69,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 13,
+  "facs": [
+   83,
+   97
+  ]
+ },
+ {
+  "N": 10403,
+  "nat_len": 74,
+  "hex_len": 38,
+  "nat_cyc_period": 74,
+  "nat_cyc_cuts": null,
+  "nat_trans": null,
+  "nat_banked_ok": false,
+  "nat_weight_lost": null,
+  "nat_surplus": null,
+  "nat_live_clears": null,
+  "nat_deposits": 14,
+  "facs": [
+   101,
+   103
+  ]
+ }
+]

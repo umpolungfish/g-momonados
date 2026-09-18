@@ -1,0 +1,29 @@
+◇ CIRCUIT  current fully nested factor tower   17 nodes, 17 wires   open forks 0
+
+  0 ⊢ VINIT    N
+     └─▶  1 ≻ AFWD     T
+  1 ≻ AFWD     T
+     └─▶  2 ⋈ CLINK    T
+  2 ⋈ CLINK    T
+     └─▶  3 ⊙ IMSCRIB  T
+  3 ⊙ IMSCRIB  T
+     └─▶  4 ∈ FSPLIT   T       ┐ fork
+     ├─▶  5 ⊤ EVALT    T       │
+     │    └─▶  6 ≻ AFWD  T     │
+     │         └─▶  7 ⋈ CLINK T│
+     │              └──────────┤
+     └─▶  8 ⊥ EVALF    TF      │
+          └─▶  9 ≺ AREV N      │
+               └─▶ 10 ⋈ CLINK N│
+                    └─▶ 11 ⊞ ENGAGR tf
+                         └──────┤
+ 12 ∋ FFUSE    A                ┘ join
+     └─▶ 13 ⊡ IFIX     A
+ 13 ⊡ IFIX     A
+     └─▶ 14 ⋈ CLINK    A
+ 14 ⋈ CLINK    A
+     └─▶ 15 ⊙ IMSCRIB  A
+ 15 ⊙ IMSCRIB  A
+     └─▶ 16 ⊣ TANCH    A
+
+ walk: CLOSED   final register: A

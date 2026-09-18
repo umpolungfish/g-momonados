@@ -1,0 +1,11 @@
+# pack-refs with: peeled fully-peeled sorted 
+5b763be138bc973111a2f75d16c36b48427b7e14 refs/heads/main
+16da4a9706313d51cdcf555bf071ded4e6c33986 refs/remotes/origin/crystalline/manuscripts3-2026-07-07
+44bcb96fffc65d2f053351a1347364b15ff4bbb4 refs/remotes/origin/crystalline/nonforking-razor-2026-08-21
+aee814435a6193fc1384cf95c150d519cfdbc492 refs/remotes/origin/frozen/pre-compat-purge-2026-08-03
+3fbcca8bacd916e0902f8e1f1d0be5d3f32fcca6 refs/remotes/origin/main
+b4f37a4c41209f272b71fc0c8995b7effd6fcc39 refs/remotes/origin/notation/prec-succ-marks
+3cbe2d519a743aeb5327e74d9d0a52dd4deaaf29 refs/tags/crystalline-braid-dual-v1
+^fddbe6bb0a3ad69985fe1f809268f11fe80a1b81
+d31884e1e5714b16577dc4507c81b2edb1871cf7 refs/tags/crystalline-manuscripts3-v1
+^16da4a9706313d51cdcf555bf071ded4e6c33986

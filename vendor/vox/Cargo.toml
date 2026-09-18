@@ -1,0 +1,24 @@
+[package]
+name = "vox"
+version = "0.1.0"
+edition = "2021"
+description = "V⊙x — lift program CFGs to the twelve-glyph IMASM word and verdict their closure"
+license = "Unlicense"
+
+# Standalone: no external crates. The decoder and lifter are pure Rust over
+# `alloc`, so Vox builds on its own — it does not require mOMonadOS or any other
+# repo present. Consumers that want the auditor as a library link this crate.
+[lib]
+name = "vox"
+path = "src/lib.rs"
+
+[[bin]]
+name = "vox"
+path = "src/main.rs"
+
+[features]
+mpqs_debug = []
+
+[profile.release]
+opt-level = 3
+lto = true

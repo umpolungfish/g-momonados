@@ -1,0 +1,29 @@
+input=9
+gpu_kernel run_nested on device: 24 marks
+  halted: true   ticks: 24
+  stack (bottom..top): [N N N]  depth 3
+  registers: [N N N N F F T F]  engagr false
+  memory[0..4]: [N N N N]
+  matches CPU kernel: true
+input=11
+gpu_kernel run_nested on device: 24 marks
+  halted: true   ticks: 24
+  stack (bottom..top): [N N N]  depth 3
+  registers: [N N N N F F T F]  engagr false
+  memory[0..4]: [N N N N]
+  matches CPU kernel: true
+input=13
+gpu_kernel run_nested on device: 24 marks
+  halted: true   ticks: 24
+  stack (bottom..top): [N N N]  depth 3
+  registers: [N N N N F F T F]  engagr false
+  memory[0..4]: [N N N N]
+  matches CPU kernel: true
+input=15
+gpu_kernel run_nested on device: 24 marks
+  halted: true   ticks: 24
+  stack (bottom..top): [N N N]  depth 3
+  registers: [N N N N T F T F]  engagr false
+  memory[0..4]: [N N N N]
+  matches CPU kernel: true
+distinct words=4; distinct executed states=2

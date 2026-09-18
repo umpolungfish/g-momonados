@@ -1,0 +1,6 @@
+gpu_gnfs: bits=8 B=40 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=3 coeff_score=6 f(m)=N — g(x)=x - 5
+gpu_gnfs ⊢/alfs: B=40 |rat|=12 |alg|=13 ncols=26
+gpu_gnfs ≻ sieve: pairs=2708 relations=58/58 |A|=320 Bmax=80 ncols=26 gpu=false
+gpu_gnfs ⋈≻: 58 relations → 35 dependencies
+gpu_gnfs ∋⊤: factor 11 via dep [0,4,5,6,7,8,12,13,16,22,24] (x=55 y=55)

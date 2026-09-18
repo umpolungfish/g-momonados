@@ -1,0 +1,14 @@
+target/
+# 2.1MB tuple-provenance dump, duplicated from the canonical
+# imscribing_grammar/IG_catalog.json and never read at runtime (no_std). Kept on
+# disk for reference, out of the tracked tree to keep the repo lean.
+IG_catalog.json
+.ordinals.log
+# compiled binaries, one per word in imasm/ -- regenerate with
+# `python3 imasm_compile_all.py`, kept out of the tracked tree same as target/
+bin/
+# the whole corpus linked into one executable -- regenerate with
+# `python3 imasm_link.py`, build output like target/ and bin/
+gmomonados.imasm.bin
+__pycache__/
+gpu_port/**/target/

@@ -1,0 +1,219 @@
+[
+ {
+  "i": 0,
+  "rsa": "260",
+  "bits": 862,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 1,
+  "rsa": "270",
+  "bits": 895,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 2,
+  "rsa": "896",
+  "bits": 896,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 3,
+  "rsa": "280",
+  "bits": 928,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 4,
+  "rsa": "290",
+  "bits": 962,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 5,
+  "rsa": "300",
+  "bits": 995,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 6,
+  "rsa": "309",
+  "bits": 1024,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 7,
+  "rsa": "1024",
+  "bits": 1024,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 8,
+  "rsa": "310",
+  "bits": 1028,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 9,
+  "rsa": "320",
+  "bits": 1061,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 10,
+  "rsa": "330",
+  "bits": 1094,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 11,
+  "rsa": "340",
+  "bits": 1128,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 12,
+  "rsa": "350",
+  "bits": 1161,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 13,
+  "rsa": "360",
+  "bits": 1194,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 14,
+  "rsa": "370",
+  "bits": 1227,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 15,
+  "rsa": "380",
+  "bits": 1261,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 16,
+  "rsa": "390",
+  "bits": 1294,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 17,
+  "rsa": "400",
+  "bits": 1327,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 18,
+  "rsa": "410",
+  "bits": 1360,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 19,
+  "rsa": "420",
+  "bits": 1393,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 20,
+  "rsa": "430",
+  "bits": 1427,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 21,
+  "rsa": "440",
+  "bits": 1460,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 22,
+  "rsa": "450",
+  "bits": 1493,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 23,
+  "rsa": "460",
+  "bits": 1526,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 24,
+  "rsa": "1536",
+  "bits": 1536,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 25,
+  "rsa": "470",
+  "bits": 1559,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 26,
+  "rsa": "480",
+  "bits": 1593,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 27,
+  "rsa": "490",
+  "bits": 1626,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 28,
+  "rsa": "500",
+  "bits": 1659,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 29,
+  "rsa": "617",
+  "bits": 2048,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ },
+ {
+  "i": 30,
+  "rsa": "2048",
+  "bits": 2048,
+  "factor": null,
+  "note": "exceeds tower rho ceiling (60-bit test already times out)"
+ }
+]

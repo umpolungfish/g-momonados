@@ -1,0 +1,8 @@
+symbolic product relation in run_nested: N=143 m=4
+  process: ⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣
+  circuit operators=169; construction epochs=1; operators per epoch=256; IMASM nesting depth=3; nested mark ticks=9396; selection ticks=2304
+  decision nodes=56; graph reductions=2179; 0.002833s
+  factor-candidate loop: none; relation solutions=2; witness path nodes=8
+  temporal witness limbs=1; limb path nodes=8; limb ticks=2304; continuation=1
+  node storage=64; storage growths=2; compactions=8; device launches=11
+  143 = 13 x 11 (verified)

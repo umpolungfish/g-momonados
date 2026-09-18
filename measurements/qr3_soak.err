@@ -1,0 +1,26 @@
+bash: cannot set terminal process group (989665): Inappropriate ioctl for device
+bash: no job control in this shell
+gpu_gnfs ≻ GPU: cached PTX → target/gnfs_smooth_169dd4adeb9c5361.ptx
+gpu_gnfs ≻ tile 1/17: relations=121180/4611686018427387903 cells=19960499 batch-launches=2 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 2/17: relations=206366/4611686018427387903 cells=39920998 batch-launches=4 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 3/17: relations=275408/4611686018427387903 cells=59881497 batch-launches=6 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 4/17: relations=335047/4611686018427387903 cells=79841996 batch-launches=8 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 5/17: relations=387756/4611686018427387903 cells=99802495 batch-launches=10 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 6/17: relations=434513/4611686018427387903 cells=119762994 batch-launches=12 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 7/17: relations=475509/4611686018427387903 cells=139723493 batch-launches=14 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 8/17: relations=510688/4611686018427387903 cells=159683992 batch-launches=16 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 9/17: relations=542165/4611686018427387903 cells=179644491 batch-launches=18 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 10/17: relations=571142/4611686018427387903 cells=199604990 batch-launches=20 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 11/17: relations=598115/4611686018427387903 cells=219565489 batch-launches=22 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 12/17: relations=622931/4611686018427387903 cells=239525988 batch-launches=24 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 13/17: relations=646541/4611686018427387903 cells=259486487 batch-launches=26 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 14/17: relations=668551/4611686018427387903 cells=279446986 batch-launches=28 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 15/17: relations=689385/4611686018427387903 cells=299407485 batch-launches=30 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 16/17: relations=709174/4611686018427387903 cells=319367984 batch-launches=32 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ tile 17/17: relations=709799/4611686018427387903 cells=320008000 batch-launches=34 (rat_primes≈385 alg_primes≈360)
+gpu_gnfs ≻ GPU log-line done: cells=320008000 hit-launches=34 12614 ms relations=709799/4611686018427387903
+gpu_gnfs soak: round 1 cells_cum=320008000 gpu_ms_cum=12614 elapsed=12s
+
+real	0m13.217s
+user	0m13.470s
+sys	0m0.718s

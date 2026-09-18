@@ -1,0 +1,11 @@
+gpu_gnfs: bits=14 B=5000 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=5 coeff_score=7 f(m)=N — g(x)=x - 20
+gpu_gnfs ⊢/alfs: B=5000 |rat|=669 |alg|=649 ncols=1319
+gpu_gnfs ≻ GPU: cached PTX → target/gnfs_smooth_169dd4adeb9c5361.ptx
+gpu_gnfs ≻ GPU classical log-line |A|=40000 Bmax=10000 fudge=15.331 mark=exact+log on device 0 (watch GPU 0 / RTX 4070)
+gpu_gnfs ≻ tile 1/41: relations=1352/1352 cells=19920249 batch-launches=2 (rat_primes≈771 alg_primes≈729)
+gpu_gnfs ≻ GPU log-line done: cells=19920249 hit-launches=2 2846 ms relations=1352/1352
+gpu_gnfs ≻ sieve: pairs=47798 relations=1352/1352 |A|=40000 Bmax=10000 ncols=1319 gpu=true
+gpu_gnfs ⋈≻: 1352 relations → 64 dependencies
+gpu_gnfs ∋⊤: factor 101 via dep [4,23,25,30,34,39,42,49,50,53,124,152,153,168,180,214,231,247,256,258,265,323,325,331,335,350,357,380,387,399,412,427,428,437,446,452,453,458,461,468,472,493,504,514,522,545,549,557,560,572,573,583,587,591,600,610,615,619,638,645,660,676,677,687,690,696,705,706,713,723,740,743,746,748,749,754,755,777,783,787,790,794,798,800,803,805,807,809,823,826,833,835,839,841,844,850,856,857,861,862,865,872,879,887,889,890,903,912,931] (x=7878 y=0)
+WALL:6.07

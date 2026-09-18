@@ -1,0 +1,502 @@
+[
+ {
+  "N": 15,
+  "period": 13,
+  "cuts": 3,
+  "crystal": 12068878,
+  "dialect": "001000011100",
+  "factor_hit": [
+   "3",
+   "5"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 13,
+  "facs": [
+   3,
+   5
+  ],
+  "p": 3,
+  "q": 5,
+  "psum": 8,
+  "pdif": 2,
+  "lam": 4,
+  "isqrt": 3,
+  "ceil_gap": 1
+ },
+ {
+  "N": 21,
+  "period": 17,
+  "cuts": 10,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "3",
+   "7"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 2,
+  "dyn_period": 17,
+  "facs": [
+   3,
+   7
+  ],
+  "p": 3,
+  "q": 7,
+  "psum": 10,
+  "pdif": 4,
+  "lam": 6,
+  "isqrt": 4,
+  "ceil_gap": 1
+ },
+ {
+  "N": 35,
+  "period": 17,
+  "cuts": 17,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "5",
+   "7"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 17,
+  "facs": [
+   5,
+   7
+  ],
+  "p": 5,
+  "q": 7,
+  "psum": 12,
+  "pdif": 2,
+  "lam": 12,
+  "isqrt": 5,
+  "ceil_gap": 1
+ },
+ {
+  "N": 51,
+  "period": 18,
+  "cuts": 18,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "3",
+   "17"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 18,
+  "facs": [
+   3,
+   17
+  ],
+  "p": 3,
+  "q": 17,
+  "psum": 20,
+  "pdif": 14,
+  "lam": 16,
+  "isqrt": 7,
+  "ceil_gap": 3
+ },
+ {
+  "N": 77,
+  "period": 20,
+  "cuts": 5,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "7",
+   "11"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 20,
+  "facs": [
+   7,
+   11
+  ],
+  "p": 7,
+  "q": 11,
+  "psum": 18,
+  "pdif": 4,
+  "lam": 30,
+  "isqrt": 8,
+  "ceil_gap": 1
+ },
+ {
+  "N": 91,
+  "period": 21,
+  "cuts": 11,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "7",
+   "13"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 21,
+  "facs": [
+   7,
+   13
+  ],
+  "p": 7,
+  "q": 13,
+  "psum": 20,
+  "pdif": 6,
+  "lam": 12,
+  "isqrt": 9,
+  "ceil_gap": 1
+ },
+ {
+  "N": 143,
+  "period": 23,
+  "cuts": 13,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "11",
+   "13"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 23,
+  "facs": [
+   11,
+   13
+  ],
+  "p": 11,
+  "q": 13,
+  "psum": 24,
+  "pdif": 2,
+  "lam": 60,
+  "isqrt": 11,
+  "ceil_gap": 1
+ },
+ {
+  "N": 155,
+  "period": 23,
+  "cuts": 20,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "5",
+   "31"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 23,
+  "facs": [
+   5,
+   31
+  ],
+  "p": 5,
+  "q": 31,
+  "psum": 36,
+  "pdif": 26,
+  "lam": 60,
+  "isqrt": 12,
+  "ceil_gap": 6
+ },
+ {
+  "N": 187,
+  "period": 24,
+  "cuts": 18,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "11",
+   "17"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 24,
+  "facs": [
+   11,
+   17
+  ],
+  "p": 11,
+  "q": 17,
+  "psum": 28,
+  "pdif": 6,
+  "lam": 80,
+  "isqrt": 13,
+  "ceil_gap": 1
+ },
+ {
+  "N": 221,
+  "period": 24,
+  "cuts": 6,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "13",
+   "17"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 2,
+  "dyn_period": 24,
+  "facs": [
+   13,
+   17
+  ],
+  "p": 13,
+  "q": 17,
+  "psum": 30,
+  "pdif": 4,
+  "lam": 48,
+  "isqrt": 14,
+  "ceil_gap": 1
+ },
+ {
+  "N": 247,
+  "period": 23,
+  "cuts": 5,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "13",
+   "19"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 23,
+  "facs": [
+   13,
+   19
+  ],
+  "p": 13,
+  "q": 19,
+  "psum": 32,
+  "pdif": 6,
+  "lam": 36,
+  "isqrt": 15,
+  "ceil_gap": 1
+ },
+ {
+  "N": 323,
+  "period": 25,
+  "cuts": 19,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "17",
+   "19"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 25,
+  "facs": [
+   17,
+   19
+  ],
+  "p": 17,
+  "q": 19,
+  "psum": 36,
+  "pdif": 2,
+  "lam": 144,
+  "isqrt": 17,
+  "ceil_gap": 1
+ },
+ {
+  "N": 437,
+  "period": 29,
+  "cuts": 19,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "19",
+   "23"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 29,
+  "facs": [
+   19,
+   23
+  ],
+  "p": 19,
+  "q": 23,
+  "psum": 42,
+  "pdif": 4,
+  "lam": 198,
+  "isqrt": 20,
+  "ceil_gap": 1
+ },
+ {
+  "N": 667,
+  "period": 31,
+  "cuts": 28,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "23",
+   "29"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 31,
+  "facs": [
+   23,
+   29
+  ],
+  "p": 23,
+  "q": 29,
+  "psum": 52,
+  "pdif": 6,
+  "lam": 308,
+  "isqrt": 25,
+  "ceil_gap": 1
+ },
+ {
+  "N": 899,
+  "period": 28,
+  "cuts": 28,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "29",
+   "31"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 2,
+  "dyn_period": 28,
+  "facs": [
+   29,
+   31
+  ],
+  "p": 29,
+  "q": 31,
+  "psum": 60,
+  "pdif": 2,
+  "lam": 420,
+  "isqrt": 29,
+  "ceil_gap": 1
+ },
+ {
+  "N": 1517,
+  "period": 33,
+  "cuts": 8,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "37",
+   "41"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 33,
+  "facs": [
+   37,
+   41
+  ],
+  "p": 37,
+  "q": 41,
+  "psum": 78,
+  "pdif": 4,
+  "lam": 360,
+  "isqrt": 38,
+  "ceil_gap": 1
+ },
+ {
+  "N": 3233,
+  "period": 30,
+  "cuts": 19,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "53",
+   "61"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 30,
+  "facs": [
+   53,
+   61
+  ],
+  "p": 53,
+  "q": 61,
+  "psum": 114,
+  "pdif": 8,
+  "lam": 780,
+  "isqrt": 56,
+  "ceil_gap": 1
+ },
+ {
+  "N": 3599,
+  "period": 32,
+  "cuts": 13,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "59",
+   "61"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 32,
+  "facs": [
+   59,
+   61
+  ],
+  "p": 59,
+  "q": 61,
+  "psum": 120,
+  "pdif": 2,
+  "lam": 1740,
+  "isqrt": 59,
+  "ceil_gap": 1
+ },
+ {
+  "N": 8051,
+  "period": 40,
+  "cuts": 22,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "83",
+   "97"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 40,
+  "facs": [
+   83,
+   97
+  ],
+  "p": 83,
+  "q": 97,
+  "psum": 180,
+  "pdif": 14,
+  "lam": 3936,
+  "isqrt": 89,
+  "ceil_gap": 1
+ },
+ {
+  "N": 10403,
+  "period": 38,
+  "cuts": 35,
+  "crystal": 16389838,
+  "dialect": "111111111111",
+  "factor_hit": [
+   "101",
+   "103"
+  ],
+  "oneshot": "F",
+  "dyn_depth": 1,
+  "dyn_period": 38,
+  "facs": [
+   101,
+   103
+  ],
+  "p": 101,
+  "q": 103,
+  "psum": 204,
+  "pdif": 2,
+  "lam": 5100,
+  "isqrt": 101,
+  "ceil_gap": 1
+ }
+]

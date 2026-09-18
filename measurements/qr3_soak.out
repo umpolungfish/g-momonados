@@ -1,0 +1,1 @@
+gpu_gnfs soak: OK device=0 (RTX 4070) rounds=1 cells=320008000 hit-launches=34 gpu_ms=12614 wall_s=12 gpu=true — watch nvidia-smi -i 0

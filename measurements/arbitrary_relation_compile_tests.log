@@ -1,0 +1,25 @@
+    Finished `release` profile [optimized] target(s) in 0.01s
+     Running unittests src/lib.rs (target/release/deps/g_momonados-32e40c064a02338c)
+
+running 3 tests
+test factor_relation::tests::relation_compiler_crosses_the_u64_product_boundary ... ok
+test factor_relation::tests::wide_carries_and_high_product_bits_remain_in_the_relation ... ok
+test factor_relation::tests::predicate_is_exact_including_wrong_products_and_out_of_band_operands ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 38 filtered out; finished in 0.64s
+
+     Running unittests src/main.rs (target/release/deps/g_momonados-152fe85e056fa39f)
+
+running 3 tests
+test factor_relation::tests::relation_compiler_crosses_the_u64_product_boundary ... ok
+test factor_relation::tests::wide_carries_and_high_product_bits_remain_in_the_relation ... ok
+test factor_relation::tests::predicate_is_exact_including_wrong_products_and_out_of_band_operands ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 387 filtered out; finished in 0.58s
+
+     Running tests/sic_povm_verify.rs (target/release/deps/sic_povm_verify-d3ebf0504f3286fc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

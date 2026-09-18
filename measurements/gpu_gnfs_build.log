@@ -1,0 +1,17 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+warning: use of deprecated method `cudarc::driver::CudaStream::memcpy_stod`: Use clone_htod
+   --> src/gpu_gnfs_sieve.rs:367:33
+    |
+367 |     let Ok(fb_dev) = gpu.stream.memcpy_stod(&fb_u) else {
+    |                                 ^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `cudarc::driver::CudaStream::memcpy_dtov`: Use clone_dtoh
+   --> src/gpu_gnfs_sieve.rs:405:37
+    |
+405 |     let out_host = match gpu.stream.memcpy_dtov(&out_dev) {
+    |                                     ^^^^^^^^^^^
+
+warning: `g-momonados` (bin "g-momonados") generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 58.60s

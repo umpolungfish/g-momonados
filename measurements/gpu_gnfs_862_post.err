@@ -1,0 +1,7 @@
+gpu_gnfs: bits=862 B=10000 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈8 — ⊢ opening
+gpu_gnfs ⊙: d=8 m_bits=108 coeff_score=740 f(m)=N — g(x)=x - 261866853502364802537290931184864
+gpu_gnfs ⊢/alfs: B=10000 |rat|=1229 |alg|=1224 ncols=2454
+gpu_gnfs ≻ GPU sieve grid |A|=30000 Bmax=20000 on device 0 (log-threshold mark; host exact verify — big m/f)
+gpu_gnfs ≻ GPU log-sieve: 59940999 cells, 7359 hit-launches, 3/61 tiles, 132 ms → 20312 survivors (cap 20312, mark=log)
+gpu_gnfs ≻ sieve: pairs=59940999 relations=0/2539 |A|=30000 Bmax=20000 ncols=2454 gpu=true
+gpu_gnfs: B=10000 failed — gpu_gnfs ≺: only 0 relations for 2454 columns — widen B or bounds
