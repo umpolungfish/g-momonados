@@ -1,0 +1,1165 @@
+[2;37m[boot][0m Interrupts: none — the host owns the IDT, no periodic slot
+[2;37m[boot][0m Heap: host allocator, 1484 bytes counted, 48MB declared budget
+[2;37m[boot][0m IG Catalog: 8682 entries loaded
+[2;37m[boot][0m Kernel online — graph execution, token-arity driven
+[2;37m[boot][0m Canonical ordinal check...
+[2;37m[boot][0m Ordinal faithfulness: [1;32mall 44 values match Lean canonical[0m
+[2;37m[boot][0m Clay Millennium status: 2 closed, 1 one-bump-short, 3 unclosed
+[2;37m[boot][0m SIC-POVM d=12: Crystal-forced (dual lattice), Shavian count 49=7², WH group |orbit|=144
+[2;37m[boot][0m Frobenius identity check...
+[2;37m[boot][0m Frobenius identity: hamming=3, weighted=3.1000 — kernel is grammar operationalized
+[2;37m[boot][0m Bootstrap: IMSCRIB→AREV→FSPLIT→AFWD→FFUSE→CLINK→IFIX→IMSCRIB (cyclic)
+                       F unitary: PASS
+  Pentagon form (F^2=I, anti-diag, a^2+b^2=1): PASS
+            Braid relation (Y-B): PASS
+                 Spin-statistics: PASS
+                       S unitary: PASS
+        Charge conjugation S^2=I: PASS
+                 TQFT identities: PASS
+                Verlinde formula: PASS
+              Braid Artin B_n<=8: PASS
+  Phase lattice = tenths of a winding: PASS
+    Constants derivable from PHI: PASS
+[2;37m[boot][0m Fibonacci anyon QC: algebra verified = true
+[36m[TORUS][0m kernel wound: ⊢⊙∈⊤⋈∋⊡⊞≺⋈⊣  (11 tokens, pinch=0.0000)
+[2;37m[boot][0m Crystal FS: 17280000 addresses
+[2;37m[boot][0m 29 total programs (I–XXIX): 12 canonical + 4 continuous + 4 novel + 9 shunted
+
+
+   [1;35m⊙[0m   [1;37mG-mOMonadOS[0m
+   [2;37mGPU-native build, mOMonadOS ported to run via CUDA[0m
+   [1;33mμ∘δ = id[0m
+
+   [2;37mFrobenius core · Belnap FOUR · crystal FS · graph execution[0m
+
+   [1;34mhelp[0m for commands, [1;34m?[0m for the menu, Tab completes.
+
+   [1;34mask[0m runs a structural dry-run here; the full wet-run is on the host:
+   [2;37m./ask --file <path> | ./ask --ask "…" | ./ask -i[0m
+
+⊙> gpu_kernel selector_relation 50309115 13 1024 64
+selector: compacted 1024 decision nodes down to 467 live, storage still 1024
+selector: compacted 1024 decision nodes down to 573 live, storage still 1024
+selector: compacted 1024 decision nodes down to 554 live, storage still 1024
+selector: compacted 1024 decision nodes down to 575 live, storage still 1024
+selector: compacted 1024 decision nodes down to 623 live, storage still 1024
+selector: compacted 1024 decision nodes down to 641 live, storage still 1024
+selector: compacted 1024 decision nodes down to 710 live, storage still 1024
+selector: compacted 1024 decision nodes down to 774 live, storage still 1024
+selector: compacted 1024 decision nodes down to 774 live, storage still 1024
+selector: compacted 1024 decision nodes down to 747 live, storage still 1024
+selector: compacted 1024 decision nodes down to 861 live, storage still 1024
+selector: compacted 1024 decision nodes down to 801 live, storage still 1024
+selector: compacted 1024 decision nodes down to 950 live, storage still 1024
+selector: compacted 1024 decision nodes down to 942 live, storage still 1024
+selector: compacted 1024 decision nodes down to 731 live, storage still 1024
+selector: compacted 1024 decision nodes down to 799 live, storage still 1024
+selector: compacted 1024 decision nodes down to 933 live, storage still 1024
+selector: compacted 1024 decision nodes down to 931 live, storage still 1024
+selector: compacted 1024 decision nodes down to 768 live, storage still 1024
+selector: compacted 1024 decision nodes down to 741 live, storage still 1024
+selector: compacted 1024 decision nodes down to 782 live, storage still 1024
+selector: compacted 1024 decision nodes down to 793 live, storage still 1024
+selector: compacted 1024 decision nodes down to 790 live, storage still 1024
+selector: compacted 1024 decision nodes down to 781 live, storage still 1024
+selector: compacted 1024 decision nodes down to 900 live, storage still 1024
+selector: compacted 1024 decision nodes down to 843 live, storage still 1024
+selector: compacted 1024 decision nodes down to 952 live, storage still 1024
+selector: compacted 1024 decision nodes down to 927 live, storage still 1024
+selector: compacted 1024 decision nodes down to 888 live, storage still 1024
+selector: compacted 1024 decision nodes down to 879 live, storage still 1024
+selector: compacted 1024 decision nodes down to 989 live, storage still 1024
+selector: compacted 1024 decision nodes down to 941 live, storage still 1024
+selector: compacted 1024 decision nodes down to 918 live, storage still 1024
+selector: preserving 1023 decision nodes; growing storage to 2048 nodes
+selector: compacted 2048 decision nodes down to 1231 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1112 live, storage still 2048
+selector: compacted 2048 decision nodes down to 897 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1097 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1276 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1375 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1503 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1461 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1655 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1562 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1885 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1885 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1815 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1640 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1982 live, storage still 2048
+selector: preserving 2047 decision nodes; growing storage to 4096 nodes
+selector: compacted 4096 decision nodes down to 1568 live, storage still 4096
+selector: compacted 4096 decision nodes down to 1533 live, storage still 4096
+selector: compacted 4096 decision nodes down to 1926 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2147 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2402 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2590 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2417 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3136 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2480 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2874 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2515 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2727 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2658 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2574 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2493 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3078 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2956 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3441 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3499 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3343 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3311 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3472 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3718 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3546 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3898 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3832 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3697 live, storage still 4096
+selector: compacted 4096 decision nodes down to 4078 live, storage still 4096
+selector: preserving 4095 decision nodes; growing storage to 8192 nodes
+selector: compacted 8192 decision nodes down to 4953 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5692 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5288 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4244 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5798 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4151 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5514 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4759 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4374 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5625 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5944 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5905 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6080 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6962 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6579 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6768 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6425 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6124 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6327 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7188 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6439 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6381 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6710 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5083 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6188 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5393 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4711 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5457 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5676 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6112 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6050 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6118 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6208 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5846 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5587 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4840 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4676 live, storage still 8192
+selector: compacted 8192 decision nodes down to 3431 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4039 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4735 live, storage still 8192
+selector: compacted 8192 decision nodes down to 3639 live, storage still 8192
+selector: compacted 8192 decision nodes down to 2678 live, storage still 8192
+selector: compacted 8192 decision nodes down to 2487 live, storage still 8192
+selector: compacted 8192 decision nodes down to 1077 live, storage still 8192
+symbolic product relation in run_nested: N=50309115 m=13
+  process: ⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣
+  circuit operators=2169; IMASM nesting depth=64; nested mark ticks=2107392; selection ticks=159744
+  decision nodes=4158; graph reductions=2041919; 0.610107s
+  factor-candidate loop: none; relation solutions=2; witness path nodes=26
+  node storage=8192; storage growths=3; compactions=120; device launches=124
+  50309115 = 6145 x 8187 (verified)
+⊙> gpu_kernel selector_relation 201281531 14 1024 64
+selector: compacted 1024 decision nodes down to 548 live, storage still 1024
+selector: compacted 1024 decision nodes down to 615 live, storage still 1024
+selector: compacted 1024 decision nodes down to 578 live, storage still 1024
+selector: compacted 1024 decision nodes down to 630 live, storage still 1024
+selector: compacted 1024 decision nodes down to 740 live, storage still 1024
+selector: compacted 1024 decision nodes down to 677 live, storage still 1024
+selector: compacted 1024 decision nodes down to 661 live, storage still 1024
+selector: compacted 1024 decision nodes down to 749 live, storage still 1024
+selector: compacted 1024 decision nodes down to 750 live, storage still 1024
+selector: compacted 1024 decision nodes down to 810 live, storage still 1024
+selector: compacted 1024 decision nodes down to 811 live, storage still 1024
+selector: compacted 1024 decision nodes down to 833 live, storage still 1024
+selector: compacted 1024 decision nodes down to 958 live, storage still 1024
+selector: preserving 1023 decision nodes; growing storage to 2048 nodes
+selector: compacted 2048 decision nodes down to 788 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1027 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1082 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1420 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1261 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1080 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1172 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1182 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1509 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1449 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1609 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1668 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1730 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1625 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1871 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1960 live, storage still 2048
+selector: preserving 2047 decision nodes; growing storage to 4096 nodes
+selector: compacted 4096 decision nodes down to 2073 live, storage still 4096
+selector: compacted 4096 decision nodes down to 1795 live, storage still 4096
+selector: compacted 4096 decision nodes down to 1840 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2101 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2473 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2508 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2665 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2730 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3004 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2718 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2899 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3167 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2590 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2802 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2733 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2401 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2476 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2748 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2984 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3446 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3461 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3574 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3565 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3469 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3827 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3547 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3922 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3793 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3692 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3951 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3973 live, storage still 4096
+selector: preserving 4095 decision nodes; growing storage to 8192 nodes
+selector: compacted 8192 decision nodes down to 4579 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4570 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4614 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5515 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4230 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5285 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4538 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4768 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4748 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5274 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5736 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6434 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6867 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6336 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7022 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6811 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6853 live, storage still 8192
+selector: compacted 8192 decision nodes down to 8155 live, storage still 8192
+selector: preserving 8191 decision nodes; growing storage to 16384 nodes
+selector: compacted 16384 decision nodes down to 7333 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8637 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8332 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8805 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7210 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9014 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10243 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11788 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11005 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12209 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11444 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10266 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13025 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9918 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11832 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10044 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8215 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9822 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10626 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11000 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11587 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10864 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10084 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10078 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9350 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8019 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7349 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8979 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8118 live, storage still 16384
+selector: compacted 16384 decision nodes down to 5875 live, storage still 16384
+selector: compacted 16384 decision nodes down to 6176 live, storage still 16384
+selector: compacted 16384 decision nodes down to 2986 live, storage still 16384
+selector: compacted 16384 decision nodes down to 469 live, storage still 16384
+symbolic product relation in run_nested: N=201281531 m=14
+  process: ⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣
+  circuit operators=2531; IMASM nesting depth=64; nested mark ticks=2377728; selection ticks=172032
+  decision nodes=944; graph reductions=3706754; 1.050493s
+  factor-candidate loop: none; relation solutions=2; witness path nodes=28
+  node storage=16384; storage growths=4; compactions=111; device launches=116
+  201281531 = 12289 x 16379 (verified)
+⊙> quit
+Halting. μ∘δ=id.
+[SHUTDOWN] μ∘δ=id. Goodbye.
+[2;37m[boot][0m Interrupts: none — the host owns the IDT, no periodic slot
+[2;37m[boot][0m Heap: host allocator, 1484 bytes counted, 48MB declared budget
+[2;37m[boot][0m IG Catalog: 8682 entries loaded
+[2;37m[boot][0m Kernel online — graph execution, token-arity driven
+[2;37m[boot][0m Canonical ordinal check...
+[2;37m[boot][0m Ordinal faithfulness: [1;32mall 44 values match Lean canonical[0m
+[2;37m[boot][0m Clay Millennium status: 2 closed, 1 one-bump-short, 3 unclosed
+[2;37m[boot][0m SIC-POVM d=12: Crystal-forced (dual lattice), Shavian count 49=7², WH group |orbit|=144
+[2;37m[boot][0m Frobenius identity check...
+[2;37m[boot][0m Frobenius identity: hamming=3, weighted=3.1000 — kernel is grammar operationalized
+[2;37m[boot][0m Bootstrap: IMSCRIB→AREV→FSPLIT→AFWD→FFUSE→CLINK→IFIX→IMSCRIB (cyclic)
+                       F unitary: PASS
+  Pentagon form (F^2=I, anti-diag, a^2+b^2=1): PASS
+            Braid relation (Y-B): PASS
+                 Spin-statistics: PASS
+                       S unitary: PASS
+        Charge conjugation S^2=I: PASS
+                 TQFT identities: PASS
+                Verlinde formula: PASS
+              Braid Artin B_n<=8: PASS
+  Phase lattice = tenths of a winding: PASS
+    Constants derivable from PHI: PASS
+[2;37m[boot][0m Fibonacci anyon QC: algebra verified = true
+[36m[TORUS][0m kernel wound: ⊢⊙∈⊤⋈∋⊡⊞≺⋈⊣  (11 tokens, pinch=0.0000)
+[2;37m[boot][0m Crystal FS: 17280000 addresses
+[2;37m[boot][0m 29 total programs (I–XXIX): 12 canonical + 4 continuous + 4 novel + 9 shunted
+
+
+   [1;35m⊙[0m   [1;37mG-mOMonadOS[0m
+   [2;37mGPU-native build, mOMonadOS ported to run via CUDA[0m
+   [1;33mμ∘δ = id[0m
+
+   [2;37mFrobenius core · Belnap FOUR · crystal FS · graph execution[0m
+
+   [1;34mhelp[0m for commands, [1;34m?[0m for the menu, Tab completes.
+
+   [1;34mask[0m runs a structural dry-run here; the full wet-run is on the host:
+   [2;37m./ask --file <path> | ./ask --ask "…" | ./ask -i[0m
+
+⊙> gpu_kernel selector_relation 805216251 15 1024 64
+selector: compacted 1024 decision nodes down to 629 live, storage still 1024
+selector: compacted 1024 decision nodes down to 652 live, storage still 1024
+selector: compacted 1024 decision nodes down to 707 live, storage still 1024
+selector: compacted 1024 decision nodes down to 713 live, storage still 1024
+selector: compacted 1024 decision nodes down to 719 live, storage still 1024
+selector: compacted 1024 decision nodes down to 740 live, storage still 1024
+selector: compacted 1024 decision nodes down to 839 live, storage still 1024
+selector: compacted 1024 decision nodes down to 779 live, storage still 1024
+selector: compacted 1024 decision nodes down to 699 live, storage still 1024
+selector: compacted 1024 decision nodes down to 814 live, storage still 1024
+selector: compacted 1024 decision nodes down to 863 live, storage still 1024
+selector: compacted 1024 decision nodes down to 831 live, storage still 1024
+selector: compacted 1024 decision nodes down to 930 live, storage still 1024
+selector: compacted 1024 decision nodes down to 888 live, storage still 1024
+selector: compacted 1024 decision nodes down to 939 live, storage still 1024
+selector: compacted 1024 decision nodes down to 931 live, storage still 1024
+selector: compacted 1024 decision nodes down to 953 live, storage still 1024
+selector: compacted 1024 decision nodes down to 910 live, storage still 1024
+selector: compacted 1024 decision nodes down to 903 live, storage still 1024
+selector: compacted 1024 decision nodes down to 1012 live, storage still 1024
+selector: preserving 1023 decision nodes; growing storage to 2048 nodes
+selector: compacted 2048 decision nodes down to 924 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1038 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1193 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1234 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1300 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1135 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1104 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1361 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1401 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1642 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1659 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1690 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1686 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1640 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1694 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1694 live, storage still 2048
+selector: compacted 2048 decision nodes down to 2041 live, storage still 2048
+selector: preserving 2047 decision nodes; growing storage to 4096 nodes
+selector: compacted 4096 decision nodes down to 2197 live, storage still 4096
+selector: compacted 4096 decision nodes down to 1989 live, storage still 4096
+selector: compacted 4096 decision nodes down to 1825 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2187 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2544 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2760 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3105 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2746 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3272 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3054 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3292 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2359 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2737 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2959 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2619 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2909 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2606 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2730 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2557 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2829 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3065 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3527 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3542 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3655 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3646 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3547 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3467 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3723 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3628 live, storage still 4096
+selector: compacted 4096 decision nodes down to 4002 live, storage still 4096
+selector: preserving 4095 decision nodes; growing storage to 8192 nodes
+selector: compacted 8192 decision nodes down to 4264 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5480 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4647 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5025 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5662 live, storage still 8192
+selector: compacted 8192 decision nodes down to 3940 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5340 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4570 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4849 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4424 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5355 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5789 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5948 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6948 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6517 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7116 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7327 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7401 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7079 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7506 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7880 live, storage still 8192
+selector: preserving 8191 decision nodes; growing storage to 16384 nodes
+selector: compacted 16384 decision nodes down to 8940 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9155 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7465 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8335 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7958 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8282 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10073 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11439 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12148 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12103 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13995 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12578 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13760 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14639 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15743 live, storage still 16384
+selector: preserving 16383 decision nodes; growing storage to 32768 nodes
+selector: compacted 32768 decision nodes down to 14823 live, storage still 32768
+selector: compacted 32768 decision nodes down to 17189 live, storage still 32768
+selector: compacted 32768 decision nodes down to 16728 live, storage still 32768
+selector: compacted 32768 decision nodes down to 13134 live, storage still 32768
+selector: compacted 32768 decision nodes down to 16132 live, storage still 32768
+selector: compacted 32768 decision nodes down to 18855 live, storage still 32768
+selector: compacted 32768 decision nodes down to 20360 live, storage still 32768
+selector: compacted 32768 decision nodes down to 22733 live, storage still 32768
+selector: compacted 32768 decision nodes down to 21014 live, storage still 32768
+selector: compacted 32768 decision nodes down to 19374 live, storage still 32768
+selector: compacted 32768 decision nodes down to 19074 live, storage still 32768
+selector: compacted 32768 decision nodes down to 19909 live, storage still 32768
+selector: compacted 32768 decision nodes down to 15789 live, storage still 32768
+selector: compacted 32768 decision nodes down to 19142 live, storage still 32768
+selector: compacted 32768 decision nodes down to 19718 live, storage still 32768
+selector: compacted 32768 decision nodes down to 21629 live, storage still 32768
+selector: compacted 32768 decision nodes down to 21914 live, storage still 32768
+selector: compacted 32768 decision nodes down to 18491 live, storage still 32768
+selector: compacted 32768 decision nodes down to 16592 live, storage still 32768
+selector: compacted 32768 decision nodes down to 15154 live, storage still 32768
+selector: compacted 32768 decision nodes down to 13708 live, storage still 32768
+selector: compacted 32768 decision nodes down to 16690 live, storage still 32768
+selector: compacted 32768 decision nodes down to 13319 live, storage still 32768
+selector: compacted 32768 decision nodes down to 9383 live, storage still 32768
+selector: compacted 32768 decision nodes down to 9016 live, storage still 32768
+selector: compacted 32768 decision nodes down to 5082 live, storage still 32768
+symbolic product relation in run_nested: N=805216251 m=15
+  process: ⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣
+  circuit operators=2921; IMASM nesting depth=64; nested mark ticks=2732544; selection ticks=184320
+  decision nodes=22712; graph reductions=6735830; 1.909933s
+  factor-candidate loop: none; relation solutions=2; witness path nodes=30
+  node storage=32768; storage growths=5; compactions=129; device launches=135
+  805216251 = 24577 x 32763 (verified)
+⊙> gpu_kernel selector_relation 3221045243 16 1024 64
+selector: compacted 1024 decision nodes down to 690 live, storage still 1024
+selector: compacted 1024 decision nodes down to 710 live, storage still 1024
+selector: compacted 1024 decision nodes down to 774 live, storage still 1024
+selector: compacted 1024 decision nodes down to 794 live, storage still 1024
+selector: compacted 1024 decision nodes down to 781 live, storage still 1024
+selector: compacted 1024 decision nodes down to 797 live, storage still 1024
+selector: compacted 1024 decision nodes down to 817 live, storage still 1024
+selector: compacted 1024 decision nodes down to 852 live, storage still 1024
+selector: compacted 1024 decision nodes down to 908 live, storage still 1024
+selector: compacted 1024 decision nodes down to 846 live, storage still 1024
+selector: compacted 1024 decision nodes down to 838 live, storage still 1024
+selector: compacted 1024 decision nodes down to 849 live, storage still 1024
+selector: compacted 1024 decision nodes down to 786 live, storage still 1024
+selector: compacted 1024 decision nodes down to 825 live, storage still 1024
+selector: compacted 1024 decision nodes down to 917 live, storage still 1024
+selector: compacted 1024 decision nodes down to 943 live, storage still 1024
+selector: compacted 1024 decision nodes down to 953 live, storage still 1024
+selector: compacted 1024 decision nodes down to 926 live, storage still 1024
+selector: compacted 1024 decision nodes down to 918 live, storage still 1024
+selector: compacted 1024 decision nodes down to 996 live, storage still 1024
+selector: compacted 1024 decision nodes down to 971 live, storage still 1024
+selector: compacted 1024 decision nodes down to 948 live, storage still 1024
+selector: compacted 1024 decision nodes down to 1017 live, storage still 1024
+selector: preserving 1023 decision nodes; growing storage to 2048 nodes
+selector: compacted 2048 decision nodes down to 1156 live, storage still 2048
+selector: compacted 2048 decision nodes down to 882 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1170 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1306 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1321 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1415 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1464 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1355 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1295 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1425 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1526 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1664 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1729 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1699 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1803 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1707 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1836 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1845 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1837 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1917 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1781 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1781 live, storage still 2048
+selector: compacted 2048 decision nodes down to 2039 live, storage still 2048
+selector: preserving 2047 decision nodes; growing storage to 4096 nodes
+selector: compacted 4096 decision nodes down to 2097 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2142 live, storage still 4096
+selector: compacted 4096 decision nodes down to 1832 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2157 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2542 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2559 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3192 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2833 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3468 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2660 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3469 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3084 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3065 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2824 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3046 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2706 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2996 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2693 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2817 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2644 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3122 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3419 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3152 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3465 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3629 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3410 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3885 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3733 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3634 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3554 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3995 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3810 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3715 live, storage still 4096
+selector: compacted 4096 decision nodes down to 4089 live, storage still 4096
+selector: preserving 4095 decision nodes; growing storage to 8192 nodes
+selector: compacted 8192 decision nodes down to 4672 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5398 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5073 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4624 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5749 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4027 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5427 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4657 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4936 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4511 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5341 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6035 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6131 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6906 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6523 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7254 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7190 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7488 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7070 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7021 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7967 live, storage still 8192
+selector: preserving 8191 decision nodes; growing storage to 16384 nodes
+selector: compacted 16384 decision nodes down to 9027 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9242 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7552 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8422 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7635 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8879 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9624 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10485 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11878 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12190 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14082 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12665 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14899 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15166 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12986 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14509 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13789 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14351 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15146 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14692 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12395 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14316 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13064 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15303 live, storage still 16384
+selector: preserving 16383 decision nodes; growing storage to 32768 nodes
+selector: compacted 32768 decision nodes down to 16350 live, storage still 32768
+selector: compacted 32768 decision nodes down to 15916 live, storage still 32768
+selector: compacted 32768 decision nodes down to 12736 live, storage still 32768
+selector: compacted 32768 decision nodes down to 15607 live, storage still 32768
+selector: compacted 32768 decision nodes down to 19082 live, storage still 32768
+selector: compacted 32768 decision nodes down to 20524 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23109 live, storage still 32768
+selector: compacted 32768 decision nodes down to 25828 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23257 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23637 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24436 live, storage still 32768
+selector: compacted 32768 decision nodes down to 26652 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23600 live, storage still 32768
+selector: compacted 32768 decision nodes down to 25353 live, storage still 32768
+selector: compacted 32768 decision nodes down to 26844 live, storage still 32768
+selector: compacted 32768 decision nodes down to 26215 live, storage still 32768
+selector: compacted 32768 decision nodes down to 25795 live, storage still 32768
+selector: compacted 32768 decision nodes down to 22712 live, storage still 32768
+selector: compacted 32768 decision nodes down to 27921 live, storage still 32768
+selector: compacted 32768 decision nodes down to 25089 live, storage still 32768
+selector: compacted 32768 decision nodes down to 30055 live, storage still 32768
+selector: preserving 32767 decision nodes; growing storage to 65536 nodes
+selector: compacted 65536 decision nodes down to 22517 live, storage still 65536
+selector: compacted 65536 decision nodes down to 31547 live, storage still 65536
+selector: compacted 65536 decision nodes down to 37993 live, storage still 65536
+selector: compacted 65536 decision nodes down to 38463 live, storage still 65536
+selector: compacted 65536 decision nodes down to 36364 live, storage still 65536
+selector: compacted 65536 decision nodes down to 35945 live, storage still 65536
+selector: compacted 65536 decision nodes down to 34800 live, storage still 65536
+selector: compacted 65536 decision nodes down to 29237 live, storage still 65536
+selector: compacted 65536 decision nodes down to 29447 live, storage still 65536
+selector: compacted 65536 decision nodes down to 36023 live, storage still 65536
+selector: compacted 65536 decision nodes down to 41775 live, storage still 65536
+selector: compacted 65536 decision nodes down to 37942 live, storage still 65536
+selector: compacted 65536 decision nodes down to 29682 live, storage still 65536
+selector: compacted 65536 decision nodes down to 33746 live, storage still 65536
+selector: compacted 65536 decision nodes down to 24795 live, storage still 65536
+selector: compacted 65536 decision nodes down to 30339 live, storage still 65536
+selector: compacted 65536 decision nodes down to 29951 live, storage still 65536
+selector: compacted 65536 decision nodes down to 25216 live, storage still 65536
+selector: compacted 65536 decision nodes down to 21270 live, storage still 65536
+selector: compacted 65536 decision nodes down to 15464 live, storage still 65536
+selector: compacted 65536 decision nodes down to 7031 live, storage still 65536
+symbolic product relation in run_nested: N=3221045243 m=16
+  process: ⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣
+  circuit operators=3339; IMASM nesting depth=64; nested mark ticks=3154944; selection ticks=196608
+  decision nodes=43360; graph reductions=12883544; 3.690767s
+  factor-candidate loop: none; relation solutions=2; witness path nodes=32
+  node storage=65536; storage growths=6; compactions=167; device launches=174
+  3221045243 = 49153 x 65531 (verified)
+⊙> quit
+Halting. μ∘δ=id.
+[SHUTDOWN] μ∘δ=id. Goodbye.
+[2;37m[boot][0m Interrupts: none — the host owns the IDT, no periodic slot
+[2;37m[boot][0m Heap: host allocator, 1484 bytes counted, 48MB declared budget
+[2;37m[boot][0m IG Catalog: 8682 entries loaded
+[2;37m[boot][0m Kernel online — graph execution, token-arity driven
+[2;37m[boot][0m Canonical ordinal check...
+[2;37m[boot][0m Ordinal faithfulness: [1;32mall 44 values match Lean canonical[0m
+[2;37m[boot][0m Clay Millennium status: 2 closed, 1 one-bump-short, 3 unclosed
+[2;37m[boot][0m SIC-POVM d=12: Crystal-forced (dual lattice), Shavian count 49=7², WH group |orbit|=144
+[2;37m[boot][0m Frobenius identity check...
+[2;37m[boot][0m Frobenius identity: hamming=3, weighted=3.1000 — kernel is grammar operationalized
+[2;37m[boot][0m Bootstrap: IMSCRIB→AREV→FSPLIT→AFWD→FFUSE→CLINK→IFIX→IMSCRIB (cyclic)
+                       F unitary: PASS
+  Pentagon form (F^2=I, anti-diag, a^2+b^2=1): PASS
+            Braid relation (Y-B): PASS
+                 Spin-statistics: PASS
+                       S unitary: PASS
+        Charge conjugation S^2=I: PASS
+                 TQFT identities: PASS
+                Verlinde formula: PASS
+              Braid Artin B_n<=8: PASS
+  Phase lattice = tenths of a winding: PASS
+    Constants derivable from PHI: PASS
+[2;37m[boot][0m Fibonacci anyon QC: algebra verified = true
+[36m[TORUS][0m kernel wound: ⊢⊙∈⊤⋈∋⊡⊞≺⋈⊣  (11 tokens, pinch=0.0000)
+[2;37m[boot][0m Crystal FS: 17280000 addresses
+[2;37m[boot][0m 29 total programs (I–XXIX): 12 canonical + 4 continuous + 4 novel + 9 shunted
+
+
+   [1;35m⊙[0m   [1;37mG-mOMonadOS[0m
+   [2;37mGPU-native build, mOMonadOS ported to run via CUDA[0m
+   [1;33mμ∘δ = id[0m
+
+   [2;37mFrobenius core · Belnap FOUR · crystal FS · graph execution[0m
+
+   [1;34mhelp[0m for commands, [1;34m?[0m for the menu, Tab completes.
+
+   [1;34mask[0m runs a structural dry-run here; the full wet-run is on the host:
+   [2;37m./ask --file <path> | ./ask --ask "…" | ./ask -i[0m
+
+⊙> gpu_kernel selector_relation 12884541435 17 1024 64
+selector: compacted 1024 decision nodes down to 749 live, storage still 1024
+selector: compacted 1024 decision nodes down to 809 live, storage still 1024
+selector: compacted 1024 decision nodes down to 833 live, storage still 1024
+selector: compacted 1024 decision nodes down to 837 live, storage still 1024
+selector: compacted 1024 decision nodes down to 865 live, storage still 1024
+selector: compacted 1024 decision nodes down to 862 live, storage still 1024
+selector: compacted 1024 decision nodes down to 875 live, storage still 1024
+selector: compacted 1024 decision nodes down to 896 live, storage still 1024
+selector: compacted 1024 decision nodes down to 819 live, storage still 1024
+selector: compacted 1024 decision nodes down to 893 live, storage still 1024
+selector: compacted 1024 decision nodes down to 891 live, storage still 1024
+selector: compacted 1024 decision nodes down to 940 live, storage still 1024
+selector: compacted 1024 decision nodes down to 942 live, storage still 1024
+selector: compacted 1024 decision nodes down to 917 live, storage still 1024
+selector: compacted 1024 decision nodes down to 979 live, storage still 1024
+selector: compacted 1024 decision nodes down to 1001 live, storage still 1024
+selector: preserving 1023 decision nodes; growing storage to 2048 nodes
+selector: compacted 2048 decision nodes down to 1046 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1197 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1267 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1071 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1215 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1420 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1522 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1652 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1508 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1648 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1304 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1284 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1356 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1637 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1561 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1775 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1713 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1839 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1896 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1870 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1800 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1866 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1958 live, storage still 2048
+selector: preserving 2047 decision nodes; growing storage to 4096 nodes
+selector: compacted 4096 decision nodes down to 2287 live, storage still 4096
+selector: compacted 4096 decision nodes down to 1904 live, storage still 4096
+selector: compacted 4096 decision nodes down to 1964 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2003 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2477 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2596 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2760 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2926 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3561 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2753 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3562 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3401 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2539 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2917 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3139 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2530 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2805 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2994 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2505 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3209 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2797 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3262 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3509 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3366 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3707 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3777 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3722 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3503 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3978 live, storage still 4096
+selector: preserving 4095 decision nodes; growing storage to 8192 nodes
+selector: compacted 8192 decision nodes down to 4619 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4695 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5342 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4253 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5842 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4120 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5520 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4750 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5029 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4897 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5729 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5997 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6429 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6695 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6999 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6604 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7229 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7296 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7283 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7638 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7072 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7114 live, storage still 8192
+selector: compacted 8192 decision nodes down to 8060 live, storage still 8192
+selector: preserving 8191 decision nodes; growing storage to 16384 nodes
+selector: compacted 16384 decision nodes down to 8464 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9335 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7645 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8559 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7728 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8972 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9717 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10578 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11971 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12283 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14175 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12758 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14992 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15259 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14798 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12167 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13882 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14444 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15239 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14785 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13295 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13300 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14409 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13157 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15396 live, storage still 16384
+selector: preserving 16383 decision nodes; growing storage to 32768 nodes
+selector: compacted 32768 decision nodes down to 16443 live, storage still 32768
+selector: compacted 32768 decision nodes down to 16009 live, storage still 32768
+selector: compacted 32768 decision nodes down to 12829 live, storage still 32768
+selector: compacted 32768 decision nodes down to 15700 live, storage still 32768
+selector: compacted 32768 decision nodes down to 19175 live, storage still 32768
+selector: compacted 32768 decision nodes down to 20617 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24054 live, storage still 32768
+selector: compacted 32768 decision nodes down to 22400 live, storage still 32768
+selector: compacted 32768 decision nodes down to 22033 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23782 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24030 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24163 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23015 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24563 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23882 live, storage still 32768
+selector: compacted 32768 decision nodes down to 26860 live, storage still 32768
+selector: compacted 32768 decision nodes down to 26070 live, storage still 32768
+selector: compacted 32768 decision nodes down to 28996 live, storage still 32768
+selector: compacted 32768 decision nodes down to 29355 live, storage still 32768
+selector: compacted 32768 decision nodes down to 26509 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23020 live, storage still 32768
+selector: compacted 32768 decision nodes down to 25779 live, storage still 32768
+selector: compacted 32768 decision nodes down to 25248 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24414 live, storage still 32768
+selector: compacted 32768 decision nodes down to 20932 live, storage still 32768
+selector: compacted 32768 decision nodes down to 22139 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24995 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24343 live, storage still 32768
+selector: compacted 32768 decision nodes down to 28126 live, storage still 32768
+selector: compacted 32768 decision nodes down to 27145 live, storage still 32768
+selector: compacted 32768 decision nodes down to 29583 live, storage still 32768
+selector: compacted 32768 decision nodes down to 29833 live, storage still 32768
+selector: compacted 32768 decision nodes down to 28827 live, storage still 32768
+selector: compacted 32768 decision nodes down to 30252 live, storage still 32768
+selector: compacted 32768 decision nodes down to 29796 live, storage still 32768
+selector: compacted 32768 decision nodes down to 31619 live, storage still 32768
+selector: compacted 32768 decision nodes down to 31619 live, storage still 32768
+selector: compacted 32768 decision nodes down to 31182 live, storage still 32768
+selector: compacted 32768 decision nodes down to 30436 live, storage still 32768
+selector: compacted 32768 decision nodes down to 32206 live, storage still 32768
+selector: compacted 32768 decision nodes down to 31667 live, storage still 32768
+selector: compacted 32768 decision nodes down to 31118 live, storage still 32768
+selector: compacted 32768 decision nodes down to 32334 live, storage still 32768
+selector: preserving 32767 decision nodes; growing storage to 65536 nodes
+selector: compacted 65536 decision nodes down to 36067 live, storage still 65536
+selector: compacted 65536 decision nodes down to 44579 live, storage still 65536
+selector: compacted 65536 decision nodes down to 39518 live, storage still 65536
+selector: compacted 65536 decision nodes down to 42991 live, storage still 65536
+selector: compacted 65536 decision nodes down to 40499 live, storage still 65536
+selector: compacted 65536 decision nodes down to 49084 live, storage still 65536
+selector: compacted 65536 decision nodes down to 42002 live, storage still 65536
+selector: compacted 65536 decision nodes down to 42922 live, storage still 65536
+selector: compacted 65536 decision nodes down to 46940 live, storage still 65536
+selector: compacted 65536 decision nodes down to 42716 live, storage still 65536
+selector: compacted 65536 decision nodes down to 46663 live, storage still 65536
+selector: compacted 65536 decision nodes down to 46549 live, storage still 65536
+selector: compacted 65536 decision nodes down to 43283 live, storage still 65536
+selector: compacted 65536 decision nodes down to 42390 live, storage still 65536
+selector: compacted 65536 decision nodes down to 43978 live, storage still 65536
+selector: compacted 65536 decision nodes down to 47686 live, storage still 65536
+selector: compacted 65536 decision nodes down to 51080 live, storage still 65536
+selector: compacted 65536 decision nodes down to 54987 live, storage still 65536
+selector: compacted 65536 decision nodes down to 54033 live, storage still 65536
+selector: compacted 65536 decision nodes down to 57962 live, storage still 65536
+selector: compacted 65536 decision nodes down to 57293 live, storage still 65536
+selector: compacted 65536 decision nodes down to 60384 live, storage still 65536
+selector: compacted 65536 decision nodes down to 62434 live, storage still 65536
+selector: compacted 65536 decision nodes down to 61956 live, storage still 65536
+selector: compacted 65536 decision nodes down to 59909 live, storage still 65536
+selector: compacted 65536 decision nodes down to 63809 live, storage still 65536
+selector: preserving 65535 decision nodes; growing storage to 131072 nodes
+selector: compacted 131072 decision nodes down to 59320 live, storage still 131072
+selector: compacted 131072 decision nodes down to 72231 live, storage still 131072
+selector: compacted 131072 decision nodes down to 68720 live, storage still 131072
+selector: compacted 131072 decision nodes down to 48718 live, storage still 131072
+selector: compacted 131072 decision nodes down to 59369 live, storage still 131072
+selector: compacted 131072 decision nodes down to 75298 live, storage still 131072
+selector: compacted 131072 decision nodes down to 65289 live, storage still 131072
+selector: compacted 131072 decision nodes down to 61551 live, storage still 131072
+selector: compacted 131072 decision nodes down to 48279 live, storage still 131072
+selector: compacted 131072 decision nodes down to 47802 live, storage still 131072
+selector: compacted 131072 decision nodes down to 60046 live, storage still 131072
+selector: compacted 131072 decision nodes down to 50728 live, storage still 131072
+selector: compacted 131072 decision nodes down to 35070 live, storage still 131072
+selector: compacted 131072 decision nodes down to 33377 live, storage still 131072
+selector: compacted 131072 decision nodes down to 16943 live, storage still 131072
+symbolic product relation in run_nested: N=12884541435 m=17
+  process: ⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣
+  circuit operators=3785; IMASM nesting depth=64; nested mark ticks=3587328; selection ticks=208896
+  decision nodes=97610; graph reductions=23602106; 7.101887s
+  factor-candidate loop: none; relation solutions=2; witness path nodes=34
+  node storage=131072; storage growths=7; compactions=200; device launches=208
+  12884541435 = 98305 x 131067 (verified)
+⊙> gpu_kernel selector_relation 51538886651 18 1024 64
+selector: compacted 1024 decision nodes down to 749 live, storage still 1024
+selector: compacted 1024 decision nodes down to 878 live, storage still 1024
+selector: compacted 1024 decision nodes down to 908 live, storage still 1024
+selector: compacted 1024 decision nodes down to 898 live, storage still 1024
+selector: compacted 1024 decision nodes down to 937 live, storage still 1024
+selector: compacted 1024 decision nodes down to 961 live, storage still 1024
+selector: compacted 1024 decision nodes down to 931 live, storage still 1024
+selector: compacted 1024 decision nodes down to 947 live, storage still 1024
+selector: compacted 1024 decision nodes down to 975 live, storage still 1024
+selector: compacted 1024 decision nodes down to 964 live, storage still 1024
+selector: compacted 1024 decision nodes down to 982 live, storage still 1024
+selector: compacted 1024 decision nodes down to 990 live, storage still 1024
+selector: compacted 1024 decision nodes down to 973 live, storage still 1024
+selector: compacted 1024 decision nodes down to 961 live, storage still 1024
+selector: compacted 1024 decision nodes down to 1008 live, storage still 1024
+selector: preserving 1023 decision nodes; growing storage to 2048 nodes
+selector: compacted 2048 decision nodes down to 1038 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1107 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1296 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1368 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1217 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1278 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1426 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1545 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1513 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1522 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1621 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1656 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1440 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1388 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1423 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1542 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1625 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1856 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1810 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1874 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1855 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1809 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1936 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1883 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1938 live, storage still 2048
+selector: compacted 2048 decision nodes down to 1995 live, storage still 2048
+selector: preserving 2047 decision nodes; growing storage to 4096 nodes
+selector: compacted 4096 decision nodes down to 2075 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2267 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2155 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2024 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2361 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2552 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2874 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2859 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3025 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3670 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3551 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3204 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3364 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3500 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2638 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3294 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3309 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3238 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2629 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2904 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3093 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2804 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3308 live, storage still 4096
+selector: compacted 4096 decision nodes down to 2896 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3361 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3608 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3391 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3657 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3876 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3821 live, storage still 4096
+selector: compacted 4096 decision nodes down to 3602 live, storage still 4096
+selector: compacted 4096 decision nodes down to 4047 live, storage still 4096
+selector: preserving 4095 decision nodes; growing storage to 8192 nodes
+selector: compacted 8192 decision nodes down to 4633 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4794 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5441 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4352 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5941 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4590 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5675 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4076 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4892 live, storage still 8192
+selector: compacted 8192 decision nodes down to 4957 live, storage still 8192
+selector: compacted 8192 decision nodes down to 5857 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6317 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6093 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6614 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7098 live, storage still 8192
+selector: compacted 8192 decision nodes down to 6703 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7328 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7395 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7382 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7737 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7680 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7171 live, storage still 8192
+selector: compacted 8192 decision nodes down to 7213 live, storage still 8192
+selector: compacted 8192 decision nodes down to 8159 live, storage still 8192
+selector: preserving 8191 decision nodes; growing storage to 16384 nodes
+selector: compacted 16384 decision nodes down to 8563 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9434 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7744 live, storage still 16384
+selector: compacted 16384 decision nodes down to 8658 live, storage still 16384
+selector: compacted 16384 decision nodes down to 7251 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9071 live, storage still 16384
+selector: compacted 16384 decision nodes down to 9816 live, storage still 16384
+selector: compacted 16384 decision nodes down to 10846 live, storage still 16384
+selector: compacted 16384 decision nodes down to 11434 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12217 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14274 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12857 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15091 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15358 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14897 live, storage still 16384
+selector: compacted 16384 decision nodes down to 12266 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13981 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14543 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15338 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14884 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13394 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13399 live, storage still 16384
+selector: compacted 16384 decision nodes down to 14508 live, storage still 16384
+selector: compacted 16384 decision nodes down to 13256 live, storage still 16384
+selector: compacted 16384 decision nodes down to 15495 live, storage still 16384
+selector: preserving 16383 decision nodes; growing storage to 32768 nodes
+selector: compacted 32768 decision nodes down to 16542 live, storage still 32768
+selector: compacted 32768 decision nodes down to 16108 live, storage still 32768
+selector: compacted 32768 decision nodes down to 12928 live, storage still 32768
+selector: compacted 32768 decision nodes down to 15799 live, storage still 32768
+selector: compacted 32768 decision nodes down to 19402 live, storage still 32768
+selector: compacted 32768 decision nodes down to 20463 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24153 live, storage still 32768
+selector: compacted 32768 decision nodes down to 22499 live, storage still 32768
+selector: compacted 32768 decision nodes down to 22961 live, storage still 32768
+selector: compacted 32768 decision nodes down to 22087 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24129 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24262 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23114 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24662 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23981 live, storage still 32768
+selector: compacted 32768 decision nodes down to 26959 live, storage still 32768
+selector: compacted 32768 decision nodes down to 26169 live, storage still 32768
+selector: compacted 32768 decision nodes down to 29095 live, storage still 32768
+selector: compacted 32768 decision nodes down to 29454 live, storage still 32768
+selector: compacted 32768 decision nodes down to 26608 live, storage still 32768
+selector: compacted 32768 decision nodes down to 23119 live, storage still 32768
+selector: compacted 32768 decision nodes down to 25878 live, storage still 32768
+selector: compacted 32768 decision nodes down to 25347 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24513 live, storage still 32768
+selector: compacted 32768 decision nodes down to 21031 live, storage still 32768
+selector: compacted 32768 decision nodes down to 22238 live, storage still 32768
+selector: compacted 32768 decision nodes down to 25094 live, storage still 32768
+selector: compacted 32768 decision nodes down to 24442 live, storage still 32768
+selector: compacted 32768 decision nodes down to 28225 live, storage still 32768
+selector: compacted 32768 decision nodes down to 27244 live, storage still 32768
+selector: compacted 32768 decision nodes down to 27795 live, storage still 32768
+selector: compacted 32768 decision nodes down to 29932 live, storage still 32768
+selector: compacted 32768 decision nodes down to 28926 live, storage still 32768
+selector: compacted 32768 decision nodes down to 30351 live, storage still 32768
+selector: compacted 32768 decision nodes down to 29895 live, storage still 32768
+selector: compacted 32768 decision nodes down to 31718 live, storage still 32768
+selector: compacted 32768 decision nodes down to 30602 live, storage still 32768
+selector: compacted 32768 decision nodes down to 31718 live, storage still 32768
+selector: compacted 32768 decision nodes down to 32101 live, storage still 32768
+selector: compacted 32768 decision nodes down to 31281 live, storage still 32768
+selector: compacted 32768 decision nodes down to 30535 live, storage still 32768
+selector: compacted 32768 decision nodes down to 32292 live, storage still 32768
+selector: preserving 32767 decision nodes; growing storage to 65536 nodes
+selector: compacted 65536 decision nodes down to 36828 live, storage still 65536
+selector: compacted 65536 decision nodes down to 38969 live, storage still 65536
+selector: compacted 65536 decision nodes down to 41359 live, storage still 65536
+selector: compacted 65536 decision nodes down to 38619 live, storage still 65536
+selector: compacted 65536 decision nodes down to 47214 live, storage still 65536
+selector: compacted 65536 decision nodes down to 40080 live, storage still 65536
+selector: compacted 65536 decision nodes down to 40955 live, storage still 65536
+selector: compacted 65536 decision nodes down to 44973 live, storage still 65536
+selector: compacted 65536 decision nodes down to 45369 live, storage still 65536
+selector: compacted 65536 decision nodes down to 44784 live, storage still 65536
+selector: compacted 65536 decision nodes down to 41117 live, storage still 65536
+selector: compacted 65536 decision nodes down to 38254 live, storage still 65536
+selector: compacted 65536 decision nodes down to 42592 live, storage still 65536
+selector: compacted 65536 decision nodes down to 44596 live, storage still 65536
+selector: compacted 65536 decision nodes down to 45090 live, storage still 65536
+selector: compacted 65536 decision nodes down to 49191 live, storage still 65536
+selector: compacted 65536 decision nodes down to 54079 live, storage still 65536
+selector: compacted 65536 decision nodes down to 53636 live, storage still 65536
+selector: compacted 65536 decision nodes down to 54851 live, storage still 65536
+selector: compacted 65536 decision nodes down to 56551 live, storage still 65536
+selector: compacted 65536 decision nodes down to 59813 live, storage still 65536
+selector: compacted 65536 decision nodes down to 62000 live, storage still 65536
+selector: compacted 65536 decision nodes down to 61667 live, storage still 65536
+selector: compacted 65536 decision nodes down to 59360 live, storage still 65536
+selector: compacted 65536 decision nodes down to 64153 live, storage still 65536
+selector: preserving 65535 decision nodes; growing storage to 131072 nodes
+selector: compacted 131072 decision nodes down to 61479 live, storage still 131072
+selector: compacted 131072 decision nodes down to 69125 live, storage still 131072
+selector: compacted 131072 decision nodes down to 83504 live, storage still 131072
+selector: compacted 131072 decision nodes down to 70104 live, storage still 131072
+selector: compacted 131072 decision nodes down to 73598 live, storage still 131072
+selector: compacted 131072 decision nodes down to 88781 live, storage still 131072
+selector: compacted 131072 decision nodes down to 76953 live, storage still 131072
+selector: compacted 131072 decision nodes down to 63026 live, storage still 131072
+selector: compacted 131072 decision nodes down to 78174 live, storage still 131072
+selector: compacted 131072 decision nodes down to 91175 live, storage still 131072
+selector: compacted 131072 decision nodes down to 98866 live, storage still 131072
+selector: compacted 131072 decision nodes down to 103601 live, storage still 131072
+selector: compacted 131072 decision nodes down to 105741 live, storage still 131072
+selector: compacted 131072 decision nodes down to 101593 live, storage still 131072
+selector: compacted 131072 decision nodes down to 116573 live, storage still 131072
+selector: compacted 131072 decision nodes down to 104284 live, storage still 131072
+selector: compacted 131072 decision nodes down to 119553 live, storage still 131072
+selector: compacted 131072 decision nodes down to 116982 live, storage still 131072
+selector: compacted 131072 decision nodes down to 101390 live, storage still 131072
+selector: compacted 131072 decision nodes down to 113315 live, storage still 131072
+selector: compacted 131072 decision nodes down to 115974 live, storage still 131072
+selector: compacted 131072 decision nodes down to 122656 live, storage still 131072
+selector: compacted 131072 decision nodes down to 121721 live, storage still 131072
+selector: compacted 131072 decision nodes down to 116776 live, storage still 131072
+selector: compacted 131072 decision nodes down to 105353 live, storage still 131072
+selector: compacted 131072 decision nodes down to 117750 live, storage still 131072
+selector: compacted 131072 decision nodes down to 117921 live, storage still 131072
+selector: compacted 131072 decision nodes down to 117774 live, storage still 131072
+selector: compacted 131072 decision nodes down to 109583 live, storage still 131072
+selector: compacted 131072 decision nodes down to 125539 live, storage still 131072
+selector: preserving 131071 decision nodes; growing storage to 262144 nodes
+selector: compacted 262144 decision nodes down to 99561 live, storage still 262144
+selector: compacted 262144 decision nodes down to 88335 live, storage still 262144
+selector: compacted 262144 decision nodes down to 119202 live, storage still 262144
+selector: compacted 262144 decision nodes down to 126536 live, storage still 262144
+selector: compacted 262144 decision nodes down to 120569 live, storage still 262144
+selector: compacted 262144 decision nodes down to 99938 live, storage still 262144
+selector: compacted 262144 decision nodes down to 85988 live, storage still 262144
+selector: compacted 262144 decision nodes down to 107544 live, storage still 262144
+selector: compacted 262144 decision nodes down to 82137 live, storage still 262144
+selector: compacted 262144 decision nodes down to 77014 live, storage still 262144
+selector: compacted 262144 decision nodes down to 43081 live, storage still 262144
+selector: compacted 262144 decision nodes down to 29991 live, storage still 262144
+symbolic product relation in run_nested: N=51538886651 m=18
+  process: ⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣
+  circuit operators=4259; IMASM nesting depth=64; nested mark ticks=4036608; selection ticks=221184
+  decision nodes=156318; graph reductions=43522673; 13.194681s
+  factor-candidate loop: none; relation solutions=2; witness path nodes=36
+  node storage=262144; storage growths=8; compactions=231; device launches=240
+  51538886651 = 196609 x 262139 (verified)
+⊙> quit
+Halting. μ∘δ=id.
+[SHUTDOWN] μ∘δ=id. Goodbye.

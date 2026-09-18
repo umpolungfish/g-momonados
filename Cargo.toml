@@ -1,0 +1,44 @@
+[package]
+name = "g-momonados"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libm = "0.2"
+num-bigint = { version = "0.4", default-features = false }
+num-traits = { version = "0.2", default-features = false, features = ["libm"] }
+imasm_core = { path = "vendor/imasm_core", default-features = false }
+vox_core = { path = "vendor/vox", package = "vox", default-features = false }
+# The batched SIXTEEN_3/catalog/crystal GPU kernels this build exists for.
+cudarc = { version = "=0.19.9", optional = true, default-features = false, features = ["driver", "nvrtc", "cuda-12040", "dynamic-loading", "std"] }
+# gpu_imasm_cycle.rs reads real ob3ect JSON files off disk.
+serde_json = { version = "1", optional = true }
+
+[[bin]]
+name = "g-momonados"
+path = "src/main.rs"
+
+[lib]
+name = "g_momonados"
+path = "src/lib.rs"
+
+[features]
+# G-mOMonadOS is mOMonadOS ported to run as a GPU-native build: hosted is
+# not an opt-in mode here, it is the only mode, on by default so plain
+# `cargo build` (no --target, no --features) produces the binary that
+# actually runs. The `hosted`-gated / `not(hosted)`-gated split throughout
+# the source is untouched from the parent kernel -- turning the feature on
+# by default achieves the same compiled result as editing every one of
+# those cfg sites by hand, without the risk of doing that by hand across
+# dozens of files.
+default = ["hosted"]
+hosted = ["dep:cudarc", "dep:serde_json"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
+opt-level = "s"

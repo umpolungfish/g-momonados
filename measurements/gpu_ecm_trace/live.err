@@ -1,0 +1,1 @@
+gpu_ecm bsgs: bits=862 limbs=14 devices=2 B1=500 B2=50000 D=210 baby=24 — NVRTC then launch

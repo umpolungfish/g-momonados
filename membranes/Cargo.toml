@@ -1,0 +1,73 @@
+[package]
+name = "membranes"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "membranes"
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[[bin]]
+name = "membrane_aggregate_phase"
+path = "src/bin/aggregate_phase.rs"
+
+[[bin]]
+name = "membrane_closed_divisor_search"
+path = "src/bin/closed_divisor_search.rs"
+
+[[bin]]
+name = "membrane_imscribing_factorizer"
+path = "src/bin/imscribing_factorizer.rs"
+
+[[bin]]
+name = "membrane_factor_separating_crossing"
+path = "src/bin/factor_separating_crossing.rs"
+
+[[bin]]
+name = "membrane_nested_instant_tower"
+path = "src/bin/nested_instant_tower.rs"
+
+[[bin]]
+name = "membrane_instant_nested_phase"
+path = "src/bin/instant_nested_phase.rs"
+
+[[bin]]
+name = "membrane_fully_nested_phase"
+path = "src/bin/fully_nested_phase.rs"
+
+[[bin]]
+name = "membrane_phase_based"
+path = "src/bin/phase_based.rs"
+
+[[bin]]
+name = "membrane_frobenius_circuit"
+path = "src/bin/frobenius_circuit.rs"
+
+[[bin]]
+name = "membrane_trilattice_native"
+path = "src/bin/trilattice_native.rs"
+
+[[bin]]
+name = "membrane_carry_fuse_closure"
+path = "src/bin/carry_fuse_closure.rs"
+
+[[bin]]
+name = "membrane_prime_inverse_braider"
+path = "src/bin/prime_inverse_braider.rs"
+
+[[bin]]
+name = "membrane_full_enfolding_nesting"
+path = "src/bin/full_enfolding_nesting.rs"
+
+[[bin]]
+name = "membrane_instant_read"
+path = "src/bin/instant_read.rs"
+
+[[bin]]
+name = "membrane_squaring_cycle"
+path = "src/bin/squaring_cycle.rs"

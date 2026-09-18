@@ -1,0 +1,14 @@
+[package]
+name = "spine_probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cudarc = { version = "=0.19.9", default-features = false, features = ["driver", "nvrtc", "cuda-12040", "dynamic-loading", "std"] }
+
+[[bin]]
+name = "spine_probe"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 2

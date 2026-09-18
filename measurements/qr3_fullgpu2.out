@@ -1,0 +1,2 @@
+gpu_gnfs 10403: factor 101  cofactor 103  (divides: true)  [⊣] d=3 m=20 relations=633 deps=64 B=2000 gpu=true device=0 gpu_ms=1066
+gpu_gnfs 143: factor 11  cofactor 13  (divides: true)  [⊣] d=3 m=5 relations=59 deps=36 B=40 gpu=true device=0 gpu_ms=1

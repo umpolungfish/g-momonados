@@ -1,0 +1,21 @@
+gpu_rho factor 5714400
+gpu_rho factor 1348424
+gpu_rho factor 4428270
+gpu_rho factor 15006976
+gpu_rho factor 5837171
+gpu_rho factor 3555328
+gpu_rho factor 1093276
+gpu_rho factor 426465
+gpu_rho factor 8549188
+gpu_rho factor 9755508
+gpu_rho factor 2529900
+gpu_rho factor 98700
+gpu_rho factor 1396780
+gpu_rho factor 563850
+gpu_rho factor 6665818
+gpu_rho factor 1490214
+gpu_rho factor 7064292
+gpu_rho factor 19261269
+gpu_rho factor 5888379
+gpu_rho factor 3766972
+exit

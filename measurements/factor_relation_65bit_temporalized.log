@@ -1,0 +1,5 @@
+fully nested phase relation: N=18446744400127067027 m=33
+  process: ⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⋈⊙⊣
+  IMASM nesting depth=64; phase family vessels=1; phase leaves=1; nested mark ticks=12544
+  temporal relation storage=65 bits
+  18446744400127067027 = 4294967311 x 4294967357 (verified)

@@ -1,0 +1,13 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.42s
+     Running unittests src/lib.rs (target/debug/deps/g_momonados-97ed00e20a83aa61)
+
+running 5 tests
+test word_nesting::tests::fixed_payload_cannot_freeze_an_uncommitted_parent ... ok
+test word_nesting::tests::containment_preserves_inner_work_and_pairs_outer_seal ... ok
+test word_nesting::tests::refuses_ambiguous_or_open_interfaces ... ok
+test word_nesting::tests::terminal_fixation_waits_for_the_enclosing_fuse ... ok
+test word_nesting::tests::identity_payload_stays_identity ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s
+

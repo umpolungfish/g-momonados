@@ -1,0 +1,141 @@
+[
+ {
+  "N": 143,
+  "hex": "0x8f",
+  "nblocks": 2,
+  "per_nibble": [
+   "T",
+   "A"
+  ],
+  "facs": [
+   11,
+   13
+  ]
+ },
+ {
+  "N": 221,
+  "hex": "0xdd",
+  "nblocks": 2,
+  "per_nibble": [
+   "Ttf",
+   "Ttf"
+  ],
+  "facs": [
+   13,
+   17
+  ]
+ },
+ {
+  "N": 3233,
+  "hex": "0xca1",
+  "nblocks": 3,
+  "per_nibble": [
+   "tf",
+   "F",
+   "T"
+  ],
+  "facs": [
+   53,
+   61
+  ]
+ },
+ {
+  "N": 667,
+  "hex": "0x29b",
+  "nblocks": 3,
+  "per_nibble": [
+   "T",
+   "T",
+   "TF"
+  ],
+  "facs": [
+   23,
+   29
+  ]
+ },
+ {
+  "N": 899,
+  "hex": "0x383",
+  "nblocks": 3,
+  "per_nibble": [
+   "T",
+   "T",
+   "T"
+  ],
+  "facs": [
+   29,
+   31
+  ]
+ },
+ {
+  "N": 10403,
+  "hex": "0x28a3",
+  "nblocks": 4,
+  "per_nibble": [
+   "T",
+   "T",
+   "F",
+   "T"
+  ],
+  "facs": [
+   101,
+   103
+  ]
+ },
+ {
+  "N": 1517,
+  "hex": "0x5ed",
+  "nblocks": 3,
+  "per_nibble": [
+   "tf",
+   "Ftf",
+   "Ttf"
+  ],
+  "facs": [
+   37,
+   41
+  ]
+ },
+ {
+  "N": 8051,
+  "hex": "0x1f73",
+  "nblocks": 4,
+  "per_nibble": [
+   "T",
+   "A",
+   "tf",
+   "T"
+  ],
+  "facs": [
+   83,
+   97
+  ]
+ },
+ {
+  "N": 35,
+  "hex": "0x23",
+  "nblocks": 2,
+  "per_nibble": [
+   "T",
+   "T"
+  ],
+  "facs": [
+   5,
+   7
+  ]
+ },
+ {
+  "N": 323,
+  "hex": "0x143",
+  "nblocks": 3,
+  "per_nibble": [
+   "T",
+   "tf",
+   "T"
+  ],
+  "facs": [
+   17,
+   19
+  ]
+ }
+]

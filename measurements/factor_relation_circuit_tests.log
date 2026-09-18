@@ -1,0 +1,10 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.48s
+     Running unittests src/lib.rs (target/debug/deps/g_momonados-97ed00e20a83aa61)
+
+running 2 tests
+test factor_relation::tests::wide_carries_and_high_product_bits_remain_in_the_relation ... ok
+test factor_relation::tests::predicate_is_exact_including_wrong_products_and_out_of_band_operands ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 38 filtered out; finished in 6.24s
+

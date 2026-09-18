@@ -1,0 +1,13 @@
+   Compiling imasm_core v0.1.0 (/home/mrnob0dy666/imsgct/MoDoT/imasm_core)
+   Compiling vox v0.1.0 (/home/mrnob0dy666/imsgct/Vox)
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.70s
+     Running unittests src/lib.rs (target/debug/deps/g_momonados-97ed00e20a83aa61)
+
+running 3 tests
+test gpu_graph::tests::reject_unknown_marks_and_invalid_graphs ... ok
+test gpu_graph::tests::identity_and_loss_are_distinct ... ok
+test gpu_graph::tests::full_carrier_recovers_at_every_nested_dyad ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.03s
+

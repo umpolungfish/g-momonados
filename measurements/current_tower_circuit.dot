@@ -1,0 +1,47 @@
+digraph tower {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.28", ranksep="0.42", fontname="DejaVu Sans", label="Current fixed-point nested IMASM factor tower\n⊢≻⋈⊙∈⊤≻⋈⊥≺⋈⊞∋⊡⋈⊙⊣", labelloc=t, fontsize=18];
+  node [shape=box, style="rounded", color="#111111", fontname="DejaVu Sans", fontsize=10];
+  edge [color="#111111", fontname="DejaVu Sans", fontsize=9];
+
+  input [label="⊢ VINIT\nterminal input → ImasmTape"];
+  output [label="⊣ TANCH\nfixed factor inhabitant → terminal decode"];
+
+  subgraph cluster_tower {
+    label="every live operator is a recursively zoomable NestedMark { mark, depth }"; color="#111111"; penwidth=2;
+    outer [label="aggregate phase word\n⊢ ≻ ⋈ ⊙ ∈ ⊤ ≻ ⋈ ⊥ ≺ ⋈ ⊞ ∋ ⊡ ⋈ ⊙ ⊣"];
+
+    subgraph cluster_fixed_point {
+      label="complete fixed-point containment for each mark, at every depth"; color="#555555"; penwidth=2;
+      split [label="∈ FSPLIT\nbank inner NestedMark"];
+      evalt [label="⊤ EVALT\nretain banked inner morphism"];
+      evalf [label="⊥ EVALF\nretain the same inner morphism"];
+      fuse [label="∋ FFUSE\nμ: fuse equal arms"];
+      fix [label="⊡ IFIX\ncommit fused morphism"];
+      imscribe [label="⊙ IMSCRIB\nemit the fixed inner morphism"];
+      split -> evalt;
+      split -> evalf;
+      evalt -> fuse;
+      evalf -> fuse;
+      fuse -> fix -> imscribe;
+    }
+
+    identity [label="B(A) = A\nμ ∘ δ = id\nemitted mark = input mark", penwidth=2];
+    outer -> split [label="each outer token enters"];
+    imscribe -> identity [label="one fixed-point composition"];
+
+    subgraph cluster_payload {
+      label="the emitted mark acts only after its containment closes"; color="#888888";
+      scheduler [label="scheduler morphisms\nphase, residues, QR family collapse"];
+      frontier [label="frontier morphisms\nB = b + J; E = t + 2Jc\nE = q(2B+q) + t′"];
+      selection [label="selection morphisms\nt′ = 0; factor witness; band check"];
+      continuation [label="continuation morphisms\nretain tape, close leaf, return next mark"];
+      scheduler -> frontier -> selection;
+      selection -> continuation [label="F"];
+      continuation -> scheduler [label="emitted continuation"];
+    }
+    identity -> scheduler [label="same mark, now active"];
+  }
+
+  input -> outer;
+  selection -> output [label="T: fixed witness"];
+}

@@ -1,0 +1,4 @@
+# G-mOMonadOS never targets bare metal, so unlike the parent kernel there is
+# no [build] target override here: `cargo build` uses the ambient host
+# target, hosted defaults on (see Cargo.toml's [features]), and that is the
+# whole build.

@@ -1,0 +1,65 @@
+   Compiling imasm_core v0.1.0 (/home/mrnob0dy666/imsgct/MoDoT/imasm_core)
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.59s
+     Running unittests src/lib.rs (target/debug/deps/g_momonados-97ed00e20a83aa61)
+
+running 33 tests
+test braid_frobenius_tests::an_open_braid_declares_itself_open ... ok
+test braid_frobenius_tests::closure_returns_the_depth_it_started_at ... ok
+test braid_frobenius_tests::far_commutativity_holds_on_the_invariants ... ok
+test braid_frobenius_tests::sign_is_carried_by_the_involution ... ok
+test braid_frobenius_tests::frobenius_identity_on_the_generator_word ... ok
+test braid_frobenius_tests::writhe_survives_the_round_trip ... ok
+test braid_frobenius_tests::yang_baxter_is_a_fact_about_the_programs ... ok
+test btc_key_deriver::tests::test_born_rule_collapse ... ok
+test btc_key_deriver::tests::test_born_rule_privkey ... ok
+test btc_key_deriver::tests::test_born_rule_seed ... ok
+test btc_key_deriver::tests::test_byte_to_glyph ... ok
+test btc_key_deriver::tests::test_derivation_chain_length ... ok
+test btc_key_deriver::tests::test_hex_to_bytes_and_back ... ok
+test btc_key_deriver::tests::test_hex_to_word_pubkey ... ok
+test btc_key_deriver::tests::test_lattice_map_is_defined ... ok
+test btc_key_deriver::tests::test_word_lengths ... FAILED
+test btc_key_deriver::tests::test_pubkey_to_privkey_canonical ... FAILED
+test gpu_graph::tests::reject_unknown_marks_and_invalid_graphs ... ok
+test gpu_graph::tests::identity_and_loss_are_distinct ... ok
+test period_finding_ecdlp::tests::mod_exp_u256_uses_passed_modulus ... ok
+test period_finding_ecdlp::tests::debug_div_rem_and_certification ... ok
+test secp256k1_unwinder::tests::generator_on_curve ... ok
+test period_finding_ecdlp::tests::shr_bits_crosses_limb_boundary ... ok
+test secp256k1_unwinder::walk_tests::every_step_opcode_matches_word ... ok
+test secp256k1_unwinder::tests::field_basic_ops ... ok
+test secp256k1_unwinder::walk_tests::phase_1_mapping_covers_all_twelve_glyphs ... ok
+test secp256k1_unwinder::walk_tests::finalize_canonical_k_zero_returns_t ... ok
+test secp256k1_unwinder::walk_tests::word_has_19_glyphs ... ok
+test secp256k1_unwinder::walk_tests::walk_has_nineteen_landings ... ok
+test period_finding_ecdlp::tests::continued_fraction_recovers_exact_binary_fraction ... ok
+test secp256k1_unwinder::tests::verify_keypair_roundtrip ... ok
+test gpu_graph::tests::full_carrier_recovers_at_every_nested_dyad ... ok
+test period_finding_ecdlp::tests::oracle_closes_mu_delta ... ok
+
+failures:
+
+---- btc_key_deriver::tests::test_word_lengths stdout ----
+
+thread 'btc_key_deriver::tests::test_word_lengths' (260) panicked at src/btc_key_deriver.rs:505:9:
+assertion `left == right` failed
+  left: 40
+ right: 33
+
+---- btc_key_deriver::tests::test_pubkey_to_privkey_canonical stdout ----
+
+thread 'btc_key_deriver::tests::test_pubkey_to_privkey_canonical' (259) panicked at src/btc_key_deriver.rs:551:9:
+assertion `left == right` failed: FDE lattice transform of canonical pubkey should yield canonical privkey
+  left: "080600070b020200000809020b0b06000b0b0907000008000b09070708000700"
+ right: "4612c2a024b478420f2483bff2a1e91270535f40e76276a7b55d8f97b5907dcc"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    btc_key_deriver::tests::test_pubkey_to_privkey_canonical
+    btc_key_deriver::tests::test_word_lengths
+
+test result: FAILED. 31 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `--lib`

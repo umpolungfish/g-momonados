@@ -1,0 +1,21 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+warning: variable `pairs` is assigned to, but never used
+   --> src/gpu_gnfs_sieve.rs:771:9
+    |
+771 |     let mut pairs = 0u64;
+    |         ^^^^^^^^^
+    |
+    = note: consider using `_pairs` instead
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `pairs` is never read
+   --> src/gpu_gnfs_sieve.rs:796:9
+    |
+796 |         pairs += p;
+    |         ^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: `g-momonados` (bin "g-momonados") generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 1m 02s

@@ -1,0 +1,9 @@
+gpu_gnfs: bits=11 B=40 word=⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ d≈3 — ⊢ opening
+gpu_gnfs ⊙: d=3 m_bits=3 coeff_score=8 f(m)=N — g(x)=x - 6
+gpu_gnfs ⊢/alfs: B=40 |rat|=12 |alg|=20 ncols=33
+gpu_gnfs ≻ GPU classical log-line |A|=320 Bmax=80 fudge=6.640 mark=exact+log on device 0
+gpu_gnfs ≻ tile 1/1: relations=66/66 cells=51280 hits_cum=73
+gpu_gnfs ≻ GPU log-line done: cells=51280 hit-launches=73 1 ms relations=66/66
+gpu_gnfs ≻ sieve: pairs=4135 relations=66/66 |A|=320 Bmax=80 ncols=33 gpu=true
+gpu_gnfs ⋈≻: 66 relations → 35 dependencies
+gpu_gnfs ∋⊤: factor 37 via dep [1,2,9,11,17,19,20,30] (x=185 y=925)

@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+# membrane — friendly CLI for the three membrane engines in G-mOMonadOS.
+#
+# Three membrane kinds are exposed by the kernel:
+#   factor_membrane       factor-separating imscription membrane M_κ
+#                         sub: encode | word | cross | separate | factor | recurse
+#   membrane_family       registry of factor-membrane words
+#                         sub: list | run <WORD> <N> | family <N>
+#   shor_b4_membrane      Belnap-graded Shor pipeline as a membrane
+#                         sub: click | cycle | chain | list
+#
+# IMPORTANT: run_cmds.sh treats each argv as ONE REPL line. We join the
+# subcommand and its operands into one argv, never pass them separately.
+#
+# `make <N> [TEMPLATE]` does the full compile pipeline in one shot:
+#   1. encode N  (factor_membrane encode N)  → canonical native-numeral word
+#   2. look up a family template             (membrane_family list)
+#   3. embed the value word INSIDE the template at the ⊙ slot
+#      (every family word has exactly one ⊙ — the self-reference point;
+#       if absent, insert just before the closing ⊣)
+#   4. run the compiled membrane             (membrane_family run <word> N)
+#
+# Examples:
+#   membrane help
+#   membrane factor 91                # 91 = 7*13
+#   membrane encode 91
+#   membrane word 97 83
+#   membrane cross ⊢∈⊞≺∋⊡⊣
+#   membrane recurse 91
+#   membrane list
+#   membrane run ⊢∈⊞≺∋⊡⊣ 8051
+#   membrane family 8051
+#   membrane make 91                   # compile-and-run with default template
+#   membrane make 8051 phase_based     # explicit template
+#   membrane shor click 7 15 4
+#   membrane raw "any verbatim line"
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RUN="$ROOT/run_cmds.sh"
+
+if [[ ! -x "$RUN" ]]; then
+    echo "error: run_cmds.sh not found or not executable next to this script (looked at $RUN)" >&2
+    exit 127
+fi
+
+# dispatch <cmd-line...> — join all args with single spaces, feed as ONE argv.
+dispatch() {
+    local line=""
+    for tok in "$@"; do
+        if [[ -z "$line" ]]; then line="$tok"; else line="$line $tok"; fi
+    done
+    "$RUN" "$line"
+}
+
+# strip_glyph_ws <var> — defensive: remove every whitespace-like char (tab,
+# CR, LF, space) that may have leaked from captured kernel output.
+strip_glyph_ws() { printf '%s' "${!1}" | tr -d '[:space:]'; }
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+    help|-h|--help)
+        cat <<'USAGE'
+membrane — CLI for the three membrane engines in G-mOMonadOS
+
+  factor_membrane  (Factor-Separating Imscription Membrane M_κ):
+    membrane factor   <N|word>           factor-separating walk (single operand)
+    membrane encode   <N|word>           decimal-to-native-word encode
+    membrane word     <P> <Q>            Γ-interlace P and Q into a word
+    membrane cross    <word|N>           canonical Λ split of a word or N
+    membrane separate <word|N>           same as cross, membrane-named
+    membrane recurse  <N|word>           two-arm co-evolution tree to primes
+
+  membrane_family:
+    membrane list                        list registered membrane words
+    membrane run     <WORD> <N>          run a specific membrane word on N
+    membrane family  <N>                 pick a word for N and run it
+
+  compile-and-run (encode N → embed inside a family template → execute):
+    membrane make     <N> [TEMPLATE]     default template: carry_fuse_closure
+
+  shor_b4_membrane (Belnap Shor pipeline):
+    membrane shor click <a> <N> <qubits>
+    membrane shor cycle <a> <N> <qubits> <k>
+    membrane shor chain <a> <N> <qubits>
+    membrane shor list
+
+  passthrough:
+    membrane raw <one REPL line...>      forward verbatim to run_cmds.sh
+
+Note: factor_membrane factor takes ONE operand. The kernel picks its own
+node budget internally. Pass `cap`-style constraints through
+`membrane run <WORD> <N>` if you specifically want them.
+USAGE
+        ;;
+
+    factor)   dispatch factor_membrane factor   "$@" ;;
+    encode)   dispatch factor_membrane encode   "$@" ;;
+    word)     dispatch factor_membrane word     "$@" ;;
+    cross)    dispatch factor_membrane cross    "$@" ;;
+    separate) dispatch factor_membrane separate "$@" ;;
+    recurse)  dispatch factor_membrane recurse  "$@" ;;
+
+    list)     dispatch membrane_family list      ;;
+    run)      dispatch membrane_family run       "$@" ;;
+    family)   dispatch membrane_family family   "$@" ;;
+
+    make)
+        N="${1:?usage: membrane make <N> [TEMPLATE]}"
+        TEMPLATE="${2:-carry_fuse_closure}"
+        # strip ALL whitespace from N (decimal input only)
+        N="$(printf '%s' "$N" | tr -d '[:space:]')"
+
+        # step 1: encode N → canonical native-numeral word
+        enc_line=$( "$RUN" "factor_membrane encode $N" 2>/dev/null \
+            | awk '
+                { gsub(/\x1b\[[0-9;]*m/, "")
+                  if (match($0, /⊢[^()]*⊡⊣/)) { s=substr($0,RSTART,RLENGTH); print s; exit } }
+            ' )
+        enc_line="$(printf '%s' "$enc_line" | tr -d '[:space:]')"
+        if [[ -z "$enc_line" ]]; then
+            echo "make: failed to encode N=$N (kernel did not return a canonical word)" >&2
+            exit 3
+        fi
+
+        # step 2: pull the template word from the family registry
+        tpl_line=$( "$RUN" "membrane_family list" 2>/dev/null \
+            | awk -v want="$TEMPLATE" '
+                { gsub(/\x1b\[[0-9;]*m/, "")
+                  if ($1 == want && match($0, /⊢.*/)) { print substr($0,RSTART,RLENGTH); exit } }
+            ' )
+        tpl_line="$(printf '%s' "$tpl_line" | tr -d '[:space:]')"
+        if [[ -z "$tpl_line" ]]; then
+            echo "make: unknown template '$TEMPLATE' (try: membrane list)" >&2
+            exit 4
+        fi
+
+        # step 3: embed the encoded value INSIDE the template at the ⊙ slot
+        if [[ "$tpl_line" == *"⊙"* ]]; then
+            compiled="${tpl_line/⊙/$enc_line}"
+        else
+            compiled="${tpl_line/⊣/$enc_line⊣}"
+        fi
+
+        echo "make: N=$N  template=$TEMPLATE"
+        echo "      value-word : $enc_line"
+        echo "      template    : $tpl_line"
+        echo "      compiled    : $compiled"
+
+        # step 4: run the compiled membrane as ONE argv to run_cmds.sh
+        dispatch membrane_family run "$compiled" "$N"
+        ;;
+
+    shor)
+        sub="${1:?usage: membrane shor <click|cycle|chain|list> ...}"
+        shift
+        case "$sub" in
+            click|cycle|chain|list)
+                dispatch shor_b4_membrane "$sub" "$@"
+                ;;
+            *)
+                echo "membrane shor: unknown sub '$sub' (click|cycle|chain|list)" >&2
+                exit 2
+                ;;
+        esac
+        ;;
+
+    raw)      "$RUN" "$*" ;;
+
+    *)
+        echo "membrane: unknown command '$cmd' (try 'membrane help')" >&2
+        exit 2
+        ;;
+esac

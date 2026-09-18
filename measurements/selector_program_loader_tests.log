@@ -1,0 +1,10 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.04s
+     Running unittests src/main.rs (target/debug/deps/g_momonados-22a799aa9f11e768)
+
+running 2 tests
+test gpu_kernel::ob3ect_program_tests::supplied_word_and_phase_program_agree ... ok
+test gpu_kernel::ob3ect_program_tests::changed_phase_cannot_silently_execute_the_original_selector ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 383 filtered out; finished in 0.00s
+

@@ -1,0 +1,1055 @@
+tick
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_1 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_2 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_3 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_4 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_5 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_6 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_7 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_8 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_9 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_10 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_11 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_12 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_13 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_14 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_15 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_16 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_17 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_18 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_19 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_20 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_21 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_22 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_23 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_24 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_25 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_26 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_27 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_28 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_29 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_30 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_31 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_32 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_33 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_34 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_35 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_36 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_37 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_38 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_39 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_40 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_41 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_42 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_43 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_44 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_45 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_46 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_47 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_48 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_49 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_50 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_51 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_52 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_53 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_54 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_55 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_56 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_57 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_58 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_59 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_60 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_61 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_62 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_63 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_64 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_65 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_66 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_67 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_68 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_69 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_70 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_71 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_72 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_73 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_74 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_75 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_76 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_77 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_78 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_79 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_80 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_81 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_82 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_83 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_84 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_85 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_86 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify
+jump U_87 using Apertix
+seal
+trilattice_factor word
+native_numeral word
+nested_oneshot factor 143
+winding order 2 91
+winding factor 143
+qft braid 3
+qft estimate 3
+algebra tensor
+algebra meet
+ruleset verify

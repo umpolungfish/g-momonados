@@ -1,0 +1,16 @@
+[ask] unknown --provider/IG_PROVIDER 'llamacpp'; use openrouter | gemini | deepseek | groq | local. Falling back to key-based selection.
+IMASM eval — word  [carrier: SIXTEEN_3 = P({T,F,t,f}); seed A]
+    0 ⊢ VINIT    in    N → out A
+    1 ⊙ IMSCRIB  in    A → out A
+    2 ∈ FSPLIT   in    A → out T,F,tf
+    3 ≻ AFWD     in    T → out T
+    4 ⊤ EVALT    in    T → out T
+    5 ≺ AREV     in    T → out F
+    6 ⊥ EVALF    in    F → out F
+    7 ⋈ CLINK    in    F → out F
+    8 ⊞ ENGAGR   in    F → out F
+    9 ∋ FFUSE    in  Ftf → out Ftf
+   10 ⊡ IFIX     in  Ftf → out Ftf
+   11 ⊣ TANCH    in  Ftf → out Ftf
+  readout at sink(s): TANCH(Ftf)
+  μ∘δ on values: FSPLIT@2 fed A → FFUSE@9 recovered Ftf — NOT id (value lost or gained on the arms)
