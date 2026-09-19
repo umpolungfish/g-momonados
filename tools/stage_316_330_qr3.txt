@@ -1,0 +1,16 @@
+qr3 "vox sixteen3 check ⊢∈⊤⊤≺∋⊣
+weight ⊢∈⊤⊤≺∋⊣
+vox sixteen3 check ⊢∈⊤∈⊤≺∋∋⊣
+weight ⊢∈⊤∈⊤≺∋∋⊣
+vox sixteen3 check ⊢∈⊤⊤⊤≺∋⊣
+weight ⊢∈⊤⊤⊤≺∋⊣
+vox sixteen3 check ⊢∈⊤∈⊤∈⊤≺∋∋∋⊣
+weight ⊢∈⊤∈⊤∈⊤≺∋∋∋⊣
+vox sixteen3 check ⊢∈⊤⊥≺∋⊣
+weight ⊢∈⊤⊥≺∋⊣
+vox sixteen3 check ⊢∈⊤∈⊥≺∋∋⊣
+weight ⊢∈⊤∈⊥≺∋∋⊣
+vox sixteen3 check ⊢∈⊤⊤⊥≺∋⊣
+weight ⊢∈⊤⊤⊥≺∋⊣
+vox sixteen3 check ⊢∈⊤⊤∈⊥≺∋∋⊣
+weight ⊢∈⊤⊤∈⊥≺∋∋⊣"
