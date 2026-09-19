@@ -1,0 +1,240 @@
+Word: ⊢∈⊤⊤≺∋⊣
+  Step Glyph Token      Reg↓ →  Reg↑
+    1   ⊢   VINIT         N →     N
+    2   ∈   FSPLIT3       N →     N
+    3   ⊤   EVALT         N →     T
+    4   ⊤   EVALT         T →     T
+    5   ≺   AREV          T →     N
+    6   ∋   FFUSE3        N →     T
+    7   ⊣   TANCH         T →     T
+
+  Closed walk: false
+  Final register: T
+  Tri-ancestral verdict: T — Tri-ancestral reconnection over a transformed object — closes
+word   : ⊢∈⊤⊤≺∋⊣
+  movement:
+     1 ⊢  CLEAR loses 0   (0 banked in frames)
+     2 ∈  open frame at depth 1
+     3 ⊤  deposit T   into depth 1
+     4 ⊤  deposit T   into depth 1
+     5 ≺  CLEAR loses 2   (2 banked in frames)
+     6 ∋  fuse restores 2
+
+  final    : T
+  surviving: T×2
+  deposits 2  cleared 2  restored 2  seeded 0  inert 0
+
+Word: ⊢∈⊤∈⊤≺∋∋⊣
+  Step Glyph Token      Reg↓ →  Reg↑
+    1   ⊢   VINIT         N →     N
+    2   ∈   FSPLIT3       N →     N
+    3   ⊤   EVALT         N →     T
+    4   ∈   FSPLIT3       T →     T
+    5   ⊤   EVALT         T →     T
+    6   ≺   AREV          T →     N
+    7   ∋   FFUSE3        N →     T
+    8   ∋   FFUSE3        T →     T
+    9   ⊣   TANCH         T →     T
+
+  Closed walk: false
+  Final register: T
+  Tri-ancestral verdict: T — Tri-ancestral reconnection over a transformed object — closes
+word   : ⊢∈⊤∈⊤≺∋∋⊣
+  movement:
+     1 ⊢  CLEAR loses 0   (0 banked in frames)
+     2 ∈  open frame at depth 1
+     3 ⊤  deposit T   into depth 1
+     4 ∈  open frame at depth 2
+     5 ⊤  deposit T   into depth 2
+     6 ≺  CLEAR loses 2   (2 banked in frames)
+     7 ∋  fuse restores 1
+     8 ∋  fuse restores 0
+
+  final    : T
+  surviving: T×1
+  deposits 2  cleared 2  restored 1  seeded 0  inert 0
+
+Word: ⊢∈⊤⊤⊤≺∋⊣
+  Step Glyph Token      Reg↓ →  Reg↑
+    1   ⊢   VINIT         N →     N
+    2   ∈   FSPLIT3       N →     N
+    3   ⊤   EVALT         N →     T
+    4   ⊤   EVALT         T →     T
+    5   ⊤   EVALT         T →     T
+    6   ≺   AREV          T →     N
+    7   ∋   FFUSE3        N →     T
+    8   ⊣   TANCH         T →     T
+
+  Closed walk: false
+  Final register: T
+  Tri-ancestral verdict: T — Tri-ancestral reconnection over a transformed object — closes
+word   : ⊢∈⊤⊤⊤≺∋⊣
+  movement:
+     1 ⊢  CLEAR loses 0   (0 banked in frames)
+     2 ∈  open frame at depth 1
+     3 ⊤  deposit T   into depth 1
+     4 ⊤  deposit T   into depth 1
+     5 ⊤  deposit T   into depth 1
+     6 ≺  CLEAR loses 3   (3 banked in frames)
+     7 ∋  fuse restores 3
+
+  final    : T
+  surviving: T×3
+  deposits 3  cleared 3  restored 3  seeded 0  inert 0
+
+Word: ⊢∈⊤∈⊤∈⊤≺∋∋∋⊣
+  Step Glyph Token      Reg↓ →  Reg↑
+    1   ⊢   VINIT         N →     N
+    2   ∈   FSPLIT3       N →     N
+    3   ⊤   EVALT         N →     T
+    4   ∈   FSPLIT3       T →     T
+    5   ⊤   EVALT         T →     T
+    6   ∈   FSPLIT3       T →     T
+    7   ⊤   EVALT         T →     T
+    8   ≺   AREV          T →     N
+    9   ∋   FFUSE3        N →     T
+   10   ∋   FFUSE3        T →     T
+   11   ∋   FFUSE3        T →     T
+   12   ⊣   TANCH         T →     T
+
+  Closed walk: false
+  Final register: T
+  Tri-ancestral verdict: T — Tri-ancestral reconnection over a transformed object — closes
+word   : ⊢∈⊤∈⊤∈⊤≺∋∋∋⊣
+  movement:
+     1 ⊢  CLEAR loses 0   (0 banked in frames)
+     2 ∈  open frame at depth 1
+     3 ⊤  deposit T   into depth 1
+     4 ∈  open frame at depth 2
+     5 ⊤  deposit T   into depth 2
+     6 ∈  open frame at depth 3
+     7 ⊤  deposit T   into depth 3
+     8 ≺  CLEAR loses 3   (3 banked in frames)
+     9 ∋  fuse restores 1
+    10 ∋  fuse restores 0
+    11 ∋  fuse restores 0
+
+  final    : T
+  surviving: T×1
+  deposits 3  cleared 3  restored 1  seeded 0  inert 0
+
+Word: ⊢∈⊤⊥≺∋⊣
+  Step Glyph Token      Reg↓ →  Reg↑
+    1   ⊢   VINIT         N →     N
+    2   ∈   FSPLIT3       N →     N
+    3   ⊤   EVALT         N →     T
+    4   ⊥   EVALF         T →    TF
+    5   ≺   AREV         TF →     N
+    6   ∋   FFUSE3        N →    TF
+    7   ⊣   TANCH        TF →    TF
+
+  Closed walk: false
+  Final register: TF
+  Tri-ancestral verdict: T — Tri-ancestral reconnection over a transformed object — closes
+word   : ⊢∈⊤⊥≺∋⊣
+  movement:
+     1 ⊢  CLEAR loses 0   (0 banked in frames)
+     2 ∈  open frame at depth 1
+     3 ⊤  deposit T   into depth 1
+     4 ⊥  deposit F   into depth 1
+     5 ≺  CLEAR loses 2   (2 banked in frames)
+     6 ∋  fuse restores 2
+
+  final    : TF
+  surviving: T×1, F×1
+  deposits 2  cleared 2  restored 2  seeded 0  inert 0
+
+Word: ⊢∈⊤∈⊥≺∋∋⊣
+  Step Glyph Token      Reg↓ →  Reg↑
+    1   ⊢   VINIT         N →     N
+    2   ∈   FSPLIT3       N →     N
+    3   ⊤   EVALT         N →     T
+    4   ∈   FSPLIT3       T →     T
+    5   ⊥   EVALF         T →    TF
+    6   ≺   AREV         TF →     N
+    7   ∋   FFUSE3        N →     F
+    8   ∋   FFUSE3        F →    TF
+    9   ⊣   TANCH        TF →    TF
+
+  Closed walk: false
+  Final register: TF
+  Tri-ancestral verdict: T — Tri-ancestral reconnection over a transformed object — closes
+word   : ⊢∈⊤∈⊥≺∋∋⊣
+  movement:
+     1 ⊢  CLEAR loses 0   (0 banked in frames)
+     2 ∈  open frame at depth 1
+     3 ⊤  deposit T   into depth 1
+     4 ∈  open frame at depth 2
+     5 ⊥  deposit F   into depth 2
+     6 ≺  CLEAR loses 2   (2 banked in frames)
+     7 ∋  fuse restores 1
+     8 ∋  fuse restores 1
+
+  final    : TF
+  surviving: T×1, F×1
+  deposits 2  cleared 2  restored 2  seeded 0  inert 0
+
+Word: ⊢∈⊤⊤⊥≺∋⊣
+  Step Glyph Token      Reg↓ →  Reg↑
+    1   ⊢   VINIT         N →     N
+    2   ∈   FSPLIT3       N →     N
+    3   ⊤   EVALT         N →     T
+    4   ⊤   EVALT         T →     T
+    5   ⊥   EVALF         T →    TF
+    6   ≺   AREV         TF →     N
+    7   ∋   FFUSE3        N →    TF
+    8   ⊣   TANCH        TF →    TF
+
+  Closed walk: false
+  Final register: TF
+  Tri-ancestral verdict: T — Tri-ancestral reconnection over a transformed object — closes
+word   : ⊢∈⊤⊤⊥≺∋⊣
+  movement:
+     1 ⊢  CLEAR loses 0   (0 banked in frames)
+     2 ∈  open frame at depth 1
+     3 ⊤  deposit T   into depth 1
+     4 ⊤  deposit T   into depth 1
+     5 ⊥  deposit F   into depth 1
+     6 ≺  CLEAR loses 3   (3 banked in frames)
+     7 ∋  fuse restores 3
+
+  final    : TF
+  surviving: T×2, F×1
+  deposits 3  cleared 3  restored 3  seeded 0  inert 0
+
+Word: ⊢∈⊤⊤∈⊥≺∋∋⊣
+  Step Glyph Token      Reg↓ →  Reg↑
+    1   ⊢   VINIT         N →     N
+    2   ∈   FSPLIT3       N →     N
+    3   ⊤   EVALT         N →     T
+    4   ⊤   EVALT         T →     T
+    5   ∈   FSPLIT3       T →     T
+    6   ⊥   EVALF         T →    TF
+    7   ≺   AREV         TF →     N
+    8   ∋   FFUSE3        N →     F
+    9   ∋   FFUSE3        F →    TF
+   10   ⊣   TANCH        TF →    TF
+
+  Closed walk: false
+  Final register: TF
+  Tri-ancestral verdict: T — Tri-ancestral reconnection over a transformed object — closes
+word   : ⊢∈⊤⊤∈⊥≺∋∋⊣
+  movement:
+     1 ⊢  CLEAR loses 0   (0 banked in frames)
+     2 ∈  open frame at depth 1
+     3 ⊤  deposit T   into depth 1
+     4 ⊤  deposit T   into depth 1
+     5 ∈  open frame at depth 2
+     6 ⊥  deposit F   into depth 2
+     7 ≺  CLEAR loses 3   (3 banked in frames)
+     8 ∋  fuse restores 1
+     9 ∋  fuse restores 2
+
+  final    : TF
+  surviving: T×2, F×1
+  deposits 3  cleared 3  restored 3  seeded 0  inert 0
+
+
+real	0m0.052s
+user	0m0.050s
+sys	0m0.014s

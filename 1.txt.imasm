@@ -1,0 +1,11 @@
+; ⊙ module (raw x86-64)
+; entry 0x1000
+; bits 64
+@0x1001
+⋈	mov	r:ah	m:rdx::1:-0x1d77771e:1
+@0x1007
+⋈	mov	r:ah	m:rdx::8:-0x771d5a76:1
+@0x100e
+⋈	mov	r:esp	r:edx
+@0x1010
+⋈	mov	r:ah	m:rcx::1:0xaa38ae2:1
