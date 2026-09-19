@@ -1,4 +1,4 @@
-# G-mOMonadOS / {$Gm⊙^2$}
+# G-mOMonadOS / $Gm⊙^{2}$
 
 ![Rust](https://img.shields.io/badge/language-Rust-CE422B?style=for-the-badge&logo=rust&logoColor=white)
 ![GPU](https://img.shields.io/badge/CUDA-GPU%20path-76B900?style=for-the-badge&logo=nvidia)
