@@ -1,0 +1,13 @@
+STAGES 316–330 — NATIVE CARRY / PROVENANCE BOUNDARY
+================================================================================================
+SAME_TT    ⊢∈⊤⊤≺∋⊣  expected final=T surviving={'T': 2}
+NEST_TT    ⊢∈⊤∈⊤≺∋∋⊣  expected final=T surviving={'T': 1}
+SAME_TTT   ⊢∈⊤⊤⊤≺∋⊣  expected final=T surviving={'T': 3}
+NEST_TTT   ⊢∈⊤∈⊤∈⊤≺∋∋∋⊣  expected final=T surviving={'T': 1}
+SAME_TF    ⊢∈⊤⊥≺∋⊣  expected final=TF surviving={'T': 1, 'F': 1}
+NEST_TF    ⊢∈⊤∈⊥≺∋∋⊣  expected final=TF surviving={'T': 1, 'F': 1}
+SAME_TTF   ⊢∈⊤⊤⊥≺∋⊣  expected final=TF surviving={'T': 2, 'F': 1}
+NEST_TTF   ⊢∈⊤⊤∈⊥≺∋∋⊣  expected final=TF surviving={'T': 2, 'F': 1}
+
+STATIC PREDICTION ONLY — NATIVE TRANSCRIPT REQUIRED
+BATCH 316–330 RESULT : PENDING NATIVE

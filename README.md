@@ -1,10 +1,10 @@
-# G-mOMonadOS{$G-m⊙^2$}
+# G-mOMonadOS / {$Gm⊙^2$}
 
 ![Rust](https://img.shields.io/badge/language-Rust-CE422B?style=for-the-badge&logo=rust&logoColor=white)
 ![GPU](https://img.shields.io/badge/CUDA-GPU%20path-76B900?style=for-the-badge&logo=nvidia)
 ![License](https://img.shields.io/badge/license-Unlicense-1A1A1A?style=for-the-badge)
 
-$G-m⊙^2$ is the hosted, GPU-native build of the $m⊙^2$ architecture.
+$Gm⊙^2$ is the hosted, GPU-native build of the $m⊙^2$ architecture.
 
 It runs the Imscribing Grammar, IMASM words, trilattice state, quantum and
 Vox tooling, and ABC/IUTT measurement readers from one Rust executable.
