@@ -3367,6 +3367,14 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             "temp" => print_temporal(),
             "cat" => print_cat(),
             "algebra" => print_algebra(k, parts.next().unwrap_or("")),
+            // The menu lists these algebra subcommands as bare commands, so wire
+            // them at top level to the same handler rather than only algebra <sub>.
+            "distance" | "dist" => print_algebra(k, "distance"),
+            "meet" => print_algebra(k, "meet"),
+            "join" => print_algebra(k, "join"),
+            "tensor" => print_algebra(k, "tensor"),
+            // frob is a psm subcommand the menu lists bare; route it through.
+            "frob" => print_psm("frob"),
             "cl8nk" => {
                 let action = parts.next().unwrap_or("");
                 let name = parts.next().unwrap_or("");
