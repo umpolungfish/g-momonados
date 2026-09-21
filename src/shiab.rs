@@ -1,4 +1,4 @@
-//! The SHIAB operator as an executable transform.
+//! The SHIABO as an executable transform.
 //!
 //! SHIAB is a holographic scale-collapse. Give it a value and it acts: the ∈
 //! mark is the split δ, the ∋ mark the stitch μ, and ⊙ is μ∘δ = id. On an
@@ -13,7 +13,7 @@ use num_bigint::BigUint;
 use num_traits::{Zero, One};
 use crate::counterfactual::read;
 
-/// The canonical SHIAB operator word.
+/// The canonical SHIABO word.
 pub const SHIAB_WORD: &str = "⊢⊙∈≻⊤≺⊥⊞⋈∋⊡⊣";
 
 /// The twelve marks; presence of any of these routes input to the word arm.
@@ -123,7 +123,7 @@ fn transform_word(input: &str) -> String {
 
 fn help() -> String {
     let mut s = String::new();
-    s.push_str("SHIAB operator — holographic scale-collapse, run live\n");
+    s.push_str("SHIABO — holographic scale-collapse, run live\n");
     s.push_str("  shiab <N>            collapse an integer: δ boundary, μ∘δ=id recovery, winding\n");
     s.push_str("  shiab <imasm-word>   wrap a word as bulk in ⊢⊙∈…⋈∋⊡⊣ and run the collapse\n");
     s.push_str("  shiab run            the canonical operator on itself\n");
