@@ -45,6 +45,7 @@ mod basin;
 mod belnap;
 mod tokens;
 mod counterfactual;
+mod shiab;
 mod prooflift;
 mod crystal;
 mod kernel;
