@@ -655,7 +655,7 @@ fn main() {
         kmain_seeded(seed);
         return;
     }
-    gpu_kernel::run_hosted_executable()
+    kmain()
 }
 
 #[cfg(feature = "hosted")]
