@@ -3650,6 +3650,10 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 let args: Vec<&str> = parts.collect();
                 sprintln!("{}", crate::counterfactual::counterfactual_main(&args));
             }
+            "shiab" => {
+                let args: Vec<&str> = parts.collect();
+                sprintln!("{}", crate::shiab::shiab_main(&args));
+            }
             "basin" => {
                 let args: Vec<&str> = parts.collect();
                 sprintln!("{}", crate::basin::basin_main(&args));
