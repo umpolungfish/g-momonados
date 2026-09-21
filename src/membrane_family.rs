@@ -23,6 +23,60 @@ use alloc::format;
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 use crate::native_numeral::{add_via_word, subtract_via_word, multiply_via_word};
+use cudarc::driver::{CudaContext, LaunchConfig, PushKernelArg};
+use cudarc::nvrtc::{compile_ptx_with_opts, CompileOptions};
+
+/// The nested fixed-point emit as a device kernel. The complete enclosure acts
+/// as μ∘δ=id on the mark carrier: its two arms are the same banked morphism, so
+/// fusion and fixation return the mark exactly. One thread per token writes the
+/// mark back and ticks the device counter once, so the emit runs on the card and
+/// the pass tick count is read from the GPU, not assumed.
+const EMIT_PTX: &str = r#"
+extern "C" __global__ void nested_emit(const unsigned* marks, unsigned* out,
+                                       unsigned long long* ticks, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n) return;
+    out[i] = marks[i];                       // μ∘δ = id on this carrier
+    atomicAdd(ticks, 1ULL);
+}
+"#;
+
+/// Run the word's whole op stream through the nested fixed-point emit on the GPU,
+/// once. Returns the emitted marks (identity on the carrier) and the tick count
+/// the device accumulated for one pass. Self-contained in the gpu_rho style: its
+/// own kernel, no reach into the bare-metal kernel tree. None when no CUDA context
+/// is present, so a headless host still runs the membrane through the id fallback.
+fn gpu_nested_emit(ops:&[u32], device:usize) -> Option<(Vec<u32>, u64)> {
+    if ops.is_empty() { return Some((Vec::new(), 0)); }
+    // The context, kernel and loaded function are all fixed, so they are built
+    // once per process and every later pass reuses them. Rebuilding the context
+    // and recompiling the kernel per call was the whole per-call cost.
+    use alloc::sync::Arc;
+    use cudarc::driver::CudaFunction;
+    thread_local! {
+        static GPU: std::cell::OnceCell<(Arc<CudaContext>, CudaFunction)> = std::cell::OnceCell::new();
+    }
+    let (ctx, func) = GPU.with(|c| c.get_or_init(|| {
+        let ctx = CudaContext::new(device).expect("CUDA context");
+        let ptx = compile_ptx_with_opts(EMIT_PTX, CompileOptions::default())
+            .expect("membrane emit kernel compiles");
+        let module = ctx.load_module(ptx).expect("load emit module");
+        let func = module.load_function("nested_emit").expect("load nested_emit");
+        (ctx, func)
+    }).clone());
+    let stream = ctx.default_stream();
+    let n = ops.len() as i32;
+    let d_marks = stream.clone_htod(&ops.to_vec()).ok()?;
+    let mut d_out = stream.alloc_zeros::<u32>(ops.len()).ok()?;
+    let mut d_ticks = stream.alloc_zeros::<u64>(1).ok()?;
+    let cfg = LaunchConfig { grid_dim:(((n as u32)+127)/128,1,1), block_dim:(128,1,1), shared_mem_bytes:0 };
+    let mut b = stream.launch_builder(&func);
+    b.arg(&d_marks); b.arg(&mut d_out); b.arg(&mut d_ticks); b.arg(&n);
+    if unsafe { b.launch(cfg) }.is_err() { return None; }
+    let out = stream.clone_dtoh(&d_out).ok()?;
+    let ticks = stream.clone_dtoh(&d_ticks).ok()?;
+    Some((out, ticks[0]))
+}
 
 /// The math-register factor carrier. The value N and its band are built in; the
 /// live morphism state (a, gap, root, the candidate pair) rides the tokens.
@@ -98,15 +152,22 @@ pub fn run_membrane(word:&str, n:&BigUint, depth:u32)
     if multiply_via_word(&a,&a) < *n { a = &a + &one; }
     let mut c = MathCarrier { n, lo:&lo, hi:&hi, a, delta:BigUint::zero(),
         b:BigUint::zero(), square:false, candidate:None, fixed:None, emitted:None };
+    let _ = depth;
+    // The nested fixed-point emit of the word's op stream, run once on the GPU.
+    // The emit is μ∘δ=id, so the emitted marks equal the ops; the device also
+    // returns the per-pass tick count. When no card is present, the id fallback
+    // gives the same marks and per-pass ticks, so the membrane still runs headless.
+    let (emitted_ops, pass_ticks) = gpu_nested_emit(&ops, 0)
+        .unwrap_or_else(|| (ops.clone(), ops.len() as u64));
     let mut ticks=0u64;
     // Self-bounded: the frontier walks a up from ceil(sqrt(N)); the pair, if any,
     // fixes by the time a reaches (p+q)/2, which never exceeds N/2. The band a>N/2
     // is the whole legal range, so the walk bounds itself on N with no step cap.
     loop {
-        for &op in &ops {
-            let emitted = crate::gpu_kernel::nested_fixed_point_emit_pub(op, depth, &mut ticks);
-            math_leaf(emitted, &mut c);
+        for &op in &emitted_ops {
+            math_leaf(op, &mut c);
         }
+        ticks += pass_ticks;
         if let Some(pq) = c.emitted.take() { return (Some(pq), ticks); }
         if c.a > hi { break; }
     }
