@@ -40,6 +40,13 @@ pub mod braid_protocol;
 pub mod vox;
 pub mod period_finding_ecdlp;
 pub mod secp256k1_unwinder;
+pub mod factor_membrane;
+
+// The membrane family runs its nested fixed-point emit on the GPU, self-contained
+// in the gpu_rho style: its own device kernel, native_numeral for host arithmetic,
+// no reach into the bare-metal kernel tree. Hosted-only, like gpu_rho and gpu_graph.
+#[cfg(feature = "hosted")]
+pub mod membrane_family;
 
 
 // The gate runs on a host; there is no test harness on bare metal.
