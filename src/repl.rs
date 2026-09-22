@@ -3662,6 +3662,13 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 let args: Vec<&str> = parts.collect();
                 sprintln!("{}", crate::shiab::shiab_main(&args));
             }
+            "hyperstack" => {
+                // splitn(4) joins the tail, so re-split into individual tokens.
+                let rest: Vec<String> = parts.collect::<Vec<&str>>().join(" ")
+                    .split_whitespace().map(|s| s.to_string()).collect();
+                let refs: Vec<&str> = rest.iter().map(|s| s.as_str()).collect();
+                sprintln!("{}", crate::hyperstack::hyperstack_main(&refs));
+            }
             "basin" => {
                 let args: Vec<&str> = parts.collect();
                 sprintln!("{}", crate::basin::basin_main(&args));
