@@ -29,7 +29,7 @@ extern crate alloc;
 
 use crate::sprintln;
 use super::prime_winding::{is_prime, factor, PrimeVerdict};
-use super::dynamic_nesting_prime_finder::find_optimal_depth;
+use super::dynamic_nesting_prime_finder::{find_optimal_depth, word_at_depth, period_at_depth, closure_seed};
 use alloc::string::String;
 use num_bigint::BigUint;
 use core::str::FromStr;
@@ -159,6 +159,27 @@ pub fn repl_doubly_nested_oneshot(args: &[&str]) {
             sprintln!("doubly_nested_oneshot verdict {}: {}", n, v);
             sprintln!("  └─ {}", desc);
         }
+        "ladder" => {
+            if args.len() < 2 { sprintln!("Usage: dnos ladder <N> [maxdepth]"); return; }
+            let n = args[1];
+            let k: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(10);
+            match BigUint::from_str(n) {
+                Ok(nb) => {
+                    let (opt, _) = find_optimal_depth(n, k);
+                    sprintln!("hypernest seed ladder for {} (depths 1..{}):", n, k);
+                    sprintln!("  each depth is one more carrier wrapped around the last; the seed is");
+                    sprintln!("  c_d = period_at_depth(d) + n mod 256, the Brent budget 2^(8+d).");
+                    for d in 1..=k {
+                        let seed = closure_seed(&nb, d);
+                        let mark = if d == opt && opt != 0 { "  <- closes" } else { "" };
+                        sprintln!("  d={:2}  period={:5}  seed={:>6}  budget=2^{:<2}  word={}{}",
+                            d, period_at_depth(d), seed.to_str_radix(10), 8 + d, word_at_depth(d), mark);
+                    }
+                    if opt == 0 { sprintln!("  no depth in 1..{} closed; the seed ladder did not reach this N", k); }
+                }
+                Err(_) => sprintln!("ladder: {} is not a number", n),
+            }
+        }
         "winding" => { sprintln!("winding: {}", winding_number()); }
         "landings" => {
             sprintln!("landing register by ROTAT cut (k=0..16):");
@@ -177,7 +198,8 @@ pub fn repl_doubly_nested_oneshot(args: &[&str]) {
                     sprintln!("doubly_nested_oneshot factor {}: F — composite (winding-order search)", n);
                     match BigUint::from_str(n) {
                         Ok(nb) => {
-                            let (depth, found) = find_optimal_depth(n, 10);
+                            let cap: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(10);
+                            let (depth, found) = find_optimal_depth(n, cap);
                             match found {
                                 Some(p) => {
                                     let q = &nb / &p;
@@ -187,7 +209,7 @@ pub fn repl_doubly_nested_oneshot(args: &[&str]) {
                                     );
                                 }
                                 None => {
-                                    sprintln!("no closure within max nesting depth 10; falling back to prime_winding's trial-divisor walk:");
+                                    sprintln!("no closure within max nesting depth {}; falling back to prime_winding's trial-divisor walk:", cap);
                                     sprintln!("{}", factor(n));
                                 }
                             }
