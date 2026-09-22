@@ -23,6 +23,7 @@ fn carrier(name: &str) -> Option<&'static str> {
         "imprime"     => "⊢⊣≻∈⊤⋈≺⊥⊞⊙⋈∈⊤≺⊥∋⊡⊣",
         "fixation"    => "⊢⊙≻∈⊤⋈⊥≺⊞∋⊡⊣",
         "divisor"     => "⊢⊣≻∈⊤⋈≺⊥⊞⊙∋⋈∈⊤≺⊥∋⊡⊣",
+        "semiprime" | "period" => "⊢∈≻⋈∈⊤≺⊥∋∈⊤⊥⊞∋⊙≺⋈∋⊡⊣≻≺⋈⊞⊥⊤∋∈⊡⊙⊣⊣",
         _ => return None,
     })
 }
