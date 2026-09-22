@@ -44,42 +44,57 @@ fn frame_with(carrier: &str, payload: &str) -> String {
     }
 }
 
-fn read_line(out: &mut String, label: &str, word: &str) {
+fn read_line(out: &mut String, label: &str, word: &str, show_word: bool) {
     match read(word) {
         Some(r) => {
             let wind = word.matches('⊡').count();
+            let tail = if show_word { alloc::format!("  {}", word) } else { alloc::format!("  len={}", word.chars().count()) };
             out.push_str(&alloc::format!(
-                "  {label:11}  ⊡={wind}  reg {}  verdict {}  holds {}  {}\n",
-                r.register, r.verdict, r.holds, word));
+                "  {label:11}  ⊡={wind}  reg {}  verdict {}  holds {}{}\n",
+                r.register, r.verdict, r.holds, tail));
         }
-        None => out.push_str(&alloc::format!("  {label:11}  (unparseable) {}\n", word)),
+        None => out.push_str(&alloc::format!("  {label:11}  (unparseable)\n")),
     }
 }
 
 pub fn hyperstack_main(args: &[&str]) -> String {
     if args.len() < 2 {
         return String::from(
-            "hyperstack <value-word> <type> [<type> ...]\n\
+            "hyperstack <value> <type> [<type> ...]\n\
              types: phase shor fib arithmetic branch\n\
+             <value> is a decimal integer (encoded as an IMASM numeral) or an IMASM word.\n\
              loads the value into the first carrier, that into the next, and so on;\n\
-             reads register, verdict and winding at each layer.\n\
-             e.g. hyperstack ⊤⊥ phase shor fib\n");
+             reads register, verdict and winding at each layer, and decodes the\n\
+             decimal back out at the end.\n\
+             e.g. hyperstack 91 phase shor fib\n");
     }
-    let payload = args[0];
+    let value = args[0];
     let types = &args[1..];
-    // validate types first
     for t in types {
         if carrier(t).is_none() {
             return alloc::format!("hyperstack: unknown carrier type '{}'\n", t);
         }
     }
+    // A decimal value is encoded to a numeral payload and carried through the
+    // stack; a glyph word is used as the payload directly.
+    let numeric = !value.is_empty() && value.chars().all(|c| c.is_ascii_digit());
+    let payload = if numeric { crate::native_numeral::encode(value) } else { String::from(value) };
+    if numeric && payload.is_empty() {
+        return alloc::format!("hyperstack: could not encode decimal '{}'\n", value);
+    }
     let mut out = String::from("heterogeneous hypernest: value loaded through the carrier stack\n");
-    let mut cur = String::from(payload);
-    read_line(&mut out, "value", &cur);
+    if numeric { out.push_str(&alloc::format!("  decimal in   {}\n", value)); }
+    let mut cur = payload.clone();
+    read_line(&mut out, "value", &cur, !numeric);
     for t in types {
         let c = carrier(t).unwrap();
         cur = frame_with(c, &cur);
-        read_line(&mut out, t, &cur);
+        read_line(&mut out, t, &cur, !numeric);
+    }
+    // The payload numeral rides the stack as the innermost bulk; decode it back.
+    match crate::native_numeral::decode(&payload) {
+        Some(n) => out.push_str(&alloc::format!("  decimal out  {}\n", n.to_str_radix(10))),
+        None => if numeric { out.push_str("  decimal out  (numeral did not decode)\n"); },
     }
     out
 }
