@@ -83,7 +83,9 @@ pub fn hyperstack_main(args: &[&str]) -> String {
         return alloc::format!("hyperstack: could not encode decimal '{}'\n", value);
     }
     let mut out = String::from("heterogeneous hypernest: value loaded through the carrier stack\n");
-    if numeric { out.push_str(&alloc::format!("  decimal in   {}\n", value)); }
+    if numeric { out.push_str(&alloc::format!("  N            {}\n", value)); }
+    // Build the stacked carrier word: value in the first carrier, that in the
+    // next, and so on. Read the layer structure as it climbs.
     let mut cur = payload.clone();
     read_line(&mut out, "value", &cur, !numeric);
     for t in types {
@@ -91,10 +93,34 @@ pub fn hyperstack_main(args: &[&str]) -> String {
         cur = frame_with(c, &cur);
         read_line(&mut out, t, &cur, !numeric);
     }
-    // The payload numeral rides the stack as the innermost bulk; decode it back.
-    match crate::native_numeral::decode(&payload) {
-        Some(n) => out.push_str(&alloc::format!("  decimal out  {}\n", n.to_str_radix(10))),
-        None => if numeric { out.push_str("  decimal out  (numeral did not decode)\n"); },
+    if !numeric {
+        return out;
+    }
+    // Numeric: the stacked word is a factoring operator; factor N with it.
+    use num_bigint::BigUint;
+    use core::str::FromStr;
+    let n = match BigUint::from_str(value) { Ok(v) => v, Err(_) => return out };
+    let (found, ticks) = crate::membrane_family::run_membrane(&cur, &n, types.len() as u32);
+    match found {
+        Some((p, q)) if p > BigUint::from(1u8) && &p * &q == n => {
+            out.push_str(&alloc::format!(
+                "  factors      {} = {} × {}   [stacked membrane, {} ticks]\n",
+                value, p.to_str_radix(10), q.to_str_radix(10), ticks));
+        }
+        _ => {
+            // Fall back to the winding-order seed ladder, which the hypernest
+            // depth indexes; report which nesting depth closes.
+            let (depth, opt) = crate::dynamic_nesting_prime_finder::find_optimal_depth(value, 32);
+            match opt {
+                Some(p) => {
+                    let q = &n / &p;
+                    out.push_str(&alloc::format!(
+                        "  factors      {} = {} × {}   [winding-order seed ladder, closure depth {}]\n",
+                        value, p.to_str_radix(10), q.to_str_radix(10), depth));
+                }
+                None => out.push_str(&alloc::format!("  factors      {}: no closure (prime, or beyond the ladder)\n", value)),
+            }
+        }
     }
     out
 }
