@@ -18,6 +18,11 @@ fn carrier(name: &str) -> Option<&'static str> {
                     => "⊢⊙∈≻⋈⊤≻⊥⊞≺⋈∈⊤⊥∋⊡⋈≻⊙∋⊣",
         "arithmetic" => "⊢⊙∈≻⊤⋈≺⊥⊞∋⊡⋈⊙⊣",
         "branch"    => "⊢∈⊤⊥∋⊡⊣",
+        "mk" | "msep" => "⊢∈≻⊤≺⊥⊞⋈∋⊙⊡⊣",
+        "braider"     => "⊢∈≻⊤≺⊥⊞⋈∋⊙⊡⊣",
+        "imprime"     => "⊢⊣≻∈⊤⋈≺⊥⊞⊙⋈∈⊤≺⊥∋⊡⊣",
+        "fixation"    => "⊢⊙≻∈⊤⋈⊥≺⊞∋⊡⊣",
+        "divisor"     => "⊢⊣≻∈⊤⋈≺⊥⊞⊙∋⋈∈⊤≺⊥∋⊡⊣",
         _ => return None,
     })
 }
