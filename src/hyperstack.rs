@@ -28,18 +28,17 @@ fn carrier(name: &str) -> Option<&'static str> {
     })
 }
 
-/// Load a payload into a carrier: place it right after the carrier's first fork
-/// ∈, so the carrier's own work still runs and the payload rides inside the
-/// frame (free-lunch nesting), the inner word becoming this carrier's bulk.
+/// Load a payload into a carrier: place it immediately adjacent to the carrier's
+/// fuse ∋, so the payload rides into the FFUSE and the return loop closes over
+/// it (free-lunch nesting). The seam is the fuse of the level being inserted
+/// into (the first ∋), never after the ∈ fork.
 fn frame_with(carrier: &str, payload: &str) -> String {
-    match carrier.find('∈') {
+    match carrier.find('∋') {
         Some(byte_i) => {
-            // byte_i is the byte index of '∈' (3 bytes); insert after it
-            let cut = byte_i + '∈'.len_utf8();
             let mut s = String::with_capacity(carrier.len() + payload.len());
-            s.push_str(&carrier[..cut]);
+            s.push_str(&carrier[..byte_i]);
             s.push_str(payload);
-            s.push_str(&carrier[cut..]);
+            s.push_str(&carrier[byte_i..]);
             s
         }
         None => {
