@@ -46,6 +46,7 @@ mod belnap;
 mod tokens;
 mod counterfactual;
 mod shiab;
+mod hyperstack;
 mod prooflift;
 mod crystal;
 mod kernel;
