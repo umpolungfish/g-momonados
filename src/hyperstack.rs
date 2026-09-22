@@ -13,14 +13,14 @@ use alloc::string::String;
 fn carrier(name: &str) -> Option<&'static str> {
     Some(match name {
         "phase"     => "⊢⊙∈≻⊤⋈≺⊥⊞∋⊡⋈⊙⊣",
-        "shor"      => "⊢∈≻⋈⊞∈⊤≻⊥≺∋⊙⋈⊡⊣",
+        "shor"      => "⊢∈≻⋈⊞∈⊤≻⊥≺∋⊙⋈∋⊡⊣",
         "fib" | "fibonacci" | "anyon"
                     => "⊢⊙∈≻⋈⊤≻⊥⊞≺⋈∈⊤⊥∋⊡⋈≻⊙∋⊣",
         "arithmetic" => "⊢⊙∈≻⊤⋈≺⊥⊞∋⊡⋈⊙⊣",
         "branch"    => "⊢∈⊤⊥∋⊡⊣",
         "mk" | "msep" => "⊢∈≻⊤≺⊥⊞⋈∋⊙⊡⊣",
         "braider"     => "⊢∈≻⊤≺⊥⊞⋈∋⊙⊡⊣",
-        "imprime"     => "⊢⊣≻∈⊤⋈≺⊥⊞⊙⋈∈⊤≺⊥∋⊡⊣",
+        "imprime"     => "⊢≻∈⊤⋈≺⊥⊞⊙⋈∈⊤≺⊥∋∋⊡⊣",
         "fixation"    => "⊢⊙≻∈⊤⋈⊥≺⊞∋⊡⊣",
         "divisor"     => "⊢⊣≻∈⊤⋈≺⊥⊞⊙∋⋈∈⊤≺⊥∋⊡⊣",
         "semiprime" | "period" => "⊢∈≻⋈∈⊤≺⊥∋∈⊤⊥⊞∋⊙≺⋈∋⊡⊣≻≺⋈⊞⊥⊤∋∈⊡⊙⊣⊣",
