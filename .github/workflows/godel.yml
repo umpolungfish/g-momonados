@@ -7,6 +7,7 @@ on:
       - "src/bin/godel.rs"
       - "src/lib.rs"
       - "vendor/vox/src/godel_calculus.rs"
+      - "vendor/vox/src/godel_analyzer.rs"
       - "vendor/vox/src/lib.rs"
       - ".github/workflows/godel.yml"
   workflow_dispatch:
@@ -22,5 +23,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Test vendored Vox calculus
         run: cargo test --manifest-path vendor/vox/Cargo.toml --lib godel_calculus
+      - name: Test vendored Vox structural analyzer
+        run: cargo test --manifest-path vendor/vox/Cargo.toml --lib godel_analyzer
       - name: Run g-mOMonadOS calculus self-test
         run: cargo run --bin godel -- selftest
