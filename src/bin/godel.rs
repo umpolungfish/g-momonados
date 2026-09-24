@@ -87,6 +87,58 @@ fn semiprime_closure_state(pair: Option<&godel_calculus::FactorPairRead>) -> Reg
     }
 }
 
+fn frame_transport_state(read: &godel_calculus::FrameArithmeticRead) -> Reg16_3 {
+    read.return_frames
+        .iter()
+        .fold(Reg16_3::default(), |state, frame| {
+            state.union(Reg16_3 {
+                big_t: frame.closed,
+                big_f: !frame.closed,
+                ..Reg16_3::default()
+            })
+        })
+}
+
+fn frame_operation_with_kernel(args: &[&str]) -> Result<String, String> {
+    let read = godel_calculus::frame_arithmetic_from_args(args)?;
+    let mut report = format!(
+        "source-value  {}\nsource-word   {}\n{}",
+        read.source,
+        godel_calculus::encode_cell_binary(&read.source),
+        godel_calculus::render_frame_arithmetic(&read),
+    );
+    use core::fmt::Write;
+    let mut previous = None;
+    for frame in &read.return_frames {
+        let state = Reg16_3 {
+            big_t: frame.closed,
+            big_f: !frame.closed,
+            ..Reg16_3::default()
+        };
+        writeln!(
+            report,
+            "kernel.frame-return width={} register={} prev≤i={} prev≤c={}",
+            frame.width,
+            state.four_name(),
+            previous
+                .map(|prior| if leq_i(prior, state) { "true" } else { "false" })
+                .unwrap_or("seed"),
+            previous
+                .map(|prior| if leq_c(prior, state) { "true" } else { "false" })
+                .unwrap_or("seed"),
+        )
+        .expect("append frame transport register");
+        previous = Some(state);
+    }
+    writeln!(
+        report,
+        "kernel.register.frame-transport {}",
+        frame_transport_state(&read).four_name(),
+    )
+    .expect("append aggregate frame transport register");
+    Ok(report)
+}
+
 fn analyze_with_kernel(args: &[&str]) -> Result<String, String> {
     let raw = args.get(1).ok_or_else(|| {
         "godel analyze <natural-number|cell-binary-word> [sieve-window=8]".to_string()
@@ -195,6 +247,7 @@ fn analyze_with_kernel(args: &[&str]) -> Result<String, String> {
 fn dispatch(args: &[&str]) -> Result<String, String> {
     match args.first().copied().unwrap_or("help") {
         "analyze" => analyze_with_kernel(args),
+        "frame-op" => frame_operation_with_kernel(args),
         "lte2" => godel_analyzer::command(args),
         "selftest" | "verify" => {
             let mut out = godel_calculus::selftest_report()?;
@@ -292,6 +345,10 @@ mod tests {
         assert!(report.contains("frame-left   width=2 group=2 value=2 word="));
         assert!(report.contains("frame-right  width=3 group=0 value=5 word="));
         assert!(report.contains("operation    mul\nresult       10\nresult-word  "));
+        assert!(report.contains("frame-return width=2 groups=2 recovered=10 closure=closed"));
+        assert!(report.contains("kernel.frame-return width=2 register=T prev≤i=seed prev≤c=seed\n"));
+        assert!(report.contains("kernel.frame-return width=8 register=T"));
+        assert!(report.contains("kernel.register.frame-transport T\n"));
     }
 
     #[test]
