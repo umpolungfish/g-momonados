@@ -49,6 +49,8 @@ pub enum ParaAsm {
 /// ⊥=1 and ⊤=0. The canonical source is a pure IMASM instruction stream;
 /// Rust only includes it for assembly by ParaVM.
 pub const BIT_REGISTER_ADD_ASM: &str = include_str!("../.imasm/bit_register_add.imasm");
+/// Dynamically sized ripple-borrow subtraction over the same encoded tape.
+pub const BIT_REGISTER_SUB_ASM: &str = include_str!("../.imasm/bit_register_sub.imasm");
 
 /// Run the IMASM adder on two LSB-first numeral streams, returning the
 /// emitted LSB-first sum including its final carry cell. This boundary only
@@ -92,6 +94,52 @@ pub fn add_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
             "T" => result.push('⊤'),
             "F" => result.push('⊥'),
             _ => return Err(alloc::format!("IMASM adder emitted non-bit state {value}")),
+        }
+    }
+    Ok(result)
+}
+
+/// Run the IMASM subtractor on two LSB-first numeral streams. The result
+/// includes the final borrow cell: ⊥ means unsigned underflow, ⊤ means no
+/// underflow. The interface performs encoding/decoding only.
+pub fn subtract_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
+    fn decode(stream: &str) -> Result<Vec<B4>, String> {
+        if stream.is_empty() {
+            return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
+        }
+        stream.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
+        }).collect()
+    }
+
+    let left = decode(a)?;
+    let right = decode(b)?;
+    let width = core::cmp::max(left.len(), right.len());
+    let mut reads = Vec::with_capacity(width * 2 + 1);
+    for index in 0..width {
+        reads.push(left.get(index).copied().unwrap_or(B4::T));
+        reads.push(right.get(index).copied().unwrap_or(B4::T));
+    }
+    reads.push(B4::N);
+
+    let mut vm = ParaVM::new();
+    vm.load(BIT_REGISTER_SUB_ASM)?;
+    vm.set_reads(reads);
+    vm.run(None);
+    if !vm.halted {
+        return Err("IMASM subtractor did not close on its encoded terminator".into());
+    }
+
+    let mut result = String::new();
+    for cell in &vm.emit_buffer {
+        let (_, value) = cell.rsplit_once(" = ")
+            .ok_or_else(|| "IMASM subtractor emitted a malformed cell".to_string())?;
+        match value {
+            "T" => result.push('⊤'),
+            "F" => result.push('⊥'),
+            _ => return Err(alloc::format!("IMASM subtractor emitted non-bit state {value}")),
         }
     }
     Ok(result)
@@ -835,6 +883,71 @@ mod tests {
         assert_eq!(add_encoded_lsb_first("⊥", "⊥").unwrap(), "⊤⊥");
         assert_eq!(add_encoded_lsb_first("⊥⊤", "⊤⊥").unwrap(), "⊥⊥⊤");
         assert!(add_encoded_lsb_first("⊤x", "⊥").is_err());
+    }
+
+    #[test]
+    fn imasm_ripple_subtractor_covers_all_borrow_rows() {
+        use crate::belnap::B4::{F, N, T};
+
+        for a in [false, true] {
+            for b in [false, true] {
+                for borrow_in in [false, true] {
+                    let (prefix_a, prefix_b) = if borrow_in { (T, F) } else { (T, T) };
+                    let mut vm = ParaVM::new();
+                    vm.load(BIT_REGISTER_SUB_ASM).unwrap();
+                    vm.set_reads(vec![
+                        prefix_a, prefix_b,
+                        if a { F } else { T },
+                        if b { F } else { T },
+                        N,
+                    ]);
+                    vm.run(None);
+                    let emitted: Vec<B4> = vm.emit_buffer.iter().map(|line| {
+                        if line.ends_with("= T") { T }
+                        else if line.ends_with("= F") { F }
+                        else { panic!("IMASM subtractor emitted a non-bit value: {line}") }
+                    }).collect();
+                    let difference = a ^ b ^ borrow_in;
+                    let borrow_out = (!a && (b || borrow_in)) || (b && borrow_in);
+                    assert!(vm.halted, "stream terminator must close the IMASM loop");
+                    assert_eq!(emitted, vec![
+                        if borrow_in { F } else { T },
+                        if difference { F } else { T },
+                        if borrow_out { F } else { T },
+                    ]);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn imasm_ripple_subtractor_scales_past_machine_word_width() {
+        use crate::belnap::B4::{F, N, T};
+
+        // 2^300 - 1 = 300 low one-bits, no final borrow.
+        let width = 300usize;
+        let mut reads = Vec::with_capacity((width + 1) * 2 + 1);
+        reads.extend([T, F]); // low subtrahend bit is one
+        for _ in 1..width { reads.extend([T, T]); }
+        reads.extend([F, T, N]); // top bit of 2^300, then terminator
+        let mut vm = ParaVM::new();
+        vm.load(BIT_REGISTER_SUB_ASM).unwrap();
+        vm.set_reads(reads);
+        vm.run(None);
+        let emitted: Vec<B4> = vm.emit_buffer.iter().map(|line| {
+            if line.ends_with("= T") { T }
+            else if line.ends_with("= F") { F }
+            else { panic!("IMASM subtractor emitted a non-bit value: {line}") }
+        }).collect();
+        assert!(vm.halted);
+        assert_eq!(emitted, [vec![F; width], vec![T, T]].concat());
+        assert_eq!(vm.read_pos, (width + 1) * 2 + 1);
+    }
+
+    #[test]
+    fn encoded_subtractor_reports_final_borrow_in_the_encoded_stream() {
+        assert_eq!(subtract_encoded_lsb_first("⊤", "⊥").unwrap(), "⊥⊥");
+        assert_eq!(subtract_encoded_lsb_first("⊥⊤", "⊤⊥").unwrap(), "⊥⊥⊥");
     }
 
     #[test]
