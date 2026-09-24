@@ -82,6 +82,13 @@ operands 5 and 2 returns quotient 2 and remainder 1. This verifies arithmetic
 between values selected from different frame decompositions; it is a frame
 operation, not a factor-pair witness.
 
+After the operation, its result is shifted back through every width 2–8. Each
+return frame reconstructs the same result numeral and records its closure in
+the constructive register; adjacent register states also report their
+information and constructivity order. The transport map is the frame
+rechunking followed by reconstruction. The measured invariant is that each
+return frame reads off the operation's exact result value.
+
 The Godel commands `braid <p> <q>` and `unbraid <N>` apply Γ and Λ directly to
 cell-binary numeral streams. Γ interleaves the two LSB-first streams with
 zero-padding of the shorter one. Λ separates even and odd cells. Every report

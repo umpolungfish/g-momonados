@@ -966,6 +966,7 @@ pub struct FactorPairRead {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FrameArithmeticRead {
+    pub source: Nat,
     pub left_width: usize,
     pub left_index: usize,
     pub left: Nat,
@@ -975,6 +976,56 @@ pub struct FrameArithmeticRead {
     pub right: Nat,
     pub result: Nat,
     pub remainder: Option<Nat>,
+    pub return_frames: Vec<FrameReturnRead>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FrameReturnRead {
+    pub width: usize,
+    pub groups: usize,
+    pub recovered: Nat,
+    pub closed: bool,
+}
+
+fn frame_bits(value: &Nat) -> Vec<bool> {
+    if value.is_zero() {
+        alloc::vec![false]
+    } else {
+        value.bits_le().to_vec()
+    }
+}
+
+fn frame_group(value: &Nat, width: usize, index: usize) -> Result<Nat, String> {
+    let bits = frame_bits(value);
+    let start = index
+        .checked_mul(width)
+        .ok_or_else(|| "frame group index exceeds addressable memory".to_string())?;
+    if start >= bits.len() {
+        return Err(format!(
+            "frame group {index} is outside width-{width} frame"
+        ));
+    }
+    let end = start.saturating_add(width).min(bits.len());
+    Ok(Nat::from_bits_le(bits[start..end].to_vec()))
+}
+
+fn frame_return(value: &Nat, width: usize) -> Result<FrameReturnRead, String> {
+    let bits = frame_bits(value);
+    let groups = bits.len().div_ceil(width);
+    let digits = (0..groups)
+        .map(|index| frame_group(value, width, index))
+        .collect::<Result<Vec<_>, _>>()?;
+    let recovered = Nat::from_bits_le(
+        (0..bits.len())
+            .map(|position| digits[position / width].bit(position % width))
+            .collect(),
+    );
+    Ok(FrameReturnRead {
+        width,
+        groups,
+        closed: recovered == *value,
+        recovered,
+    })
 }
 
 pub fn frame_arithmetic_read(
@@ -991,20 +1042,8 @@ pub fn frame_arithmetic_read(
     if left_width == right_width {
         return Err("frame arithmetic requires values from different widths".to_string());
     }
-    let group_value = |width: usize, index: usize| -> Result<Nat, String> {
-        let start = index
-            .checked_mul(width)
-            .ok_or_else(|| "frame group index exceeds addressable memory".to_string())?;
-        if start >= value.bits_le().len() {
-            return Err(format!(
-                "frame group {index} is outside width-{width} frame"
-            ));
-        }
-        let end = start.saturating_add(width).min(value.bits_le().len());
-        Ok(Nat::from_bits_le(value.bits_le()[start..end].to_vec()))
-    };
-    let left = group_value(left_width, left_index)?;
-    let right = group_value(right_width, right_index)?;
+    let left = frame_group(value, left_width, left_index)?;
+    let right = frame_group(value, right_width, right_index)?;
     let (operator, result, remainder) = match operator {
         "add" => ("add", left.add(&right), None),
         "mul" => ("mul", left.mul(&right), None),
@@ -1028,7 +1067,11 @@ pub fn frame_arithmetic_read(
         }
         _ => return Err("frame operator must be add|mul|sub|mod|divmod".to_string()),
     };
+    let return_frames = (2..=8)
+        .map(|width| frame_return(&result, width))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(FrameArithmeticRead {
+        source: value.clone(),
         left_width,
         left_index,
         left,
@@ -1038,6 +1081,7 @@ pub fn frame_arithmetic_read(
         right,
         result,
         remainder,
+        return_frames,
     })
 }
 
@@ -1047,7 +1091,7 @@ pub fn render_frame_arithmetic(read: &FrameArithmeticRead) -> String {
         .as_ref()
         .map(ToString::to_string)
         .unwrap_or_else(|| "none".to_string());
-    format!(
+    let mut output = format!(
         "frame-left   width={} group={} value={} word={}\n\
          frame-right  width={} group={} value={} word={}\n\
          operation    {}\n\
@@ -1066,6 +1110,39 @@ pub fn render_frame_arithmetic(read: &FrameArithmeticRead) -> String {
         read.result,
         encode_cell_binary(&read.result),
         remainder,
+    );
+    for returned in &read.return_frames {
+        output.push_str(&format!(
+            "frame-return width={} groups={} recovered={} closure={} word={}\n",
+            returned.width,
+            returned.groups,
+            returned.recovered,
+            if returned.closed { "closed" } else { "open" },
+            encode_cell_binary(&returned.recovered),
+        ));
+    }
+    output
+}
+
+pub fn frame_arithmetic_from_args(args: &[&str]) -> Result<FrameArithmeticRead, String> {
+    if args.len() != 7 || args.first().copied() != Some("frame-op") {
+        return Err(
+            "godel frame-op <natural-number> <left-width> <left-group> <add|mul|sub|mod|divmod> <right-width> <right-group>".to_string(),
+        );
+    }
+    let value =
+        Nat::from_decimal(args[1]).ok_or_else(|| format!("not a natural number: {}", args[1]))?;
+    let parse_address = |raw: &str, label: &str| {
+        raw.parse::<usize>()
+            .map_err(|_| format!("{label} must be a nonnegative frame address"))
+    };
+    frame_arithmetic_read(
+        &value,
+        parse_address(args[2], "left width")?,
+        parse_address(args[3], "left group")?,
+        args[4],
+        parse_address(args[5], "right width")?,
+        parse_address(args[6], "right group")?,
     )
 }
 
@@ -1395,33 +1472,11 @@ pub fn command(args: &[&str]) -> Result<String, String> {
             unbraid_report(args[1])
         }
         "frame-op" => {
-            if args.len() != 7 {
-                return Err(
-                    "godel frame-op <natural-number> <left-width> <left-group> <add|mul|sub|mod|divmod> <right-width> <right-group>".to_string(),
-                );
-            }
-            let value = Nat::from_decimal(args[1])
-                .ok_or_else(|| format!("not a natural number: {}", args[1]))?;
-            let parse_address = |raw: &str, label: &str| {
-                raw.parse::<usize>()
-                    .map_err(|_| format!("{label} must be a nonnegative frame address"))
-            };
-            let left_width = parse_address(args[2], "left width")?;
-            let left_group = parse_address(args[3], "left group")?;
-            let right_width = parse_address(args[5], "right width")?;
-            let right_group = parse_address(args[6], "right group")?;
-            let read = frame_arithmetic_read(
-                &value,
-                left_width,
-                left_group,
-                args[4],
-                right_width,
-                right_group,
-            )?;
+            let read = frame_arithmetic_from_args(args)?;
             Ok(format!(
                 "source-value  {}\nsource-word   {}\n{}",
-                value,
-                encode_cell_binary(&value),
+                read.source,
+                encode_cell_binary(&read.source),
                 render_frame_arithmetic(&read),
             ))
         }
@@ -1650,6 +1705,11 @@ mod tests {
         let rendered = render_frame_arithmetic(&product);
         assert!(rendered.contains("frame-left   width=2 group=2 value=2 word=⊢≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣"));
         assert!(rendered.contains("result-word  ⊢≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣"));
+        assert_eq!(product.return_frames.len(), 7);
+        assert!(product
+            .return_frames
+            .iter()
+            .all(|frame| frame.closed && frame.recovered == Nat::from_u64(10)));
     }
 
     #[test]
@@ -1688,8 +1748,15 @@ mod tests {
         let high_width = value.bits_le().len();
         let read = frame_arithmetic_read(&value, high_width, 0, "add", 2, 0).unwrap();
         assert!(read.result.bits_le().len() > 1);
+        assert!(read.return_frames.iter().all(|frame| frame.closed));
         assert!(frame_arithmetic_read(&value, 2, 0, "mul", 2, 1).is_err());
         assert!(frame_arithmetic_read(&value, 2, usize::MAX, "mul", 3, 0).is_err());
+
+        let zero = Nat::zero();
+        let zero_read = frame_arithmetic_read(&zero, 2, 0, "add", 3, 0).unwrap();
+        assert_eq!(zero_read.left, Nat::zero());
+        assert_eq!(zero_read.right, Nat::zero());
+        assert!(zero_read.return_frames.iter().all(|frame| frame.closed));
     }
 
     #[test]
