@@ -1,8 +1,7 @@
-Drop fold_probe: the nested fold already lives in the membrane
+I add a dynamically sized IMASM ripple adder
 
-fold_probe was a flat-machine Rust reproof of nested folding. The membrane's own
-numeral already carries it: native_numeral::bits_multiply is recursive Karatsuba,
-the nested fold whose depth grows with the value, and factor_membrane uses it
-through multiply_via_word in the word ops that get baked and run by vox. A second
-copy on the flat machine is drift, so the probe goes; the one copy is
-native_numeral.
+I express bitwise addition as a pure ParaASM instruction stream with B4 input
+cells, an IMASM carry register, and no fixed-width arithmetic operation. I
+verify every full-adder truth-table row and a 300-bit carry chain. I also pass
+the newly required optional tape directory in the two phase-unbraid tests so
+the binary test target builds again.

@@ -497,13 +497,13 @@ mod phase_tests_big {
     use super::*;
     #[test]
     fn fifteen_factors_by_phase() {
-        let res = run_phase_unbraid_big(BigUint::from(15u32), BigUint::from(7u32), 12, 1<<16).unwrap();
+        let res = run_phase_unbraid_big(BigUint::from(15u32), BigUint::from(7u32), 12, 1<<16, None).unwrap();
         assert_eq!(res.factors, Some((BigUint::from(3u32), BigUint::from(5u32))));
         assert_eq!(res.certified_r, Some(BigUint::from(4u32)));
     }
     #[test]
     fn sixtyfive_factors_by_phase() {
-        let res = run_phase_unbraid_big(BigUint::from(65u32), BigUint::from(2u32), 16, 1<<16).unwrap();
+        let res = run_phase_unbraid_big(BigUint::from(65u32), BigUint::from(2u32), 16, 1<<16, None).unwrap();
         let (p, q) = res.factors.expect("65 must factor by phase readout");
         let n65 = BigUint::from(65u32);
         assert!(&p * &q == n65);
