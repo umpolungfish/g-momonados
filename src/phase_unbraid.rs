@@ -417,6 +417,22 @@ pub fn run_phase_unbraid_big(
     })
 }
 
+/// Run the phase unbraider with dynamically sized inputs and the standard
+/// in-memory amplitude budget. Generic `Into<BigUint>` inputs preserve callers
+/// that already hold machine-sized values without imposing a machine-width
+/// limit on callers that provide `BigUint`.
+pub fn run_phase_unbraid<N, A>(
+    n_val: N,
+    a0: A,
+    max_shots: u32,
+) -> Result<PhaseUnbraidResult, String>
+where
+    N: Into<BigUint>,
+    A: Into<BigUint>,
+{
+    run_phase_unbraid_big(n_val.into(), a0.into(), max_shots, 4_194_304, None)
+}
+
 /// The report: phase readout, closure, and the factors AS WORDS,
 /// verified. Input is a decimal string (any length).
 pub fn phase_unbraid_report_big(n_str: &str, a0: u64, max_shots: u32, mem_cap: usize, tape_dir: Option<String>) -> Result<String, String> {
@@ -500,6 +516,12 @@ mod phase_tests_big {
         let res = run_phase_unbraid_big(BigUint::from(15u32), BigUint::from(7u32), 12, 1<<16, None).unwrap();
         assert_eq!(res.factors, Some((BigUint::from(3u32), BigUint::from(5u32))));
         assert_eq!(res.certified_r, Some(BigUint::from(4u32)));
+    }
+
+    #[test]
+    fn compatibility_entry_point_keeps_biguint_inputs() {
+        let res = run_phase_unbraid(BigUint::from(15u32), BigUint::from(7u32), 12).unwrap();
+        assert_eq!(res.factors, Some((BigUint::from(3u32), BigUint::from(5u32))));
     }
     #[test]
     fn sixtyfive_factors_by_phase() {
