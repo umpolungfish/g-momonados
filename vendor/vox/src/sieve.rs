@@ -8,7 +8,9 @@
 //! gcd(X - Y, N). Value-sized arithmetic (a^2 mod N, the gcd) runs on the shared
 //! folded kernel; the base primes and the GF(2) matrix are machine words.
 
-use crate::morphism_factor::{add, cmp, divmod, gcd, isqrt, modulo, mul, one, sub, tape_u64, trim, zero};
+use crate::morphism_factor::{
+    add, cmp, divmod, gcd, isqrt, modulo, mul, one, sub, tape_u64, trim, zero,
+};
 use crate::vox::EVALF;
 use alloc::format;
 use alloc::string::String;
@@ -100,7 +102,7 @@ fn n_mod_u64(n: &Tape, p: u64) -> u64 {
 }
 
 /// Small odd primes up to bound b (plus 2), by a byte sieve of Eratosthenes.
-fn small_primes(b: usize) -> Vec<u64> {
+pub(crate) fn small_primes(b: usize) -> Vec<u64> {
     let mut is_c = vec![false; b + 1];
     let mut ps = Vec::new();
     let mut i = 2usize;
@@ -116,6 +118,38 @@ fn small_primes(b: usize) -> Vec<u64> {
         i += 1;
     }
     ps
+}
+
+fn bit_support_remainder(bits: &[char], prime: u64) -> u64 {
+    let mut residue = 0u64;
+    let mut place = 1u64;
+    for &mark in bits {
+        if mark == EVALF {
+            residue = (residue + place) % prime;
+        }
+        place = (place * 2) % prime;
+    }
+    residue
+}
+
+/// The bit-support lane of the factor membrane. The sieve supplies prime
+/// candidates; the numeral's set-bit positions supply each candidate residue:
+/// N mod p = sum(2^i mod p : bit_i(N)=1). A returned factor is therefore an
+/// exact divisor witness. `None` certifies that every prime through `bound` was
+/// tested and absent, hence every nontrivial divisor of N exceeds `bound`.
+///
+/// N remains an IMASM tape of arbitrary length. The bounded machine integers
+/// below represent only sieve candidates and residues, never N or a factor.
+pub fn bit_support_sieve(n: &Tape, bound: usize) -> (Option<Tape>, usize) {
+    let bits = trim(n.clone());
+    let primes = small_primes(bound);
+    let prime_count = primes.len();
+    for (tested, prime) in primes.into_iter().enumerate() {
+        if bit_support_remainder(&bits, prime) == 0 {
+            return (Some(tape_u64(prime)), tested + 1);
+        }
+    }
+    (None, prime_count)
 }
 
 /// Trial-factor the tape v over the base; return the exponent per base prime if
@@ -307,11 +341,15 @@ fn combine(n: &Tape, a_of: &[Tape], exp_of: &[Vec<u32>], base: &[u64]) -> Option
             {
                 extern crate std;
                 _deps += 1;
-                if cmp(&g, &one()) == core::cmp::Ordering::Equal || cmp(&g, n) == core::cmp::Ordering::Equal {
+                if cmp(&g, &one()) == core::cmp::Ordering::Equal
+                    || cmp(&g, n) == core::cmp::Ordering::Equal
+                {
                     _trivial += 1;
                 }
             }
-            if cmp(&g, &one()) == core::cmp::Ordering::Greater && cmp(&g, n) == core::cmp::Ordering::Less {
+            if cmp(&g, &one()) == core::cmp::Ordering::Greater
+                && cmp(&g, n) == core::cmp::Ordering::Less
+            {
                 return Some(trim(g));
             }
         }
@@ -319,7 +357,13 @@ fn combine(n: &Tape, a_of: &[Tape], exp_of: &[Vec<u32>], base: &[u64]) -> Option
     #[cfg(feature = "mpqs_debug")]
     {
         extern crate std;
-        std::eprintln!("[combine] rel={} width={} deps_tried={} trivial={}", rel, width, _deps, _trivial);
+        std::eprintln!(
+            "[combine] rel={} width={} deps_tried={} trivial={}",
+            rel,
+            width,
+            _deps,
+            _trivial
+        );
     }
     None
 }
@@ -357,7 +401,13 @@ pub fn qs(n: &Tape, b_bound: usize, m_interval: usize, extra: usize) -> Option<T
         root = add(&root, &one());
     }
     // Offsets: position i has p | (a^2 - N) iff i ≡ off (mod p) for off in offs[k].
-    let flog2 = |x: u64| -> u32 { if x < 2 { 0 } else { 63 - x.leading_zeros() } };
+    let flog2 = |x: u64| -> u32 {
+        if x < 2 {
+            0
+        } else {
+            63 - x.leading_zeros()
+        }
+    };
     let mut offs: Vec<(u64, u64)> = Vec::with_capacity(width);
     for (k, &p) in base.iter().enumerate() {
         let rootmod = n_mod_u64(&root, p) % p;
@@ -371,7 +421,11 @@ pub fn qs(n: &Tape, b_bound: usize, m_interval: usize, extra: usize) -> Option<T
     for (k, &p) in base.iter().enumerate() {
         let lp = flog2(p);
         let (o1, o2) = offs[k];
-        let os = if p == 2 || o1 == o2 { vec![o1] } else { vec![o1, o2] };
+        let os = if p == 2 || o1 == o2 {
+            vec![o1]
+        } else {
+            vec![o1, o2]
+        };
         for o in os {
             let mut i = o as usize;
             while i < m_interval {
@@ -549,7 +603,10 @@ pub fn mpqs(n: &Tape, base_bound: usize, m_half: usize, extra: usize) -> Option<
     // Free lunch, no cap: run the per-x value in a machine word while it fits
     // (g ~ M*sqrt(2N)), and only fall to the tapes when it would overflow. Fast
     // below the boundary, uncapped above it.
-    let wide = 128 - sqrt2n_u.leading_zeros() as usize + (usize::BITS - m_half.leading_zeros()) as usize + 4 >= 126;
+    let wide = 128 - sqrt2n_u.leading_zeros() as usize
+        + (usize::BITS - m_half.leading_zeros()) as usize
+        + 4
+        >= 126;
     let flog2 = |x: u128| -> u32 {
         if x < 2 {
             0
@@ -645,14 +702,20 @@ pub fn mpqs(n: &Tape, base_bound: usize, m_half: usize, extra: usize) -> Option<
     // fused here, the membrane's time is the minimum of the two, by the wiring.
     let two = tape_u64(2);
     let (mut rx, mut ry, mut rc, mut rprod) = (two.clone(), two.clone(), one(), one());
-    let rho_close = |g: &Tape| cmp(g, &one()) == core::cmp::Ordering::Greater && cmp(g, &n) == core::cmp::Ordering::Less;
+    let rho_close = |g: &Tape| {
+        cmp(g, &one()) == core::cmp::Ordering::Greater && cmp(g, &n) == core::cmp::Ordering::Less
+    };
     'outer: while a_of.len() < need && a_count < max_a {
         // rho arm: 2048 steps with a batched gcd, fused first-close with the sieve
         for _ in 0..2048 {
             rx = modulo(&add(&mul(&rx, &rx), &rc), &n);
             let y1 = modulo(&add(&mul(&ry, &ry), &rc), &n);
             ry = modulo(&add(&mul(&y1, &y1), &rc), &n);
-            let d = if cmp(&rx, &ry) != core::cmp::Ordering::Less { sub(&rx, &ry) } else { sub(&ry, &rx) };
+            let d = if cmp(&rx, &ry) != core::cmp::Ordering::Less {
+                sub(&rx, &ry)
+            } else {
+                sub(&ry, &rx)
+            };
             let dt = trim(d);
             if !zero(&dt) {
                 rprod = modulo(&mul(&rprod, &dt), &n);
@@ -704,8 +767,7 @@ pub fn mpqs(n: &Tape, base_bound: usize, m_half: usize, extra: usize) -> Option<
             ainv[j] = modinv((a_val % p as u128) as u64, p) as i64;
             skip[j] = false;
         }
-        let thresh =
-            flog2((a_val * (m as u128) * (m as u128)).max(2)) as i32 - thresh_slack;
+        let thresh = flog2((a_val * (m as u128) * (m as u128)).max(2)) as i32 - thresh_slack;
 
         // inner: each of the 2^(k-1) sign patterns is a B sibling that reuses the
         // per-A inverse; its two roots per prime are recomputed directly from the
@@ -770,7 +832,11 @@ pub fn mpqs(n: &Tape, base_bound: usize, m_half: usize, extra: usize) -> Option<
             let b_t = u128_to_tape(b_abs);
             let b_neg = b_i < 0;
             // machine-word C, valid only on the fast path (values fit i128)
-            let cc_i: i128 = if wide { 0 } else { -(tape_to_u128(&c_mag).unwrap_or(0) as i128) };
+            let cc_i: i128 = if wide {
+                0
+            } else {
+                -(tape_to_u128(&c_mag).unwrap_or(0) as i128)
+            };
 
             // running mark positions start at the roots and advance across blocks
             next1.copy_from_slice(&soln1);
@@ -896,7 +962,8 @@ pub fn mpqs(n: &Tape, base_bound: usize, m_half: usize, extra: usize) -> Option<
                                 for &idx in &ks {
                                     exps[idx] += 1;
                                 }
-                                let (_s, axb) = sadd((x_neg, mul(&a_t, &x_t)), (b_neg, b_t.clone()));
+                                let (_s, axb) =
+                                    sadd((x_neg, mul(&a_t, &x_t)), (b_neg, b_t.clone()));
                                 Some((g_neg, exps, trim(axb)))
                             }
                         }
@@ -919,10 +986,18 @@ pub fn mpqs(n: &Tape, base_bound: usize, m_half: usize, extra: usize) -> Option<
                                 ag = mul(&ag, &u128_to_tape(base[c] as u128));
                             }
                         }
-                        let rhs = if _g_neg { sub(&n_tape, &ag) } else { add(&ag, &n_tape) };
+                        let rhs = if _g_neg {
+                            sub(&n_tape, &ag)
+                        } else {
+                            add(&ag, &n_tape)
+                        };
                         std::eprintln!(
                             "[mpqs] identity (Ax+B)^2==A*g+N : {}",
-                            if trim(lhs) == trim(rhs) { "PASS" } else { "FAIL" }
+                            if trim(lhs) == trim(rhs) {
+                                "PASS"
+                            } else {
+                                "FAIL"
+                            }
                         );
                     }
                     a_of.push(axb_t);
@@ -937,7 +1012,15 @@ pub fn mpqs(n: &Tape, base_bound: usize, m_half: usize, extra: usize) -> Option<
         extern crate std;
         std::eprintln!(
             "[mpqs] bits={} k={} s={} eff_bound={} pool={} width={} need={} relations={} polys={}",
-            bits, k, s, eff_bound, a_pool.len(), width, need, a_of.len(), _poly
+            bits,
+            k,
+            s,
+            eff_bound,
+            a_pool.len(),
+            width,
+            need,
+            a_of.len(),
+            _poly
         );
     }
     #[cfg(feature = "mpqs_debug")]
@@ -982,7 +1065,13 @@ pub fn repl_sieve(n: &Tape) -> String {
     match sieve_factor(n) {
         Some(g) => {
             let q = divmod(n, &g).0;
-            format!("{} = {} x {}  [quadratic sieve, base<= {}]", dec(n), dec(&g), dec(&q), bound)
+            format!(
+                "{} = {} x {}  [quadratic sieve, base<= {}]",
+                dec(n),
+                dec(&g),
+                dec(&q),
+                bound
+            )
         }
         None => format!("{}  [sieve found no dependency within budget]", dec(n)),
     }
@@ -1042,8 +1131,37 @@ mod tests {
     }
 
     #[test]
+    fn bit_support_residues_match_tape_remainders() {
+        for n in [8051u64, 100160063, 1_000_003 * 1_000_000_007] {
+            let n_tape = tape(n);
+            for prime in small_primes(97) {
+                assert_eq!(
+                    bit_support_remainder(&n_tape, prime),
+                    val(&modulo(&n_tape, &tape(prime))),
+                    "support divisibility disagrees for N={n}, p={prime}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn bit_support_blank_is_a_divisor_lower_bound() {
+        let n = crate::morphism_factor::decimal_to_tape("1000003").unwrap();
+        let (factor, tested) = bit_support_sieve(&n, 1000);
+        assert!(factor.is_none());
+        assert_eq!(tested, small_primes(1000).len());
+
+        let n = crate::morphism_factor::decimal_to_tape("100160063").unwrap();
+        let (factor, _) = bit_support_sieve(&n, 10_007);
+        assert_eq!(factor, Some(tape(10007)));
+    }
+
+    #[test]
     fn mpqs_siblings_return_exact_divisors() {
-        for decimal in ["588836796098867516121023", "3050585191915710906097942786821407"] {
+        for decimal in [
+            "588836796098867516121023",
+            "3050585191915710906097942786821407",
+        ] {
             let n = crate::morphism_factor::decimal_to_tape(decimal).unwrap();
             let (bound, _) = sieve_params(&n);
             let g = mpqs(&n, bound, 32_768, 32).expect("mpqs no factor");
