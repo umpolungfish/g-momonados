@@ -91,6 +91,7 @@ pub struct StructuralAnalysis {
     pub shift_factor: V2,
     pub decomp_2k: Decomp2k,
     pub residue_2k: Nat,
+    pub decomp_residue_matches: bool,
     pub window_width: Nat,
     pub period: Option<Nat>,
     pub divisor_bound: Option<DivisorBoundCertificate>,
@@ -328,15 +329,10 @@ pub fn analyze(
     let word = encode_cell_binary(value);
     let bits = cell_bits(&word)?;
     let assertions = codec_assertions(value, &word)?;
-    if !assertions.all() {
-        return Err("cell-binary codec assertion failed".to_string());
-    }
 
     let decomp = decomp_2k(value);
     let residue = residue_pow2(value, &decomp.k);
-    if residue != decomp.prefix {
-        return Err("decomp_2k residue assertion failed".to_string());
-    }
+    let decomp_residue_matches = residue == decomp.prefix;
 
     let v2_read = v2(value);
     Ok(StructuralAnalysis {
@@ -358,6 +354,7 @@ pub fn analyze(
         shift_factor: v2_read,
         decomp_2k: decomp,
         residue_2k: residue,
+        decomp_residue_matches,
         window_width: nat_from_index(bits.len()),
         period: exact_window_period(&bits),
         divisor_bound,
@@ -420,6 +417,7 @@ pub fn render(analysis: &StructuralAnalysis) -> String {
          composite.decomp-prefix    {}\n\
          composite.decomp-remainder {}\n\
          composite.residue-2^k      {}\n\
+         assert.decomp-residue      {}\n\
          window.width               {}\n\
          window.aperture            2^{}\n\
          window.period              {}\n\
@@ -450,6 +448,7 @@ pub fn render(analysis: &StructuralAnalysis) -> String {
         analysis.decomp_2k.prefix,
         analysis.decomp_2k.remainder,
         analysis.residue_2k,
+        pass(analysis.decomp_residue_matches),
         analysis.window_width,
         analysis.window_width,
         period,
@@ -492,7 +491,7 @@ pub fn lte_2(a: &Nat, m: &Nat) -> Result<Nat, String> {
         .ok_or_else(|| "lte2 underflow".to_string())
 }
 
-fn parse_input(raw: &str) -> Result<Nat, String> {
+pub fn parse_input(raw: &str) -> Result<Nat, String> {
     if raw.starts_with('⊢') {
         let reading = decode(raw).map_err(|e| e.to_string())?;
         if reading.family != Family::CellBinary {
@@ -544,6 +543,8 @@ pub fn selftest_report() -> Result<String, String> {
 
 pub fn help_addendum() -> &'static str {
     "godel analyze <natural-number|cell-binary-word>\n\
+     analyze includes kernel SIXTEEN_3 frame states and adjacent ≤i/≤c reads;\n\
+     uncertified factor bounds remain N; frame patterns are not factor witnesses\n\
      godel lte2 <odd-a> <even-m>\n"
 }
 
@@ -625,6 +626,8 @@ mod tests {
         assert_eq!(analysis.period, Some(Nat::from_u64(2)));
         assert_eq!(analysis.popcount, Nat::from_u64(3));
         assert_eq!(analysis.divisor_bound, None);
+        assert!(analysis.assertions.all());
+        assert!(analysis.decomp_residue_matches);
     }
 
     #[test]
