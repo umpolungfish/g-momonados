@@ -82,7 +82,7 @@ fn analyze_with_kernel(args: &[&str]) -> Result<String, String> {
         .get(2)
         .map(|width| width.parse::<usize>())
         .transpose()
-        .map_err(|_| "sieve window must be an integer in 2..=20".to_string())?
+        .map_err(|_| "sieve window must be an integer of at least 2".to_string())?
         .unwrap_or(8);
     let sieve = godel_calculus::prime_sieve_read(&value, sieve_width)?;
     let analysis = godel_analyzer::analyze_with_sieve(&value, None, Some(sieve.clone()))?;
@@ -274,7 +274,7 @@ mod tests {
                     .unwrap();
             assert_eq!(analysis.bits_le.len(), bitlength);
             assert!(analysis.assertions.all());
-            for sieve_width in [8, 10, 12, 14, 16] {
+            for sieve_width in [8, 10, 12, 14, 16, 21] {
                 let sieve = godel_calculus::prime_sieve_read(&parsed_value, sieve_width).unwrap();
                 assert!(sieve.divisor.is_none());
                 assert_eq!(
@@ -283,7 +283,7 @@ mod tests {
                         (0..=sieve_width).map(|bit| bit == sieve_width).collect(),
                     ))
                 );
-                assert!(sieve.tested_primes > 0);
+                assert!(!sieve.tested_primes.is_zero());
                 assert_eq!(sieve_support_state(&sieve).name(), "f");
             }
             for width in 2..=8 {
