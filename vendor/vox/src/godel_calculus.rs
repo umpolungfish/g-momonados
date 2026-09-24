@@ -620,20 +620,45 @@ fn support_period(value: &Nat, width: usize) -> Option<usize> {
     })
 }
 
-fn smallest_odd_factor_through(value: &Nat, bound: usize) -> Option<usize> {
-    if bound < 3 || value.is_zero() {
-        return None;
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PrimeSieveRead {
+    pub aperture_width: usize,
+    pub aperture: usize,
+    pub tested_primes: usize,
+    pub divisor: Option<Nat>,
+    pub lower_bound: Option<Nat>,
+}
+
+fn nat_from_usize(mut value: usize) -> Nat {
+    let mut bits = Vec::new();
+    while value != 0 {
+        bits.push(value & 1 == 1);
+        value >>= 1;
     }
-    let mut composite = alloc::vec![false; bound + 1];
+    Nat::from_bits_le(bits)
+}
+
+/// Read the odd-prime sieve lane directly from the canonical bit support.
+/// A returned lower bound is backed by testing every odd prime through 2^width.
+pub fn prime_sieve_read(value: &Nat, width: usize) -> Result<PrimeSieveRead, String> {
+    if !(2..=20).contains(&width) {
+        return Err("sieve width must be in 2..=20".to_string());
+    }
+    let aperture = 1usize << width;
+    let mut composite = alloc::vec![false; aperture + 1];
     let mut candidate = 3usize;
-    while candidate <= bound {
+    let mut tested_primes = 0usize;
+    let mut divisor = None;
+    while candidate <= aperture {
         if !composite[candidate] {
+            tested_primes += 1;
             if value.mod_small(candidate) == 0 {
-                return Some(candidate);
+                divisor = Some(nat_from_usize(candidate));
+                break;
             }
-            if candidate <= bound / candidate {
+            if candidate <= aperture / candidate {
                 let mut multiple = candidate * candidate;
-                while multiple <= bound {
+                while multiple <= aperture {
                     composite[multiple] = true;
                     multiple += candidate;
                 }
@@ -641,7 +666,26 @@ fn smallest_odd_factor_through(value: &Nat, bound: usize) -> Option<usize> {
         }
         candidate += 2;
     }
-    None
+    let odd_part = Nat::from_bits_le(
+        value
+            .bits_le()
+            .iter()
+            .skip(trailing_zero_bits(value))
+            .copied()
+            .collect(),
+    );
+    let lower_bound = if divisor.is_none() && odd_part.cmp_nat(&Nat::one()) == Ordering::Greater {
+        Some(nat_from_usize(aperture))
+    } else {
+        None
+    };
+    Ok(PrimeSieveRead {
+        aperture_width: width,
+        aperture,
+        tested_primes,
+        divisor,
+        lower_bound,
+    })
 }
 
 /// Structural reads from a decoded cell-binary value. Periodicity and the
@@ -673,14 +717,17 @@ pub fn analyze(value: &Nat, window: usize) -> Result<String, String> {
     let k = v2_plus;
     let decomposition_m = plus_one.shr(k).sub(&Nat::one()).unwrap_or_else(Nat::zero);
     let residue = Nat::from_bits_le(value.bits_le().iter().take(k).copied().collect());
-    let aperture = 1usize << window;
+    let sieve = prime_sieve_read(value, window)?;
+    let aperture = sieve.aperture;
     let period = support_period(value, window);
-    let bound_factor = smallest_odd_factor_through(value, aperture);
-    let bound_read = match bound_factor {
-        Some(prime) => format!("odd divisor {prime} present at aperture 2^{window}={aperture}"),
-        None => {
-            format!("smallest odd prime factor > {aperture} (all odd primes ≤ aperture tested)")
+    let bound_read = match (&sieve.divisor, &sieve.lower_bound) {
+        (Some(prime), _) => {
+            format!("odd divisor {prime} present at aperture 2^{window}={aperture}")
         }
+        (_, Some(bound)) => {
+            format!("smallest odd prime factor > {bound} (all odd primes ≤ aperture tested)")
+        }
+        _ => "no odd prime factor in the support".to_string(),
     };
     let periodicity = period
         .map(|p| format!("period={p} on [0,{window})"))
@@ -858,7 +905,7 @@ pub fn help() -> &'static str {
      \n\
      godel decode <word>\n\
      godel encode <natural-number>\n\
-     godel analyze <natural-number|cell-binary-word>\n\
+     godel analyze <natural-number|cell-binary-word> [sieve-window=8]\n\
      godel lte2 <odd-a> <positive-even-m>\n\
      godel check add|mul <lhs-word> <rhs-word> <out-word>\n\
      godel relation <from-word> <to-word>\n\
@@ -889,7 +936,7 @@ pub fn command(args: &[&str]) -> Result<String, String> {
         }
         "analyze" => {
             if !(2..=3).contains(&args.len()) {
-                return Err("godel analyze <natural-number> [window=8]".to_string());
+                return Err("godel analyze <natural-number> [sieve-window=8]".to_string());
             }
             let raw = args[1];
             let value =

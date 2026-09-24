@@ -12,7 +12,8 @@ use alloc::vec::Vec;
 use core::fmt;
 
 use crate::godel_calculus::{
-    bit_support, decode, encode_cell_binary, polynomial_string, Family, Nat, Structure,
+    bit_support, decode, encode_cell_binary, polynomial_string, Family, Nat, PrimeSieveRead,
+    Structure,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -95,6 +96,7 @@ pub struct StructuralAnalysis {
     pub window_width: Nat,
     pub period: Option<Nat>,
     pub divisor_bound: Option<DivisorBoundCertificate>,
+    pub prime_sieve: Option<PrimeSieveRead>,
 }
 
 fn nat_from_index(mut value: usize) -> Nat {
@@ -326,6 +328,14 @@ pub fn analyze(
     value: &Nat,
     divisor_bound: Option<DivisorBoundCertificate>,
 ) -> Result<StructuralAnalysis, String> {
+    analyze_with_sieve(value, divisor_bound, None)
+}
+
+pub fn analyze_with_sieve(
+    value: &Nat,
+    divisor_bound: Option<DivisorBoundCertificate>,
+    prime_sieve: Option<PrimeSieveRead>,
+) -> Result<StructuralAnalysis, String> {
     let word = encode_cell_binary(value);
     let bits = cell_bits(&word)?;
     let assertions = codec_assertions(value, &word)?;
@@ -358,6 +368,7 @@ pub fn analyze(
         window_width: nat_from_index(bits.len()),
         period: exact_window_period(&bits),
         divisor_bound,
+        prime_sieve,
     })
 }
 
@@ -376,19 +387,51 @@ pub fn render(analysis: &StructuralAnalysis) -> String {
         .map(ToString::to_string)
         .unwrap_or_else(|| "none".to_string());
     let factor_bound = analysis
-        .divisor_bound
+        .prime_sieve
         .as_ref()
-        .map(|c| c.bound.to_string())
-        .unwrap_or_else(|| "uncertified".to_string());
+        .and_then(|sieve| sieve.lower_bound.as_ref())
+        .map(|bound| format!(">{bound}"))
+        .or_else(|| {
+            analysis
+                .prime_sieve
+                .as_ref()
+                .and_then(|sieve| sieve.divisor.as_ref())
+                .map(|divisor| format!("divisor {divisor}"))
+        })
+        .or_else(|| {
+            analysis
+                .divisor_bound
+                .as_ref()
+                .map(|cert| cert.bound.to_string())
+        })
+        .unwrap_or_else(|| "unclassified".to_string());
     let tested = analysis
-        .divisor_bound
+        .prime_sieve
         .as_ref()
-        .map(|c| c.tested_primes.to_string())
+        .map(|sieve| sieve.tested_primes.to_string())
+        .or_else(|| {
+            analysis
+                .divisor_bound
+                .as_ref()
+                .map(|cert| cert.tested_primes.to_string())
+        })
         .unwrap_or_else(|| "none".to_string());
     let cert_aperture = analysis
-        .divisor_bound
+        .prime_sieve
         .as_ref()
-        .map(|c| format!("2^{}", c.aperture_width))
+        .map(|sieve| format!("2^{}={}", sieve.aperture_width, sieve.aperture))
+        .or_else(|| {
+            analysis
+                .divisor_bound
+                .as_ref()
+                .map(|cert| format!("2^{}", cert.aperture_width))
+        })
+        .unwrap_or_else(|| "none".to_string());
+    let factor_witness = analysis
+        .prime_sieve
+        .as_ref()
+        .and_then(|sieve| sieve.divisor.as_ref())
+        .map(ToString::to_string)
         .unwrap_or_else(|| "none".to_string());
 
     format!(
@@ -422,6 +465,7 @@ pub fn render(analysis: &StructuralAnalysis) -> String {
          window.aperture            2^{}\n\
          window.period              {}\n\
          negative.factor-bound      {}\n\
+         negative.factor-witness    {}\n\
          negative.tested-primes     {}\n\
          negative.cert-aperture     {}\n",
         analysis.value,
@@ -453,6 +497,7 @@ pub fn render(analysis: &StructuralAnalysis) -> String {
         analysis.window_width,
         period,
         factor_bound,
+        factor_witness,
         tested,
         cert_aperture,
     )
@@ -538,22 +583,27 @@ pub fn selftest_report() -> Result<String, String> {
         if lte { "PASS" } else { "FAIL" }
     ));
 
-    if ok { Ok(out) } else { Err(out) }
+    if ok {
+        Ok(out)
+    } else {
+        Err(out)
+    }
 }
 
 pub fn help_addendum() -> &'static str {
-    "godel analyze <natural-number|cell-binary-word>\n\
-     analyze includes kernel SIXTEEN_3 frame states and adjacent ≤i/≤c reads;\n\
-     uncertified factor bounds remain N; frame patterns are not factor witnesses\n\
+    "godel analyze <natural-number|cell-binary-word> [sieve-window=8]\n\
+     analyze preserves each LSB-first joint frame symbol in the kernel SIXTEEN_3 readout;\n\
+     bounded odd-prime sieve witnesses and lower bounds enter the same register;\n\
+     adjacent ≤i/≤c relations are reported; frame patterns are not factor witnesses\n\
      godel lte2 <odd-a> <even-m>\n"
 }
 
 pub fn command(args: &[&str]) -> Result<String, String> {
     match args.first().copied() {
         Some("analyze") => {
-            let raw = args
-                .get(1)
-                .ok_or_else(|| "godel analyze <natural-number|cell-binary-word>".to_string())?;
+            let raw = args.get(1).ok_or_else(|| {
+                "godel analyze <natural-number|cell-binary-word> [sieve-window=8]".to_string()
+            })?;
             let value = parse_input(raw)?;
             Ok(render(&analyze(&value, None)?))
         }
