@@ -1,7 +1,9 @@
-I add streaming IMASM subtraction beside encoded addition
+I compose dynamically sized IMASM arithmetic membranes
 
-I add a pure IMASM ripple-borrow program with an explicit final borrow cell,
-and expose it through the encoded `imasm_sub` command. Inputs retain the
-canonical ⊥=1, ⊤=0 mapping; arithmetic and borrow propagation stay in the
-instruction stream. I cover every borrow row and a 300-bit subtraction in
-tests. The full binary suite passes.
+I add IMASM gate programs for multiplication, restoring division, product
+closure, modular exponentiation, and Euclidean gcd, composed with the existing
+encoded addition and subtraction flows. Runtime numerals stay as B4 READ tapes;
+the generated instruction topology depends only on tape widths. I expose the
+operations through the REPL and document their input form. The full serial
+binary suite passes, the build is warning-free, and the REPL arithmetic
+commands execute against encoded examples.

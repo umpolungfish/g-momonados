@@ -1,0 +1,107 @@
+.and_gate:
+JT %r0 .and_a0
+JF %r0 .and_a1
+JMP .invalid
+.and_a0:
+MOVE %r11 %r3
+RET
+.and_a1:
+JT %r1 .and_zero
+JF %r1 .and_one
+JMP .invalid
+.and_zero:
+MOVE %r11 %r3
+RET
+.and_one:
+MOVE %r12 %r3
+RET
+.full_adder:
+JT %r0 .fa_a0
+JF %r0 .fa_a1
+JMP .invalid
+.fa_a0:
+JT %r1 .fa_a0b0
+JF %r1 .fa_a0b1
+JMP .invalid
+.fa_a1:
+JT %r1 .fa_a1b0
+JF %r1 .fa_a1b1
+JMP .invalid
+.fa_a0b0:
+JT %r2 .fa_sum0_c0
+JF %r2 .fa_sum1_c0
+JMP .invalid
+.fa_a0b1:
+JT %r2 .fa_sum1_c0
+JF %r2 .fa_sum0_c1
+JMP .invalid
+.fa_a1b0:
+JT %r2 .fa_sum1_c0
+JF %r2 .fa_sum0_c1
+JMP .invalid
+.fa_a1b1:
+JT %r2 .fa_sum0_c1
+JF %r2 .fa_sum1_c1
+JMP .invalid
+.fa_sum0_c0:
+MOVE %r11 %r3
+MOVE %r11 %r4
+RET
+.fa_sum1_c0:
+MOVE %r12 %r3
+MOVE %r11 %r4
+RET
+.fa_sum0_c1:
+MOVE %r11 %r3
+MOVE %r12 %r4
+RET
+.fa_sum1_c1:
+MOVE %r12 %r3
+MOVE %r12 %r4
+RET
+.full_subtractor:
+JT %r0 .fs_a0
+JF %r0 .fs_a1
+JMP .invalid
+.fs_a0:
+JT %r1 .fs_a0b0
+JF %r1 .fs_a0b1
+JMP .invalid
+.fs_a1:
+JT %r1 .fs_a1b0
+JF %r1 .fs_a1b1
+JMP .invalid
+.fs_a0b0:
+JT %r2 .fs_d0_b0
+JF %r2 .fs_d1_b1
+JMP .invalid
+.fs_a0b1:
+JT %r2 .fs_d1_b1
+JF %r2 .fs_d0_b1
+JMP .invalid
+.fs_a1b0:
+JT %r2 .fs_d1_b0
+JF %r2 .fs_d0_b0
+JMP .invalid
+.fs_a1b1:
+JT %r2 .fs_d0_b0
+JF %r2 .fs_d1_b1
+JMP .invalid
+.fs_d0_b0:
+MOVE %r11 %r3
+MOVE %r11 %r4
+RET
+.fs_d1_b0:
+MOVE %r12 %r3
+MOVE %r11 %r4
+RET
+.fs_d0_b1:
+MOVE %r11 %r3
+MOVE %r12 %r4
+RET
+.fs_d1_b1:
+MOVE %r12 %r3
+MOVE %r12 %r4
+RET
+.invalid:
+HALT
