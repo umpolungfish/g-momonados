@@ -89,6 +89,25 @@ impl Nat {
         &self.bits_le
     }
 
+    fn mod_small(&self, modulus: usize) -> usize {
+        let mut residue = 0usize;
+        for &bit in self.bits_le.iter().rev() {
+            residue = if residue >= modulus - residue {
+                residue - (modulus - residue)
+            } else {
+                residue + residue
+            };
+            if bit {
+                residue = if residue == modulus - 1 {
+                    0
+                } else {
+                    residue + 1
+                };
+            }
+        }
+        residue
+    }
+
     fn bit(&self, position: usize) -> bool {
         self.bits_le.get(position).copied().unwrap_or(false)
     }
@@ -97,12 +116,20 @@ impl Nat {
         Self::from_bits_le(self.bits_le.get(places..).unwrap_or(&[]).to_vec())
     }
 
-    fn mod_small(&self, modulus: usize) -> usize {
-        let mut residue = 0usize;
+    fn mod_nat(&self, modulus: &Self) -> Self {
+        let mut remainder = Self::zero();
         for &bit in self.bits_le.iter().rev() {
-            residue = (residue * 2 + usize::from(bit)) % modulus;
+            remainder = remainder.shl(1);
+            if bit {
+                remainder = remainder.add(&Self::one());
+            }
+            if remainder.cmp_nat(modulus) != Ordering::Less {
+                remainder = remainder
+                    .sub(modulus)
+                    .expect("ordered remainder subtraction");
+            }
         }
-        residue
+        remainder
     }
 
     fn cmp_nat(&self, other: &Self) -> Ordering {
@@ -623,8 +650,8 @@ fn support_period(value: &Nat, width: usize) -> Option<usize> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PrimeSieveRead {
     pub aperture_width: usize,
-    pub aperture: usize,
-    pub tested_primes: usize,
+    pub aperture: Nat,
+    pub tested_primes: Nat,
     pub divisor: Option<Nat>,
     pub lower_bound: Option<Nat>,
 }
@@ -638,34 +665,176 @@ fn nat_from_usize(mut value: usize) -> Nat {
     Nat::from_bits_le(bits)
 }
 
-/// Read the odd-prime sieve lane directly from the canonical bit support.
-/// A returned lower bound is backed by testing every odd prime through 2^width.
-pub fn prime_sieve_read(value: &Nat, width: usize) -> Result<PrimeSieveRead, String> {
-    if !(2..=20).contains(&width) {
-        return Err("sieve width must be in 2..=20".to_string());
+fn power_of_two(exponent: usize) -> Result<Nat, String> {
+    let bit_count = exponent
+        .checked_add(1)
+        .ok_or_else(|| "sieve aperture exceeds addressable memory".to_string())?;
+    let mut bits = Vec::new();
+    bits.try_reserve_exact(bit_count)
+        .map_err(|_| "insufficient memory for sieve aperture".to_string())?;
+    bits.resize(exponent, false);
+    bits.push(true);
+    Ok(Nat::from_bits_le(bits))
+}
+
+fn integer_sqrt(value: usize) -> usize {
+    let mut low = 0usize;
+    let mut high = value;
+    while low < high {
+        let distance = high - low;
+        let middle = low + distance / 2 + distance % 2;
+        if middle <= value / middle {
+            low = middle;
+        } else {
+            high = middle - 1;
+        }
     }
-    let aperture = 1usize << width;
-    let mut composite = alloc::vec![false; aperture + 1];
-    let mut candidate = 3usize;
-    let mut tested_primes = 0usize;
-    let mut divisor = None;
-    while candidate <= aperture {
-        if !composite[candidate] {
-            tested_primes += 1;
-            if value.mod_small(candidate) == 0 {
-                divisor = Some(nat_from_usize(candidate));
+    low
+}
+
+fn segmented_odd_sieve(value: &Nat, aperture: usize) -> Result<(Nat, Option<Nat>), String> {
+    const SEGMENT_ODDS: usize = 32 * 1024;
+    let root = integer_sqrt(aperture);
+    let base_len = root
+        .checked_add(1)
+        .ok_or_else(|| "sieve base range exceeds addressable memory".to_string())?;
+    let mut composite = Vec::new();
+    composite
+        .try_reserve_exact(base_len)
+        .map_err(|_| "insufficient memory for sieve base primes".to_string())?;
+    composite.resize(base_len, false);
+    let mut primes = Vec::new();
+    for candidate in 2..=root {
+        if composite[candidate] {
+            continue;
+        }
+        if primes.len() == primes.capacity() {
+            primes
+                .try_reserve(1)
+                .map_err(|_| "insufficient memory for sieve base-prime list".to_string())?;
+        }
+        primes.push(candidate);
+        if candidate <= root / candidate {
+            let mut multiple = candidate * candidate;
+            while multiple <= root {
+                composite[multiple] = true;
+                multiple += candidate;
+            }
+        }
+    }
+
+    let mut tested = Nat::zero();
+    let mut low = 3usize;
+    let mut segment = Vec::new();
+    segment
+        .try_reserve_exact(SEGMENT_ODDS)
+        .map_err(|_| "insufficient memory for sieve segment".to_string())?;
+    while low <= aperture {
+        let span = 2usize.saturating_mul(SEGMENT_ODDS - 1);
+        let mut high = low.saturating_add(span).min(aperture);
+        if high & 1 == 0 {
+            high -= 1;
+        }
+        let count = (high - low) / 2 + 1;
+        segment.clear();
+        segment.resize(count, false);
+        for &prime in &primes {
+            if prime > high / prime {
                 break;
             }
-            if candidate <= aperture / candidate {
-                let mut multiple = candidate * candidate;
-                while multiple <= aperture {
-                    composite[multiple] = true;
-                    multiple += candidate;
+            if prime == 2 {
+                continue;
+            }
+            let square = prime * prime;
+            let quotient = low / prime;
+            let first_multiple = if low % prime == 0 {
+                low
+            } else {
+                quotient
+                    .checked_add(1)
+                    .and_then(|next| next.checked_mul(prime))
+                    .unwrap_or(usize::MAX)
+            };
+            let first = square.max(first_multiple);
+            let first = if first & 1 == 0 {
+                first.checked_add(prime).unwrap_or(usize::MAX)
+            } else {
+                first
+            };
+            let step = prime * 2;
+            let mut multiple = first;
+            while multiple <= high {
+                segment[(multiple - low) / 2] = true;
+                let Some(next) = multiple.checked_add(step) else {
+                    break;
+                };
+                multiple = next;
+            }
+        }
+        for (offset, marked) in segment.iter().copied().enumerate() {
+            if !marked {
+                let candidate = low + offset * 2;
+                tested = tested.add(&Nat::one());
+                if value.mod_small(candidate) == 0 {
+                    return Ok((tested, Some(nat_from_usize(candidate))));
                 }
             }
         }
-        candidate += 2;
+        if high >= aperture - 1 {
+            break;
+        }
+        low = high.saturating_add(2);
     }
+    Ok((tested, None))
+}
+
+fn arbitrary_nat_sieve(value: &Nat, aperture: &Nat) -> Result<(Nat, Option<Nat>), String> {
+    let two = Nat::from_u64(2);
+    let mut candidate = Nat::from_u64(3);
+    let mut tested_primes = Nat::zero();
+    let mut primes_and_squares: Vec<(Nat, Nat)> = Vec::new();
+    while candidate.cmp_nat(aperture) != Ordering::Greater {
+        let mut is_prime = true;
+        for (prime, square) in &primes_and_squares {
+            if square.cmp_nat(&candidate) == Ordering::Greater {
+                break;
+            }
+            if candidate.mod_nat(prime).is_zero() {
+                is_prime = false;
+                break;
+            }
+        }
+        if is_prime {
+            tested_primes = tested_primes.add(&Nat::one());
+            if value.mod_nat(&candidate).is_zero() {
+                return Ok((tested_primes, Some(candidate)));
+            }
+            if primes_and_squares.len() == primes_and_squares.capacity() {
+                primes_and_squares
+                    .try_reserve(1)
+                    .map_err(|_| "insufficient memory for arbitrary sieve primes".to_string())?;
+            }
+            primes_and_squares.push((candidate.clone(), candidate.mul(&candidate)));
+        }
+        candidate = candidate.add(&two);
+    }
+    Ok((tested_primes, None))
+}
+
+/// Read the odd-prime sieve lane directly from the canonical bit support.
+/// A returned lower bound is backed by testing every odd prime through 2^width.
+pub fn prime_sieve_read(value: &Nat, width: usize) -> Result<PrimeSieveRead, String> {
+    if width < 2 {
+        return Err("sieve width must be at least 2".to_string());
+    }
+    let aperture = power_of_two(width)?;
+    let fast_aperture = (width < usize::BITS as usize).then(|| 1usize << width);
+    let (tested_primes, divisor) = if let Some(fast_aperture) = fast_aperture {
+        let (tested, divisor) = segmented_odd_sieve(value, fast_aperture)?;
+        (tested, divisor)
+    } else {
+        arbitrary_nat_sieve(value, &aperture)?
+    };
     let odd_part = Nat::from_bits_le(
         value
             .bits_le()
@@ -675,7 +844,7 @@ pub fn prime_sieve_read(value: &Nat, width: usize) -> Result<PrimeSieveRead, Str
             .collect(),
     );
     let lower_bound = if divisor.is_none() && odd_part.cmp_nat(&Nat::one()) == Ordering::Greater {
-        Some(nat_from_usize(aperture))
+        Some(aperture.clone())
     } else {
         None
     };
@@ -692,8 +861,8 @@ pub fn prime_sieve_read(value: &Nat, width: usize) -> Result<PrimeSieveRead, Str
 /// prime-divisor bound are separate coordinates: the latter is certified by
 /// testing every odd prime through the aperture against the exact bit support.
 pub fn analyze(value: &Nat, window: usize) -> Result<String, String> {
-    if !(2..=20).contains(&window) {
-        return Err("window must be in 2..=20".to_string());
+    if window < 2 {
+        return Err("window must be at least 2".to_string());
     }
     codec_assertions(value)?;
     let width = value.bits_le().len().max(1);
@@ -945,7 +1114,7 @@ pub fn command(args: &[&str]) -> Result<String, String> {
                 .get(2)
                 .map(|s| s.parse::<usize>())
                 .transpose()
-                .map_err(|_| "window must be an integer in 2..=20".to_string())?
+                .map_err(|_| "window must be a nonnegative integer of at least 2".to_string())?
                 .unwrap_or(8);
             analyze(&value, window)
         }
@@ -1118,6 +1287,15 @@ mod tests {
         assert!(narrow.contains("smallest odd prime factor > 16"));
         let wide = analyze(&n, 7).unwrap();
         assert!(wide.contains("odd divisor 83 present at aperture 2^7=128"));
+    }
+
+    #[test]
+    fn prime_sieve_scales_past_native_aperture_width() {
+        let read = prime_sieve_read(&Nat::from_u64(21), usize::BITS as usize).unwrap();
+        assert_eq!(read.aperture, power_of_two(usize::BITS as usize).unwrap());
+        assert_eq!(read.tested_primes, Nat::one());
+        assert_eq!(read.divisor, Some(Nat::from_u64(3)));
+        assert_eq!(read.lower_bound, None);
     }
 
     #[test]
