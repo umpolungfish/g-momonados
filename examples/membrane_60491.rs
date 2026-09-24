@@ -27,10 +27,10 @@ fn main() {
         }
     };
     let nb = BigUint::from(n);
-    let pb = BigUint::from(p);
-    let qb = BigUint::from(q);
-    let mult_ok = multiply_via_word(&pb, &qb) == nb;
-    let syz_ok = syzygy_preserves(&nb, &pb, &qb);
+    let pb = &p;
+    let qb = &q;
+    let mult_ok = multiply_via_word(pb, qb) == nb;
+    let syz_ok = syzygy_preserves(&nb, pb, qb);
     if !mult_ok || !syz_ok {
         eprintln!("FROBENIUS FAILURE: p={} q={} mult_ok={} syzygy_ok={} — membrane emitted nothing", p, q, mult_ok, syz_ok);
         std::process::exit(3);
@@ -38,6 +38,6 @@ fn main() {
     println!("FACTORS: p = {}   q = {}", p, q);
     println!("p × q = N: {}  [multiply_via_word]", mult_ok);
     println!("syzygy preserves [encode; Γ; Λ; μ]: {}", syz_ok);
-    println!("{}", native_numeral::factor_words_line(&pb, &qb));
+    println!("{}", native_numeral::factor_words_line(pb, qb));
     println!("μ∘δ = id — membrane closed.");
 }
