@@ -27,6 +27,8 @@ The GPU path batches the same gate operations as the CPU reference.
 
 ## Start here
 
+Local Cargo builds deny Rust warnings (`-D warnings`) through `.cargo/config.toml`.
+
 ```bash
 cd /home/mrnob0dy666/imsgct/G-mOMonadOS
 make hosted
