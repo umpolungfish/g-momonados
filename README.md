@@ -46,6 +46,27 @@ The compiler specializes circuit topology to tape widths; the numeral values
 enter as B4 READ cells and the arithmetic gates, branches, and closures execute
 inside the IMASM stream.
 
+`imasm_edit_square <x> <s>` checks the concrete edit/valuation square. Inputs
+are LSB-first tapes (`⊤=0`, `⊥=1`); the stream verifies the four token insertions,
+computes `A=x+1`, `D2=x+s`, `B=A+s`, then checks `A+B=x·D2`. Its `C` output is
+the canonical token word carried by the witness. For `x=s=2`, use
+`imasm_edit_square ⊤⊥ ⊤⊥`.
+
+The same stream also emits the encoded `g_F` exponent profile for primes
+`2,3,5`, separately across `(A,B,C)=(3,5,8)` and `(D1,D2,C)=(2,4,8)`, plus
+the `g_I` supports `rad(3·5·8)=30` and `rad(2·4·8)=2`. `lane_witness` is true
+only when the dynamic IMASM edit and arithmetic closure succeeds; the profile
+itself is a baked-in encoded witness for this concrete square, not a general
+factorization routine. The support coordinates remain distinct: they are not
+asserted equal.
+
+The arithmetic values and the IUTT four-register state are distinct typed
+objects. In the Lean kernel, each Θ branch map has type `IUTT.State →
+IUTT.State`; it does not itself accept a natural number, prime-exponent vector,
+or radical. Thus this command currently checks the arithmetic/edit membrane,
+not a theorem identifying its additive and multiplicative arithmetic data with
+IUTT's state transport.
+
 ```text
 imasm_mul ⊥⊥ ⊥⊤⊥          # 3 × 5
 imasm_divmod ⊥⊥⊥⊥ ⊥⊥      # 15 ÷ 3
