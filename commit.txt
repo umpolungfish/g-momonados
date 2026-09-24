@@ -1,1 +1,1 @@
-I carry the Gödel analyzer's frame reads through the G-mOMonadOS SIXTEEN_3 kernel. I preserve partial codec failures as truth and falsity support, retain the frame sweep and its information and constructivity order relations, and leave uncertified factor bounds at N.
+I carry bounded sieve evidence and every frame symbol into the Gödel kernel state. I preserve simultaneous truth and falsity support, verify information and constructivity order across the RSA frame sweep, and document the certified lower-bound limit without claiming factor recovery.
