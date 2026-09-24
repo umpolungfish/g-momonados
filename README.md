@@ -36,6 +36,24 @@ make hosted
 
 GPU commands need an exposed CUDA device; CPU and Vox commands work without one.
 
+## IMASM arithmetic membranes
+
+The `imasm_*` arithmetic commands take LSB-first numeral tapes, with `⊥` for a
+one-bit and `⊤` for a zero-bit. For example, `⊥⊥` is three and `⊥⊤⊥` is five.
+Addition, subtraction, multiplication, restoring division, Euclidean gcd,
+product closure, and modular exponentiation run as ParaASM instruction streams.
+The compiler specializes circuit topology to tape widths; the numeral values
+enter as B4 READ cells and the arithmetic gates, branches, and closures execute
+inside the IMASM stream.
+
+```text
+imasm_mul ⊥⊥ ⊥⊤⊥          # 3 × 5
+imasm_divmod ⊥⊥⊥⊥ ⊥⊥      # 15 ÷ 3
+imasm_gcd ⊥⊥⊥⊥ ⊥⊤⊥        # gcd(15, 5)
+imasm_close ⊥⊥ ⊥⊤⊥ ⊥⊥⊥⊥ # close 3 × 5 = 15
+imasm_powmod ⊤⊥ ⊤⊥⊤⊥ ⊥⊤⊤⊤⊥ # 2^10 mod 17
+```
+
 ## Useful commands
 
 ```text

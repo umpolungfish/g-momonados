@@ -1693,6 +1693,74 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                     }
                 }
             }
+            "imasm_mul" => {
+                let left = parts.next().unwrap_or("");
+                let right = parts.next().unwrap_or("");
+                if left.is_empty() || right.is_empty() {
+                    sprintln!("imasm_mul: usage: imasm_mul <LSB-first-⊤/⊥> <LSB-first-⊤/⊥>");
+                } else {
+                    match crate::parasm::multiply_encoded_lsb_first(left, right) {
+                        Ok(product) => sprintln!("product LSB-first (⊥=1, ⊤=0): {}", product),
+                        Err(error) => sprintln!("imasm_mul: {}", error),
+                    }
+                }
+            }
+            "imasm_mod" | "imasm_divmod" => {
+                let command = cmd;
+                let left = parts.next().unwrap_or("");
+                let right = parts.next().unwrap_or("");
+                if left.is_empty() || right.is_empty() {
+                    sprintln!("{}: usage: {} <LSB-first-⊤/⊥> <LSB-first-⊤/⊥>", command, command);
+                } else if command == "imasm_mod" {
+                    match crate::parasm::modulo_encoded_lsb_first(left, right) {
+                        Ok(remainder) => sprintln!("remainder LSB-first (⊥=1, ⊤=0): {}", remainder),
+                        Err(error) => sprintln!("imasm_mod: {}", error),
+                    }
+                } else {
+                    match crate::parasm::divmod_encoded_lsb_first(left, right) {
+                        Ok((quotient, remainder)) => sprintln!("quotient LSB-first: {}\nremainder LSB-first: {}", quotient, remainder),
+                        Err(error) => sprintln!("imasm_divmod: {}", error),
+                    }
+                }
+            }
+            "imasm_gcd" => {
+                let left = parts.next().unwrap_or("");
+                let right = parts.next().unwrap_or("");
+                if left.is_empty() || right.is_empty() {
+                    sprintln!("imasm_gcd: usage: imasm_gcd <LSB-first-⊤/⊥> <LSB-first-⊤/⊥>");
+                } else {
+                    match crate::parasm::gcd_encoded_lsb_first(left, right) {
+                        Ok(gcd) => sprintln!("gcd LSB-first (⊥=1, ⊤=0): {}", gcd),
+                        Err(error) => sprintln!("imasm_gcd: {}", error),
+                    }
+                }
+            }
+            "imasm_close" => {
+                let left = parts.next().unwrap_or("");
+                let right = parts.next().unwrap_or("");
+                let target = parts.next().unwrap_or("");
+                if left.is_empty() || right.is_empty() || target.is_empty() {
+                    sprintln!("imasm_close: usage: imasm_close <p-⊤/⊥> <q-⊤/⊥> <N-⊤/⊥>");
+                } else {
+                    match crate::parasm::product_closure_encoded_lsb_first(left, right, target) {
+                        Ok(verdict) => sprintln!("product closure (⊤=exact, ⊥=mismatch): {}", verdict),
+                        Err(error) => sprintln!("imasm_close: {}", error),
+                    }
+                }
+            }
+            "imasm_powmod" => {
+                let base = parts.next().unwrap_or("");
+                let exponent = parts.next().unwrap_or("");
+                let modulus = parts.next().unwrap_or("");
+                if base.is_empty() || exponent.is_empty() || modulus.is_empty() {
+                    sprintln!("imasm_powmod: usage: imasm_powmod <base-⊤/⊥> <exponent-⊤/⊥> <modulus-⊤/⊥>");
+                } else {
+                    match crate::parasm::powmod_encoded_lsb_first(base, exponent, modulus) {
+                        Ok(residue) => sprintln!("phase residue LSB-first (⊥=1, ⊤=0): {}", residue),
+                        Err(error) => sprintln!("imasm_powmod: {}", error),
+                    }
+                }
+            }
             "prime_winding" => {
                 use crate::prime_winding::*;
                 let sub = parts.next().unwrap_or("");
