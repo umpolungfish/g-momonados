@@ -23,6 +23,8 @@
 
 extern crate alloc;
 
+pub use vox_core::godel_calculus;
+
 #[cfg(feature = "hosted")]
 pub mod runtime_nesting;
 pub mod word_tape;
@@ -48,7 +50,17 @@ pub mod factor_membrane;
 #[cfg(feature = "hosted")]
 pub mod membrane_family;
 
-
 // The gate runs on a host; there is no test harness on bare metal.
 #[cfg(all(test, feature = "hosted"))]
-mod braid_frobenius_tests;mod btc_key_deriver;
+mod braid_frobenius_tests;
+mod btc_key_deriver;
+
+#[cfg(test)]
+mod godel_calculus_tests {
+    use super::godel_calculus;
+
+    #[test]
+    fn vendored_godel_calculus_selftest() {
+        assert!(godel_calculus::selftest_report().is_ok());
+    }
+}
