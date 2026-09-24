@@ -1,8 +1,7 @@
-I wire encoded addition through the IMASM ripple adder
+I add streaming IMASM subtraction beside encoded addition
 
-I use the canonical ⊥=1, ⊤=0 numeral polarity, expose the dynamic
-LSB-first adder as an IMASM source file, and add the `imasm_add` REPL entry
-point. The command only translates between the glyph alphabet and ParaVM's
-B4 cells; the assembled instruction stream performs addition and carry
-propagation. I test truth-table coverage, a 300-bit carry chain, and the exact
-encoded CLI path.
+I add a pure IMASM ripple-borrow program with an explicit final borrow cell,
+and expose it through the encoded `imasm_sub` command. Inputs retain the
+canonical ⊥=1, ⊤=0 mapping; arithmetic and borrow propagation stay in the
+instruction stream. I cover every borrow row and a 300-bit subtraction in
+tests. The full binary suite passes.

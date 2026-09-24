@@ -1681,6 +1681,18 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                     }
                 }
             }
+            "imasm_sub" => {
+                let left = parts.next().unwrap_or("");
+                let right = parts.next().unwrap_or("");
+                if left.is_empty() || right.is_empty() {
+                    sprintln!("imasm_sub: usage: imasm_sub <LSB-first-⊤/⊥> <LSB-first-⊤/⊥>");
+                } else {
+                    match crate::parasm::subtract_encoded_lsb_first(left, right) {
+                        Ok(difference) => sprintln!("difference LSB-first (⊥=1, ⊤=0; final borrow included): {}", difference),
+                        Err(error) => sprintln!("imasm_sub: {}", error),
+                    }
+                }
+            }
             "prime_winding" => {
                 use crate::prime_winding::*;
                 let sub = parts.next().unwrap_or("");
