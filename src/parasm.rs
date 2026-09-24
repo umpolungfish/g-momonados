@@ -17,32 +17,32 @@ use crate::belnap::B4;
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParaAsm {
     // ── Frobenius core (mirrors 4 of 12 IMASM tokens) ──
-    ENGAGR(u8),              // Engage Both — register → paradox
-    FSPLIT(u8, u8, u8),      // Fork — src → (dst1, dst2); B bifurcates to T+F
-    FFUSE(Vec<u8>, u8),      // Fuse — join many sources → dst
-    IFIX(u8),                // Permanent brand — linear ! exponential
+    ENGAGR(usize),              // Engage Both — register → paradox
+    FSPLIT(usize, usize, usize),// Fork — src → (dst1, dst2); B bifurcates to T+F
+    FFUSE(Vec<usize>, usize),   // Fuse — join many sources → dst
+    IFIX(usize),                // Permanent brand — linear ! exponential
 
     // ── Register ops ──
-    MOVE(u8, u8),            // Copy src → dst
-    CLEAR(u8),               // Reset register to N
+    MOVE(usize, usize),      // Copy src → dst
+    CLEAR(usize),            // Reset register to N
 
     // ── Control flow ──
     JMP(String),             // Unconditional jump to label
-    JB(u8, String),          // Jump if B
-    JT(u8, String),          // Jump if T
-    JF(u8, String),          // Jump if F
-    JN(u8, String),          // Jump if N
+    JB(usize, String),       // Jump if B
+    JT(usize, String),       // Jump if T
+    JF(usize, String),       // Jump if F
+    JN(usize, String),       // Jump if N
     CALL(String),            // Call subroutine (push return addr)
     RET,                     // Return from subroutine
     HALT,                    // Stop execution
 
     // ── Stack ──
-    PUSH(u8),                // Push register to data stack
-    POP(u8),                 // Pop data stack → register
+    PUSH(usize),             // Push register to data stack
+    POP(usize),              // Pop data stack → register
 
     // ── I/O (noop in kernel mode) ──
-    EMIT(u8),                // Emit register value
-    READ(u8),                // Read input → register (defaults N)
+    EMIT(usize),             // Emit register value
+    READ(usize),             // Read input → register (defaults N)
 }
 
 /// Dynamically sized ripple-carry addition. Bits use the numeral encoding
@@ -51,6 +51,418 @@ pub enum ParaAsm {
 pub const BIT_REGISTER_ADD_ASM: &str = include_str!("../.imasm/bit_register_add.imasm");
 /// Dynamically sized ripple-borrow subtraction over the same encoded tape.
 pub const BIT_REGISTER_SUB_ASM: &str = include_str!("../.imasm/bit_register_sub.imasm");
+const BIT_REGISTER_GATE_LIBRARY_ASM: &str = include_str!("../.imasm/bit_register_gate_library.imasm");
+
+struct BitRegisterMulLayout {
+    source: String,
+    a_start: usize,
+    b_start: usize,
+    extra_start: usize,
+    product_start: usize,
+    product_width: usize,
+    next_register: usize,
+}
+
+/// Wire one multiply circuit into an existing instruction stream. This is
+/// shared by standalone multiplication, product closure, and modular phase
+/// winding; the operands and result are all dynamically sized B4 tape banks.
+fn append_bit_register_mul(
+    source: &mut String,
+    a_bits: &[usize],
+    b_bits: &[usize],
+    product_bits: &[usize],
+    scratch_start: usize,
+) -> usize {
+    use core::fmt::Write as _;
+    let partial = scratch_start;
+    let carry = scratch_start + 1;
+    for &bit in product_bits {
+        writeln!(source, "MOVE %r11 %r{bit}").unwrap();
+    }
+    for (b_bit, &b_register) in b_bits.iter().enumerate() {
+        writeln!(source, "MOVE %r11 %r{carry}").unwrap();
+        for (a_bit, &a_register) in a_bits.iter().enumerate() {
+            let column = a_bit + b_bit;
+            writeln!(source, "MOVE %r{a_register} %r0").unwrap();
+            writeln!(source, "MOVE %r{b_register} %r1").unwrap();
+            source.push_str("CALL .and_gate\n");
+            writeln!(source, "MOVE %r3 %r{partial}").unwrap();
+            writeln!(source, "MOVE %r{} %r0", product_bits[column]).unwrap();
+            writeln!(source, "MOVE %r{partial} %r1").unwrap();
+            writeln!(source, "MOVE %r{carry} %r2").unwrap();
+            source.push_str("CALL .full_adder\n");
+            writeln!(source, "MOVE %r3 %r{}", product_bits[column]).unwrap();
+            writeln!(source, "MOVE %r4 %r{carry}").unwrap();
+        }
+        for &product_bit in &product_bits[(b_bit + a_bits.len())..] {
+            writeln!(source, "MOVE %r{product_bit} %r0").unwrap();
+            source.push_str("MOVE %r11 %r1\n");
+            writeln!(source, "MOVE %r{carry} %r2").unwrap();
+            source.push_str("CALL .full_adder\n");
+            writeln!(source, "MOVE %r3 %r{product_bit}").unwrap();
+            writeln!(source, "MOVE %r4 %r{carry}").unwrap();
+        }
+    }
+    scratch_start + 2
+}
+
+/// Wire a restoring divider into a larger instruction stream. Its temporary
+/// remainder and difference are B4 tape banks; a unique label prefix lets
+/// several division closures coexist in one membrane.
+fn append_bit_register_divmod(
+    source: &mut String,
+    dividend_bits: &[usize],
+    divisor_bits: &[usize],
+    quotient_bits: &[usize],
+    remainder_bits: &[usize],
+    scratch_start: usize,
+    label_prefix: &str,
+) -> usize {
+    use core::fmt::Write as _;
+    let remainder_width = remainder_bits.len();
+    let difference_start = scratch_start;
+    let borrow = difference_start + remainder_width;
+
+    for (bit, &divisor) in divisor_bits.iter().enumerate() {
+        writeln!(source, "JT %r{divisor} .{label_prefix}_zero_check_{}", bit + 1).unwrap();
+        writeln!(source, "JF %r{divisor} .{label_prefix}_nonzero").unwrap();
+        writeln!(source, ".{label_prefix}_zero_check_{}:", bit + 1).unwrap();
+    }
+    source.push_str("HALT\n");
+    writeln!(source, ".{label_prefix}_nonzero:").unwrap();
+
+    for &bit in quotient_bits { writeln!(source, "MOVE %r11 %r{bit}").unwrap(); }
+    for &bit in remainder_bits { writeln!(source, "MOVE %r11 %r{bit}").unwrap(); }
+
+    for (dividend_index, &dividend) in dividend_bits.iter().enumerate().rev() {
+        for position in (1..remainder_width).rev() {
+            writeln!(source, "MOVE %r{} %r{}", remainder_bits[position - 1], remainder_bits[position]).unwrap();
+        }
+        writeln!(source, "MOVE %r{dividend} %r{}", remainder_bits[0]).unwrap();
+        writeln!(source, "MOVE %r11 %r{borrow}").unwrap();
+        for bit in 0..remainder_width {
+            writeln!(source, "MOVE %r{} %r0", remainder_bits[bit]).unwrap();
+            if let Some(&divisor) = divisor_bits.get(bit) {
+                writeln!(source, "MOVE %r{divisor} %r1").unwrap();
+            } else {
+                source.push_str("MOVE %r11 %r1\n");
+            }
+            writeln!(source, "MOVE %r{borrow} %r2").unwrap();
+            source.push_str("CALL .full_subtractor\n");
+            writeln!(source, "MOVE %r3 %r{}", difference_start + bit).unwrap();
+            writeln!(source, "MOVE %r4 %r{borrow}").unwrap();
+        }
+        writeln!(source, "JT %r{borrow} .{label_prefix}_take_sub_{dividend_index}").unwrap();
+        writeln!(source, "JF %r{borrow} .{label_prefix}_keep_rem_{dividend_index}").unwrap();
+        writeln!(source, ".{label_prefix}_take_sub_{dividend_index}:").unwrap();
+        writeln!(source, "MOVE %r12 %r{}", quotient_bits[dividend_index]).unwrap();
+        for bit in 0..remainder_width {
+            writeln!(source, "MOVE %r{} %r{}", difference_start + bit, remainder_bits[bit]).unwrap();
+        }
+        writeln!(source, "JMP .{label_prefix}_step_end_{dividend_index}").unwrap();
+        writeln!(source, ".{label_prefix}_keep_rem_{dividend_index}:").unwrap();
+        writeln!(source, "MOVE %r11 %r{}", quotient_bits[dividend_index]).unwrap();
+        writeln!(source, ".{label_prefix}_step_end_{dividend_index}:").unwrap();
+    }
+    difference_start + remainder_width + 1
+}
+
+/// Emit the shared multiplicative arm. The compiler wires by widths only;
+/// operand bits remain READ data and all partial products and carries are
+/// computed by IMASM gates. `extra_width` reserves a third encoded tape for
+/// the closure comparator nested around this product.
+fn bit_register_mul_body(a_width: usize, b_width: usize, extra_width: usize) -> BitRegisterMulLayout {
+    use core::fmt::Write as _;
+
+    let a_start = 32usize;
+    let b_start = a_start + a_width;
+    let extra_start = b_start + b_width;
+    let product_width = a_width + b_width;
+    let product_start = extra_start + extra_width;
+    let scratch_start = product_start + product_width;
+    let mut source = String::new();
+
+    source.push_str("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for bit in 0..a_width { writeln!(source, "READ %r{}", a_start + bit).unwrap(); }
+    for bit in 0..b_width { writeln!(source, "READ %r{}", b_start + bit).unwrap(); }
+    for bit in 0..extra_width { writeln!(source, "READ %r{}", extra_start + bit).unwrap(); }
+    let a_bits: Vec<usize> = (a_start..a_start + a_width).collect();
+    let b_bits: Vec<usize> = (b_start..b_start + b_width).collect();
+    let product_bits: Vec<usize> = (product_start..product_start + product_width).collect();
+    let next_register = append_bit_register_mul(&mut source, &a_bits, &b_bits, &product_bits, scratch_start);
+    BitRegisterMulLayout {
+        source,
+        a_start,
+        b_start,
+        extra_start,
+        product_start,
+        product_width,
+        next_register,
+    }
+}
+
+/// Compile a schoolbook multiplier into a complete IMASM instruction stream.
+fn bit_register_mul_program(a_width: usize, b_width: usize) -> String {
+    use core::fmt::Write as _;
+    let mut layout = bit_register_mul_body(a_width, b_width, 0);
+    for bit in 0..layout.product_width {
+        writeln!(layout.source, "EMIT %r{}", layout.product_start + bit).unwrap();
+    }
+    layout.source.push_str("HALT\n");
+    layout.source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    layout.source
+}
+
+/// Nest an exact product around an IMASM equality closure. The third operand
+/// is another encoded tape; no host multiplication or comparison decides the
+/// closure value.
+fn bit_register_product_closure_program(a_width: usize, b_width: usize, n_width: usize) -> String {
+    use core::fmt::Write as _;
+    let mut layout = bit_register_mul_body(a_width, b_width, n_width);
+    let closure = layout.next_register;
+    let compare_width = core::cmp::max(layout.product_width, n_width);
+    writeln!(layout.source, "MOVE %r11 %r{closure}").unwrap();
+    for bit in 0..compare_width {
+        writeln!(layout.source, "JT %r{closure} .cmp_active_{bit}").unwrap();
+        writeln!(layout.source, "JF %r{closure} .cmp_after_{bit}").unwrap();
+        writeln!(layout.source, ".cmp_active_{bit}:").unwrap();
+        if bit < layout.product_width {
+            writeln!(layout.source, "MOVE %r{} %r0", layout.product_start + bit).unwrap();
+        } else {
+            layout.source.push_str("MOVE %r11 %r0\n");
+        }
+        if bit < n_width {
+            writeln!(layout.source, "MOVE %r{} %r1", layout.extra_start + bit).unwrap();
+        } else {
+            layout.source.push_str("MOVE %r11 %r1\n");
+        }
+        writeln!(layout.source, "JT %r0 .cmp_product_zero_{bit}").unwrap();
+        writeln!(layout.source, "JF %r0 .cmp_product_one_{bit}").unwrap();
+        layout.source.push_str("JMP .invalid\n");
+        writeln!(layout.source, ".cmp_product_zero_{bit}:").unwrap();
+        writeln!(layout.source, "JT %r1 .cmp_equal_{bit}").unwrap();
+        writeln!(layout.source, "JF %r1 .cmp_mismatch_{bit}").unwrap();
+        writeln!(layout.source, ".cmp_product_one_{bit}:").unwrap();
+        writeln!(layout.source, "JF %r1 .cmp_equal_{bit}").unwrap();
+        writeln!(layout.source, "JT %r1 .cmp_mismatch_{bit}").unwrap();
+        layout.source.push_str("JMP .invalid\n");
+        writeln!(layout.source, ".cmp_equal_{bit}:").unwrap();
+        writeln!(layout.source, "JMP .cmp_after_{bit}").unwrap();
+        writeln!(layout.source, ".cmp_mismatch_{bit}:").unwrap();
+        writeln!(layout.source, "MOVE %r12 %r{closure}").unwrap();
+        writeln!(layout.source, "JMP .cmp_after_{bit}").unwrap();
+        writeln!(layout.source, ".cmp_after_{bit}:").unwrap();
+    }
+    writeln!(layout.source, "EMIT %r{closure}\nHALT").unwrap();
+    layout.source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    layout.source
+}
+
+/// Compile restoring long division into IMASM cells. The generated circuit
+/// depends on operand widths, while the two numerals remain encoded READ
+/// values. Quotient decisions, comparisons, borrows, and remainder updates
+/// all execute through the instruction stream.
+fn bit_register_divmod_program(a_width: usize, b_width: usize) -> String {
+    use core::fmt::Write as _;
+
+    let a_start = 32usize;
+    let b_start = a_start + a_width;
+    let remainder_width = b_width + 1;
+    let remainder_start = b_start + b_width;
+    let difference_start = remainder_start + remainder_width;
+    let quotient_start = difference_start + remainder_width;
+    let borrow = quotient_start + a_width;
+    let mut source = String::new();
+
+    source.push_str("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for bit in 0..a_width { writeln!(source, "READ %r{}", a_start + bit).unwrap(); }
+    for bit in 0..b_width { writeln!(source, "READ %r{}", b_start + bit).unwrap(); }
+
+    // A zero divisor has no emitted quotient/remainder. T means 0, F means 1.
+    for bit in 0..b_width {
+        writeln!(source, "JT %r{} .divisor_zero_check_{}", b_start + bit, bit + 1).unwrap();
+        source.push_str("JF %r");
+        writeln!(source, "{} .divisor_nonzero", b_start + bit).unwrap();
+        writeln!(source, ".divisor_zero_check_{}:", bit + 1).unwrap();
+    }
+    source.push_str("HALT\n.divisor_nonzero:\n");
+
+    for bit in 0..a_width { writeln!(source, "MOVE %r11 %r{}", quotient_start + bit).unwrap(); }
+    // Initialize each remainder cell, including its guard bit.
+    for bit in 0..remainder_width {
+        writeln!(source, "MOVE %r11 %r{}", remainder_start + bit).unwrap();
+    }
+
+    for dividend_bit in (0..a_width).rev() {
+        for position in (1..remainder_width).rev() {
+            writeln!(source, "MOVE %r{} %r{}", remainder_start + position - 1, remainder_start + position).unwrap();
+        }
+        writeln!(source, "MOVE %r{} %r{}", a_start + dividend_bit, remainder_start).unwrap();
+        source.push_str("MOVE %r11 %r");
+        writeln!(source, "{borrow}").unwrap();
+        for bit in 0..remainder_width {
+            writeln!(source, "MOVE %r{} %r0", remainder_start + bit).unwrap();
+            if bit < b_width {
+                writeln!(source, "MOVE %r{} %r1", b_start + bit).unwrap();
+            } else {
+                source.push_str("MOVE %r11 %r1\n");
+            }
+            writeln!(source, "MOVE %r{borrow} %r2").unwrap();
+            source.push_str("CALL .full_subtractor\n");
+            writeln!(source, "MOVE %r3 %r{}", difference_start + bit).unwrap();
+            writeln!(source, "MOVE %r4 %r{borrow}").unwrap();
+        }
+        writeln!(source, "JT %r{borrow} .take_sub_{dividend_bit}").unwrap();
+        writeln!(source, "JF %r{borrow} .keep_rem_{dividend_bit}").unwrap();
+        writeln!(source, ".take_sub_{dividend_bit}:").unwrap();
+        writeln!(source, "MOVE %r12 %r{}", quotient_start + dividend_bit).unwrap();
+        for bit in 0..remainder_width {
+            writeln!(source, "MOVE %r{} %r{}", difference_start + bit, remainder_start + bit).unwrap();
+        }
+        writeln!(source, "JMP .div_step_end_{dividend_bit}").unwrap();
+        writeln!(source, ".keep_rem_{dividend_bit}:").unwrap();
+        writeln!(source, "MOVE %r11 %r{}", quotient_start + dividend_bit).unwrap();
+        writeln!(source, ".div_step_end_{dividend_bit}:").unwrap();
+    }
+
+    for bit in 0..a_width { writeln!(source, "EMIT %r{}", quotient_start + bit).unwrap(); }
+    for bit in 0..remainder_width { writeln!(source, "EMIT %r{}", remainder_start + bit).unwrap(); }
+    source.push_str("HALT\n");
+    source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    source
+}
+
+/// Compose a bounded, width-specialized Euclidean chain. Each quotient and
+/// remainder is produced by the same IMASM restoring divider, with early
+/// closure when the encoded divisor reaches zero. The width controls only
+/// circuit topology; both operands remain runtime B4 tapes.
+fn bit_register_gcd_program(a_width: usize, b_width: usize) -> String {
+    use core::fmt::Write as _;
+
+    let width = core::cmp::max(a_width, b_width);
+    let a_input = 32usize;
+    let b_input = a_input + a_width;
+    let a_bank = b_input + b_width;
+    let b_bank = a_bank + width;
+    let quotient = b_bank + width;
+    let remainder = quotient + width;
+    let work = remainder + width + 1;
+    let a_bits: Vec<usize> = (a_bank..a_bank + width).collect();
+    let b_bits: Vec<usize> = (b_bank..b_bank + width).collect();
+    let q_bits: Vec<usize> = (quotient..quotient + width).collect();
+    let r_bits: Vec<usize> = (remainder..remainder + width + 1).collect();
+    let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for bit in 0..a_width { writeln!(source, "READ %r{}", a_input + bit).unwrap(); }
+    for bit in 0..b_width { writeln!(source, "READ %r{}", b_input + bit).unwrap(); }
+    for bit in 0..width {
+        if bit < a_width { writeln!(source, "MOVE %r{} %r{}", a_input + bit, a_bits[bit]).unwrap(); }
+        else { writeln!(source, "MOVE %r11 %r{}", a_bits[bit]).unwrap(); }
+        if bit < b_width { writeln!(source, "MOVE %r{} %r{}", b_input + bit, b_bits[bit]).unwrap(); }
+        else { writeln!(source, "MOVE %r11 %r{}", b_bits[bit]).unwrap(); }
+    }
+
+    // Euclid takes fewer than 2w divisions for w-bit nonnegative operands.
+    // All iterations are present in the word; divisor-zero branches close
+    // the chain as soon as the live remainder becomes zero.
+    for iteration in 0..(2 * width + 1) {
+        for (bit, &register) in b_bits.iter().enumerate() {
+            writeln!(source, "JT %r{register} .gcd_zero_{iteration}_{bit}").unwrap();
+            writeln!(source, "JF %r{register} .gcd_continue_{iteration}").unwrap();
+            writeln!(source, ".gcd_zero_{iteration}_{bit}:").unwrap();
+        }
+        source.push_str("JMP .gcd_done\n");
+        writeln!(source, ".gcd_continue_{iteration}:").unwrap();
+        append_bit_register_divmod(
+            &mut source, &a_bits, &b_bits, &q_bits, &r_bits, work,
+            &alloc::format!("gcd_div_{iteration}"),
+        );
+        for bit in 0..width {
+            writeln!(source, "MOVE %r{} %r{}", b_bits[bit], a_bits[bit]).unwrap();
+            writeln!(source, "MOVE %r{} %r{}", r_bits[bit], b_bits[bit]).unwrap();
+        }
+    }
+    // The final bound check prevents a truncated Euclidean chain from
+    // emitting a plausible value if the width-bound invariant is violated.
+    for (bit, &register) in b_bits.iter().enumerate() {
+        writeln!(source, "JT %r{register} .gcd_final_zero_{bit}").unwrap();
+        source.push_str("HALT\n");
+        writeln!(source, ".gcd_final_zero_{bit}:").unwrap();
+    }
+    source.push_str(".gcd_done:\n");
+    for register in &a_bits { writeln!(source, "EMIT %r{register}").unwrap(); }
+    source.push_str("HALT\n");
+    source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    source
+}
+
+/// Compose the multiplication and restoring-division membranes into a
+/// width-specialized modular-exponentiation flow. The compiler wires only
+/// the tape shapes; exponent branches inspect the encoded B4 bits at runtime.
+fn bit_register_powmod_program(base_width: usize, exponent_width: usize, modulus_width: usize) -> String {
+    use core::fmt::Write as _;
+
+    let base_start = 32usize;
+    let exponent_start = base_start + base_width;
+    let modulus_start = exponent_start + exponent_width;
+    let persistent_start = modulus_start + modulus_width;
+    let result_bits: Vec<usize> = (persistent_start..persistent_start + modulus_width).collect();
+    let base_bits: Vec<usize> = (persistent_start + modulus_width..persistent_start + 2 * modulus_width).collect();
+    let product_bits: Vec<usize> = (persistent_start + 2 * modulus_width..persistent_start + 4 * modulus_width).collect();
+    let quotient_width = core::cmp::max(base_width, 2 * modulus_width);
+    let quotient_bits: Vec<usize> = (persistent_start + 4 * modulus_width..persistent_start + 4 * modulus_width + quotient_width).collect();
+    let remainder_bits: Vec<usize> = (persistent_start + 4 * modulus_width + quotient_width
+        ..persistent_start + 5 * modulus_width + quotient_width + 1).collect();
+    let work_start = persistent_start + 5 * modulus_width + quotient_width + 1;
+    let base_input: Vec<usize> = (base_start..base_start + base_width).collect();
+    let exponent: Vec<usize> = (exponent_start..exponent_start + exponent_width).collect();
+    let modulus: Vec<usize> = (modulus_start..modulus_start + modulus_width).collect();
+    let one_bit = [12usize]; // FSPLIT's F arm is encoded one (⊥).
+
+    let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for bit in 0..base_width { writeln!(source, "READ %r{}", base_start + bit).unwrap(); }
+    for bit in 0..exponent_width { writeln!(source, "READ %r{}", exponent_start + bit).unwrap(); }
+    for bit in 0..modulus_width { writeln!(source, "READ %r{}", modulus_start + bit).unwrap(); }
+
+    // Set result to 1 mod N and the phase base to base mod N. Both reductions
+    // share the same IMASM divider and return their residues on the tape.
+    append_bit_register_divmod(&mut source, &one_bit, &modulus, &quotient_bits[..1], &remainder_bits, work_start, "pow_one_reduce");
+    for bit in 0..modulus_width {
+        writeln!(source, "MOVE %r{} %r{}", remainder_bits[bit], result_bits[bit]).unwrap();
+    }
+    append_bit_register_divmod(&mut source, &base_input, &modulus, &quotient_bits[..base_width], &remainder_bits, work_start, "pow_base_reduce");
+    for bit in 0..modulus_width {
+        writeln!(source, "MOVE %r{} %r{}", remainder_bits[bit], base_bits[bit]).unwrap();
+    }
+
+    for (index, &exponent_bit) in exponent.iter().enumerate() {
+        writeln!(source, "JT %r{exponent_bit} .pow_skip_product_{index}").unwrap();
+        writeln!(source, "JF %r{exponent_bit} .pow_product_{index}").unwrap();
+        writeln!(source, ".pow_product_{index}:").unwrap();
+        append_bit_register_mul(&mut source, &result_bits, &base_bits, &product_bits, work_start);
+        append_bit_register_divmod(
+            &mut source, &product_bits, &modulus, &quotient_bits[..2 * modulus_width],
+            &remainder_bits, work_start, &alloc::format!("pow_result_reduce_{index}"),
+        );
+        for bit in 0..modulus_width {
+            writeln!(source, "MOVE %r{} %r{}", remainder_bits[bit], result_bits[bit]).unwrap();
+        }
+        writeln!(source, ".pow_skip_product_{index}:").unwrap();
+
+        append_bit_register_mul(&mut source, &base_bits, &base_bits, &product_bits, work_start);
+        append_bit_register_divmod(
+            &mut source, &product_bits, &modulus, &quotient_bits[..2 * modulus_width],
+            &remainder_bits, work_start, &alloc::format!("pow_base_square_reduce_{index}"),
+        );
+        for bit in 0..modulus_width {
+            writeln!(source, "MOVE %r{} %r{}", remainder_bits[bit], base_bits[bit]).unwrap();
+        }
+    }
+
+    for &bit in &result_bits { writeln!(source, "EMIT %r{bit}").unwrap(); }
+    source.push_str("HALT\n");
+    source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    source
+}
 
 /// Run the IMASM adder on two LSB-first numeral streams, returning the
 /// emitted LSB-first sum including its final carry cell. This boundary only
@@ -145,6 +557,237 @@ pub fn subtract_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
     Ok(result)
 }
 
+/// Multiply two dynamically sized LSB-first encoded values. Only the source
+/// topology is specialized to their widths; the values enter as encoded B4
+/// cells and are multiplied by the generated IMASM instruction stream.
+pub fn multiply_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
+    fn decode(stream: &str) -> Result<Vec<B4>, String> {
+        if stream.is_empty() {
+            return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
+        }
+        stream.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
+        }).collect()
+    }
+
+    let left = decode(a)?;
+    let right = decode(b)?;
+    let mut reads = Vec::with_capacity(left.len() + right.len());
+    reads.extend_from_slice(&left);
+    reads.extend_from_slice(&right);
+
+    let mut vm = ParaVM::new();
+    vm.load(&bit_register_mul_program(left.len(), right.len()))?;
+    vm.set_reads(reads);
+    vm.run(None);
+    if !vm.halted {
+        return Err("IMASM multiplier did not halt after its instruction stream".into());
+    }
+
+    let mut product = String::new();
+    for cell in &vm.emit_buffer {
+        let (_, value) = cell.rsplit_once(" = ")
+            .ok_or_else(|| "IMASM multiplier emitted a malformed cell".to_string())?;
+        match value {
+            "T" => product.push('⊤'),
+            "F" => product.push('⊥'),
+            _ => return Err(alloc::format!("IMASM multiplier emitted non-bit state {value}")),
+        }
+    }
+    if product.chars().count() != left.len() + right.len() {
+        return Err("IMASM multiplier emitted an incomplete product tape".into());
+    }
+    Ok(product)
+}
+
+/// Verify `a*b == n` inside one nested IMASM stream: the schoolbook product
+/// is composed first, then its output tape is closed against the encoded N
+/// tape by in-stream B4 equality branches. Returns ⊤ for exact closure and ⊥
+/// for a mismatch.
+pub fn product_closure_encoded_lsb_first(a: &str, b: &str, n: &str) -> Result<char, String> {
+    fn decode(stream: &str) -> Result<Vec<B4>, String> {
+        if stream.is_empty() {
+            return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
+        }
+        stream.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
+        }).collect()
+    }
+
+    let left = decode(a)?;
+    let right = decode(b)?;
+    let target = decode(n)?;
+    let mut reads = Vec::with_capacity(left.len() + right.len() + target.len());
+    reads.extend_from_slice(&left);
+    reads.extend_from_slice(&right);
+    reads.extend_from_slice(&target);
+
+    let mut vm = ParaVM::new();
+    vm.load(&bit_register_product_closure_program(left.len(), right.len(), target.len()))?;
+    vm.set_reads(reads);
+    vm.run(None);
+    if !vm.halted || vm.emit_buffer.len() != 1 {
+        return Err("product-closure membrane did not produce one closed verdict".into());
+    }
+    match vm.emit_buffer[0].rsplit_once(" = ").map(|(_, value)| value) {
+        Some("T") => Ok('⊤'),
+        Some("F") => Ok('⊥'),
+        Some(value) => Err(alloc::format!("product-closure emitted non-classical state {value}")),
+        None => Err("product-closure emitted a malformed verdict cell".into()),
+    }
+}
+
+/// Divide two encoded values through the generated restoring-division
+/// instruction stream. Quotient and remainder are returned LSB-first at
+/// their working widths; an empty result means the IMASM zero-divisor arm
+/// halted before emission.
+pub fn divmod_encoded_lsb_first(a: &str, b: &str) -> Result<(String, String), String> {
+    fn decode(stream: &str) -> Result<Vec<B4>, String> {
+        if stream.is_empty() {
+            return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
+        }
+        stream.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
+        }).collect()
+    }
+
+    let left = decode(a)?;
+    let right = decode(b)?;
+    let a_width = left.len();
+    let b_width = right.len();
+    let mut reads = Vec::with_capacity(a_width + b_width);
+    reads.extend_from_slice(&left);
+    reads.extend_from_slice(&right);
+
+    let mut vm = ParaVM::new();
+    vm.load(&bit_register_divmod_program(a_width, b_width))?;
+    vm.set_reads(reads);
+    vm.run(None);
+    if !vm.halted {
+        return Err("IMASM divider did not halt after its instruction stream".into());
+    }
+    if vm.emit_buffer.is_empty() {
+        return Err(alloc::format!("division by zero (closed by the IMASM zero-divisor branch; divisor cells {:?}, read {}, pc {})",
+            (0..b_width).map(|bit| vm.belief_of(32 + a_width + bit)).collect::<Vec<_>>(), vm.read_pos, vm.pc));
+    }
+    let mut cells = Vec::with_capacity(vm.emit_buffer.len());
+    for cell in &vm.emit_buffer {
+        let (_, value) = cell.rsplit_once(" = ")
+            .ok_or_else(|| "IMASM divider emitted a malformed cell".to_string())?;
+        cells.push(match value {
+            "T" => '⊤',
+            "F" => '⊥',
+            _ => return Err(alloc::format!("IMASM divider emitted non-bit state {value}")),
+        });
+    }
+    let remainder_width = b_width + 1;
+    if cells.len() != a_width + remainder_width {
+        return Err("IMASM divider emitted incomplete quotient/remainder tapes".into());
+    }
+    let quotient: String = cells[..a_width].iter().collect();
+    let remainder: String = cells[a_width..].iter().collect();
+    Ok((quotient, remainder))
+}
+
+/// Remainder-only projection of the same IMASM divmod circuit.
+pub fn modulo_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
+    divmod_encoded_lsb_first(a, b).map(|(_, remainder)| remainder)
+}
+
+/// Run an unrolled Euclidean closure in one IMASM instruction stream and
+/// return the greatest common divisor at the common input width.
+pub fn gcd_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
+    fn decode(stream: &str) -> Result<Vec<B4>, String> {
+        if stream.is_empty() {
+            return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
+        }
+        stream.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
+        }).collect()
+    }
+
+    let left = decode(a)?;
+    let right = decode(b)?;
+    let width = core::cmp::max(left.len(), right.len());
+    let mut vm = ParaVM::new();
+    vm.load(&bit_register_gcd_program(left.len(), right.len()))?;
+    let mut reads = left;
+    reads.extend_from_slice(&right);
+    vm.set_reads(reads);
+    vm.run(None);
+    if !vm.halted || vm.emit_buffer.len() != width {
+        return Err("IMASM Euclidean membrane failed to close a complete gcd tape".into());
+    }
+    let mut result = String::new();
+    for cell in &vm.emit_buffer {
+        let (_, value) = cell.rsplit_once(" = ")
+            .ok_or_else(|| "IMASM gcd emitted a malformed cell".to_string())?;
+        match value {
+            "T" => result.push('⊤'),
+            "F" => result.push('⊥'),
+            _ => return Err(alloc::format!("IMASM gcd emitted non-bit state {value}")),
+        }
+    }
+    Ok(result)
+}
+
+/// Modular exponentiation as one composed IMASM membrane: encoded base,
+/// exponent, and modulus tapes enter READ; phase-bit branches select product
+/// closures; every modular reduction reuses the instruction-level divider.
+pub fn powmod_encoded_lsb_first(base: &str, exponent: &str, modulus: &str) -> Result<String, String> {
+    fn decode(stream: &str) -> Result<Vec<B4>, String> {
+        if stream.is_empty() {
+            return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
+        }
+        stream.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
+        }).collect()
+    }
+
+    let base_bits = decode(base)?;
+    let exponent_bits = decode(exponent)?;
+    let modulus_bits = decode(modulus)?;
+    let mut reads = Vec::with_capacity(base_bits.len() + exponent_bits.len() + modulus_bits.len());
+    reads.extend_from_slice(&base_bits);
+    reads.extend_from_slice(&exponent_bits);
+    reads.extend_from_slice(&modulus_bits);
+
+    let mut vm = ParaVM::new();
+    vm.load(&bit_register_powmod_program(base_bits.len(), exponent_bits.len(), modulus_bits.len()))?;
+    vm.set_reads(reads);
+    vm.run(None);
+    if !vm.halted {
+        return Err("IMASM modular-phase program did not halt at closure".into());
+    }
+    if vm.emit_buffer.is_empty() {
+        return Err("modulus zero (closed by the IMASM zero-divisor arm)".into());
+    }
+    if vm.emit_buffer.len() != modulus_bits.len() {
+        return Err("IMASM modular-phase program emitted an incomplete residue".into());
+    }
+    let mut residue = String::new();
+    for cell in &vm.emit_buffer {
+        let (_, value) = cell.rsplit_once(" = ")
+            .ok_or_else(|| "IMASM modular-phase program emitted a malformed cell".to_string())?;
+        match value {
+            "T" => residue.push('⊤'),
+            "F" => residue.push('⊥'),
+            _ => return Err(alloc::format!("IMASM modular-phase program emitted non-bit state {value}")),
+        }
+    }
+    Ok(residue)
+}
+
 impl ParaAsm {
     pub fn op_name(&self) -> &'static str {
         match self {
@@ -215,9 +858,9 @@ pub struct AssembledProgram {
 }
 
 /// Parse a register argument: "%r0" → 0, "%r15" → 15
-fn parse_reg(arg: &str) -> Result<u8, String> {
+fn parse_reg(arg: &str) -> Result<usize, String> {
     if arg.starts_with("%r") {
-        arg[2..].parse::<u8>()
+        arg[2..].parse::<usize>()
             .map_err(|_| format!("bad register: {}", arg))
     } else {
         Err(format!("expected %rN, got: {}", arg))
@@ -274,7 +917,7 @@ pub fn assemble(text: &str) -> Result<AssembledProgram, String> {
             }
             "FFUSE" => {
                 if args.len() < 2 { return Err(format!("line {}: FFUSE needs ≥2 args", lineno)); }
-                let sources: Result<Vec<u8>, _> = args[..args.len()-1].iter()
+                let sources: Result<Vec<usize>, _> = args[..args.len()-1].iter()
                     .map(|a| parse_reg(a)).collect();
                 let dst = parse_reg(args[args.len()-1])?;
                 ParaAsm::FFUSE(sources?, dst)
@@ -346,8 +989,8 @@ pub fn assemble(text: &str) -> Result<AssembledProgram, String> {
 /// Practical Paraconsistent Universal Engine VM.
 /// Belnap foundation: src/belnap.rs.
 pub struct ParaVM {
-    pub registers: BTreeMap<u8, ParaRegister>,
-    pub belief: BTreeMap<u8, B4>,
+    pub registers: BTreeMap<usize, ParaRegister>,
+    pub belief: BTreeMap<usize, B4>,
     pub program: Vec<ParaAsm>,
     pub label_map: BTreeMap<String, usize>,
     pub pc: usize,
@@ -382,18 +1025,18 @@ impl ParaVM {
     }
 
     /// Get or create a register, returning belief as B4.
-    pub fn belief_of(&self, reg_id: u8) -> B4 {
+    pub fn belief_of(&self, reg_id: usize) -> B4 {
         self.belief.get(&reg_id).copied().unwrap_or(B4::N)
     }
 
     /// Set belief and update register flux.
-    pub fn set_belief(&mut self, reg_id: u8, val: B4) {
+    pub fn set_belief(&mut self, reg_id: usize, val: B4) {
         self.belief.insert(reg_id, val);
         self.registers.entry(reg_id).or_insert_with(ParaRegister::new).flux = val;
     }
 
     /// Engage a register — set to Both, increment paradox counter.
-    pub fn engage(&mut self, reg_id: u8) {
+    pub fn engage(&mut self, reg_id: usize) {
         self.registers.entry(reg_id).or_insert_with(ParaRegister::new).engage();
         self.belief.insert(reg_id, B4::B);
     }
@@ -609,7 +1252,7 @@ impl ParaVM {
         let mut fixed = 0usize;
 
         // Collect all register IDs
-        let mut ids: Vec<u8> = self.registers.keys().chain(self.belief.keys()).copied().collect();
+        let mut ids: Vec<usize> = self.registers.keys().chain(self.belief.keys()).copied().collect();
         ids.sort();
         ids.dedup();
 
@@ -643,8 +1286,8 @@ impl ParaVM {
     }
 
     /// Active registers: (id, belief, paradox_count, is_fixed).
-    pub fn active_regs(&self) -> Vec<(u8, B4, u32, bool)> {
-        let mut ids: Vec<u8> = self.registers.keys().chain(self.belief.keys()).copied().collect();
+    pub fn active_regs(&self) -> Vec<(usize, B4, u32, bool)> {
+        let mut ids: Vec<usize> = self.registers.keys().chain(self.belief.keys()).copied().collect();
         ids.sort();
         ids.dedup();
         ids.into_iter()
@@ -948,6 +1591,137 @@ mod tests {
     fn encoded_subtractor_reports_final_borrow_in_the_encoded_stream() {
         assert_eq!(subtract_encoded_lsb_first("⊤", "⊥").unwrap(), "⊥⊥");
         assert_eq!(subtract_encoded_lsb_first("⊥⊤", "⊤⊥").unwrap(), "⊥⊥⊥");
+    }
+
+    #[test]
+    fn imasm_multiplier_matches_all_small_encoded_products() {
+        fn stream(value: usize) -> String {
+            if value == 0 { return String::from("⊤"); }
+            let mut n = value;
+            let mut bits = String::new();
+            while n != 0 {
+                bits.push(if n & 1 == 1 { '⊥' } else { '⊤' });
+                n >>= 1;
+            }
+            bits
+        }
+        fn padded_product(value: usize, width: usize) -> String {
+            (0..width).map(|bit| if (value >> bit) & 1 == 1 { '⊥' } else { '⊤' }).collect()
+        }
+
+        for a in 0..10usize {
+            for b in 0..10usize {
+                let a_stream = stream(a);
+                let b_stream = stream(b);
+                let got = multiply_encoded_lsb_first(&a_stream, &b_stream).unwrap();
+                assert_eq!(got, padded_product(a * b, a_stream.chars().count() + b_stream.chars().count()),
+                    "encoded product {a} × {b}");
+            }
+        }
+    }
+
+    #[test]
+    fn imasm_multiplier_allocates_registers_past_byte_range() {
+        let a = "⊥".repeat(260);
+        let product = multiply_encoded_lsb_first(&a, "⊥").unwrap();
+        assert_eq!(product, format!("{}⊤", a));
+    }
+
+    #[test]
+    fn imasm_product_and_closure_are_nested_in_one_stream() {
+        assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊥⊥⊥⊥").unwrap(), '⊤');
+        assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥").unwrap(), '⊥');
+        assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥⊤").unwrap(), '⊥');
+    }
+
+    #[test]
+    fn imasm_product_closure_scales_past_machine_word_width() {
+        let p = "⊥".repeat(260);
+        let n = format!("{}⊤", p);
+        assert_eq!(product_closure_encoded_lsb_first(&p, "⊥", &n).unwrap(), '⊤');
+        let wrong = format!("⊤{}", &p["⊥".len()..]);
+        assert_eq!(product_closure_encoded_lsb_first(&p, "⊥", &wrong).unwrap(), '⊥');
+    }
+
+    #[test]
+    fn imasm_modular_phase_winding_composes_product_and_divisor_closure() {
+        assert_eq!(powmod_encoded_lsb_first("⊤⊥", "⊤⊥⊤⊥", "⊥⊤⊤⊤⊥").unwrap(), "⊤⊤⊥⊤⊤");
+        assert_eq!(powmod_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊥⊥⊥").unwrap(), "⊥⊤⊥");
+        assert_eq!(powmod_encoded_lsb_first("⊥⊤⊤⊥", "⊥⊥", "⊥⊤⊥").unwrap(), "⊤⊤⊥");
+        assert_eq!(powmod_encoded_lsb_first("⊤", "⊤", "⊥⊥⊥").unwrap(), "⊥⊤⊤");
+        assert_eq!(powmod_encoded_lsb_first("⊥", "⊤", "⊥").unwrap(), "⊤");
+        assert!(powmod_encoded_lsb_first("⊥", "⊥", "⊤").is_err());
+    }
+
+    #[test]
+    fn imasm_euclidean_closure_matches_small_gcds() {
+        fn stream(value: usize) -> String {
+            if value == 0 { return String::from("⊤"); }
+            let mut n = value;
+            let mut bits = String::new();
+            while n != 0 {
+                bits.push(if n & 1 == 1 { '⊥' } else { '⊤' });
+                n >>= 1;
+            }
+            bits
+        }
+        fn expected(value: usize, width: usize) -> String {
+            (0..width).map(|bit| if (value >> bit) & 1 == 1 { '⊥' } else { '⊤' }).collect()
+        }
+        fn gcd(mut a: usize, mut b: usize) -> usize {
+            while b != 0 { (a, b) = (b, a % b); }
+            a
+        }
+
+        for a in 0..20usize {
+            for b in 0..20usize {
+                let left = stream(a);
+                let right = stream(b);
+                let width = left.chars().count().max(right.chars().count());
+                assert_eq!(gcd_encoded_lsb_first(&left, &right).unwrap(), expected(gcd(a, b), width), "gcd({a}, {b})");
+            }
+        }
+        assert_eq!(gcd_encoded_lsb_first("⊥⊥⊤", "⊥⊤").unwrap(), "⊥⊤⊤");
+        let wide = gcd_encoded_lsb_first(&"⊥".repeat(65), &"⊥".repeat(40)).unwrap();
+        assert_eq!(wide, format!("{}{}", "⊥".repeat(5), "⊤".repeat(60)));
+    }
+
+    #[test]
+    fn imasm_restoring_divider_matches_small_quotients_and_remainders() {
+        fn stream(value: usize) -> String {
+            if value == 0 { return String::from("⊤"); }
+            let mut n = value;
+            let mut bits = String::new();
+            while n != 0 {
+                bits.push(if n & 1 == 1 { '⊥' } else { '⊤' });
+                n >>= 1;
+            }
+            bits
+        }
+        fn padded(value: usize, width: usize) -> String {
+            (0..width).map(|bit| if (value >> bit) & 1 == 1 { '⊥' } else { '⊤' }).collect()
+        }
+
+        for dividend in 0..20usize {
+            for divisor in 1..12usize {
+                let a = stream(dividend);
+                let b = stream(divisor);
+                let (q, r) = divmod_encoded_lsb_first(&a, &b).unwrap();
+                assert_eq!(q, padded(dividend / divisor, a.chars().count()),
+                    "quotient {dividend} / {divisor}");
+                assert_eq!(r, padded(dividend % divisor, b.chars().count() + 1),
+                    "remainder {dividend} mod {divisor}");
+            }
+        }
+        assert!(divmod_encoded_lsb_first("⊥", "⊤").is_err());
+    }
+
+    #[test]
+    fn imasm_restoring_divider_scales_past_machine_word_width() {
+        let a = "⊥".repeat(260);
+        let (quotient, remainder) = divmod_encoded_lsb_first(&a, "⊥").unwrap();
+        assert_eq!(quotient, a);
+        assert_eq!(remainder, "⊤⊤");
     }
 
     #[test]
