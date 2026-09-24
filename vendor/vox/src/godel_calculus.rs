@@ -858,7 +858,7 @@ pub fn help() -> &'static str {
      \n\
      godel decode <word>\n\
      godel encode <natural-number>\n\
-     godel analyze <natural-number> [window=8]\n\
+     godel analyze <natural-number|cell-binary-word>\n\
      godel lte2 <odd-a> <positive-even-m>\n\
      godel check add|mul <lhs-word> <rhs-word> <out-word>\n\
      godel relation <from-word> <to-word>\n\

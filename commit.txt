@@ -1,9 +1,1 @@
-I compose dynamically sized IMASM arithmetic membranes
-
-I add IMASM gate programs for multiplication, restoring division, product
-closure, modular exponentiation, and Euclidean gcd, composed with the existing
-encoded addition and subtraction flows. Runtime numerals stay as B4 READ tapes;
-the generated instruction topology depends only on tape widths. I expose the
-operations through the REPL and document their input form. The full serial
-binary suite passes, the build is warning-free, and the REPL arithmetic
-commands execute against encoded examples.
+I carry the Gödel analyzer's frame reads through the G-mOMonadOS SIXTEEN_3 kernel. I preserve partial codec failures as truth and falsity support, retain the frame sweep and its information and constructivity order relations, and leave uncertified factor bounds at N.
