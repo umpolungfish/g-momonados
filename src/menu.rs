@@ -44,6 +44,7 @@ pub static MAIN_MENU: &[MenuItem] = &[
 // `search_commands` fallback list, so a user could only ever find them by
 // already knowing the exact string to type.
 pub static TOOLS_MENU: &[MenuItem] = &[
+    MenuItem { name: "imasm_add", cmd: "imasm_add", desc: "Run dynamically sized ripple-carry addition in the IMASM stream; inputs and output are LSB-first ⊤/⊥ encodings", example: "imasm_add ⊥ ⊤⊥", submenu: None },
     MenuItem { name: "opi",                       cmd: "opi",                       desc: "DQI's Optimal Polynomial Intersection: exact Lemma 9.2 eigenvalue + m to p asymptotic, settable wall-clock budget", example: "opi run 10007 4954 10s", submenu: None },
     MenuItem { name: "weight_ladder",              cmd: "weight_ladder",             desc: "The general reduction behind opi's eigenvalue, for any m-exchangeable-trial Hamming-weight ladder, not just OPI", example: "weight_ladder 10006 2477 0.0", submenu: None },
     MenuItem { name: "nested_prime_factorization", cmd: "nested_prime_factorization", desc: "16-morphism factorization tower, IFIX banks the complete factor record at the END (non-vacuous) (alias: npf)", example: "nested_prime_factorization factor 91", submenu: None },

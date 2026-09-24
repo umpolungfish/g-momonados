@@ -1669,6 +1669,18 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 let args: Vec<&str> = rest.iter().map(|x| x.as_str()).collect();
                 crate::oneshot_prime_winder::repl_oneshot_prime_winder(&args);
             }
+            "imasm_add" => {
+                let left = parts.next().unwrap_or("");
+                let right = parts.next().unwrap_or("");
+                if left.is_empty() || right.is_empty() {
+                    sprintln!("imasm_add: usage: imasm_add <LSB-first-⊤/⊥> <LSB-first-⊤/⊥>");
+                } else {
+                    match crate::parasm::add_encoded_lsb_first(left, right) {
+                        Ok(sum) => sprintln!("sum LSB-first (⊥=1, ⊤=0; final carry included): {}", sum),
+                        Err(error) => sprintln!("imasm_add: {}", error),
+                    }
+                }
+            }
             "prime_winding" => {
                 use crate::prime_winding::*;
                 let sub = parts.next().unwrap_or("");

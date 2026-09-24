@@ -1,7 +1,8 @@
-I add a dynamically sized IMASM ripple adder
+I wire encoded addition through the IMASM ripple adder
 
-I express bitwise addition as a pure ParaASM instruction stream with B4 input
-cells, an IMASM carry register, and no fixed-width arithmetic operation. I
-verify every full-adder truth-table row and a 300-bit carry chain. I also pass
-the newly required optional tape directory in the two phase-unbraid tests so
-the binary test target builds again.
+I use the canonical ⊥=1, ⊤=0 numeral polarity, expose the dynamic
+LSB-first adder as an IMASM source file, and add the `imasm_add` REPL entry
+point. The command only translates between the glyph alphabet and ParaVM's
+B4 cells; the assembled instruction stream performs addition and carry
+propagation. I test truth-table coverage, a 300-bit carry chain, and the exact
+encoded CLI path.
