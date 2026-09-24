@@ -1,17 +1,20 @@
-use vox_core::{godel_analyzer, godel_calculus};
+use vox_core::{godel_analyzer, godel_calculus, godel_product};
 
 fn dispatch(args: &[&str]) -> Result<String, String> {
     match args.first().copied().unwrap_or("help") {
         "analyze" | "lte2" => godel_analyzer::command(args),
+        "product" => godel_product::command(args),
         "selftest" | "verify" => {
             let mut out = godel_calculus::selftest_report()?;
             out.push_str(&godel_analyzer::selftest_report()?);
+            out.push_str(&godel_product::selftest_report()?);
             Ok(out)
         }
         "help" | "-h" | "--help" => Ok(format!(
-            "{}{}",
+            "{}{}{}",
             godel_calculus::help(),
-            godel_analyzer::help_addendum()
+            godel_analyzer::help_addendum(),
+            godel_product::help_addendum()
         )),
         _ => godel_calculus::command(args),
     }
