@@ -106,6 +106,397 @@ fn append_bit_register_mul(
     scratch_start + 2
 }
 
+fn append_bit_register_add(
+    source: &mut String,
+    left: &[usize],
+    right: &[usize],
+    sum: &[usize],
+    carry: usize,
+) {
+    use core::fmt::Write as _;
+    source.push_str("MOVE %r11 %r");
+    writeln!(source, "{carry}").unwrap();
+    for (bit, &out) in sum.iter().enumerate() {
+        if let Some(&input) = left.get(bit) { writeln!(source, "MOVE %r{input} %r0").unwrap(); }
+        else { source.push_str("MOVE %r11 %r0\n"); }
+        if let Some(&input) = right.get(bit) { writeln!(source, "MOVE %r{input} %r1").unwrap(); }
+        else { source.push_str("MOVE %r11 %r1\n"); }
+        writeln!(source, "MOVE %r{carry} %r2\nCALL .full_adder\nMOVE %r3 %r{out}\nMOVE %r4 %r{carry}").unwrap();
+    }
+}
+
+fn append_bit_register_equality(
+    source: &mut String,
+    left: &[usize],
+    right: &[usize],
+    width: usize,
+    verdict: usize,
+    label: &str,
+) {
+    use core::fmt::Write as _;
+    writeln!(source, "MOVE %r11 %r{verdict}").unwrap();
+    for bit in 0..width {
+        let a = left.get(bit).copied();
+        let b = right.get(bit).copied();
+        if let Some(a) = a { writeln!(source, "JT %r{a} .{label}_{bit}_left_zero").unwrap(); }
+        else { writeln!(source, "JMP .{label}_{bit}_left_zero").unwrap(); }
+        if let Some(a) = a { writeln!(source, "JF %r{a} .{label}_{bit}_left_one").unwrap(); }
+        else { source.push_str("HALT\n"); }
+        writeln!(source, ".{label}_{bit}_left_zero:").unwrap();
+        if let Some(b) = b { writeln!(source, "JT %r{b} .{label}_{bit}_next\nJF %r{b} .{label}_{bit}_mismatch").unwrap(); }
+        else { writeln!(source, "JMP .{label}_{bit}_next").unwrap(); }
+        writeln!(source, ".{label}_{bit}_left_one:").unwrap();
+        if let Some(b) = b { writeln!(source, "JF %r{b} .{label}_{bit}_next\nJT %r{b} .{label}_{bit}_mismatch").unwrap(); }
+        else { writeln!(source, "JMP .{label}_{bit}_mismatch").unwrap(); }
+        writeln!(source, ".{label}_{bit}_mismatch:\nMOVE %r12 %r{verdict}\n.{label}_{bit}_next:").unwrap();
+    }
+}
+
+fn append_word_insertion_check(
+    source: &mut String,
+    from: &[[usize; 4]],
+    to: &[[usize; 4]],
+    insertion_index: usize,
+    inserted_token: usize,
+    verdict: usize,
+    label: &str,
+) {
+    use core::fmt::Write as _;
+    for (target_index, token_bits) in to.iter().enumerate() {
+        let source_bits = if target_index == insertion_index {
+            None
+        } else {
+            let source_index = if target_index < insertion_index { target_index } else { target_index - 1 };
+            from.get(source_index).copied()
+        };
+        for bit in 0..4 {
+            let target = token_bits[bit];
+            if let Some(source_register) = source_bits.map(|bits| bits[bit]) {
+                writeln!(source, "MOVE %r{source_register} %r0").unwrap();
+            } else if target_index == insertion_index {
+                source.push_str(if (inserted_token >> bit) & 1 == 1 { "MOVE %r12 %r0\n" } else { "MOVE %r11 %r0\n" });
+            } else {
+                source.push_str("MOVE %r11 %r0\n");
+            }
+            writeln!(source, "MOVE %r{target} %r1").unwrap();
+            writeln!(source, "JT %r0 .{label}_{target_index}_{bit}_zero").unwrap();
+            writeln!(source, "JF %r0 .{label}_{target_index}_{bit}_one").unwrap();
+            source.push_str("HALT\n");
+            writeln!(source, ".{label}_{target_index}_{bit}_zero:\nJT %r1 .{label}_{target_index}_{bit}_next\nJF %r1 .{label}_{target_index}_{bit}_bad\nHALT").unwrap();
+            writeln!(source, ".{label}_{target_index}_{bit}_one:\nJF %r1 .{label}_{target_index}_{bit}_next\nJT %r1 .{label}_{target_index}_{bit}_bad\nHALT").unwrap();
+            writeln!(source, ".{label}_{target_index}_{bit}_bad:\nMOVE %r12 %r{verdict}\n.{label}_{target_index}_{bit}_next:").unwrap();
+        }
+    }
+}
+
+const EDIT_SQUARE_D1: &str = "⊢⊤≻⋈≺⊙⊡⊣";
+const EDIT_SQUARE_A: &str = "⊢⊤≻⋈⊥≺⊙⊡⊣";
+const EDIT_SQUARE_D2: &str = "⊢⊤≻⋈≺⊞⊙⊡⊣";
+const EDIT_SQUARE_B: &str = "⊢⊤≻⋈⊥≺⊞⊙⊡⊣";
+const EDIT_SQUARE_C: &str = "⊢∈≻⋈⊥≺⋈∋⊙⊡⊣";
+// Canonical closure witness, already encoded as LSB-first IMASM tapes.
+// Layout: prime bases 2,3,5; each prime's additive (3,5,8) and
+// multiplicative (2,4,8) exponent rows; then both radicals and support masks.
+const EDIT_SQUARE_LANE_TAPES: &[&str] = &[
+    "⊤⊥", "⊥⊥", "⊥⊤⊥",
+    "⊤", "⊤", "⊥⊥", "⊥", "⊤⊥", "⊥⊥",
+    "⊥", "⊤", "⊤", "⊤", "⊤", "⊤",
+    "⊤", "⊥", "⊤", "⊤", "⊤", "⊤",
+    "⊤⊥⊥⊥⊥", "⊤⊥", "⊥⊥⊥", "⊥⊤⊤",
+];
+
+struct EditSquareLayout {
+    source: String,
+    reads: Vec<B4>,
+    width: usize,
+    x: Vec<usize>,
+    a: Vec<usize>,
+    d2: Vec<usize>,
+    b: Vec<usize>,
+    sum: Vec<usize>,
+    product: Vec<usize>,
+    result_word: Vec<[usize; 4]>,
+    lane_tapes: Vec<Vec<usize>>,
+    edit_verdict: usize,
+    relation_verdict: usize,
+    x_positive: usize,
+    s_positive: usize,
+    closed: usize,
+}
+
+fn canonical_word_cells(word: &str) -> Result<(Vec<[usize; 4]>, Vec<B4>), String> {
+    let mut registers = Vec::new();
+    let mut data = Vec::new();
+    for glyph in word.chars() {
+        let ordinal = imasm_core::imasm16_3::ALL_TOKENS.iter()
+            .position(|token| token.glyph() == glyph)
+            .ok_or_else(|| alloc::format!("unknown IMASM token {glyph:?}"))?;
+        let start = registers.len() * 4;
+        registers.push([start, start + 1, start + 2, start + 3]);
+        for bit in 0..4 {
+            data.push(if (ordinal >> bit) & 1 == 1 { B4::F } else { B4::T });
+        }
+    }
+    Ok((registers, data))
+}
+
+fn append_nonzero_check(source: &mut String, bits: &[usize], verdict: usize, label: &str) {
+    use core::fmt::Write as _;
+    writeln!(source, "MOVE %r12 %r{verdict}").unwrap();
+    for (bit, &register) in bits.iter().enumerate() {
+        writeln!(source, "JF %r{register} .{label}_nonzero\nJT %r{register} .{label}_next_{bit}").unwrap();
+        writeln!(source, ".{label}_next_{bit}:").unwrap();
+    }
+    writeln!(source, "JMP .{label}_done\n.{label}_nonzero:\nMOVE %r11 %r{verdict}\n.{label}_done:").unwrap();
+}
+
+fn bit_register_edit_square_program(x_width: usize, s_width: usize) -> Result<EditSquareLayout, String> {
+    use core::fmt::Write as _;
+
+    let words = [EDIT_SQUARE_D1, EDIT_SQUARE_A, EDIT_SQUARE_D2, EDIT_SQUARE_B, EDIT_SQUARE_C];
+    let mut reads = Vec::new();
+    let mut next = 32usize;
+    let mut word_regs: Vec<Vec<[usize; 4]>> = Vec::new();
+    for word in words {
+        let (relative, encoded) = canonical_word_cells(word)?;
+        let base = next;
+        let cells: Vec<[usize; 4]> = relative.iter()
+            .map(|bits| bits.map(|register| base + register))
+            .collect();
+        next += encoded.len();
+        reads.extend(encoded);
+        word_regs.push(cells);
+    }
+
+    let x_input: Vec<usize> = (next..next + x_width).collect();
+    next += x_width;
+    let s_input: Vec<usize> = (next..next + s_width).collect();
+    next += s_width;
+    let read_end = next;
+    let width = core::cmp::max(x_width, s_width) + 2;
+    let x: Vec<usize> = (next..next + width).collect(); next += width;
+    let s: Vec<usize> = (next..next + width).collect(); next += width;
+    let one: Vec<usize> = (next..next + width).collect(); next += width;
+    let a: Vec<usize> = (next..next + width).collect(); next += width;
+    let d2: Vec<usize> = (next..next + width).collect(); next += width;
+    let b: Vec<usize> = (next..next + width).collect(); next += width;
+    let sum: Vec<usize> = (next..next + width + 1).collect(); next += width + 1;
+    let product: Vec<usize> = (next..next + width * 2).collect(); next += width * 2;
+    let scratch = next; next += 4;
+    let edit_verdict = next; next += 1;
+    let relation_verdict = next; next += 1;
+    let x_positive = next; next += 1;
+    let s_positive = next; next += 1;
+    let closed = next; next += 1;
+    let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for reg in 32..read_end { writeln!(source, "READ %r{reg}").unwrap(); }
+    let [d1_regs, a_regs, d2_regs, b_regs, c_regs] = word_regs.as_slice() else {
+        return Err("edit-square word register layout failed".into());
+    };
+    let bot = imasm_core::imasm16_3::ALL_TOKENS.iter().position(|token| token.glyph() == '⊥').unwrap();
+    let boxplus = imasm_core::imasm16_3::ALL_TOKENS.iter().position(|token| token.glyph() == '⊞').unwrap();
+    writeln!(source, "MOVE %r11 %r{edit_verdict}").unwrap();
+    append_word_insertion_check(&mut source, d1_regs, a_regs, 4, bot, edit_verdict, "edit_bot");
+    append_word_insertion_check(&mut source, d1_regs, d2_regs, 5, boxplus, edit_verdict, "edit_boxplus");
+    append_word_insertion_check(&mut source, a_regs, b_regs, 6, boxplus, edit_verdict, "edit_boxplus_after_bot");
+    append_word_insertion_check(&mut source, d2_regs, b_regs, 4, bot, edit_verdict, "edit_bot_after_boxplus");
+
+    for bit in 0..x_width { writeln!(source, "MOVE %r{} %r{}", x_input[bit], x[bit]).unwrap(); }
+    for bit in x_width..width { writeln!(source, "MOVE %r11 %r{}", x[bit]).unwrap(); }
+    for bit in 0..s_width { writeln!(source, "MOVE %r{} %r{}", s_input[bit], s[bit]).unwrap(); }
+    for bit in s_width..width { writeln!(source, "MOVE %r11 %r{}", s[bit]).unwrap(); }
+    for (bit, &reg) in one.iter().enumerate() {
+        writeln!(source, "MOVE %r{} %r{reg}", if bit == 0 { 12 } else { 11 }).unwrap();
+    }
+
+    append_bit_register_add(&mut source, &x, &one, &a, scratch);
+    append_bit_register_add(&mut source, &x, &s, &d2, scratch);
+    append_bit_register_add(&mut source, &a, &s, &b, scratch);
+    append_bit_register_add(&mut source, &a, &b, &sum, scratch);
+    append_bit_register_mul(&mut source, &x, &d2, &product, scratch);
+    // Sum's high product-width cells are literal zero; allocate explicit
+    // zero registers so equality remains an ordinary IMASM bit comparison.
+    let mut sum_compare = sum.clone();
+    for _ in sum.len()..product.len() { sum_compare.push(next); next += 1; source.push_str("MOVE %r11 %r"); writeln!(source, "{}", next - 1).unwrap(); }
+    append_bit_register_equality(&mut source, &sum_compare, &product, product.len(), relation_verdict, "square_relation");
+    append_nonzero_check(&mut source, &x, x_positive, "square_x_positive");
+    append_nonzero_check(&mut source, &s, s_positive, "square_s_positive");
+
+    let mut lane_tapes = Vec::new();
+    for encoded in EDIT_SQUARE_LANE_TAPES {
+        let mut tape = Vec::new();
+        for symbol in encoded.chars() {
+            tape.push(next);
+            writeln!(source, "MOVE %r{} %r{next}", if symbol == '⊥' { 12 } else { 11 }).unwrap();
+            next += 1;
+        }
+        lane_tapes.push(tape);
+    }
+
+    writeln!(source, "MOVE %r11 %r{closed}").unwrap();
+    for (index, flag) in [edit_verdict, relation_verdict, x_positive, s_positive].iter().enumerate() {
+        writeln!(source, "JF %r{flag} .square_failed_{index}\nJT %r{flag} .square_passed_{index}\nHALT\n.square_failed_{index}:\nMOVE %r12 %r{closed}\n.square_passed_{index}:").unwrap();
+    }
+    for reg in &x { writeln!(source, "EMIT %r{reg}").unwrap(); }
+    for reg in &a { writeln!(source, "EMIT %r{reg}").unwrap(); }
+    for reg in &d2 { writeln!(source, "EMIT %r{reg}").unwrap(); }
+    for reg in &b { writeln!(source, "EMIT %r{reg}").unwrap(); }
+    for reg in &sum { writeln!(source, "EMIT %r{reg}").unwrap(); }
+    for reg in &product { writeln!(source, "EMIT %r{reg}").unwrap(); }
+    for token in c_regs { for reg in token { writeln!(source, "EMIT %r{reg}").unwrap(); } }
+    for tape in &lane_tapes { for reg in tape { writeln!(source, "EMIT %r{reg}").unwrap(); } }
+    for reg in [edit_verdict, relation_verdict, x_positive, s_positive, closed] { writeln!(source, "EMIT %r{reg}").unwrap(); }
+    source.push_str("HALT\n");
+    source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+
+    Ok(EditSquareLayout { source, reads, width, x, a, d2, b, sum, product, result_word: c_regs.clone(), lane_tapes, edit_verdict, relation_verdict, x_positive, s_positive, closed })
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PrimeExponentRow {
+    pub prime: String,
+    pub additive_abc: [String; 3],
+    pub multiplicative_d1_d2_c: [String; 3],
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RadicalSupportLane {
+    pub additive_radical: String,
+    pub multiplicative_radical: String,
+    /// Presence bits in prime order 2, 3, 5, encoded with ⊥=1.
+    pub additive_support: String,
+    pub multiplicative_support: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EditSquareResult {
+    pub d1: String,
+    pub a: String,
+    pub d2: String,
+    pub b: String,
+    pub g_t_sum: String,
+    pub g_f_product: String,
+    pub result_word: String,
+    pub falsity_exponents: Vec<PrimeExponentRow>,
+    pub information_support: RadicalSupportLane,
+    /// The baked-in lane profile applies only when the dynamic closure is ⊤.
+    pub lane_witness_applies: char,
+    pub edit_closed: char,
+    pub arithmetic_closed: char,
+    pub positive_inputs: char,
+    pub closed: char,
+}
+
+/// Run the edit/valuation commuting square as one ParaASM instruction stream.
+/// The four edited words are tokenized through IMASM's canonical token set and
+/// carried in four-bit B4 cells. The candidate seed and shift enter only as
+/// LSB-first ⊤/⊥ tapes. Addition forms the truth lane; multiplication forms
+/// the factor-structure lane; the stream closes only when both values agree
+/// and all four literal edits match their encoded word witnesses.
+pub fn edit_square_encoded_lsb_first(x_input: &str, s_input: &str) -> Result<EditSquareResult, String> {
+    fn decode(stream: &str) -> Result<Vec<B4>, String> {
+        if stream.is_empty() {
+            return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
+        }
+        stream.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
+        }).collect()
+    }
+    fn emitted_bit(cell: &str) -> Result<char, String> {
+        match cell.rsplit_once(" = ").map(|(_, value)| value) {
+            Some("T") => Ok('⊤'),
+            Some("F") => Ok('⊥'),
+            Some(value) => Err(alloc::format!("edit-square emitted non-bit state {value}")),
+            None => Err("edit-square emitted a malformed cell".into()),
+        }
+    }
+
+    let x_tape = decode(x_input)?;
+    let s_tape = decode(s_input)?;
+    let mut layout = bit_register_edit_square_program(x_tape.len(), s_tape.len())?;
+    layout.reads.extend_from_slice(&x_tape);
+    layout.reads.extend_from_slice(&s_tape);
+    let width = layout.width;
+    let result_word_len = layout.result_word.len() * 4;
+    let mut vm = ParaVM::new();
+    vm.load(&layout.source)?;
+    vm.set_reads(layout.reads);
+    vm.run(None);
+    let lane_emit_count: usize = layout.lane_tapes.iter().map(Vec::len).sum();
+    let expected_emits = width * 4 + width + 1 + width * 2 + result_word_len + lane_emit_count + 5;
+    if !vm.halted || vm.emit_buffer.len() != expected_emits {
+        return Err(alloc::format!("edit-square membrane emitted {} of {expected_emits} cells", vm.emit_buffer.len()));
+    }
+    let mut cursor = 0usize;
+    let mut take_tape = |length: usize| -> Result<String, String> {
+        let end = cursor + length;
+        let value = vm.emit_buffer[cursor..end].iter().map(|cell| emitted_bit(cell)).collect::<Result<String, _>>()?;
+        cursor = end;
+        Ok(value)
+    };
+    let d1 = take_tape(width)?;
+    let a = take_tape(width)?;
+    let d2 = take_tape(width)?;
+    let b = take_tape(width)?;
+    let g_t_sum = take_tape(width + 1)?;
+    let g_f_product = take_tape(width * 2)?;
+    drop(take_tape);
+    let mut result_word = String::new();
+    for _ in 0..layout.result_word.len() {
+        let mut ordinal = 0usize;
+        for bit in 0..4 {
+            if emitted_bit(&vm.emit_buffer[cursor])? == '⊥' { ordinal |= 1 << bit; }
+            cursor += 1;
+        }
+        let glyph = imasm_core::imasm16_3::ALL_TOKENS.get(ordinal)
+            .ok_or_else(|| alloc::format!("result word contains unknown canonical token ordinal {ordinal}"))?;
+        result_word.push(glyph.glyph());
+    }
+    let mut take_tape = |length: usize| -> Result<String, String> {
+        let end = cursor + length;
+        let value = vm.emit_buffer[cursor..end].iter().map(|cell| emitted_bit(cell)).collect::<Result<String, _>>()?;
+        cursor = end;
+        Ok(value)
+    };
+    let mut lane_values = Vec::with_capacity(layout.lane_tapes.len());
+    for tape in &layout.lane_tapes { lane_values.push(take_tape(tape.len())?); }
+    drop(take_tape);
+    let mut take_verdict = || -> Result<char, String> {
+        let value = emitted_bit(&vm.emit_buffer[cursor])?;
+        cursor += 1;
+        Ok(if value == '⊤' { '⊤' } else { '⊥' })
+    };
+    let edit_closed = take_verdict()?;
+    let arithmetic_closed = take_verdict()?;
+    let x_positive = take_verdict()?;
+    let s_positive = take_verdict()?;
+    let closed = take_verdict()?;
+    let exponents = &lane_values[3..21];
+    let falsity_exponents = (0..3).map(|prime| {
+        let i = prime * 6;
+        PrimeExponentRow {
+            prime: lane_values[prime].clone(),
+            additive_abc: [exponents[i].clone(), exponents[i + 1].clone(), exponents[i + 2].clone()],
+            multiplicative_d1_d2_c: [exponents[i + 3].clone(), exponents[i + 4].clone(), exponents[i + 5].clone()],
+        }
+    }).collect();
+    let information_support = RadicalSupportLane {
+        additive_radical: lane_values[21].clone(),
+        multiplicative_radical: lane_values[22].clone(),
+        additive_support: lane_values[23].clone(),
+        multiplicative_support: lane_values[24].clone(),
+    };
+    Ok(EditSquareResult {
+        d1, a, d2, b, g_t_sum, g_f_product, result_word,
+        falsity_exponents, information_support, lane_witness_applies: closed,
+        edit_closed, arithmetic_closed,
+        positive_inputs: if x_positive == '⊤' && s_positive == '⊤' { '⊤' } else { '⊥' },
+        closed,
+    })
+}
+
 /// Wire a restoring divider into a larger instruction stream. Its temporary
 /// remainder and difference are B4 tape banks; a unique label prefix lets
 /// several division closures coexist in one membrane.
@@ -1632,6 +2023,42 @@ mod tests {
         assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊥⊥⊥⊥").unwrap(), '⊤');
         assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥").unwrap(), '⊥');
         assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥⊤").unwrap(), '⊥');
+    }
+
+    #[test]
+    fn edit_square_checks_the_encoded_word_edits_and_both_arithmetic_arms() {
+        let result = edit_square_encoded_lsb_first("⊤⊥", "⊤⊥").unwrap();
+        assert_eq!(result.d1, "⊤⊥⊤⊤"); // 2
+        assert_eq!(result.a, "⊥⊥⊤⊤"); // 3, zero-padded to circuit width
+        assert_eq!(result.d2, "⊤⊤⊥⊤"); // 4
+        assert_eq!(result.b, "⊥⊤⊥⊤"); // 5
+        assert_eq!(result.g_t_sum, "⊤⊤⊤⊥⊤"); // 8
+        assert_eq!(result.g_f_product, "⊤⊤⊤⊥⊤⊤⊤⊤"); // 8
+        assert_eq!(result.result_word, EDIT_SQUARE_C);
+        assert_eq!(result.edit_closed, '⊤');
+        assert_eq!(result.arithmetic_closed, '⊤');
+        assert_eq!(result.positive_inputs, '⊤');
+        assert_eq!(result.closed, '⊤');
+        assert_eq!(result.lane_witness_applies, '⊤');
+        assert_eq!(result.falsity_exponents, vec![
+            PrimeExponentRow { prime: "⊤⊥".into(), additive_abc: ["⊤".into(), "⊤".into(), "⊥⊥".into()], multiplicative_d1_d2_c: ["⊥".into(), "⊤⊥".into(), "⊥⊥".into()] },
+            PrimeExponentRow { prime: "⊥⊥".into(), additive_abc: ["⊥".into(), "⊤".into(), "⊤".into()], multiplicative_d1_d2_c: ["⊤".into(), "⊤".into(), "⊤".into()] },
+            PrimeExponentRow { prime: "⊥⊤⊥".into(), additive_abc: ["⊤".into(), "⊥".into(), "⊤".into()], multiplicative_d1_d2_c: ["⊤".into(), "⊤".into(), "⊤".into()] },
+        ]);
+        assert_eq!(result.information_support, RadicalSupportLane {
+            additive_radical: "⊤⊥⊥⊥⊥".into(), multiplicative_radical: "⊤⊥".into(),
+            additive_support: "⊥⊥⊥".into(), multiplicative_support: "⊥⊤⊤".into(),
+        });
+    }
+
+    #[test]
+    fn edit_square_rejects_nonclosing_positive_candidate() {
+        let result = edit_square_encoded_lsb_first("⊤⊤⊥", "⊤⊥").unwrap();
+        assert_eq!(result.edit_closed, '⊤');
+        assert_eq!(result.arithmetic_closed, '⊥');
+        assert_eq!(result.positive_inputs, '⊤');
+        assert_eq!(result.closed, '⊥');
+        assert_eq!(result.lane_witness_applies, '⊥');
     }
 
     #[test]

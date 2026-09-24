@@ -1748,6 +1748,28 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                     }
                 }
             }
+            "imasm_edit_square" => {
+                let seed = parts.next().unwrap_or("");
+                let boxplus_delta = parts.next().unwrap_or("");
+                if seed.is_empty() || boxplus_delta.is_empty() {
+                    sprintln!("imasm_edit_square: usage: imasm_edit_square <x-LSB-first-⊤/⊥> <s-LSB-first-⊤/⊥>");
+                } else {
+                    match crate::parasm::edit_square_encoded_lsb_first(seed, boxplus_delta) {
+                        Ok(result) => sprintln!(
+                            "D1={} A={} D2={} B={} truth_sum={} factor_product={} C={} edits={} arithmetic={} positive={} closed={} gF_exponents={:?} gI_radicals=({}, {}) gI_support=({}, {}) lane_witness={}",
+                            result.d1, result.a, result.d2, result.b, result.g_t_sum,
+                            result.g_f_product, result.result_word, result.edit_closed,
+                            result.arithmetic_closed, result.positive_inputs, result.closed,
+                            result.falsity_exponents, result.information_support.additive_radical,
+                            result.information_support.multiplicative_radical,
+                            result.information_support.additive_support,
+                            result.information_support.multiplicative_support,
+                            result.lane_witness_applies
+                        ),
+                        Err(error) => sprintln!("imasm_edit_square: {}", error),
+                    }
+                }
+            }
             "imasm_powmod" => {
                 let base = parts.next().unwrap_or("");
                 let exponent = parts.next().unwrap_or("");
