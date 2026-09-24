@@ -4,7 +4,7 @@
 //! of EVALT/EVALF marks, least significant cell first.  Arithmetic consumes
 //! and produces those tapes through the full-adder/full-subtractor tables.
 
-use crate::vox::{AREV, AFWD, CLINK, EVALF, EVALT, FFUSE, FSPLIT, IFIX, IMSCRIB, TANCH, VINIT};
+use crate::vox::{AFWD, AREV, CLINK, EVALF, EVALT, FFUSE, FSPLIT, IFIX, IMSCRIB, TANCH, VINIT};
 use alloc::format;
 use alloc::string::String;
 use alloc::vec;
@@ -22,7 +22,9 @@ const FIX: &[char] = &[VINIT, IMSCRIB, IFIX, TANCH];
 // (AREV ≺) and hold (ENGAGR ⊞) between the truth and falsity ports. It folds
 // phase, arithmetic, select and continue into a single boundary, which is what
 // makes the extractor a one-frame factorizer.
-const EXTRACT: &[char] = &[VINIT, FSPLIT, AFWD, EVALT, AREV, EVALF, '⊞', CLINK, FFUSE, TANCH];
+const EXTRACT: &[char] = &[
+    VINIT, FSPLIT, AFWD, EVALT, AREV, EVALF, '⊞', CLINK, FFUSE, TANCH,
+];
 // Pollard p-1: seed an accumulator (IMSCRIB), raise it through rising exponents
 // (ENGAGR), and take the gcd (CLINK) inside the frame. It catches a factor p
 // whenever p-1 is smooth, at any size and any gap, covering the slice the
@@ -194,8 +196,20 @@ fn l_is_zero(a: &[u64]) -> bool {
 }
 
 fn l_cmp(a: &[u64], b: &[u64]) -> core::cmp::Ordering {
-    let la = { let mut n = a.len(); while n > 1 && a[n - 1] == 0 { n -= 1; } n };
-    let lb = { let mut n = b.len(); while n > 1 && b[n - 1] == 0 { n -= 1; } n };
+    let la = {
+        let mut n = a.len();
+        while n > 1 && a[n - 1] == 0 {
+            n -= 1;
+        }
+        n
+    };
+    let lb = {
+        let mut n = b.len();
+        while n > 1 && b[n - 1] == 0 {
+            n -= 1;
+        }
+        n
+    };
     if la != lb {
         return la.cmp(&lb);
     }
@@ -386,7 +400,11 @@ fn lehman_step(n: &[char], k: &[char]) -> Option<Tape> {
     let sixth = iroot(n, 6);
     let sk = {
         let r = isqrt(k);
-        if zero(&r) { one() } else { r }
+        if zero(&r) {
+            one()
+        } else {
+            r
+        }
     };
     let width = divmod(&sixth, &mul(&tape_u64(4), &sk)).0;
     let limit = add(&add(&a, &width), &one());
@@ -829,7 +847,9 @@ fn ecm_curve(n: &[char], seed: u64, k: &[char]) -> Option<Tape> {
     match ec_scalar(k, &p, &a, n) {
         Ok(_) => None,
         Err(g) => {
-            if cmp(&g, &one()) == core::cmp::Ordering::Greater && cmp(&g, n) == core::cmp::Ordering::Less {
+            if cmp(&g, &one()) == core::cmp::Ordering::Greater
+                && cmp(&g, n) == core::cmp::Ordering::Less
+            {
                 Some(trim(g))
             } else {
                 None
@@ -882,21 +902,37 @@ const SQUFOF_I: &[char] = &[FSPLIT, EVALT, AREV, '⊞', EVALF, FFUSE];
 
 /// Name of an operator motif, for reporting a constructed tower.
 pub fn morphism_name(operator: &[char]) -> &'static str {
-    if operator == PHASE { "PHASE" }
-    else if operator == ARITHMETIC { "ARITHMETIC" }
-    else if operator == BRANCH { "BRANCH" }
-    else if operator == SELECT { "SELECT" }
-    else if operator == CONTINUE { "CONTINUE" }
-    else if operator == FIX { "FIX" }
-    else if operator == EXTRACT { "EXTRACT" }
-    else if operator == P_MINUS { "P_MINUS" }
-    else if operator == ECM { "ECM" }
-    else if operator == WITNESS { "WITNESS" }
-    else if operator == POWER { "POWER" }
-    else if operator == P_PLUS { "P_PLUS" }
-    else if operator == LEHMAN { "LEHMAN" }
-    else if operator == SQUFOF { "SQUFOF" }
-    else { "?" }
+    if operator == PHASE {
+        "PHASE"
+    } else if operator == ARITHMETIC {
+        "ARITHMETIC"
+    } else if operator == BRANCH {
+        "BRANCH"
+    } else if operator == SELECT {
+        "SELECT"
+    } else if operator == CONTINUE {
+        "CONTINUE"
+    } else if operator == FIX {
+        "FIX"
+    } else if operator == EXTRACT {
+        "EXTRACT"
+    } else if operator == P_MINUS {
+        "P_MINUS"
+    } else if operator == ECM {
+        "ECM"
+    } else if operator == WITNESS {
+        "WITNESS"
+    } else if operator == POWER {
+        "POWER"
+    } else if operator == P_PLUS {
+        "P_PLUS"
+    } else if operator == LEHMAN {
+        "LEHMAN"
+    } else if operator == SQUFOF {
+        "SQUFOF"
+    } else {
+        "?"
+    }
 }
 
 /// Automated carrier constructor. Read an operator ob3ect word and decompose
@@ -966,11 +1002,19 @@ pub fn factor_with(operator_word: &str, n_word: &str) -> Result<String, String> 
     // (EXTRACT over trial/frontier/rho, ECM over curves), so a tower carrying
     // either needs only a FIX to be complete.
     if !has(EXTRACT) && !has(ECM) {
-        if !has(PHASE) && !has(ARITHMETIC) { missing.push("PHASE or ARITHMETIC (advance)"); }
-        if !has(SELECT) { missing.push("SELECT (decide)"); }
-        if !has(CONTINUE) { missing.push("CONTINUE (step the candidate)"); }
+        if !has(PHASE) && !has(ARITHMETIC) {
+            missing.push("PHASE or ARITHMETIC (advance)");
+        }
+        if !has(SELECT) {
+            missing.push("SELECT (decide)");
+        }
+        if !has(CONTINUE) {
+            missing.push("CONTINUE (step the candidate)");
+        }
     }
-    if !has(FIX) { missing.push("FIX (latch)"); }
+    if !has(FIX) {
+        missing.push("FIX (latch)");
+    }
     if !missing.is_empty() {
         return Err(format!(
             "operator word does not carry factoring; missing: {}",
@@ -1361,21 +1405,25 @@ pub fn dec_of(t: &[char]) -> String {
 /// fit. Returns the pair with the shape name, and a log of what each probe saw.
 /// A None with "prime" is a certified prime; a None with "HARD" is the
 /// random-equal-size-far-apart shape that wants the sub-exponential tier.
-pub fn scout_factor(n_in: &[char]) -> (Option<(Tape, Tape, &'static str)>, String) {
+fn scout_factor_with_bound(n_in: &[char]) -> (Option<(Tape, Tape, &'static str)>, String, u64) {
     use core::cmp::Ordering::{Equal, Greater, Less};
     let n = trim(n_in.to_vec());
     let mut log = String::new();
     if cmp(&n, &two()) == Less {
-        return (None, "shape: unit\n".into());
+        return (None, "shape: unit\n".into(), 0);
     }
     // even
     if zero(&modulo(&n, &two())) {
         let q = divmod(&n, &two()).0;
-        return (Some((two(), q, "even")), "shape: even (2-part)\n".into());
+        return (Some((two(), q, "even")), "shape: even (2-part)\n".into(), 0);
     }
     // prime
     if miller_rabin(&n) {
-        return (None, "shape: prime (witness, no factor to find)\n".into());
+        return (
+            None,
+            "shape: prime (witness, no factor to find)\n".into(),
+            0,
+        );
     }
     // perfect power
     let bits = n.len();
@@ -1384,24 +1432,35 @@ pub fn scout_factor(n_in: &[char]) -> (Option<(Tape, Tape, &'static str)>, Strin
         let r = iroot(&n, b);
         if cmp(&r, &one()) == Greater && cmp(&ipow(&r, b), &n) == Equal {
             let q = divmod(&n, &r).0;
-            return (Some((r.clone(), q, "perfect-power")), format!("shape: perfect power, base {}\n", dec_of(&r)));
+            return (
+                Some((r.clone(), q, "perfect-power")),
+                format!("shape: perfect power, base {}\n", dec_of(&r)),
+                0,
+            );
         }
         b += 1;
     }
     // Limit the scout to cheap shape probes. Wider inputs receive a shorter
     // trial scan; rho belongs to the downstream sieve, not this scout.
     let trial_bound: u64 = if bits <= 40 { 100_000 } else { 3_000 };
-    // small factor by trial to a cheap bound
-    let tb = tape_u64(trial_bound);
-    let mut d = tape_u64(3);
-    while cmp(&d, &tb) != Greater {
-        if zero(&modulo(&n, &d)) {
-            let q = divmod(&n, &d).0;
-            return (Some((d.clone(), q, "small-trial")), format!("shape: small factor {} (trial)\n", dec_of(&d)));
-        }
-        d = add(&d, &two());
+    // The prime sieve selects the candidates. The bit-support lane computes
+    // each exact residue directly from N's set-bit positions, and its blank
+    // result becomes a lower bound consumed by the downstream factor selector.
+    let (small_factor, tested) = crate::sieve::bit_support_sieve(&n, trial_bound as usize);
+    if let Some(d) = small_factor {
+        let q = divmod(&n, &d).0;
+        return (
+            Some((d.clone(), q, "small-support")),
+            format!(
+                "shape: small factor {} (prime sieve × bit support)\n",
+                dec_of(&d)
+            ),
+            0,
+        );
     }
-    log.push_str(&format!("probe: no factor <= {trial_bound}\n"));
+    log.push_str(&format!(
+        "probe: bit-support blank through {trial_bound} across {tested} sieve primes; every divisor > {trial_bound}\n"
+    ));
     // short frontier first: closes at once iff the factors sit near the root, so
     // a near-root N never pays the width-heavy rho below.
     {
@@ -1421,7 +1480,11 @@ pub fn scout_factor(n_in: &[char]) -> (Option<(Tape, Tape, &'static str)>, Strin
                     let p = sub(&a, &bb);
                     if cmp(&p, &one()) == Greater {
                         let q = divmod(&n, &p).0;
-                        return (Some((p.clone(), q, "frontier")), format!("shape: near-root, closed at frontier step {}\n", i));
+                        return (
+                            Some((p.clone(), q, "frontier")),
+                            format!("shape: near-root, closed at frontier step {}\n", i),
+                            trial_bound,
+                        );
                     }
                 }
             }
@@ -1434,7 +1497,13 @@ pub fn scout_factor(n_in: &[char]) -> (Option<(Tape, Tape, &'static str)>, Strin
     // races the polynomials and the first arm to close wins. The scout's job ends
     // at the cheap, shape-certain gate; everything else goes to the membrane.
     log.push_str("verdict: HARD — hand to the membrane (rho fused with the sieve)\n");
-    (None, log)
+    (None, log, trial_bound)
+}
+
+/// Read the candidate factor shape and its sieve-certified lower bound.
+pub fn scout_factor(n_in: &[char]) -> (Option<(Tape, Tape, &'static str)>, String) {
+    let (factor, log, _) = scout_factor_with_bound(n_in);
+    (factor, log)
 }
 
 /// Round budget the HARD branch gives the nested nine-arm carrier before it
@@ -1445,8 +1514,7 @@ pub fn scout_factor(n_in: &[char]) -> (Option<(Tape, Tape, &'static str)>, Strin
 pub const HARD_CARRIER_ROUNDS: u64 = 2_000_000;
 
 /// The full nine-arm carrier word, the deepest routing in one string.
-pub const NINE_ARM: &str =
-    "⊢∈⊤≺⊥∋∈⊤⊞⊥∋∈≻⊤≺⊥⊞⋈∋∈⊤≺⊞⊥∋∈⊙⊞⋈∋∈⊙≺⋈∋∈≻⋈⊤⊥∋∈⊙≻⋈∋⊙⊡⊣";
+pub const NINE_ARM: &str = "⊢∈⊤≺⊥∋∈⊤⊞⊥∋∈≻⊤≺⊥⊞⋈∋∈⊤≺⊞⊥∋∈⊙⊞⋈∋∈⊙≺⋈∋∈≻⋈⊤⊥∋∈⊙≻⋈∋⊙⊡⊣";
 
 /// Smart factorization: scout each piece for its shape and route it, recursing
 /// to a full prime multiset. A piece the scout labels HARD (large factor, far
@@ -1465,7 +1533,7 @@ pub fn smart_factor(n_in: &[char]) -> (Vec<Tape>, String) {
             factors.push(c);
             continue;
         }
-        let (res, l) = scout_factor(&c);
+        let (res, l, divisor_bound) = scout_factor_with_bound(&c);
         log.push_str(&l);
         match res {
             Some((p, q, _shape)) => {
@@ -1481,8 +1549,9 @@ pub fn smart_factor(n_in: &[char]) -> (Vec<Tape>, String) {
                 //      It takes the width where the single QS pass comes up short of
                 //      smooth relations but rho still reaches the smaller factor.
                 //   3. Dixon, the exhaustive last resort, only if both above miss.
+                let divisor_floor = add(&tape_u64(divisor_bound), &one());
                 let good = |p: &Tape| {
-                    cmp(p, &one()) == core::cmp::Ordering::Greater
+                    cmp(p, &divisor_floor) != core::cmp::Ordering::Less
                         && cmp(p, &c) == core::cmp::Ordering::Less
                 };
                 let (bound, m) = crate::sieve::sieve_params(&c);
@@ -1496,7 +1565,9 @@ pub fn smart_factor(n_in: &[char]) -> (Vec<Tape>, String) {
                 let hit = crate::sieve::mpqs(&c, bound, 32_768, 32)
                     .filter(&good)
                     .or_else(|| crate::sieve::qs(&c, bound, m, 16).filter(&good))
-                    .or_else(|| run_carrier_rounds(&tower_refs, &c, HARD_CARRIER_ROUNDS).filter(&good))
+                    .or_else(|| {
+                        run_carrier_rounds(&tower_refs, &c, HARD_CARRIER_ROUNDS).filter(&good)
+                    })
                     .or_else(|| crate::sieve::dixon(&c, bound, 8, 2_000_000).filter(&good));
                 match hit {
                     Some(p) => {
@@ -1523,7 +1594,11 @@ pub fn repl_scout(n_in: &[char]) -> String {
     let (res, log) = scout_factor(n_in);
     let n = dec_of(n_in);
     match res {
-        Some((p, q, shape)) => format!("N={n}\n{log}  {n} = {} x {}  [{shape}]", dec_of(&p), dec_of(&q)),
+        Some((p, q, shape)) => format!(
+            "N={n}\n{log}  {n} = {} x {}  [{shape}]",
+            dec_of(&p),
+            dec_of(&q)
+        ),
         None => format!("N={n}\n{log}"),
     }
 }
@@ -1536,18 +1611,25 @@ mod tests {
     fn smart_factor_gives_full_multiset() {
         let (fs, _) = smart_factor(&tape_u64(360));
         let prod = fs.iter().fold(1u64, |a, f| {
-            let mut v = 0u64; for &c in trim(f.clone()).iter().rev() { v = (v << 1) | if c == EVALF { 1 } else { 0 }; } a * v
+            let mut v = 0u64;
+            for &c in trim(f.clone()).iter().rev() {
+                v = (v << 1) | if c == EVALF { 1 } else { 0 };
+            }
+            a * v
         });
         assert_eq!(prod, 360);
         assert_eq!(fs.len(), 6); // 2^3 * 3^2 * 5
-        assert!(repl_smart_factor(&tape_u64(8051)).contains("83 x 97") || repl_smart_factor(&tape_u64(8051)).contains("97 x 83"));
+        assert!(
+            repl_smart_factor(&tape_u64(8051)).contains("83 x 97")
+                || repl_smart_factor(&tape_u64(8051)).contains("97 x 83")
+        );
     }
 
     #[test]
     fn scout_reads_the_shape_and_routes() {
         // Each shape routes to its cheapest probe; the name is the reading.
         let (r, _) = scout_factor(&tape_u64(8051));
-        assert_eq!(r.unwrap().2, "small-trial");
+        assert_eq!(r.unwrap().2, "small-support");
         let (r, _) = scout_factor(&tape_u64(25));
         assert_eq!(r.unwrap().2, "perfect-power");
         let (r, log) = scout_factor(&tape_u64(999983));
@@ -1561,9 +1643,14 @@ mod tests {
         let (r, log) = scout_factor(&n);
         assert!(r.is_none(), "{log}");
         assert!(log.contains("HARD"), "{log}");
-        assert!(log.contains("no factor <= 3000"), "{log}");
+        assert!(log.contains("bit-support blank through 3000"), "{log}");
+        assert!(log.contains("every divisor > 3000"), "{log}");
         let (factors, route) = smart_factor(&n);
-        assert_eq!(factors, vec![tape_u64(1000003), tape_u64(1000000007)], "{route}");
+        assert_eq!(
+            factors,
+            vec![tape_u64(1000003), tape_u64(1000000007)],
+            "{route}"
+        );
         assert_eq!(factors.iter().fold(one(), |p, f| mul(&p, f)), n);
     }
 
@@ -1608,7 +1695,10 @@ mod tests {
     fn constructor_recovers_the_full_tower() {
         let tower = construct_carrier(FULL).unwrap();
         let names: Vec<&str> = tower.iter().map(|t| morphism_name(t)).collect();
-        assert_eq!(names, ["PHASE", "ARITHMETIC", "BRANCH", "SELECT", "CONTINUE", "FIX"]);
+        assert_eq!(
+            names,
+            ["PHASE", "ARITHMETIC", "BRANCH", "SELECT", "CONTINUE", "FIX"]
+        );
     }
 
     #[test]
@@ -1651,7 +1741,10 @@ mod tests {
         let q = 1000000007u64;
         let carrier = "⊢∈≻⊤≺⊥⊞⋈∋∈⊙⊞⋈∋⊙⊡⊣";
         let names: Vec<&str> = construct_carrier(carrier)
-            .unwrap().iter().map(|t| morphism_name(t)).collect();
+            .unwrap()
+            .iter()
+            .map(|t| morphism_name(t))
+            .collect();
         assert_eq!(names, ["EXTRACT", "P_MINUS", "FIX"]);
         let f = factor_with(carrier, &numeral(p * q)).unwrap();
         assert!(f == numeral(p) || f == numeral(q));
@@ -1673,7 +1766,11 @@ mod tests {
         // SQUFOF wired as a morphism, nested with a complete arm.
         let carrier = "⊢∈⊤≺⊥∋∈≻⊤≺⊥⊞⋈∋∈⊤≺⊞⊥∋⊙⊡⊣";
         assert_eq!(
-            construct_carrier(carrier).unwrap().iter().map(|t| morphism_name(t)).collect::<Vec<_>>(),
+            construct_carrier(carrier)
+                .unwrap()
+                .iter()
+                .map(|t| morphism_name(t))
+                .collect::<Vec<_>>(),
             ["WITNESS", "EXTRACT", "SQUFOF", "FIX"]
         );
         let f = factor_with(carrier, &numeral(2027651281)).unwrap();
@@ -1688,7 +1785,11 @@ mod tests {
         // Nested in a complete carrier it still factors.
         let carrier = "⊢∈⊤≺⊥∋∈≻⊤≺⊥⊞⋈∋∈≻⋈⊤⊥∋⊙⊡⊣";
         assert_eq!(
-            construct_carrier(carrier).unwrap().iter().map(|t| morphism_name(t)).collect::<Vec<_>>(),
+            construct_carrier(carrier)
+                .unwrap()
+                .iter()
+                .map(|t| morphism_name(t))
+                .collect::<Vec<_>>(),
             ["WITNESS", "EXTRACT", "LEHMAN", "FIX"]
         );
         let g = factor_with(carrier, &numeral(8051)).unwrap();
@@ -1702,7 +1803,10 @@ mod tests {
         assert_eq!(iroot(&tape_u64(1001), 3), tape_u64(10));
         assert_eq!(iroot(&tape_u64(999), 3), tape_u64(9));
         // Lucas V_4(a=3) = 47, mod a prime large enough that no reduction bites.
-        assert_eq!(lucas_v(&tape_u64(4), &tape_u64(3), &tape_u64(1_000_000_007)), tape_u64(47));
+        assert_eq!(
+            lucas_v(&tape_u64(4), &tape_u64(3), &tape_u64(1_000_000_007)),
+            tape_u64(47)
+        );
     }
 
     #[test]
@@ -1710,20 +1814,34 @@ mod tests {
         // WITNESS -> POWER -> EXTRACT -> P_MINUS -> P_PLUS -> ECM -> FIX
         let carrier = "⊢∈⊤≺⊥∋∈⊤⊞⊥∋∈≻⊤≺⊥⊞⋈∋∈⊙⊞⋈∋∈⊙≺⋈∋∈⊙≻⋈∋⊙⊡⊣";
         assert_eq!(
-            construct_carrier(carrier).unwrap().iter().map(|t| morphism_name(t)).collect::<Vec<_>>(),
+            construct_carrier(carrier)
+                .unwrap()
+                .iter()
+                .map(|t| morphism_name(t))
+                .collect::<Vec<_>>(),
             ["WITNESS", "POWER", "EXTRACT", "P_MINUS", "P_PLUS", "ECM", "FIX"]
         );
-        assert_eq!(factor_with(carrier, &numeral(2147483647)).unwrap(), numeral(2147483647));
+        assert_eq!(
+            factor_with(carrier, &numeral(2147483647)).unwrap(),
+            numeral(2147483647)
+        );
         let f = factor_with(carrier, &numeral(8051)).unwrap();
         assert!(f == numeral(83) || f == numeral(97));
         // POWER first (before EXTRACT) takes a prime square to its base.
         let pw = "⊢∈⊤⊞⊥∋∈≻⊤≺⊥⊞⋈∋⊙⊡⊣";
         assert_eq!(
-            construct_carrier(pw).unwrap().iter().map(|t| morphism_name(t)).collect::<Vec<_>>(),
+            construct_carrier(pw)
+                .unwrap()
+                .iter()
+                .map(|t| morphism_name(t))
+                .collect::<Vec<_>>(),
             ["POWER", "EXTRACT", "FIX"]
         );
         // 9973 is prime; POWER returns the base 9973 of 9973^2.
-        assert_eq!(factor_with(pw, &numeral(9973 * 9973)).unwrap(), numeral(9973));
+        assert_eq!(
+            factor_with(pw, &numeral(9973 * 9973)).unwrap(),
+            numeral(9973)
+        );
     }
 
     #[test]
@@ -1733,11 +1851,18 @@ mod tests {
         // WITNESS -> EXTRACT -> P_MINUS -> ECM -> FIX.
         let carrier = "⊢∈⊤≺⊥∋∈≻⊤≺⊥⊞⋈∋∈⊙⊞⋈∋∈⊙≻⋈∋⊙⊡⊣";
         assert_eq!(
-            construct_carrier(carrier).unwrap().iter().map(|t| morphism_name(t)).collect::<Vec<_>>(),
+            construct_carrier(carrier)
+                .unwrap()
+                .iter()
+                .map(|t| morphism_name(t))
+                .collect::<Vec<_>>(),
             ["WITNESS", "EXTRACT", "P_MINUS", "ECM", "FIX"]
         );
         // 2^31-1 is prime: selected as itself.
-        assert_eq!(factor_with(carrier, &numeral(2147483647)).unwrap(), numeral(2147483647));
+        assert_eq!(
+            factor_with(carrier, &numeral(2147483647)).unwrap(),
+            numeral(2147483647)
+        );
         // A composite still factors through the deeper arms.
         let f = factor_with(carrier, &numeral(8051)).unwrap();
         assert!(f == numeral(83) || f == numeral(97));
@@ -1749,7 +1874,11 @@ mod tests {
         // an independent condition from p-1's. Carrier ECM -> FIX.
         let ecm = "⊢∈⊙≻⋈∋⊙⊡⊣";
         assert_eq!(
-            construct_carrier(ecm).unwrap().iter().map(|t| morphism_name(t)).collect::<Vec<_>>(),
+            construct_carrier(ecm)
+                .unwrap()
+                .iter()
+                .map(|t| morphism_name(t))
+                .collect::<Vec<_>>(),
             ["ECM", "FIX"]
         );
         let f = factor_with(ecm, &numeral(8051)).unwrap();
@@ -1757,7 +1886,11 @@ mod tests {
         // Nested with EXTRACT: EXTRACT -> ECM -> FIX composes and factors.
         let nested = "⊢∈≻⊤≺⊥⊞⋈∋∈⊙≻⋈∋⊙⊡⊣";
         assert_eq!(
-            construct_carrier(nested).unwrap().iter().map(|t| morphism_name(t)).collect::<Vec<_>>(),
+            construct_carrier(nested)
+                .unwrap()
+                .iter()
+                .map(|t| morphism_name(t))
+                .collect::<Vec<_>>(),
             ["EXTRACT", "ECM", "FIX"]
         );
         let g = factor_with(nested, &numeral(100160063)).unwrap();
