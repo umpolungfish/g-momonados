@@ -23,4 +23,4 @@ jobs:
       - name: Test vendored Vox calculus
         run: cargo test --manifest-path vendor/vox/Cargo.toml --lib godel_calculus
       - name: Run g-mOMonadOS calculus self-test
-        run: cargo run --no-default-features --bin godel -- selftest
+        run: cargo run --bin godel -- selftest
