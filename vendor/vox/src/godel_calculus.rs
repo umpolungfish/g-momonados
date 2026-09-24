@@ -13,8 +13,7 @@ use core::cmp::Ordering;
 use core::fmt;
 
 use crate::vox::{
-    AFWD, AREV, CLINK, ENGAGR, EVALF, EVALT, FFUSE, FSPLIT, IFIX, IMSCRIB,
-    TANCH, VINIT,
+    AFWD, AREV, CLINK, ENGAGR, EVALF, EVALT, FFUSE, FSPLIT, IFIX, IMSCRIB, TANCH, VINIT,
 };
 
 pub const CELL_3: &str = "⊢≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣";
@@ -40,11 +39,15 @@ pub struct Nat {
 
 impl Nat {
     pub fn zero() -> Self {
-        Self { bits_le: Vec::new() }
+        Self {
+            bits_le: Vec::new(),
+        }
     }
 
     pub fn one() -> Self {
-        Self { bits_le: alloc::vec![true] }
+        Self {
+            bits_le: alloc::vec![true],
+        }
     }
 
     pub fn from_bits_le(mut bits_le: Vec<bool>) -> Self {
@@ -84,6 +87,22 @@ impl Nat {
 
     pub fn bits_le(&self) -> &[bool] {
         &self.bits_le
+    }
+
+    fn bit(&self, position: usize) -> bool {
+        self.bits_le.get(position).copied().unwrap_or(false)
+    }
+
+    fn shr(&self, places: usize) -> Self {
+        Self::from_bits_le(self.bits_le.get(places..).unwrap_or(&[]).to_vec())
+    }
+
+    fn mod_small(&self, modulus: usize) -> usize {
+        let mut residue = 0usize;
+        for &bit in self.bits_le.iter().rev() {
+            residue = (residue * 2 + usize::from(bit)) % modulus;
+        }
+        residue
     }
 
     fn cmp_nat(&self, other: &Self) -> Ordering {
@@ -308,7 +327,9 @@ impl fmt::Display for DecodeError {
         match self {
             DecodeError::Empty => f.write_str("empty glyph word"),
             DecodeError::InvalidGlyph(c) => write!(f, "not an IMASM glyph: {c}"),
-            DecodeError::Unrecognized => f.write_str("well-formed glyph alphabet, but no registered numeral family matches"),
+            DecodeError::Unrecognized => {
+                f.write_str("well-formed glyph alphabet, but no registered numeral family matches")
+            }
         }
     }
 }
@@ -316,8 +337,18 @@ impl fmt::Display for DecodeError {
 fn is_glyph(c: char) -> bool {
     matches!(
         c,
-        VINIT | TANCH | AFWD | AREV | FSPLIT | FFUSE | IMSCRIB | IFIX | CLINK
-            | EVALT | EVALF | ENGAGR
+        VINIT
+            | TANCH
+            | AFWD
+            | AREV
+            | FSPLIT
+            | FFUSE
+            | IMSCRIB
+            | IFIX
+            | CLINK
+            | EVALT
+            | EVALF
+            | ENGAGR
     )
 }
 
@@ -351,7 +382,11 @@ fn decode_cell(chars: &[char]) -> Option<Reading> {
     let mut bits = Vec::with_capacity(cells);
     for bit in 0..cells {
         let i = 1 + bit * 5;
-        if chars[i] != AFWD || chars[i + 1] != CLINK || chars[i + 2] != FSPLIT || chars[i + 4] != FFUSE {
+        if chars[i] != AFWD
+            || chars[i + 1] != CLINK
+            || chars[i + 2] != FSPLIT
+            || chars[i + 4] != FFUSE
+        {
             return None;
         }
         let one = match chars[i + 3] {
@@ -416,8 +451,7 @@ fn decode_affine(chars: &[char]) -> Option<Reading> {
 
 fn decode_fusion(chars: &[char]) -> Option<Reading> {
     let pattern = [
-        VINIT, FSPLIT, AFWD, CLINK, EVALF, AREV, CLINK, FFUSE, IMSCRIB, IFIX,
-        TANCH,
+        VINIT, FSPLIT, AFWD, CLINK, EVALF, AREV, CLINK, FFUSE, IMSCRIB, IFIX, TANCH,
     ];
     if chars == pattern.as_slice() {
         Some(Reading {
@@ -467,6 +501,214 @@ pub fn encode_decimal(raw: &str) -> Option<String> {
     Nat::from_decimal(raw).map(|n| encode_cell_binary(&n))
 }
 
+/// Check the five codec identities at the point where a decimal enters the
+/// analyzer. The returned checks are also used by the CLI contract and tests.
+pub fn codec_assertions(value: &Nat) -> Result<(), String> {
+    let word = encode_cell_binary(value);
+    let decoded = decode(&word).map_err(|error| error.to_string())?;
+    let expected_bits = if value.is_zero() {
+        alloc::vec![false]
+    } else {
+        value.bits_le().to_vec()
+    };
+    let support_from_value: Vec<usize> = value
+        .bits_le()
+        .iter()
+        .enumerate()
+        .filter_map(|(i, bit)| bit.then_some(i))
+        .collect();
+    let support_from_reading: Vec<usize> = bit_support(value)
+        .iter()
+        .map(|position| position.to_string().parse::<usize>().unwrap_or(usize::MAX))
+        .collect();
+    let binary = value.binary_string();
+    let bits_le: String = expected_bits
+        .iter()
+        .map(|bit| if *bit { '1' } else { '0' })
+        .collect();
+    let suffix: String = [IMSCRIB, IFIX, TANCH].iter().collect();
+    let word_body = word
+        .strip_prefix(VINIT)
+        .and_then(|w| w.strip_suffix(&suffix));
+    let body_matches = word_body
+        .map(|body| {
+            let mut expected = String::new();
+            for bit in &expected_bits {
+                push_cell(&mut expected, *bit);
+            }
+            body == expected
+        })
+        .unwrap_or(false);
+    let decoded_word = encode_cell_binary(&decoded.value);
+    let assertions = [
+        support_from_value == support_from_reading,
+        binary.chars().rev().collect::<String>() == bits_le,
+        body_matches,
+        decoded.value == *value && decoded_word == word,
+        expected_bits.len() == bits_le.len(),
+    ];
+    if assertions.iter().all(|pass| *pass) {
+        Ok(())
+    } else {
+        Err(format!("codec assertions failed: {assertions:?}"))
+    }
+}
+
+fn trailing_zero_bits(value: &Nat) -> usize {
+    value.bits_le().iter().take_while(|bit| !**bit).count()
+}
+
+fn pow_nat(base: &Nat, exponent: &Nat) -> Nat {
+    let mut result = Nat::one();
+    let mut power = base.clone();
+    for (position, bit) in exponent.bits_le().iter().copied().enumerate() {
+        if bit {
+            result = result.mul(&power);
+        }
+        if position + 1 < exponent.bits_le().len() {
+            power = power.mul(&power);
+        }
+    }
+    result
+}
+
+pub fn lte_2_report(a_raw: &str, m_raw: &str) -> Result<String, String> {
+    let a = Nat::from_decimal(a_raw).ok_or_else(|| format!("not a natural number: {a_raw}"))?;
+    let m = Nat::from_decimal(m_raw).ok_or_else(|| format!("not a natural number: {m_raw}"))?;
+    if a.cmp_nat(&Nat::one()) != Ordering::Greater || !a.bit(0) || m.is_zero() || m.bit(0) {
+        return Err("lte_2 requires odd a > 1 and positive even m".to_string());
+    }
+    let lhs_value = pow_nat(&a, &m)
+        .sub(&Nat::one())
+        .ok_or_else(|| "a^m - 1 underflow".to_string())?;
+    let lhs = trailing_zero_bits(&lhs_value);
+    let a_minus = a
+        .sub(&Nat::one())
+        .ok_or_else(|| "a - 1 underflow".to_string())?;
+    let a_plus = a.add(&Nat::one());
+    let rhs =
+        trailing_zero_bits(&a_minus) + trailing_zero_bits(&a_plus) + trailing_zero_bits(&m) - 1;
+    Ok(format!(
+        "lte_2      v2(a^m - 1) = v2(a - 1) + v2(a + 1) + v2(m) - 1\na            {a}\nm            {m}\nleft         {lhs}\nright        {rhs}\nmethod       exact support valuation\nstatus       {}\n",
+        if lhs == rhs { "PASS" } else { "FAIL" },
+    ))
+}
+
+fn intervals(value: &Nat, ones: bool, width: usize) -> String {
+    let mut ranges = Vec::new();
+    let mut start = None;
+    for position in 0..width {
+        let matches = value.bit(position) == ones;
+        match (start, matches) {
+            (None, true) => start = Some(position),
+            (Some(begin), false) => {
+                ranges.push(format!("{begin}..{}", position - 1));
+                start = None;
+            }
+            _ => {}
+        }
+    }
+    if let Some(begin) = start {
+        ranges.push(format!("{begin}..{}", width.saturating_sub(1)));
+    }
+    format!("[{}]", ranges.join(","))
+}
+
+fn support_period(value: &Nat, width: usize) -> Option<usize> {
+    (1..=width).find(|period| {
+        (0..width.saturating_sub(*period)).all(|i| value.bit(i) == value.bit(i + period))
+    })
+}
+
+fn smallest_odd_factor_through(value: &Nat, bound: usize) -> Option<usize> {
+    if bound < 3 || value.is_zero() {
+        return None;
+    }
+    let mut composite = alloc::vec![false; bound + 1];
+    let mut candidate = 3usize;
+    while candidate <= bound {
+        if !composite[candidate] {
+            if value.mod_small(candidate) == 0 {
+                return Some(candidate);
+            }
+            if candidate <= bound / candidate {
+                let mut multiple = candidate * candidate;
+                while multiple <= bound {
+                    composite[multiple] = true;
+                    multiple += candidate;
+                }
+            }
+        }
+        candidate += 2;
+    }
+    None
+}
+
+/// Structural reads from a decoded cell-binary value. Periodicity and the
+/// prime-divisor bound are separate coordinates: the latter is certified by
+/// testing every odd prime through the aperture against the exact bit support.
+pub fn analyze(value: &Nat, window: usize) -> Result<String, String> {
+    if !(2..=20).contains(&window) {
+        return Err("window must be in 2..=20".to_string());
+    }
+    codec_assertions(value)?;
+    let width = value.bits_le().len().max(1);
+    let support = bit_support(value);
+    let gaps = intervals(value, false, width);
+    let runs = intervals(value, true, width);
+    let v2_n = if value.is_zero() {
+        "∞".to_string()
+    } else {
+        trailing_zero_bits(value).to_string()
+    };
+    let plus_one = value.add(&Nat::one());
+    let v2_plus = trailing_zero_bits(&plus_one);
+    let minus_one = value.sub(&Nat::one());
+    let v2_minus = match minus_one.as_ref() {
+        Some(value) if value.is_zero() => "∞".to_string(),
+        Some(value) => trailing_zero_bits(value).to_string(),
+        None => "undefined".to_string(),
+    };
+    let odd_part = value.shr(trailing_zero_bits(value));
+    let k = v2_plus;
+    let decomposition_m = plus_one.shr(k).sub(&Nat::one()).unwrap_or_else(Nat::zero);
+    let residue = Nat::from_bits_le(value.bits_le().iter().take(k).copied().collect());
+    let aperture = 1usize << window;
+    let period = support_period(value, window);
+    let bound_factor = smallest_odd_factor_through(value, aperture);
+    let bound_read = match bound_factor {
+        Some(prime) => format!("odd divisor {prime} present at aperture 2^{window}={aperture}"),
+        None => {
+            format!("smallest odd prime factor > {aperture} (all odd primes ≤ aperture tested)")
+        }
+    };
+    let periodicity = period
+        .map(|p| format!("period={p} on [0,{window})"))
+        .unwrap_or_else(|| format!("aperiodic on [0,{window})"));
+    let binary = value.binary_string();
+    let bits_le: String = if value.is_zero() {
+        "0".to_string()
+    } else {
+        value
+            .bits_le()
+            .iter()
+            .map(|bit| if *bit { '1' } else { '0' })
+            .collect()
+    };
+    let signature = format!(
+        "(runs={runs},gaps={gaps},period={})",
+        period
+            .map(|p| p.to_string())
+            .unwrap_or_else(|| "none".into())
+    );
+    Ok(format!(
+        "value        {value}\nbinary       {binary}\nbits-le      {bits_le}\nsupport      {}\npolynomial   {}\nword         {}\nbitlength    {}\ncodec        support={} binary={} body={} decode={} bitlength={}\n\nprimitive reads\nv2(n)        {v2_n}\nv2(n+1)      {v2_plus}\nv2(n-1)      {v2_minus}\npopcount     {}\nbitlength    {}\nruns         {runs}\ngaps         {gaps}\nodd_part     {odd_part}\nshift_factor {}\n\ncomposite reads\ndecomp_2k    n=(2^{k}-1)+2^{k}*{decomposition_m}  (k={k})\nresidue_read n mod 2^{k}={residue}\nperiodicity  {periodicity}\naperture     2^{window}={aperture}\nwindow_prime_bound {bound_read}\nsignature    {signature}\n",
+        support_string(&support), polynomial_string(value), encode_cell_binary(value),
+        width, true, binary.chars().rev().collect::<String>() == bits_le,
+        true, true, true, support.len(), width, trailing_zero_bits(value),
+    ))
+}
+
 fn push_cell(out: &mut String, one: bool) {
     out.push(AFWD);
     out.push(CLINK);
@@ -475,7 +717,12 @@ fn push_cell(out: &mut String, one: bool) {
     out.push(FFUSE);
 }
 
-pub fn check(lhs: &str, operator: Operator, rhs: &str, out: &str) -> Result<EquationCheck, DecodeError> {
+pub fn check(
+    lhs: &str,
+    operator: Operator,
+    rhs: &str,
+    out: &str,
+) -> Result<EquationCheck, DecodeError> {
     let lhs = decode(lhs)?.value;
     let rhs = decode(rhs)?.value;
     let out = decode(out)?.value;
@@ -588,7 +835,9 @@ pub fn render(reading: &Reading) -> String {
             for &b in bits_le {
                 bits.push(if b { '1' } else { '0' });
             }
-            out.push_str(&format!("bits-le    {bits}\nrule       ⊥=1  ⊤=0  leftmost=2^0\n"));
+            out.push_str(&format!(
+                "bits-le    {bits}\nrule       ⊥=1  ⊤=0  leftmost=2^0\n"
+            ));
         }
         Structure::AffineEdit { unit, branch } => {
             out.push_str(&format!(
@@ -609,6 +858,8 @@ pub fn help() -> &'static str {
      \n\
      godel decode <word>\n\
      godel encode <natural-number>\n\
+     godel analyze <natural-number> [window=8]\n\
+     godel lte2 <odd-a> <positive-even-m>\n\
      godel check add|mul <lhs-word> <rhs-word> <out-word>\n\
      godel relation <from-word> <to-word>\n\
      godel selftest\n"
@@ -618,21 +869,51 @@ pub fn command(args: &[&str]) -> Result<String, String> {
     match args.first().copied().unwrap_or("help") {
         "help" | "-h" | "--help" => Ok(help().to_string()),
         "decode" => {
-            let word = args.get(1).ok_or_else(|| "godel decode <word>".to_string())?;
+            let word = args
+                .get(1)
+                .ok_or_else(|| "godel decode <word>".to_string())?;
             let r = decode(word).map_err(|e| e.to_string())?;
             Ok(format!("word       {word}\n{}", render(&r)))
         }
         "encode" => {
-            let raw = args.get(1).ok_or_else(|| "godel encode <natural-number>".to_string())?;
+            let raw = args
+                .get(1)
+                .ok_or_else(|| "godel encode <natural-number>".to_string())?;
             let n = Nat::from_decimal(raw).ok_or_else(|| format!("not a natural number: {raw}"))?;
+            codec_assertions(&n)?;
             let word = encode_cell_binary(&n);
-            Ok(format!("value      {n}\nword       {word}\n{}", render(&decode(&word).map_err(|e| e.to_string())?)))
+            Ok(format!(
+                "value      {n}\nword       {word}\ncodec      all five assertions PASS\n{}",
+                render(&decode(&word).map_err(|e| e.to_string())?)
+            ))
+        }
+        "analyze" => {
+            if !(2..=3).contains(&args.len()) {
+                return Err("godel analyze <natural-number> [window=8]".to_string());
+            }
+            let raw = args[1];
+            let value =
+                Nat::from_decimal(raw).ok_or_else(|| format!("not a natural number: {raw}"))?;
+            let window = args
+                .get(2)
+                .map(|s| s.parse::<usize>())
+                .transpose()
+                .map_err(|_| "window must be an integer in 2..=20".to_string())?
+                .unwrap_or(8);
+            analyze(&value, window)
+        }
+        "lte2" => {
+            if args.len() != 3 {
+                return Err("godel lte2 <odd-a> <positive-even-m>".to_string());
+            }
+            lte_2_report(args[1], args[2])
         }
         "check" => {
             if args.len() != 5 {
                 return Err("godel check add|mul <lhs-word> <rhs-word> <out-word>".to_string());
             }
-            let op = Operator::parse(args[1]).ok_or_else(|| format!("unknown operator: {}", args[1]))?;
+            let op =
+                Operator::parse(args[1]).ok_or_else(|| format!("unknown operator: {}", args[1]))?;
             let c = check(args[2], op, args[3], args[4]).map_err(|e| e.to_string())?;
             Ok(format!(
                 "equation   {} {} {} = {}\nexpected   {}\nstatus     {}\n",
@@ -653,7 +934,10 @@ pub fn command(args: &[&str]) -> Result<String, String> {
                     "relation   insert {} at glyph position {}\ndelta      +{}\n",
                     r.glyph, r.position, r.delta
                 )),
-                None => Ok("relation   not a one-glyph insertion between registered numeral forms\n".to_string()),
+                None => Ok(
+                    "relation   not a one-glyph insertion between registered numeral forms\n"
+                        .to_string(),
+                ),
             }
         }
         "selftest" | "verify" => selftest_report(),
@@ -691,13 +975,20 @@ pub fn selftest_report() -> Result<String, String> {
     ] {
         let relation = insertion_relation(from, to).map_err(|e| e.to_string())?;
         let expected = Nat::from_u64(delta);
-        let pass = relation.as_ref().map(|r| r.glyph == glyph && r.delta == expected).unwrap_or(false);
+        let pass = relation
+            .as_ref()
+            .map(|r| r.glyph == glyph && r.delta == expected)
+            .unwrap_or(false);
         ok &= pass;
-        out.push_str(&format!("{name:<9} insert {glyph} => +{delta}  {}\n", if pass { "PASS" } else { "FAIL" }));
+        out.push_str(&format!(
+            "{name:<9} insert {glyph} => +{delta}  {}\n",
+            if pass { "PASS" } else { "FAIL" }
+        ));
     }
 
     let huge = "115792089237316195423570985008687907853269984665640564039457584007913129639936";
-    let n = Nat::from_decimal(huge).ok_or_else(|| "internal unbounded parse failure".to_string())?;
+    let n =
+        Nat::from_decimal(huge).ok_or_else(|| "internal unbounded parse failure".to_string())?;
     let word = encode_cell_binary(&n);
     let back = decode(&word).map_err(|e| e.to_string())?.value;
     let unbounded_pass = back == n && back.decimal_string() == huge;
@@ -749,7 +1040,8 @@ mod tests {
 
     #[test]
     fn arbitrary_length_roundtrip_and_arithmetic() {
-        let two_256 = "115792089237316195423570985008687907853269984665640564039457584007913129639936";
+        let two_256 =
+            "115792089237316195423570985008687907853269984665640564039457584007913129639936";
         let n = Nat::from_decimal(two_256).unwrap();
         assert!(n.bits_le().len() > 128);
         let word = encode_cell_binary(&n);
@@ -767,5 +1059,36 @@ mod tests {
             tripled.decimal_string(),
             "347376267711948586270712955026063723559809953996921692118372752023739388919808"
         );
+    }
+
+    #[test]
+    fn analyzer_reads_support_and_keeps_periodicity_separate_from_bound() {
+        let n = Nat::from_decimal("8051").unwrap();
+        let narrow = analyze(&n, 4).unwrap();
+        assert!(narrow.contains("v2(n)        0"));
+        assert!(narrow.contains("v2(n+1)      2"));
+        assert!(narrow.contains("aperture     2^4=16"));
+        assert!(narrow.contains("smallest odd prime factor > 16"));
+        let wide = analyze(&n, 7).unwrap();
+        assert!(wide.contains("odd divisor 83 present at aperture 2^7=128"));
+    }
+
+    #[test]
+    fn codec_assertions_cover_zero_and_unbounded_values() {
+        codec_assertions(&Nat::zero()).unwrap();
+        let n = Nat::from_decimal(
+            "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+        )
+        .unwrap();
+        codec_assertions(&n).unwrap();
+    }
+
+    #[test]
+    fn lte2_reads_the_binary_valuation_identity() {
+        assert!(lte_2_report("3", "2")
+            .unwrap()
+            .contains("status       PASS"));
+        assert!(lte_2_report("4", "2").is_err());
+        assert!(lte_2_report("3", "3").is_err());
     }
 }
