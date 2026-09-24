@@ -45,9 +45,57 @@ pub enum ParaAsm {
     READ(u8),                // Read input → register (defaults N)
 }
 
-/// Dynamically sized ripple-carry addition. The canonical source is a pure
-/// IMASM instruction stream; Rust only includes it for assembly by ParaVM.
+/// Dynamically sized ripple-carry addition. Bits use the numeral encoding
+/// ⊥=1 and ⊤=0. The canonical source is a pure IMASM instruction stream;
+/// Rust only includes it for assembly by ParaVM.
 pub const BIT_REGISTER_ADD_ASM: &str = include_str!("../.imasm/bit_register_add.imasm");
+
+/// Run the IMASM adder on two LSB-first numeral streams, returning the
+/// emitted LSB-first sum including its final carry cell. This boundary only
+/// translates the encoded alphabet to/from ParaVM's B4 cells; all addition,
+/// carry propagation, and termination are performed by BIT_REGISTER_ADD_ASM.
+pub fn add_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
+    fn decode(stream: &str) -> Result<Vec<B4>, String> {
+        if stream.is_empty() {
+            return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
+        }
+        stream.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
+        }).collect()
+    }
+
+    let left = decode(a)?;
+    let right = decode(b)?;
+    let width = core::cmp::max(left.len(), right.len());
+    let mut reads = Vec::with_capacity(width * 2 + 1);
+    for index in 0..width {
+        reads.push(left.get(index).copied().unwrap_or(B4::T));
+        reads.push(right.get(index).copied().unwrap_or(B4::T));
+    }
+    reads.push(B4::N);
+
+    let mut vm = ParaVM::new();
+    vm.load(BIT_REGISTER_ADD_ASM)?;
+    vm.set_reads(reads);
+    vm.run(None);
+    if !vm.halted {
+        return Err("IMASM adder did not close on its encoded terminator".into());
+    }
+
+    let mut result = String::new();
+    for cell in &vm.emit_buffer {
+        let (_, value) = cell.rsplit_once(" = ")
+            .ok_or_else(|| "IMASM adder emitted a malformed cell".to_string())?;
+        match value {
+            "T" => result.push('⊤'),
+            "F" => result.push('⊥'),
+            _ => return Err(alloc::format!("IMASM adder emitted non-bit state {value}")),
+        }
+    }
+    Ok(result)
+}
 
 impl ParaAsm {
     pub fn op_name(&self) -> &'static str {
@@ -726,13 +774,13 @@ mod tests {
                 for carry_in in [false, true] {
                     // Prefix a bit pair that sets the desired carry, then let
                     // the candidate pair exercise that row of the truth table.
-                    let (prefix_a, prefix_b) = if carry_in { (T, T) } else { (F, F) };
+                    let (prefix_a, prefix_b) = if carry_in { (F, F) } else { (T, T) };
                     let mut vm = ParaVM::new();
                     vm.load(BIT_REGISTER_ADD_ASM).unwrap();
                     vm.set_reads(vec![
                         prefix_a, prefix_b,
-                        if a { T } else { F },
-                        if b { T } else { F },
+                        if a { F } else { T },
+                        if b { F } else { T },
                         N,
                     ]);
                     vm.run(None);
@@ -746,9 +794,9 @@ mod tests {
                     let carry_out = (a && b) || (a && carry_in) || (b && carry_in);
                     assert!(vm.halted, "stream terminator must close the IMASM loop");
                     assert_eq!(emitted, vec![
-                        F, // The prefix always sums to zero.
-                        if sum { T } else { F },
-                        if carry_out { T } else { F },
+                        T, // The prefix always sums to zero.
+                        if sum { F } else { T },
+                        if carry_out { F } else { T },
                     ]);
                     assert_eq!(vm.read_pos, 5);
                 }
@@ -764,8 +812,8 @@ mod tests {
         let width = 300usize;
         let mut reads = Vec::with_capacity(width * 2 + 1);
         for bit in 0..width {
-            reads.push(T);
-            reads.push(if bit == 0 { T } else { F });
+            reads.push(F);
+            reads.push(if bit == 0 { F } else { T });
         }
         reads.push(N);
         let mut vm = ParaVM::new();
@@ -778,8 +826,15 @@ mod tests {
             else { panic!("IMASM adder emitted a non-bit value: {line}") }
         }).collect();
         assert!(vm.halted, "stream terminator must close the IMASM loop");
-        assert_eq!(emitted, [vec![F; width], vec![T]].concat());
+        assert_eq!(emitted, [vec![T; width], vec![F]].concat());
         assert_eq!(vm.read_pos, width * 2 + 1);
+    }
+
+    #[test]
+    fn encoded_adder_boundary_keeps_the_defined_top_bottom_bit_mapping() {
+        assert_eq!(add_encoded_lsb_first("⊥", "⊥").unwrap(), "⊤⊥");
+        assert_eq!(add_encoded_lsb_first("⊥⊤", "⊤⊥").unwrap(), "⊥⊥⊤");
+        assert!(add_encoded_lsb_first("⊤x", "⊥").is_err());
     }
 
     #[test]
