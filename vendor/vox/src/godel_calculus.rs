@@ -208,6 +208,27 @@ impl Nat {
         out
     }
 
+    pub fn div_rem(&self, divisor: &Self) -> Option<(Self, Self)> {
+        if divisor.is_zero() {
+            return None;
+        }
+        let mut quotient_bits = alloc::vec![false; self.bits_le.len()];
+        let mut remainder = Self::zero();
+        for position in (0..self.bits_le.len()).rev() {
+            remainder = remainder.shl(1);
+            if self.bit(position) {
+                remainder = remainder.add(&Self::one());
+            }
+            if remainder.cmp_nat(divisor) != Ordering::Less {
+                remainder = remainder
+                    .sub(divisor)
+                    .expect("ordered remainder subtraction");
+                quotient_bits[position] = true;
+            }
+        }
+        Some((Self::from_bits_le(quotient_bits), remainder))
+    }
+
     fn mul_small(&self, factor: u8) -> Self {
         let mut out = Self::zero();
         for _ in 0..factor {
@@ -526,6 +547,84 @@ pub fn encode_cell_binary(value: &Nat) -> String {
 
 pub fn encode_decimal(raw: &str) -> Option<String> {
     Nat::from_decimal(raw).map(|n| encode_cell_binary(&n))
+}
+
+/// Γ: interleave two canonical LSB-first numeral streams, padding the shorter
+/// stream with zeroes up to the longer stream's width.
+pub fn braid_values(left: &Nat, right: &Nat) -> Nat {
+    let width = left.bits_le().len().max(right.bits_le().len());
+    let mut braided = Vec::with_capacity(width.saturating_mul(2));
+    for index in 0..width {
+        braided.push(left.bit(index));
+        braided.push(right.bit(index));
+    }
+    Nat::from_bits_le(braided)
+}
+
+/// Λ: recover the even-cell and odd-cell lanes of an LSB-first numeral stream.
+pub fn unbraid_value(value: &Nat) -> (Nat, Nat) {
+    let mut left = Vec::with_capacity(value.bits_le().len().div_ceil(2));
+    let mut right = Vec::with_capacity(value.bits_le().len() / 2);
+    for (index, &bit) in value.bits_le().iter().enumerate() {
+        if index % 2 == 0 {
+            left.push(bit);
+        } else {
+            right.push(bit);
+        }
+    }
+    (Nat::from_bits_le(left), Nat::from_bits_le(right))
+}
+
+pub fn braid_report(left_raw: &str, right_raw: &str) -> Result<String, String> {
+    let left =
+        Nat::from_decimal(left_raw).ok_or_else(|| format!("not a natural number: {left_raw}"))?;
+    let right =
+        Nat::from_decimal(right_raw).ok_or_else(|| format!("not a natural number: {right_raw}"))?;
+    let braided = braid_values(&left, &right);
+    let (left_roundtrip, right_roundtrip) = unbraid_value(&braided);
+    let closed = left_roundtrip == left && right_roundtrip == right;
+    Ok(format!(
+        "left-value       {left}\nleft-word        {}\n\
+         right-value      {right}\nright-word       {}\n\
+         braid-value      {braided}\nbraid-word       {}\n\
+         unbraid-left     {left_roundtrip}\nunbraid-left-word  {}\n\
+         unbraid-right    {right_roundtrip}\nunbraid-right-word {}\n\
+         ΓΛ-closure       {}\n",
+        encode_cell_binary(&left),
+        encode_cell_binary(&right),
+        encode_cell_binary(&braided),
+        encode_cell_binary(&left_roundtrip),
+        encode_cell_binary(&right_roundtrip),
+        if closed { "closed" } else { "open" },
+    ))
+}
+
+pub fn unbraid_report(raw: &str) -> Result<String, String> {
+    let value = Nat::from_decimal(raw).ok_or_else(|| format!("not a natural number: {raw}"))?;
+    let (left, right) = unbraid_value(&value);
+    let recomposed = braid_values(&left, &right);
+    Ok(format!(
+        "source-value     {value}\nsource-word      {}\n\
+         left-lane        {left}\nleft-word        {}\n\
+         right-lane       {right}\nright-word       {}\n\
+         ΓΛ-value         {recomposed}\nΓΛ-word          {}\n\
+         ΓΛ-closure       {}\n\
+         factor-closure   {}\n",
+        encode_cell_binary(&value),
+        encode_cell_binary(&left),
+        encode_cell_binary(&right),
+        encode_cell_binary(&recomposed),
+        if recomposed == value {
+            "closed"
+        } else {
+            "open"
+        },
+        if left.mul(&right) == value {
+            "closed"
+        } else {
+            "open"
+        },
+    ))
 }
 
 /// Check the five codec identities at the point where a decimal enters the
@@ -857,6 +956,168 @@ pub fn prime_sieve_read(value: &Nat, width: usize) -> Result<PrimeSieveRead, Str
     })
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FactorPairRead {
+    pub factor: Nat,
+    pub cofactor: Nat,
+    pub product_closed: bool,
+    pub semiprime_closed: Option<bool>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FrameArithmeticRead {
+    pub left_width: usize,
+    pub left_index: usize,
+    pub left: Nat,
+    pub operator: &'static str,
+    pub right_width: usize,
+    pub right_index: usize,
+    pub right: Nat,
+    pub result: Nat,
+    pub remainder: Option<Nat>,
+}
+
+pub fn frame_arithmetic_read(
+    value: &Nat,
+    left_width: usize,
+    left_index: usize,
+    operator: &str,
+    right_width: usize,
+    right_index: usize,
+) -> Result<FrameArithmeticRead, String> {
+    if left_width < 2 || right_width < 2 {
+        return Err("frame widths must be at least 2".to_string());
+    }
+    if left_width == right_width {
+        return Err("frame arithmetic requires values from different widths".to_string());
+    }
+    let group_value = |width: usize, index: usize| -> Result<Nat, String> {
+        let start = index
+            .checked_mul(width)
+            .ok_or_else(|| "frame group index exceeds addressable memory".to_string())?;
+        if start >= value.bits_le().len() {
+            return Err(format!(
+                "frame group {index} is outside width-{width} frame"
+            ));
+        }
+        let end = start.saturating_add(width).min(value.bits_le().len());
+        Ok(Nat::from_bits_le(value.bits_le()[start..end].to_vec()))
+    };
+    let left = group_value(left_width, left_index)?;
+    let right = group_value(right_width, right_index)?;
+    let (operator, result, remainder) = match operator {
+        "add" => ("add", left.add(&right), None),
+        "mul" => ("mul", left.mul(&right), None),
+        "sub" => (
+            "sub",
+            left.sub(&right)
+                .ok_or_else(|| "frame subtraction underflow".to_string())?,
+            None,
+        ),
+        "mod" => {
+            let (_, remainder) = left
+                .div_rem(&right)
+                .ok_or_else(|| "frame modulo by zero".to_string())?;
+            ("mod", remainder.clone(), Some(remainder))
+        }
+        "divmod" => {
+            let (quotient, remainder) = left
+                .div_rem(&right)
+                .ok_or_else(|| "frame divmod by zero".to_string())?;
+            ("divmod", quotient, Some(remainder))
+        }
+        _ => return Err("frame operator must be add|mul|sub|mod|divmod".to_string()),
+    };
+    Ok(FrameArithmeticRead {
+        left_width,
+        left_index,
+        left,
+        operator,
+        right_width,
+        right_index,
+        right,
+        result,
+        remainder,
+    })
+}
+
+pub fn render_frame_arithmetic(read: &FrameArithmeticRead) -> String {
+    let remainder = read
+        .remainder
+        .as_ref()
+        .map(ToString::to_string)
+        .unwrap_or_else(|| "none".to_string());
+    format!(
+        "frame-left   width={} group={} value={} word={}\n\
+         frame-right  width={} group={} value={} word={}\n\
+         operation    {}\n\
+         result       {}\n\
+         result-word  {}\n\
+         remainder    {}\n",
+        read.left_width,
+        read.left_index,
+        read.left,
+        encode_cell_binary(&read.left),
+        read.right_width,
+        read.right_index,
+        read.right,
+        encode_cell_binary(&read.right),
+        read.operator,
+        read.result,
+        encode_cell_binary(&read.result),
+        remainder,
+    )
+}
+
+/// Turn a prime-divisor witness into an exact factor-pair read and independently
+/// check whether the cofactor is prime within the same sieve aperture.
+pub fn factor_pair_read(
+    value: &Nat,
+    sieve: &PrimeSieveRead,
+    width: usize,
+) -> Result<Option<FactorPairRead>, String> {
+    let Some(factor) = sieve.divisor.as_ref() else {
+        return Ok(None);
+    };
+    let Some((cofactor, remainder)) = value.div_rem(factor) else {
+        return Err("zero divisor in factor-pair closure".to_string());
+    };
+    let nontrivial = factor.cmp_nat(&Nat::one()) == Ordering::Greater
+        && cofactor.cmp_nat(&Nat::one()) == Ordering::Greater;
+    let product_closed = nontrivial && factor.mul(&cofactor) == *value && remainder.is_zero();
+    if !product_closed {
+        return Ok(Some(FactorPairRead {
+            factor: factor.clone(),
+            cofactor,
+            product_closed,
+            semiprime_closed: Some(false),
+        }));
+    }
+
+    let cofactor_is_prime = if cofactor == Nat::from_u64(2) {
+        Some(true)
+    } else if !cofactor.bit(0) {
+        Some(false)
+    } else {
+        let sqrt_aperture_width = cofactor.bits_le().len().div_ceil(2).max(2);
+        let cofactor_width = width.min(sqrt_aperture_width);
+        let cofactor_sieve = prime_sieve_read(&cofactor, cofactor_width)?;
+        match cofactor_sieve.divisor.as_ref() {
+            Some(witness) => Some(witness == &cofactor),
+            None => cofactor_sieve.lower_bound.as_ref().and_then(|bound| {
+                let bound_squared = bound.mul(bound);
+                (bound_squared.cmp_nat(&cofactor) != Ordering::Less).then_some(true)
+            }),
+        }
+    };
+    Ok(Some(FactorPairRead {
+        factor: factor.clone(),
+        cofactor,
+        product_closed,
+        semiprime_closed: cofactor_is_prime,
+    }))
+}
+
 /// Structural reads from a decoded cell-binary value. Periodicity and the
 /// prime-divisor bound are separate coordinates: the latter is certified by
 /// testing every odd prime through the aperture against the exact bit support.
@@ -1075,6 +1336,9 @@ pub fn help() -> &'static str {
      godel decode <word>\n\
      godel encode <natural-number>\n\
      godel analyze <natural-number|cell-binary-word> [sieve-window=8]\n\
+     godel braid <left-natural> <right-natural>\n\
+     godel unbraid <natural-number>\n\
+     godel frame-op <natural-number> <left-width> <left-group> <add|mul|sub|mod|divmod> <right-width> <right-group>\n\
      godel lte2 <odd-a> <positive-even-m>\n\
      godel check add|mul <lhs-word> <rhs-word> <out-word>\n\
      godel relation <from-word> <to-word>\n\
@@ -1117,6 +1381,49 @@ pub fn command(args: &[&str]) -> Result<String, String> {
                 .map_err(|_| "window must be a nonnegative integer of at least 2".to_string())?
                 .unwrap_or(8);
             analyze(&value, window)
+        }
+        "braid" => {
+            if args.len() != 3 {
+                return Err("godel braid <left-natural> <right-natural>".to_string());
+            }
+            braid_report(args[1], args[2])
+        }
+        "unbraid" => {
+            if args.len() != 2 {
+                return Err("godel unbraid <natural-number>".to_string());
+            }
+            unbraid_report(args[1])
+        }
+        "frame-op" => {
+            if args.len() != 7 {
+                return Err(
+                    "godel frame-op <natural-number> <left-width> <left-group> <add|mul|sub|mod|divmod> <right-width> <right-group>".to_string(),
+                );
+            }
+            let value = Nat::from_decimal(args[1])
+                .ok_or_else(|| format!("not a natural number: {}", args[1]))?;
+            let parse_address = |raw: &str, label: &str| {
+                raw.parse::<usize>()
+                    .map_err(|_| format!("{label} must be a nonnegative frame address"))
+            };
+            let left_width = parse_address(args[2], "left width")?;
+            let left_group = parse_address(args[3], "left group")?;
+            let right_width = parse_address(args[5], "right width")?;
+            let right_group = parse_address(args[6], "right group")?;
+            let read = frame_arithmetic_read(
+                &value,
+                left_width,
+                left_group,
+                args[4],
+                right_width,
+                right_group,
+            )?;
+            Ok(format!(
+                "source-value  {}\nsource-word   {}\n{}",
+                value,
+                encode_cell_binary(&value),
+                render_frame_arithmetic(&read),
+            ))
         }
         "lte2" => {
             if args.len() != 3 {
@@ -1296,6 +1603,93 @@ mod tests {
         assert_eq!(read.tested_primes, Nat::one());
         assert_eq!(read.divisor, Some(Nat::from_u64(3)));
         assert_eq!(read.lower_bound, None);
+    }
+
+    #[test]
+    fn factor_pair_closure_requires_exact_product_and_prime_cofactor() {
+        let semiprime = Nat::from_u64(21);
+        let sieve = prime_sieve_read(&semiprime, 8).unwrap();
+        let pair = factor_pair_read(&semiprime, &sieve, 8).unwrap().unwrap();
+        assert_eq!(pair.factor, Nat::from_u64(3));
+        assert_eq!(pair.cofactor, Nat::from_u64(7));
+        assert!(pair.product_closed);
+        assert_eq!(pair.semiprime_closed, Some(true));
+
+        let composite = Nat::from_u64(999_999);
+        let sieve = prime_sieve_read(&composite, 8).unwrap();
+        let pair = factor_pair_read(&composite, &sieve, 8).unwrap().unwrap();
+        assert_eq!(pair.cofactor, Nat::from_u64(333_333));
+        assert!(pair.product_closed);
+        assert_eq!(pair.semiprime_closed, Some(false));
+    }
+
+    #[test]
+    fn arithmetic_combines_values_from_distinct_frames() {
+        // 45 has LSB-first bits 101101. Width-2 group 2 is 2, and
+        // width-3 group 0 is 5, so the cross-frame product is 10.
+        let value = Nat::from_u64(45);
+        let product = frame_arithmetic_read(&value, 2, 2, "mul", 3, 0).unwrap();
+        assert_eq!(product.left, Nat::from_u64(2));
+        assert_eq!(product.right, Nat::from_u64(5));
+        assert_eq!(product.result, Nat::from_u64(10));
+        assert_eq!(product.remainder, None);
+
+        let sum = frame_arithmetic_read(&value, 2, 2, "add", 3, 0).unwrap();
+        assert_eq!(sum.result, Nat::from_u64(7));
+        let difference = frame_arithmetic_read(&value, 3, 0, "sub", 2, 2).unwrap();
+        assert_eq!(difference.result, Nat::from_u64(3));
+        let remainder = frame_arithmetic_read(&value, 3, 0, "mod", 2, 2).unwrap();
+        assert_eq!(remainder.result, Nat::from_u64(1));
+        assert_eq!(remainder.remainder, Some(Nat::from_u64(1)));
+
+        let divmod = frame_arithmetic_read(&value, 3, 0, "divmod", 2, 2).unwrap();
+        assert_eq!(divmod.left, Nat::from_u64(5));
+        assert_eq!(divmod.right, Nat::from_u64(2));
+        assert_eq!(divmod.result, Nat::from_u64(2));
+        assert_eq!(divmod.remainder, Some(Nat::from_u64(1)));
+        let rendered = render_frame_arithmetic(&product);
+        assert!(rendered.contains("frame-left   width=2 group=2 value=2 word=⊢≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣"));
+        assert!(rendered.contains("result-word  ⊢≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣"));
+    }
+
+    #[test]
+    fn braid_unbraid_roundtrip_is_exact_for_unequal_and_unbounded_lanes() {
+        for (left, right) in [(0, 0), (0, 37), (37, 0), (13, 17), (5, 1025)] {
+            let left = Nat::from_u64(left);
+            let right = Nat::from_u64(right);
+            let braided = braid_values(&left, &right);
+            assert_eq!(unbraid_value(&braided), (left, right));
+        }
+
+        let left = Nat::from_decimal(
+            "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+        )
+        .unwrap();
+        let right = Nat::from_decimal("1000000007").unwrap();
+        let braided = braid_values(&left, &right);
+        assert_eq!(unbraid_value(&braided), (left.clone(), right.clone()));
+        assert!(braided.bits_le().len() > left.bits_le().len());
+
+        let report = braid_report("5", "1025").unwrap();
+        assert!(report.contains("ΓΛ-closure       closed\n"));
+        let split = unbraid_report("45").unwrap();
+        assert!(split.contains("left-lane        3\n"));
+        assert!(split.contains("right-lane       6\n"));
+        assert!(split.contains("ΓΛ-closure       closed\n"));
+        assert!(split.contains("factor-closure   open\n"));
+    }
+
+    #[test]
+    fn frame_arithmetic_uses_unbounded_values_and_checks_frame_addresses() {
+        let value = Nat::from_decimal(
+            "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+        )
+        .unwrap();
+        let high_width = value.bits_le().len();
+        let read = frame_arithmetic_read(&value, high_width, 0, "add", 2, 0).unwrap();
+        assert!(read.result.bits_le().len() > 1);
+        assert!(frame_arithmetic_read(&value, 2, 0, "mul", 2, 1).is_err());
+        assert!(frame_arithmetic_read(&value, 2, usize::MAX, "mul", 3, 0).is_err());
     }
 
     #[test]
