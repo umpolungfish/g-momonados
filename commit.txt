@@ -1,1 +1,1 @@
-I remove the fixed sieve aperture ceiling and use dynamic precision, segmented storage, and an arbitrary-precision path. I verify the expanded RSA frame sweep and document the computational cost without claiming factor recovery.
+I add dynamic Gödel numeral braiding, unbraiding, and arithmetic across distinct evaluation frames. I report ΓΛ reconstruction separately from multiplication closure and test the decimal CLI, unbounded values, and the warnings-denied suites. The RSA battery remains open until its factor pairs close.

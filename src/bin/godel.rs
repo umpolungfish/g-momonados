@@ -73,6 +73,20 @@ fn sieve_support_state(sieve: &godel_calculus::PrimeSieveRead) -> Reg16_3 {
     }
 }
 
+fn semiprime_closure_state(pair: Option<&godel_calculus::FactorPairRead>) -> Reg16_3 {
+    match pair.and_then(|read| read.semiprime_closed) {
+        Some(true) => Reg16_3 {
+            big_t: true,
+            ..Reg16_3::default()
+        },
+        Some(false) => Reg16_3 {
+            big_f: true,
+            ..Reg16_3::default()
+        },
+        None => Reg16_3::default(),
+    }
+}
+
 fn analyze_with_kernel(args: &[&str]) -> Result<String, String> {
     let raw = args.get(1).ok_or_else(|| {
         "godel analyze <natural-number|cell-binary-word> [sieve-window=8]".to_string()
@@ -85,6 +99,8 @@ fn analyze_with_kernel(args: &[&str]) -> Result<String, String> {
         .map_err(|_| "sieve window must be an integer of at least 2".to_string())?
         .unwrap_or(8);
     let sieve = godel_calculus::prime_sieve_read(&value, sieve_width)?;
+    let factor_pair = godel_calculus::factor_pair_read(&value, &sieve, sieve_width)?;
+    let closure_state = semiprime_closure_state(factor_pair.as_ref());
     let analysis = godel_analyzer::analyze_with_sieve(&value, None, Some(sieve.clone()))?;
     let codec = codec_support_state(&analysis.assertions);
     // Every frame regroups the same support stream. Keep each adjacent kernel
@@ -104,6 +120,9 @@ fn analyze_with_kernel(args: &[&str]) -> Result<String, String> {
          \nkernel.sieve.aperture           2^{}={} tested-primes={}\
          \nkernel.register.pattern       {}\
          \nkernel.register.joint         {}\
+         \nkernel.factor-pair             {}\
+         \nkernel.product-closure        {}\
+         \nkernel.register.semiprime-closure {}\
          \nkernel.truth-support           {}\
          \nkernel.falsity-support         {}\
          \nkernel.factor-bound-support    {}",
@@ -115,6 +134,19 @@ fn analyze_with_kernel(args: &[&str]) -> Result<String, String> {
         sieve.tested_primes,
         support_pattern.name(),
         joint.name(),
+        factor_pair
+            .as_ref()
+            .map(|read| format!("{} × {}", read.factor, read.cofactor))
+            .unwrap_or_else(|| "unresolved".to_string()),
+        factor_pair
+            .as_ref()
+            .map(|read| if read.product_closed {
+                "closed"
+            } else {
+                "open"
+            })
+            .unwrap_or("open"),
+        closure_state.name(),
         joint.big_t || joint.small_t,
         joint.big_f || joint.small_f,
         factor_bound,
@@ -211,6 +243,9 @@ mod tests {
         assert!(twenty_one.contains("kernel.truth-support           true\n"));
         assert!(twenty_one.contains("kernel.falsity-support         false\n"));
         assert!(twenty_one.contains("kernel.factor-bound-support    t\n"));
+        assert!(twenty_one.contains("kernel.factor-pair             3 × 7\n"));
+        assert!(twenty_one.contains("kernel.product-closure        closed\n"));
+        assert!(twenty_one.contains("kernel.register.semiprime-closure T\n"));
         assert!(twenty_one.contains(
             "kernel.frame width=2 groups=3 symbols=[⊥⊤|⊥⊤|⊥] state=Tt prev≤i=seed prev≤c=seed\n"
         ));
@@ -222,6 +257,9 @@ mod tests {
         assert!(nines.contains("kernel.truth-support           true\n"));
         assert!(nines.contains("kernel.falsity-support         true\n"));
         assert!(nines.contains("kernel.factor-bound-support    t\n"));
+        assert!(nines.contains("kernel.factor-pair             3 × 333333\n"));
+        assert!(nines.contains("kernel.product-closure        closed\n"));
+        assert!(nines.contains("kernel.register.semiprime-closure F\n"));
         assert!(nines.contains("kernel.frame-sweep widths=2..8 preserved-bits=20\n"));
         assert!(nines.contains("kernel.frame width=2 groups=10 symbols=[⊥⊥|⊥⊥|⊥⊥|⊤⊤|⊤⊥|⊤⊤|⊤⊤|⊥⊤|⊥⊥|⊥⊥] state=Ttf prev≤i=seed prev≤c=seed\n"));
     }
@@ -244,6 +282,55 @@ mod tests {
         assert!(report.contains("value                      10\n"));
         assert!(report.contains("kernel.register.codec          T\n"));
         assert!(report.contains("kernel.frame-sweep widths=2..8 preserved-bits=4\n"));
+    }
+
+    #[test]
+    fn frame_op_cli_operates_on_decimal_input_and_reports_imasm_values() {
+        let report = dispatch(&["frame-op", "45", "2", "2", "mul", "3", "0"]).unwrap();
+        assert!(report.contains("source-value  45\n"));
+        assert!(report.contains("source-word   ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣\n"));
+        assert!(report.contains("frame-left   width=2 group=2 value=2 word="));
+        assert!(report.contains("frame-right  width=3 group=0 value=5 word="));
+        assert!(report.contains("operation    mul\nresult       10\nresult-word  "));
+    }
+
+    #[test]
+    fn braid_and_unbraid_commands_run_on_decimal_numerals() {
+        let braid = dispatch(&["braid", "13", "17"]).unwrap();
+        assert!(braid.contains("braid-value      595"));
+        assert!(braid.contains("ΓΛ-closure       closed"));
+        let unbraid = dispatch(&["unbraid", "45"]).unwrap();
+        assert!(unbraid.contains("source-value     45\n"));
+        assert!(unbraid.contains("left-lane        3\n"));
+        assert!(unbraid.contains("right-lane       6\n"));
+        assert!(unbraid.contains("ΓΛ-closure       closed\n"));
+        assert!(unbraid.contains("factor-closure   open\n"));
+    }
+
+    #[test]
+    fn encoded_asymmetric_semiprime_reaches_verified_prime_pair_closure() {
+        let value = godel_calculus::Nat::from_decimal("10007000070049").unwrap();
+        let word = godel_calculus::encode_cell_binary(&value);
+        let width = "16";
+        let report = analyze_with_kernel(&["analyze", &word, width]).unwrap();
+        assert!(report.contains("value                      10007000070049\n"));
+        assert!(report.contains("negative.factor-witness    10007\n"));
+        assert!(report.contains("kernel.factor-pair             10007 × 1000000007\n"));
+        assert!(report.contains("kernel.product-closure        closed\n"));
+        assert!(report.contains("kernel.register.semiprime-closure T\n"));
+    }
+
+    #[test]
+    fn wider_encoded_semiprime_reaches_verified_prime_pair_closure() {
+        let value = godel_calculus::Nat::from_decimal("1000003007000021").unwrap();
+        let word = godel_calculus::encode_cell_binary(&value);
+        let width = "20";
+        let report = analyze_with_kernel(&["analyze", &word, width]).unwrap();
+        assert!(report.contains("value                      1000003007000021\n"));
+        assert!(report.contains("negative.factor-witness    1000003\n"));
+        assert!(report.contains("kernel.factor-pair             1000003 × 1000000007\n"));
+        assert!(report.contains("kernel.product-closure        closed\n"));
+        assert!(report.contains("kernel.register.semiprime-closure T\n"));
     }
 
     #[test]
@@ -323,6 +410,9 @@ mod tests {
             assert!(report.contains("kernel.falsity-support         true\n"));
             assert!(report.contains("negative.factor-bound      >256\n"));
             assert!(report.contains("kernel.factor-bound-support    f\n"));
+            assert!(report.contains("kernel.factor-pair             unresolved\n"));
+            assert!(report.contains("kernel.product-closure        open\n"));
+            assert!(report.contains("kernel.register.semiprime-closure N\n"));
             assert!(report.contains("prev≤i=true prev≤c=true\n"));
         }
     }
