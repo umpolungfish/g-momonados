@@ -45,6 +45,10 @@ pub enum ParaAsm {
     READ(u8),                // Read input → register (defaults N)
 }
 
+/// Dynamically sized ripple-carry addition. The canonical source is a pure
+/// IMASM instruction stream; Rust only includes it for assembly by ParaVM.
+pub const BIT_REGISTER_ADD_ASM: &str = include_str!("../.imasm/bit_register_add.imasm");
+
 impl ParaAsm {
     pub fn op_name(&self) -> &'static str {
         match self {
@@ -711,6 +715,71 @@ mod tests {
         assert!(snap.halted);
         assert_eq!(snap.paradox, 5);
         assert_eq!(vm.belief_of(0), B4::B);
+    }
+
+    #[test]
+    fn imasm_ripple_adder_covers_full_adder_truth_table() {
+        use crate::belnap::B4::{F, N, T};
+
+        for a in [false, true] {
+            for b in [false, true] {
+                for carry_in in [false, true] {
+                    // Prefix a bit pair that sets the desired carry, then let
+                    // the candidate pair exercise that row of the truth table.
+                    let (prefix_a, prefix_b) = if carry_in { (T, T) } else { (F, F) };
+                    let mut vm = ParaVM::new();
+                    vm.load(BIT_REGISTER_ADD_ASM).unwrap();
+                    vm.set_reads(vec![
+                        prefix_a, prefix_b,
+                        if a { T } else { F },
+                        if b { T } else { F },
+                        N,
+                    ]);
+                    vm.run(None);
+
+                    let emitted: Vec<B4> = vm.emit_buffer.iter().map(|line| {
+                        if line.ends_with("= T") { T }
+                        else if line.ends_with("= F") { F }
+                        else { panic!("IMASM adder emitted a non-bit value: {line}") }
+                    }).collect();
+                    let sum = a ^ b ^ carry_in;
+                    let carry_out = (a && b) || (a && carry_in) || (b && carry_in);
+                    assert!(vm.halted, "stream terminator must close the IMASM loop");
+                    assert_eq!(emitted, vec![
+                        F, // The prefix always sums to zero.
+                        if sum { T } else { F },
+                        if carry_out { T } else { F },
+                    ]);
+                    assert_eq!(vm.read_pos, 5);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn imasm_ripple_adder_scales_past_machine_word_width() {
+        use crate::belnap::B4::{F, N, T};
+
+        // (2^300 - 1) + 1 = 2^300, supplied as an LSB-first stream.
+        let width = 300usize;
+        let mut reads = Vec::with_capacity(width * 2 + 1);
+        for bit in 0..width {
+            reads.push(T);
+            reads.push(if bit == 0 { T } else { F });
+        }
+        reads.push(N);
+        let mut vm = ParaVM::new();
+        vm.load(BIT_REGISTER_ADD_ASM).unwrap();
+        vm.set_reads(reads);
+        vm.run(None);
+        let emitted: Vec<B4> = vm.emit_buffer.iter().map(|line| {
+            if line.ends_with("= T") { T }
+            else if line.ends_with("= F") { F }
+            else { panic!("IMASM adder emitted a non-bit value: {line}") }
+        }).collect();
+        assert!(vm.halted, "stream terminator must close the IMASM loop");
+        assert_eq!(emitted, [vec![F; width], vec![T]].concat());
+        assert_eq!(vm.read_pos, width * 2 + 1);
     }
 
     #[test]
