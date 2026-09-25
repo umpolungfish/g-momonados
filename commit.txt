@@ -1,1 +1,1 @@
-I make the phase-frame factor readout feed an odd-anchor complement whose zero residual closes the pair itself. I evaluate support in width-eight IMASM frames, compile the contained membranes for release, and record the wider closed trials.
+I evaluate long IMASM support runs through a geometric-sum circuit, omit the tautological base-two read, and carry the phase extractor through the 404-digit semiprime. I record the 682-digit timeout boundary with the baked trials.
