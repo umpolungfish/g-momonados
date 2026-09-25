@@ -178,10 +178,10 @@ register addresses in the generated circuits scale from that width. The dense
 register bank grows to the largest referenced address when loaded and is then
 cleared and reused between evaluations. Thus the 682-digit case has a wider
 resident frame (2,264 cells versus 1,340 for the 404-digit case, about 1.69×),
-but no observed spill/reallocation cliff between those widths. A separate
-scaling exponent is not justified: all 682-digit results are right-censored at
-the fixed one-minute acceptance timeout. The target remains a fixed 60-second
-wall limit, not a fitted asymptotic law.
+but no observed spill/reallocation cliff between those widths. For this
+resident-circuit prototype, the 682-digit results are right-censored at the
+fixed one-minute acceptance timeout, so they do not support a scaling exponent.
+The target remains a fixed 60-second wall limit, not a fitted asymptotic law.
 
 ## V⊙x-compiled full control membrane
 
@@ -191,10 +191,12 @@ Gödel word, compiles the freestanding phase program, and invokes `vox imasm`
 followed by `vox glyphs`. The resulting `.glyphs` file is the contained
 executable membrane; run it as `vox run <output.glyphs>`. No Rust factorizer or
 host-language phase loop runs at execution time. The lifted instruction soup
-decodes the baked Gödel words, performs the dynamic-limb Montgomery and support
-operations, retains phase/predecessor states in its growable state map, detects
-orbit closure, reads support according to its baked schedule, sweeps bases when
-selected, and emits only after exact complementary-residual closure. Timing and
+decodes the baked Gödel words into T/F cell strings (`T` for ⊤, `F` for ⊥),
+performs Montgomery and support operations in width-scaled limb registers,
+retains phase/predecessor cell strings in its growable state map, detects orbit
+closure by comparing those strings, reads support according to its baked
+schedule, sweeps bases when selected, and emits only after exact
+complementary-residual closure. Timing and
 terminal errors also flow through the lifted program's system-call instructions.
 
 Numeric width is derived from the baked input during compilation and is not a
@@ -208,14 +210,16 @@ diagnostic options. The tested outputs were run through V⊙x itself:
 |---|---|---|---:|---|
 | 35 | 5 × 7 | one base, every phase | 0.04 s | closed |
 | 143 | 11 × 13 | base sweep, sparse checkpoints | 0.04 s | closed |
-| 10007000070049 | 10007 × 1000000007 | base sweep, every phase | 26.99 s | closed |
-| `(2^61−1)(2^2203−1)` (682 digits) | `(2^61−1) × (2^2203−1)` | one base, every phase | 42.71 s | closed |
+| 10007000070049 | 10007 × 1000000007 | base sweep, every phase | 26.05 s | closed |
+| `(2^61−1)(2^2203−1)` (682 digits) | `(2^61−1) × (2^2203−1)` | base sweep, every phase | 42.20 s | closed |
 
 The 682-digit output words were compared against the two expected encoded
 Mersenne factors. The pair is emitted only when the bitwise complement
 recurrence reaches zero residual. The earlier sparse run timed out, while the
-every-phase run closes in 42.71 seconds, so the support-read cadence is the
-observed driver for this test. The isolated 682-digit run also closes without
-base sweeping. This is the VOX-compiled full-control path; the earlier
-`imasm_phase_factor` executable in this document is a separate resident-circuit
-prototype and retains its host-side Rust orchestration.
+every-phase single-base run closed in 42.71 seconds; the current default
+base-sweep build with cell-string phase storage closes in 42.20 seconds. This
+identifies support-read cadence as the observed cost/termination lever for this
+test and verifies that the default sweep path closes within the minute. This is
+the VOX-compiled full-control
+path; the earlier `imasm_phase_factor` executable in this document is a
+separate resident-circuit prototype and retains its host-side Rust orchestration.
