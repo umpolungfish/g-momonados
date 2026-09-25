@@ -142,3 +142,16 @@ The run-compressed circuit is checked against direct geometric evaluation at
 partial frames. `RUSTFLAGS='-D warnings' cargo test --lib` passes 152 tests;
 the paired-frame integration target passes 45, and the phase-factor binary
 target passes 37.
+
+The support-frame and binary-GCD stages now share one resident IMASM program.
+The support polynomial remains in its register bank and its GCD reads those
+registers directly. The GCD reuses support scratch banks after polynomial
+evaluation, so the combined circuit does not expand the resident register
+address range. The complementary residual remains the terminal pair closure.
+Small tests compare the fused readout with the separate encoded GCD for both
+run-compressed and width-eight support layouts.
+
+The fused membrane closes the 404-digit input in 40.235 seconds of membrane
+time (42.91 seconds wall time). The 682-digit input remains silent through the
+60-second timeout. The one-pass register fusion does not yet move that wider
+closure inside the minute boundary.

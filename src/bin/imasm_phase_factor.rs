@@ -100,8 +100,7 @@ fn phase_return(n: &str, base: &str) -> Result<Option<(String, String)>, String>
         // At x = 2 the support polynomial is exactly N, so its gcd cannot
         // select a proper factor. Skip that tautological frame.
         if should_read_support(phase_index, base) {
-            let support = square.support_polynomial(&current, &one_montgomery, n)?;
-            let candidate = trim(parasm::gcd_encoded_lsb_first(&support, n)?);
+            let candidate = trim(square.support_gcd(&current, &one_montgomery, n)?);
             if let Some(pair) = factor_from_candidate(n, candidate)? {
                 return Ok(Some(pair));
             }
