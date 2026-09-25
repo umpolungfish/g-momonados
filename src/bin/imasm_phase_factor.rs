@@ -159,6 +159,8 @@ mod tests {
     fn base_two_skips_the_trivial_support_frame() {
         assert!(!should_read_support(0, "⊥⊤"));
         assert!(should_read_support(0, "⊥⊥"));
+        assert!(!should_read_support(1, "⊥⊤"));
+        assert!(!should_read_support(2, "⊥⊤"));
         assert!(should_read_support(16, "⊥⊤"));
     }
 }

@@ -1,1 +1,1 @@
-I fuse the encoded support read and binary GCD into one resident IMASM circuit, reuse the support scratch registers for the GCD, and keep the complementary residual as pair closure. I test both support layouts, record the 404-digit closure and 682-digit timeout, and preserve the baked trial binaries.
+I record the 682-digit phase-seed and checkpoint trials: bases 3, 4, and N−1, plus a support/GCD read at every phase state, each reach the one-minute timeout. I preserve the silent baked binaries and retain the sparse checkpoint schedule after the denser schedule also times out.
