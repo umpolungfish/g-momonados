@@ -11,14 +11,26 @@ pub enum B4 {
 
 impl B4 {
     pub fn name(self) -> &'static str {
-        match self { B4::N => "N", B4::T => "T", B4::F => "F", B4::B => "B" }
+        match self {
+            B4::N => "N",
+            B4::T => "T",
+            B4::F => "F",
+            B4::B => "B",
+        }
     }
 
     pub fn from_u8(v: u8) -> Self {
-        match v & 0b11 { 1 => B4::T, 2 => B4::F, 3 => B4::B, _ => B4::N }
+        match v & 0b11 {
+            1 => B4::T,
+            2 => B4::F,
+            3 => B4::B,
+            _ => B4::N,
+        }
     }
 
-    pub fn to_u8(self) -> u8 { self as u8 }
+    pub fn to_u8(self) -> u8 {
+        self as u8
+    }
 
     /// Truth-order meet (greatest lower bound): bitwise AND.
     pub fn meet(self, other: B4) -> B4 {
@@ -32,11 +44,15 @@ impl B4 {
 
     /// Knowledge-order consensus (lub in ≤k): bitwise OR = join.
     /// T ⊗ F = B (both affirmations → paradox).
-    pub fn band(self, other: B4) -> B4 { self.join(other) }
+    pub fn band(self, other: B4) -> B4 {
+        self.join(other)
+    }
 
     /// Knowledge-order gullibility (glb in ≤k): bitwise AND = meet.
     /// T ⊕ F = N (no shared ground).
-    pub fn bor(self, other: B4) -> B4 { self.meet(other) }
+    pub fn bor(self, other: B4) -> B4 {
+        self.meet(other)
+    }
 
     /// Truth-functional conjunction — the bilattice's *other* axis.
     /// Mirrors `Belnap.lean` `band` and `belnap.py` `band`: F absorbs,
@@ -75,10 +91,14 @@ impl B4 {
     }
 
     /// Is this value paradox-stabilized (Both)?
-    pub fn dialetheic(self) -> bool { self == B4::B }
+    pub fn dialetheic(self) -> bool {
+        self == B4::B
+    }
 
     /// Is this value designated (T or B) in Belnap logic?
-    pub fn designated(self) -> bool { matches!(self, B4::T | B4::B) }
+    pub fn designated(self) -> bool {
+        matches!(self, B4::T | B4::B)
+    }
 
     /// Knowledge-order comparison: self ≤k other.
     /// x ≤k y iff x ⊓k y = x, and the knowledge glb is `meet`.
@@ -118,7 +138,11 @@ impl B4 {
 /// The reflector: the least Boolean value above v in the truth order.
 /// Sends every nonclassical value (N, B) up to T; T and F are fixed.
 pub fn r(v: B4) -> B4 {
-    if v == B4::F { B4::F } else { B4::T }
+    if v == B4::F {
+        B4::F
+    } else {
+        B4::T
+    }
 }
 
 /// The coreflector: the greatest Boolean value below v in the truth
@@ -127,7 +151,11 @@ pub fn r(v: B4) -> B4 {
 /// F -- the manuscript's "erase the same nonclassical values in opposite
 /// directions" theorem, checked below in `theorem_5_5_report`.
 pub fn c(v: B4) -> B4 {
-    if v == B4::T { B4::T } else { B4::F }
+    if v == B4::T {
+        B4::T
+    } else {
+        B4::F
+    }
 }
 
 /// The paraconsistent closure: constant at B, for every input. Not a
@@ -153,11 +181,18 @@ pub fn corollary_11_2_report() -> alloc::string::String {
     for v in [B4::N, B4::T, B4::F, B4::B] {
         let ri = r(inc(v));
         let ci = c(inc(v));
-        if ri != B4::T { r_inc_constant = false; }
-        if ci != B4::F { c_inc_constant = false; }
+        if ri != B4::T {
+            r_inc_constant = false;
+        }
+        if ci != B4::F {
+            c_inc_constant = false;
+        }
         out.push_str(&format!(
             "  v={:<2} Inc(v)={:<2} r(Inc(v))={:<2} c(Inc(v))={:<2}\n",
-            v.name(), inc(v).name(), ri.name(), ci.name()
+            v.name(),
+            inc(v).name(),
+            ri.name(),
+            ci.name()
         ));
     }
     out.push_str(&format!(
@@ -186,9 +221,18 @@ pub fn theorem_5_5_report() -> alloc::string::String {
         let rv = r(v);
         let cv = c(v);
         let nonclassical = matches!(v, B4::N | B4::B);
-        if nonclassical && rv == cv { opposite_on_nonclassical = false; }
-        if !nonclassical && rv != cv { agree_on_classical = false; }
-        out.push_str(&format!("  v={:<2} r(v)={:<2} c(v)={:<2}\n", v.name(), rv.name(), cv.name()));
+        if nonclassical && rv == cv {
+            opposite_on_nonclassical = false;
+        }
+        if !nonclassical && rv != cv {
+            agree_on_classical = false;
+        }
+        out.push_str(&format!(
+            "  v={:<2} r(v)={:<2} c(v)={:<2}\n",
+            v.name(),
+            rv.name(),
+            cv.name()
+        ));
     }
     out.push_str(&format!(
         "  r and c disagree on both nonclassical inputs (N, B): {}\n",
@@ -204,22 +248,50 @@ pub fn theorem_5_5_report() -> alloc::string::String {
 // Convenience aliases matching Python b4_* conventions.
 pub type Belnap = B4;
 
-pub fn meet(a: B4, b: B4) -> B4 { a.meet(b) }
-pub fn join(a: B4, b: B4) -> B4 { a.join(b) }
-pub fn band(a: B4, b: B4) -> B4 { a.band(b) }
-pub fn bor(a: B4, b: B4) -> B4 { a.bor(b) }
-pub fn truth_and(a: B4, b: B4) -> B4 { a.truth_and(b) }
-pub fn truth_or(a: B4, b: B4) -> B4 { a.truth_or(b) }
-pub fn bnot(a: B4) -> B4 { a.bnot() }
-pub fn dialetheic(a: B4) -> bool { a.dialetheic() }
-pub fn designated(a: B4) -> bool { a.designated() }
-pub fn approx_le(a: B4, b: B4) -> bool { a.approx_le(b) }
-pub fn to_wh2(a: B4) -> (bool, bool) { a.to_wh2() }
-pub fn from_wh2(t: bool, f: bool) -> B4 { B4::from_wh2(t, f) }
+pub fn meet(a: B4, b: B4) -> B4 {
+    a.meet(b)
+}
+pub fn join(a: B4, b: B4) -> B4 {
+    a.join(b)
+}
+pub fn band(a: B4, b: B4) -> B4 {
+    a.band(b)
+}
+pub fn bor(a: B4, b: B4) -> B4 {
+    a.bor(b)
+}
+pub fn truth_and(a: B4, b: B4) -> B4 {
+    a.truth_and(b)
+}
+pub fn truth_or(a: B4, b: B4) -> B4 {
+    a.truth_or(b)
+}
+pub fn bnot(a: B4) -> B4 {
+    a.bnot()
+}
+pub fn dialetheic(a: B4) -> bool {
+    a.dialetheic()
+}
+pub fn designated(a: B4) -> bool {
+    a.designated()
+}
+pub fn approx_le(a: B4, b: B4) -> bool {
+    a.approx_le(b)
+}
+pub fn to_wh2(a: B4) -> (bool, bool) {
+    a.to_wh2()
+}
+pub fn from_wh2(t: bool, f: bool) -> B4 {
+    B4::from_wh2(t, f)
+}
 
 // Legacy aliases for existing kernel code.
-pub fn b4_meet(a: B4, b: B4) -> B4 { a.meet(b) }
-pub fn b4_join(a: B4, b: B4) -> B4 { a.join(b) }
+pub fn b4_meet(a: B4, b: B4) -> B4 {
+    a.meet(b)
+}
+pub fn b4_join(a: B4, b: B4) -> B4 {
+    a.join(b)
+}
 
 /// 4096-cell B4 memory, 2 bits per cell packed into a byte array.
 pub struct B4Memory {
@@ -254,7 +326,10 @@ pub struct B4Stack {
 
 impl B4Stack {
     pub const fn new() -> Self {
-        Self { data: [B4::N; 256], top: 0 }
+        Self {
+            data: [B4::N; 256],
+            top: 0,
+        }
     }
 
     pub fn push(&mut self, v: B4) {
@@ -265,36 +340,53 @@ impl B4Stack {
     }
 
     pub fn pop(&mut self) -> B4 {
-        if self.top == 0 { return B4::N; }
+        if self.top == 0 {
+            return B4::N;
+        }
         self.top -= 1;
         self.data[self.top]
     }
 
     pub fn peek(&self) -> B4 {
-        if self.top == 0 { B4::N } else { self.data[self.top - 1] }
+        if self.top == 0 {
+            B4::N
+        } else {
+            self.data[self.top - 1]
+        }
     }
 
     pub fn peek_at(&self, offset: usize) -> B4 {
-        if offset >= self.top { B4::N } else { self.data[offset] }
+        if offset >= self.top {
+            B4::N
+        } else {
+            self.data[offset]
+        }
     }
 
-    pub fn depth(&self) -> usize { self.top }
+    pub fn depth(&self) -> usize {
+        self.top
+    }
 
-    pub fn clear(&mut self) { self.top = 0; }
+    pub fn clear(&mut self) {
+        self.top = 0;
+    }
 
     /// ROTAT — cyclic shift of the stack by k positions (mod depth).
     /// The element at position i moves to position (i + k) % depth.
     pub fn rotate(&mut self, k: usize) {
         let n = self.top;
-        if n <= 1 { return; }
+        if n <= 1 {
+            return;
+        }
         let k = k % n;
-        if k == 0 { return; }
+        if k == 0 {
+            return;
+        }
         // Cyclic shift right by k: reverse whole, reverse first k, reverse rest
         self.data[..n].reverse();
         self.data[..k].reverse();
         self.data[k..n].reverse();
     }
-
 }
 
 /// 8 × B4 register file.
@@ -305,12 +397,19 @@ pub struct B4Registers {
 
 impl B4Registers {
     pub const fn new() -> Self {
-        Self { regs: [B4::N; 8], engagr: false }
+        Self {
+            regs: [B4::N; 8],
+            engagr: false,
+        }
     }
 
-    pub fn read(&self, i: usize) -> B4 { self.regs[i & 7] }
+    pub fn read(&self, i: usize) -> B4 {
+        self.regs[i & 7]
+    }
 
-    pub fn write(&mut self, i: usize, v: B4) { self.regs[i & 7] = v; }
+    pub fn write(&mut self, i: usize, v: B4) {
+        self.regs[i & 7] = v;
+    }
 
     pub fn clear(&mut self) {
         self.regs = [B4::N; 8];
@@ -323,9 +422,13 @@ impl B4Registers {
 fn belnap_invariants() {
     use B4::*;
     // Frobenius: join(B, x) = B  ∀x (B absorbs join)
-    for &x in &[N, T, F, B] { assert_eq!(B.join(x), B); }
+    for &x in &[N, T, F, B] {
+        assert_eq!(B.join(x), B);
+    }
     // B meet = identity
-    for &x in &[N, T, F, B] { assert_eq!(B.meet(x), x); }
+    for &x in &[N, T, F, B] {
+        assert_eq!(B.meet(x), x);
+    }
     // B fixed-point negation
     assert_eq!(B.bnot(), B);
     // N fixed-point negation
@@ -334,7 +437,9 @@ fn belnap_invariants() {
     assert_eq!(T.bnot(), F);
     assert_eq!(F.bnot(), T);
     // bnot(bnot(x)) = x
-    for &x in &[N, T, F, B] { assert_eq!(x.bnot().bnot(), x); }
+    for &x in &[N, T, F, B] {
+        assert_eq!(x.bnot().bnot(), x);
+    }
     // dialetheic: only B
     assert!(B.dialetheic());
     assert!(!N.dialetheic() && !T.dialetheic() && !F.dialetheic());
