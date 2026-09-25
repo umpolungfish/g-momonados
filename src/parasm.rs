@@ -665,6 +665,12 @@ fn bit_register_product_closure_program(a_width: usize, b_width: usize, n_width:
         writeln!(layout.source, "JMP .cmp_after_{bit}").unwrap();
         writeln!(layout.source, ".cmp_after_{bit}:").unwrap();
     }
+    // Pair transport has fused both factor frames. Fix only an exact product
+    // closure, after every comparison has completed.
+    writeln!(layout.source, "JT %r{closure} .closure_fix").unwrap();
+    layout.source.push_str("JMP .closure_emit\n.closure_fix:\n");
+    writeln!(layout.source, "IFIX %r{closure}").unwrap();
+    layout.source.push_str(".closure_emit:\n");
     writeln!(layout.source, "EMIT %r{closure}\nHALT").unwrap();
     layout.source.push_str(PAIRED_FRAME_LIBRARY_ASM);
     layout.source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
@@ -1215,7 +1221,7 @@ pub fn product_closure_encoded_lsb_first(a: &str, b: &str, n: &str) -> Result<ch
         return Err("product-closure membrane did not produce one closed verdict".into());
     }
     match vm.emit_buffer[0].rsplit_once(" = ").map(|(_, value)| value) {
-        Some("T") => Ok('⊤'),
+        Some("T [FIXED]") => Ok('⊤'),
         Some("F") => Ok('⊥'),
         Some(value) => Err(alloc::format!("product-closure emitted non-classical state {value}")),
         None => Err("product-closure emitted a malformed verdict cell".into()),
@@ -2213,6 +2219,29 @@ mod tests {
         assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊥⊥⊥⊥").unwrap(), '⊤');
         assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥").unwrap(), '⊥');
         assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥⊤").unwrap(), '⊥');
+    }
+
+    #[test]
+    fn paired_product_fuses_before_fixing_only_an_exact_closure() {
+        let program = bit_register_product_closure_program(2, 2, 4);
+        let fuse = program.find("CALL .paired_transport").unwrap();
+        let fix = program.find("IFIX %r").unwrap();
+        assert!(fuse < fix);
+
+        for (target, expected) in [
+            ([B4::F, B4::T, B4::T, B4::F], "T [FIXED]"), // 3 × 3 = 9
+            ([B4::T, B4::T, B4::T, B4::F], "F"),         // 3 × 3 ≠ 8
+        ] {
+            let mut vm = ParaVM::new();
+            vm.load(&program).unwrap();
+            let mut reads = vec![B4::F; 4];
+            reads.extend_from_slice(&target);
+            vm.set_reads(reads);
+            vm.run(None);
+            assert!(vm.halted);
+            assert_eq!(vm.emit_buffer.len(), 1);
+            assert!(vm.emit_buffer[0].ends_with(expected));
+        }
     }
 
     #[test]
