@@ -12,6 +12,8 @@ multiplier and equality closure. The compiler emits register addresses from
 the input widths. The IMASM subroutine performs all pair packing and reversal.
 The shorter operand receives high-order zero cells during transport; only
 its original cells are written back. No numeric decode occurs in this path.
+The pair frames fuse before the equality register reaches `IFIX`. An exact
+product is emitted as `T [FIXED]`; a mismatch is emitted as `F` without fixing.
 
 `.imasm/paired_frame_return.imasm` is the streaming entry used with the
 library. It consumes groups `p0 p1 q0 q1` until the boundary N and emits the
@@ -27,7 +29,7 @@ PROFILE=debug timeout --kill-after=2s 60s ./run_cmds.sh \
   'imasm_close ⊥⊥⊥ ⊥⊥ ⊤⊤⊥⊤⊥'
 ```
 
-All 37 tests passed. The dedicated transport tests cover every paired state,
+The dedicated transport tests cover every paired state,
 empty input, unequal widths, and streams through 1,025 groups. The same run
 includes the existing arithmetic and closure tests. The CLI reports exact
 closure for 7 × 3 = 21 and mismatch for target 20.
@@ -56,7 +58,7 @@ Direct binary trials with `timeout --kill-after=2s 60s`:
 
 | Baked N | Returned factors | In-process time | Result |
 |---|---|---:|---|
-| 21 | 7 × 3 | 12.8 ms | closed |
+| 21 | 7 × 3 | 20.8 ms with fused closure latch | closed |
 | 35 | 7 × 5 | 21.7 ms | closed |
 | 143 | 11 × 13 | 49.3 ms | closed |
 | 8051 | 83 × 97 | 202.6 ms after resident square and cancellation | closed |
@@ -68,7 +70,8 @@ complement division, is the remaining measured bottleneck. The executable
 does not emit partial reports while the phase orbit is open.
 
 `RUSTFLAGS='-D warnings' cargo test --test paired_frame_return --quiet`
-passed all 40 tests. These include comparison of repeated resident phase
+passed all 41 tests. These include comparison of repeated resident phase
 squares with the independent encoded arithmetic path, exact and rejected
 complements, a 131-bit complement, the SIXTEEN_3 transport, and the existing
-arithmetic closure cases.
+arithmetic closure cases. The latch test runs the IMASM stream with both exact
+and mismatched targets and checks that only the exact closure is fixed.

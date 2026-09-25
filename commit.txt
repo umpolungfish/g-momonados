@@ -1,1 +1,1 @@
-I compile encoded inputs into contained phase factor binaries and run phase selection, signed bit-register cancellation, paired return, and product closure through the IMASM arithmetic circuits. I keep one square-and-reduce circuit resident, test the returned factors and wider complement words with warnings denied, and record the one-minute phase-orbit boundary.
+I fuse paired factor frames before fixing exact IMASM product closure, and I preserve mismatches as unfixed. I verify both paths and bake a contained encoded-numeral trial.
