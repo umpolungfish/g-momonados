@@ -877,6 +877,174 @@ fn bit_register_powmod_program(base_width: usize, exponent_width: usize, modulus
     source
 }
 
+/// One resident dyadic phase step. The same assembled instruction stream is
+/// reused as the phase residue changes; every square and reduction is in it.
+pub struct PhaseSquare {
+    vm: ParaVM,
+    modulus: Vec<B4>,
+    width: usize,
+}
+
+/// Build the odd-anchor inverse recurrence. At step k, the residual's low
+/// cell selects q_k. A selected bit subtracts the candidate register, then
+/// the signed residual shifts once. The remaining residual is the closure.
+fn bit_register_complement_program(candidate_width: usize, source_width: usize) -> String {
+    use core::fmt::Write as _;
+    let width = candidate_width.max(source_width) + 2;
+    let candidate_start = 32;
+    let source_start = candidate_start + candidate_width;
+    let residual_start = source_start + source_width;
+    let difference_start = residual_start + width;
+    let complement_start = difference_start + width;
+    let borrow = complement_start + source_width;
+    let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for reg in candidate_start..source_start + source_width {
+        writeln!(source, "READ %r{reg}").unwrap();
+    }
+    writeln!(source, "JF %r{candidate_start} .complement_odd\nHALT\n.complement_odd:").unwrap();
+    for bit in 0..width {
+        let input = if bit < source_width { source_start + bit } else { 11 };
+        writeln!(source, "MOVE %r{input} %r{}", residual_start + bit).unwrap();
+    }
+    for step in 0..source_width {
+        writeln!(source, "MOVE %r{residual_start} %r{}", complement_start + step).unwrap();
+        writeln!(source, "JT %r{} .complement_shift_{step}", complement_start + step).unwrap();
+        writeln!(source, "MOVE %r11 %r{borrow}").unwrap();
+        for bit in 0..width {
+            writeln!(source, "MOVE %r{} %r0", residual_start + bit).unwrap();
+            let input = if bit < candidate_width { candidate_start + bit } else { 11 };
+            writeln!(source, "MOVE %r{input} %r1\nMOVE %r{borrow} %r2\nCALL .full_subtractor").unwrap();
+            writeln!(source, "MOVE %r3 %r{}\nMOVE %r4 %r{borrow}", difference_start + bit).unwrap();
+        }
+        for bit in 0..width {
+            writeln!(source, "MOVE %r{} %r{}", difference_start + bit, residual_start + bit).unwrap();
+        }
+        writeln!(source, ".complement_shift_{step}:").unwrap();
+        for bit in 0..width - 1 {
+            writeln!(source, "MOVE %r{} %r{}", residual_start + bit + 1, residual_start + bit).unwrap();
+        }
+    }
+    for bit in 0..width {
+        writeln!(source, "JT %r{} .complement_zero_{bit}\nHALT\n.complement_zero_{bit}:",
+            residual_start + bit).unwrap();
+    }
+    for bit in 0..source_width {
+        writeln!(source, "EMIT %r{}", complement_start + bit).unwrap();
+    }
+    source.push_str("HALT\n");
+    source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    source
+}
+
+pub fn complement_encoded_lsb_first(candidate: &str, source: &str)
+    -> Result<Option<String>, String> {
+    let decode = |stream: &str| stream.chars().map(|symbol| match symbol {
+        '⊤' => Ok(B4::T),
+        '⊥' => Ok(B4::F),
+        other => Err(alloc::format!("invalid complement cell {other:?}")),
+    }).collect::<Result<Vec<_>, _>>();
+    let candidate_bits = decode(candidate)?;
+    let source_bits = decode(source)?;
+    if candidate_bits.is_empty() || source_bits.is_empty() {
+        return Err("complement requires two encoded words".into());
+    }
+    let mut reads = candidate_bits.clone();
+    reads.extend_from_slice(&source_bits);
+    let mut vm = ParaVM::new();
+    vm.load(&bit_register_complement_program(candidate_bits.len(), source_bits.len()))?;
+    vm.set_reads(reads);
+    vm.run(None);
+    if !vm.halted { return Err("complement did not halt".into()); }
+    if vm.emit_buffer.is_empty() { return Ok(None); }
+    if vm.emit_buffer.len() != source_bits.len() {
+        return Err("complement emitted an incomplete word".into());
+    }
+    let mut complement = String::new();
+    for cell in &vm.emit_buffer {
+        let (_, value) = cell.rsplit_once(" = ")
+            .ok_or_else(|| "complement emitted a malformed cell".to_string())?;
+        match value {
+            "T" => complement.push('⊤'),
+            "F" => complement.push('⊥'),
+            _ => return Err(alloc::format!("complement emitted {value}")),
+        }
+    }
+    Ok(Some(complement))
+}
+
+impl PhaseSquare {
+    pub fn new(modulus: &str) -> Result<Self, String> {
+        use core::fmt::Write as _;
+        let bits = modulus.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid phase modulus cell {other:?}")),
+        }).collect::<Result<Vec<_>, _>>()?;
+        if bits.is_empty() { return Err("empty phase modulus".into()); }
+        let width = bits.len();
+        let base_start = 32;
+        let modulus_start = base_start + width;
+        let product_start = modulus_start + width;
+        let quotient_start = product_start + 2 * width;
+        let remainder_start = quotient_start + 2 * width;
+        let work_start = remainder_start + width + 1;
+        let base: Vec<_> = (base_start..base_start + width).collect();
+        let modulus_regs: Vec<_> = (modulus_start..modulus_start + width).collect();
+        let product: Vec<_> = (product_start..product_start + 2 * width).collect();
+        let quotient: Vec<_> = (quotient_start..quotient_start + 2 * width).collect();
+        let remainder: Vec<_> = (remainder_start..remainder_start + width + 1).collect();
+        let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+        for register in base.iter().chain(modulus_regs.iter()) {
+            writeln!(source, "READ %r{register}").unwrap();
+        }
+        append_bit_register_mul(&mut source, &base, &base, &product, work_start);
+        append_bit_register_divmod(&mut source, &product, &modulus_regs, &quotient,
+            &remainder, work_start, "phase_square_reduce");
+        for register in remainder.iter().take(width) {
+            writeln!(source, "EMIT %r{register}").unwrap();
+        }
+        source.push_str("HALT\n");
+        source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+        let mut vm = ParaVM::new();
+        vm.load(&source)?;
+        Ok(Self { vm, modulus: bits, width })
+    }
+
+    pub fn observe(&mut self, residue: &str) -> Result<String, String> {
+        let mut reads = residue.chars().map(|symbol| match symbol {
+            '⊤' => Ok(B4::T),
+            '⊥' => Ok(B4::F),
+            other => Err(alloc::format!("invalid phase residue cell {other:?}")),
+        }).collect::<Result<Vec<_>, _>>()?;
+        if reads.len() > self.width { return Err("phase residue exceeds modulus width".into()); }
+        reads.resize(self.width, B4::T);
+        reads.extend_from_slice(&self.modulus);
+        self.vm.registers.clear();
+        self.vm.belief.clear();
+        self.vm.call_stack.clear();
+        self.vm.data_stack.clear();
+        self.vm.emit_buffer.clear();
+        self.vm.pc = 0;
+        self.vm.halted = false;
+        self.vm.set_reads(reads);
+        self.vm.run(None);
+        if !self.vm.halted || self.vm.emit_buffer.len() != self.width {
+            return Err("resident phase square did not return a complete residue".into());
+        }
+        let mut result = String::new();
+        for cell in &self.vm.emit_buffer {
+            let (_, value) = cell.rsplit_once(" = ")
+                .ok_or_else(|| "resident phase square emitted a malformed cell".to_string())?;
+            match value {
+                "T" => result.push('⊤'),
+                "F" => result.push('⊥'),
+                _ => return Err(alloc::format!("resident phase square emitted {value}")),
+            }
+        }
+        Ok(result)
+    }
+}
+
 /// Run the IMASM adder on two LSB-first numeral streams, returning the
 /// emitted LSB-first sum including its final carry cell. This boundary only
 /// translates the encoded alphabet to/from ParaVM's B4 cells; all addition,
