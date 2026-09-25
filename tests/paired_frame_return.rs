@@ -65,3 +65,34 @@ fn paired_return_unequal_factor_widths() {
         B4::F, B4::T, B4::T, B4::T]);
     assert_eq!(readout(&vm), ["F", "F", "F", "F", "F", "T", "T", "T"]);
 }
+
+#[test]
+fn resident_phase_square_matches_encoded_arithmetic_across_observations() {
+    for modulus in ["⊥⊤⊥⊤⊥", "⊥⊥⊤⊤⊤⊥"] {
+        let mut square = parasm::PhaseSquare::new(modulus).unwrap();
+        let mut residue = "⊤⊥".to_string();
+        for _ in 0..5 {
+            let product = parasm::multiply_encoded_lsb_first(&residue, &residue).unwrap();
+            let expected = parasm::modulo_encoded_lsb_first(&product, modulus).unwrap();
+            let observed = square.observe(&residue).unwrap();
+            assert_eq!(observed, expected.chars().take(modulus.chars().count()).collect::<String>());
+            residue = observed;
+        }
+    }
+}
+
+#[test]
+fn encoded_complement_cancels_and_returns_both_signs_of_residual() {
+    assert_eq!(parasm::complement_encoded_lsb_first("⊥⊥", "⊥⊤⊥⊤⊥").unwrap(),
+        Some("⊥⊥⊥⊤⊤".into()));
+    assert_eq!(parasm::complement_encoded_lsb_first("⊥⊥⊥", "⊥⊤⊥⊤⊥").unwrap(),
+        Some("⊥⊥⊤⊤⊤".into()));
+    assert_eq!(parasm::complement_encoded_lsb_first("⊥⊤⊥", "⊥⊤⊥⊤⊥").unwrap(), None);
+}
+
+#[test]
+fn encoded_complement_scales_with_the_source_word() {
+    let source = format!("⊥⊥{}⊥⊥", "⊤".repeat(127));
+    let expected = format!("⊥{}⊥⊤", "⊤".repeat(128));
+    assert_eq!(parasm::complement_encoded_lsb_first("⊥⊥", &source).unwrap(), Some(expected));
+}
