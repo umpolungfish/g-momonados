@@ -378,6 +378,82 @@ static void exact_complement(Number *quotient, const Number *factor) {
     if (!is_zero(&residual)) byte_zero(quotient, sizeof(*quotient));
 }
 
+static int consume_literal(const char **cursor, const char *literal) {
+    size_t i = 0;
+    while (literal[i] != 0 && (*cursor)[i] != 0
+           && literal[i] == (*cursor)[i]) ++i;
+    if (literal[i] != 0) return 0;
+    *cursor += i;
+    return 1;
+}
+
+static int extractor_word_depth(size_t *depth) {
+    const char *cursor = baked_extract_word;
+    *depth = 0;
+    if (!consume_literal(&cursor, "⊢")) return 0;
+    while (consume_literal(&cursor, "∈")) ++*depth;
+    if (*depth == 0 || !consume_literal(&cursor, "≻⊤≺⊥⊞⋈")) return 0;
+    for (size_t i = 0; i < *depth; ++i)
+        if (!consume_literal(&cursor, "∋")) return 0;
+    return consume_literal(&cursor, "⊙⊡⊣") && *cursor == 0;
+}
+
+static size_t nested_extract_budget(void) {
+    if (LIMBS == 0 || LIMBS > ((size_t)-1) / LIMBS) return 0;
+    size_t work = LIMBS * LIMBS;
+    return work > 256u ? 0u : 256u / work;
+}
+
+static void nested_extract_step(Number *out, const Number *value,
+                                const Number *constant) {
+    Number square;
+    montgomery_multiply(&square, value, value);
+    add_mod(out, &square, constant);
+}
+
+/* The bounded EXTRACT carrier is nested outside the phase winding. Its
+ * per-arm work estimate contracts with squared register width; if a full
+ * gcd-step exceeds that outer-arm budget, it yields directly to phase winding. */
+static int nested_extract_candidate(Number *candidate, size_t depth) {
+    size_t budget = nested_extract_budget();
+    if (budget == 0) return 0;
+
+    Number one, two, seed, constant;
+    byte_zero(&one, sizeof(one));
+    one.limb[0] = 1u;
+    byte_zero(&two, sizeof(two));
+    two.limb[0] = 2u;
+    byte_copy(&seed, &two, sizeof(seed));
+    byte_copy(&constant, &one, sizeof(constant));
+
+    for (size_t arm = 0; arm < depth; ++arm) {
+        Number x, y, mont_constant;
+        to_montgomery(&x, &seed);
+        byte_copy(&y, &x, sizeof(y));
+        to_montgomery(&mont_constant, &constant);
+
+        for (size_t step = 0; step < budget; ++step) {
+            Number next_x, next_y;
+            nested_extract_step(&next_x, &x, &mont_constant);
+            nested_extract_step(&next_y, &y, &mont_constant);
+            nested_extract_step(&next_y, &next_y, &mont_constant);
+            byte_copy(&x, &next_x, sizeof(x));
+            byte_copy(&y, &next_y, sizeof(y));
+
+            Number difference;
+            if (compare(&x, &y) >= 0) (void)subtract(&difference, &x, &y);
+            else (void)subtract(&difference, &y, &x);
+            binary_gcd(candidate, &difference, &modulus);
+            if (!is_one(candidate) && !is_zero(candidate)
+                && !equal(candidate, &modulus)) return 1;
+            if (equal(candidate, &modulus)) break;
+        }
+        add_mod(&seed, &seed, &one);
+        add_mod(&constant, &constant, &two);
+    }
+    return 0;
+}
+
 static void emit_bytes(const char *bytes, size_t length) {
     (void)syscall6(1, 1, (long)bytes, (long)length, 0, 0, 0);
 }
@@ -537,6 +613,17 @@ int main(void) {
     to_montgomery(&mont_one, &one);
     Number two = one;
     add_one_mod(&two);
+    size_t extract_depth;
+    if (extractor_word_depth(&extract_depth)) {
+        Number candidate, complement;
+        if (nested_extract_candidate(&candidate, extract_depth)) {
+            exact_complement(&complement, &candidate);
+            if (!is_zero(&complement)) {
+                report_pair(&candidate, &complement, started);
+                return 0;
+            }
+        }
+    }
     Number base = baked_base;
     for (;;) {
         Number current, previous;
