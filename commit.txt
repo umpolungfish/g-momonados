@@ -1,1 +1,1 @@
-I replace the factor-return GCD divider with a looping IMASM split, shift, cancellation, and multiplicative rejoin. I test the encoded circuit across small and wide operands and bake contained semiprime trials.
+I make the phase-frame factor readout feed an odd-anchor complement whose zero residual closes the pair itself. I evaluate support in width-eight IMASM frames, compile the contained membranes for release, and record the wider closed trials.
