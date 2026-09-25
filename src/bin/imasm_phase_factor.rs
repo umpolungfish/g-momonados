@@ -14,6 +14,13 @@ use vox_core::godel_calculus::{self, Nat, Structure};
 
 const BAKED_N_WORD: Option<&str> = option_env!("IMASM_PHASE_N_WORD");
 const BAKED_BASE_WORD: Option<&str> = option_env!("IMASM_PHASE_BASE_WORD");
+fn single_baked_base() -> bool {
+    option_env!("IMASM_PHASE_SINGLE_BASE") == Some("1")
+}
+
+fn read_support_every_phase() -> bool {
+    option_env!("IMASM_PHASE_SUPPORT_EVERY") == Some("1")
+}
 
 fn trim(mut cells: String) -> String {
     while cells.ends_with('⊤') && cells.chars().count() > 1 {
@@ -84,7 +91,9 @@ fn factor_from_candidate(n: &str, candidate: String) -> Result<Option<(String, S
 }
 
 fn should_read_support(phase_index: usize, base: &str) -> bool {
-    (phase_index == 0 && base != "⊥⊤") || (phase_index > 8 && phase_index.is_power_of_two())
+    read_support_every_phase()
+        || (phase_index == 0 && base != "⊥⊤")
+        || (phase_index > 8 && phase_index.is_power_of_two())
 }
 
 fn phase_return(n: &str, base: &str) -> Result<Option<(String, String)>, String> {
@@ -133,6 +142,9 @@ fn run() -> Result<(), String> {
                 started.elapsed()
             );
             return Ok(());
+        }
+        if single_baked_base() {
+            return Err("the isolated baked-base orbit closed without a factor pair".into());
         }
         base = trim(parasm::add_encoded_lsb_first(&base, "⊥")?);
     }
