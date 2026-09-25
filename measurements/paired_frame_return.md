@@ -277,19 +277,22 @@ successful output pairs at a given modulus have byte-identical Gödel words.
 | `10007000070049` | 32 | `10007 × 1000000007` | 0.11 s | closed |
 | `10007000070049` | 64 | `10007 × 1000000007` | 0.12 s | closed |
 | `10007000070049` | 256 | `10007 × 1000000007` | 0.14 s | closed |
+| `10007000070049` | 1024 | `10007 × 1000000007` | 0.19 s | closed |
 | `(2^61−1)(2^2203−1)` (682 digits) | 2 | `(2^61−1) × (2^2203−1)` | 45.40 s | closed |
 | `(2^61−1)(2^2203−1)` (682 digits) | 64 | `(2^61−1) × (2^2203−1)` | 47.00 s | closed |
+| `(2^61−1)(2^2203−1)` (682 digits) | 256 | `(2^61−1) × (2^2203−1)` | 48.00 s | closed |
 | `(2^1279−1)(2^2203−1)` (1048 digits) | 1 | no pair emitted | >60 s | timeout |
 | `(2^1279−1)(2^2203−1)` (1048 digits) | 64 | no pair emitted | >60 s | timeout |
 
 On the 14-digit semiprime, the first seed arm closes; raising depth from 1 to
-256 keeps execution below 0.15 seconds. On the 682-digit case, depth 64 returns
-the same pair as depth 2, while the phase route dominates the wall time. For
-the 1048-digit case, both depths reach the same timeout. Its width puts the
-outer-arm work estimate beyond the current bounded extraction budget, so those
-frames reach the existing phase route without adding an extraction step. The
-next increase is to make the nested seed ladder productive at that width
-without charging its full wide-register cost ahead of the phase arm.
+1024 keeps execution below 0.20 seconds. On the 682-digit case, depths 64 and
+256 return the same pair as depth 2, while the phase route dominates the wall
+time. For the 1048-digit case, depths 1 and 64 reach the same timeout. Its
+width puts the outer-arm work estimate beyond the current bounded extraction
+budget, so those frames reach the existing phase route without adding an
+extraction step. The next increase is to make the nested seed ladder
+productive at that width without charging its full wide-register cost ahead of
+the phase arm.
 
 The builder accepts decimal depth text with arbitrarily many leading zeroes
 without converting the depth to a fixed-width shell integer. A 100-character
