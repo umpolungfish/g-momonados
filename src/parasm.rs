@@ -1390,7 +1390,7 @@ pub struct MontgomeryPhase {
     enter_input_width: usize,
     square_vm: ParaVM,
     support_vm: ParaVM,
-    support_coefficients: Option<String>,
+    support_coefficients: Option<(String, bool)>,
     modulus: Vec<B4>,
     width: usize,
 }
@@ -2005,6 +2005,93 @@ fn montgomery_support_run_program(width: usize, coefficients: &[B4]) -> String {
     source
 }
 
+/// Continue a support-frame program directly into the encoded binary GCD.
+/// The support value and modulus already occupy IMASM registers, so the GCD
+/// receives those registers without an emitted-value/host-reassembly seam.
+fn montgomery_support_gcd_program(support: String, width: usize, run_based: bool) -> String {
+    use core::fmt::Write as _;
+
+    let main_end = "HALT\n.support_montgomery_product:";
+    let (before_subroutine, after_halt) = support
+        .split_once(main_end)
+        .expect("support program has a main halt and product subroutine");
+    let after_halt = after_halt
+        .strip_suffix(BIT_REGISTER_GATE_LIBRARY_ASM)
+        .expect("support program ends with the shared IMASM gate library");
+    let support_total = before_subroutine
+        .lines()
+        .filter_map(|line| line.strip_prefix("EMIT %r"))
+        .filter_map(|register| register.parse::<usize>().ok())
+        .collect::<Vec<_>>();
+    assert_eq!(support_total.len(), width);
+
+    let gcd = bit_register_gcd_program(width, width);
+    let gcd = gcd
+        .strip_prefix("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n")
+        .expect("GCD program starts with the IMASM entry frame");
+    let gcd = gcd
+        .strip_suffix(BIT_REGISTER_GATE_LIBRARY_ASM)
+        .expect("GCD program ends with the shared IMASM gate library");
+    let gcd = gcd.strip_suffix('\n').unwrap_or(gcd);
+    // The support scratch banks are dead after evaluation. Re-enter the GCD
+    // working banks there, preserving the support value and modulus in place.
+    let workspace = 32 + (if run_based { 5 } else { 3 }) * width;
+
+    let mut embedded_gcd = String::new();
+    for line in gcd.lines() {
+        if line.starts_with("READ %r") {
+            continue;
+        }
+
+        let renamed = line.replace(".gcd_", ".support_gcd_");
+        let mut rewritten = String::with_capacity(renamed.len() + 8);
+        let bytes = renamed.as_bytes();
+        let mut position = 0;
+        while position < bytes.len() {
+            if position + 2 < bytes.len() && bytes[position] == b'%' && bytes[position + 1] == b'r'
+            {
+                let mut end = position + 2;
+                while end < bytes.len() && bytes[end].is_ascii_digit() {
+                    end += 1;
+                }
+                if end > position + 2 {
+                    let register = renamed[position + 2..end]
+                        .parse::<usize>()
+                        .expect("GCD register operand");
+                    if (32..32 + width).contains(&register) {
+                        write!(rewritten, "%r{}", support_total[register - 32]).unwrap();
+                    } else if (32 + width..32 + 2 * width).contains(&register) {
+                        write!(rewritten, "%r{register}").unwrap();
+                    } else if register >= 32 + 2 * width {
+                        write!(rewritten, "%r{}", workspace + register - (32 + 2 * width)).unwrap();
+                    } else {
+                        rewritten.push_str(&renamed[position..end]);
+                    }
+                    position = end;
+                    continue;
+                }
+            }
+            rewritten.push(bytes[position] as char);
+            position += 1;
+        }
+        embedded_gcd.push_str(&rewritten);
+        embedded_gcd.push('\n');
+    }
+
+    let mut combined = String::with_capacity(support.len() + embedded_gcd.len() + 64);
+    combined.push_str(before_subroutine);
+    combined.push_str("JMP .support_gcd_entry\n.support_montgomery_product:");
+    combined.push_str(after_halt);
+    let subroutine_end = combined
+        .rfind("RET\n")
+        .expect("support product subroutine returns");
+    let insertion = subroutine_end + "RET\n".len();
+    combined.insert_str(insertion, ".support_gcd_entry:\n");
+    combined.insert_str(insertion + ".support_gcd_entry:\n".len(), &embedded_gcd);
+    combined.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    combined
+}
+
 /// Build the odd-anchor inverse recurrence. At step k, the residual's low
 /// cell selects q_k. A selected bit subtracts the candidate register, then
 /// the signed residual shifts once. The remaining residual is the closure.
@@ -2349,11 +2436,12 @@ impl MontgomeryPhase {
     /// Montgomery frame. The encoded coefficient stream is consumed by the
     /// resident IMASM Horner circuit. The result is R-scaled, which preserves
     /// its gcd with the odd modulus and lets extraction act on that readout.
-    pub fn support_polynomial(
+    fn support_value(
         &mut self,
         residue: &str,
         one_montgomery: &str,
         coefficients_lsb_first: &str,
+        with_gcd: bool,
     ) -> Result<String, String> {
         let decode = |stream: &str| {
             stream
@@ -2371,7 +2459,13 @@ impl MontgomeryPhase {
         if reads.len() > self.width || unit.len() > self.width {
             return Err("support-polynomial register exceeds modulus width".into());
         }
-        if self.support_coefficients.as_deref() != Some(coefficients_lsb_first) {
+        let circuit_cached =
+            self.support_coefficients
+                .as_ref()
+                .is_some_and(|(cached, cached_gcd)| {
+                    cached == coefficients_lsb_first && *cached_gcd == with_gcd
+                });
+        if !circuit_cached {
             let mut set_runs = 0usize;
             let mut active = false;
             for bit in &coefficient_bits {
@@ -2382,14 +2476,18 @@ impl MontgomeryPhase {
                     active = false;
                 }
             }
-            let circuit = if set_runs <= self.width.div_ceil(8) {
+            let run_based = set_runs <= self.width.div_ceil(8);
+            let mut circuit = if run_based {
                 montgomery_support_run_program(self.width, &coefficient_bits)
             } else {
                 montgomery_support_program(self.width)
             };
+            if with_gcd {
+                circuit = montgomery_support_gcd_program(circuit, self.width, run_based);
+            }
             self.support_vm.load(&circuit)?;
             self.support_vm.enable_dense_belief();
-            self.support_coefficients = Some(String::from(coefficients_lsb_first));
+            self.support_coefficients = Some((String::from(coefficients_lsb_first), with_gcd));
         }
         reads.resize(self.width, B4::T);
         unit.resize(self.width, B4::T);
@@ -2407,11 +2505,17 @@ impl MontgomeryPhase {
         vm.halted = false;
         vm.set_reads(reads);
         vm.run(None);
-        if !vm.halted || vm.emit_buffer.len() != self.width {
-            return Err("support-polynomial circuit emitted an incomplete residue".into());
+        let expected = self.width * if with_gcd { 2 } else { 1 };
+        if !vm.halted || vm.emit_buffer.len() != expected {
+            return Err("support-frame circuit emitted an incomplete register result".into());
         }
         let mut result = String::new();
-        for cell in &vm.emit_buffer {
+        let cells = if with_gcd {
+            &vm.emit_buffer[self.width..]
+        } else {
+            &vm.emit_buffer[..self.width]
+        };
+        for cell in cells {
             let (_, value) = cell
                 .rsplit_once(" = ")
                 .ok_or_else(|| "support-polynomial circuit emitted a malformed cell".to_string())?;
@@ -2422,6 +2526,27 @@ impl MontgomeryPhase {
             }
         }
         Ok(result)
+    }
+
+    /// Evaluate the support polynomial and take its common-factor readout in
+    /// one resident IMASM circuit. The intermediate support value remains an
+    /// internal register state and is never returned across the frame boundary.
+    pub fn support_gcd(
+        &mut self,
+        residue: &str,
+        one_montgomery: &str,
+        coefficients_lsb_first: &str,
+    ) -> Result<String, String> {
+        self.support_value(residue, one_montgomery, coefficients_lsb_first, true)
+    }
+
+    pub fn support_polynomial(
+        &mut self,
+        residue: &str,
+        one_montgomery: &str,
+        coefficients_lsb_first: &str,
+    ) -> Result<String, String> {
+        self.support_value(residue, one_montgomery, coefficients_lsb_first, false)
     }
 }
 

@@ -159,6 +159,8 @@ fn support_polynomial_extracts_a_pair_in_the_phase_frame() {
     let support = phase.support_polynomial(&next, &montgomery_one, n).unwrap();
     let factor = parasm::gcd_encoded_lsb_first(&support, n).unwrap();
     assert_eq!(factor.trim_end_matches('⊤'), "⊥⊤⊥"); // 5
+    let fused_factor = phase.support_gcd(&next, &montgomery_one, n).unwrap();
+    assert_eq!(fused_factor, factor);
     let complement = parasm::complement_encoded_lsb_first(&factor, n).unwrap();
     assert_eq!(complement, Some("⊥⊥⊤⊤".into())); // 3, emitted after zero residual
 }
@@ -172,8 +174,13 @@ fn support_frame_evaluation_matches_encoded_horner_across_partial_frames() {
         value
     }
 
-    for n in ["⊥⊥⊥⊥", "⊥⊥⊥⊥⊥⊥⊥⊥", "⊥⊤⊤⊤⊤⊥⊥⊥⊥", "⊥⊤⊤⊤⊤⊤⊤⊥⊥⊥⊥"]
-    {
+    for n in [
+        "⊥⊥⊥⊥",
+        "⊥⊥⊥⊥⊥⊥⊥⊥",
+        "⊥⊤⊤⊤⊤⊥⊥⊥⊥",
+        "⊥⊤⊤⊤⊤⊤⊤⊥⊥⊥⊥",
+        "⊥⊤⊥⊤⊥⊤⊥⊤⊥⊤⊥",
+    ] {
         let width = n.chars().count();
         let base = "⊥⊥";
         let mut phase = parasm::MontgomeryPhase::new(n).unwrap();
@@ -182,6 +189,14 @@ fn support_frame_evaluation_matches_encoded_horner_across_partial_frames() {
         let observed = phase
             .support_polynomial(&shifted_base, &montgomery_one, n)
             .unwrap();
+        let expected_gcd = parasm::gcd_encoded_lsb_first(&observed, n).unwrap();
+        assert_eq!(
+            phase
+                .support_gcd(&shifted_base, &montgomery_one, n)
+                .unwrap(),
+            expected_gcd,
+            "fused support GCD N={n}"
+        );
 
         let mut expected = "⊤".to_string();
         for coefficient in n.chars().rev() {

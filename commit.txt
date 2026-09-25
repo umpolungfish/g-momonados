@@ -1,1 +1,1 @@
-I evaluate long IMASM support runs through a geometric-sum circuit, omit the tautological base-two read, and carry the phase extractor through the 404-digit semiprime. I record the 682-digit timeout boundary with the baked trials.
+I fuse the encoded support read and binary GCD into one resident IMASM circuit, reuse the support scratch registers for the GCD, and keep the complementary residual as pair closure. I test both support layouts, record the 404-digit closure and 682-digit timeout, and preserve the baked trial binaries.
