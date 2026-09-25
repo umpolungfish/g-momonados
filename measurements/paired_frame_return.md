@@ -256,3 +256,43 @@ size no longer travels through one `sed` argument. The rebuilt 8192-bit-factor
 case and both larger Mersenne cases passed that build path and reached the
 runtime cutoff. All timeout exits are 124; elapsed wall reports include process
 termination and cleanup after the 60-second timeout.
+
+### Nested extraction frames
+
+`vox_phase_factor_build.sh` accepts a final `nested-extract-depth` value. The
+compiled membrane carries the extraction work word inside that many balanced
+`∈ ... ∋` frames. The membrane reads the frame depth from the baked word and
+uses it as the number of seed arms in the outer extraction pass. Each arm is
+bounded by a register-width work budget; when that budget is zero, control
+passes directly to the existing phase-winding route. A returned candidate
+still emits only after its exact complementary residual reaches zero.
+
+These binaries were each run through `vox run` with a 60-second timeout. All
+successful output pairs at a given modulus have byte-identical Gödel words.
+
+| Baked N | Depth | Returned factors | V⊙x wall | Result |
+|---|---:|---|---:|---|
+| `10007000070049` | 1 | `10007 × 1000000007` | 0.11 s | closed |
+| `10007000070049` | 2 | `10007 × 1000000007` | 0.12 s | closed |
+| `10007000070049` | 32 | `10007 × 1000000007` | 0.11 s | closed |
+| `10007000070049` | 64 | `10007 × 1000000007` | 0.12 s | closed |
+| `10007000070049` | 256 | `10007 × 1000000007` | 0.14 s | closed |
+| `(2^61−1)(2^2203−1)` (682 digits) | 2 | `(2^61−1) × (2^2203−1)` | 45.40 s | closed |
+| `(2^61−1)(2^2203−1)` (682 digits) | 64 | `(2^61−1) × (2^2203−1)` | 47.00 s | closed |
+| `(2^1279−1)(2^2203−1)` (1048 digits) | 1 | no pair emitted | >60 s | timeout |
+| `(2^1279−1)(2^2203−1)` (1048 digits) | 64 | no pair emitted | >60 s | timeout |
+
+On the 14-digit semiprime, the first seed arm closes; raising depth from 1 to
+256 keeps execution below 0.15 seconds. On the 682-digit case, depth 64 returns
+the same pair as depth 2, while the phase route dominates the wall time. For
+the 1048-digit case, both depths reach the same timeout. Its width puts the
+outer-arm work estimate beyond the current bounded extraction budget, so those
+frames reach the existing phase route without adding an extraction step. The
+next increase is to make the nested seed ladder productive at that width
+without charging its full wide-register cost ahead of the phase arm.
+
+The builder accepts decimal depth text with arbitrarily many leading zeroes
+without converting the depth to a fixed-width shell integer. A 100-character
+zero-padded spelling of depth 2 builds and runs to the same factor pair in
+0.11 seconds. The frame word itself, and therefore build storage, grows with
+the requested depth.
