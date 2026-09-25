@@ -6,7 +6,7 @@ IG_catalog.json
 .ordinals.log
 # compiled binaries, one per word in imasm/ -- regenerate with
 # `python3 imasm_compile_all.py`, kept out of the tracked tree same as target/
-bin/
+/bin/
 # the whole corpus linked into one executable -- regenerate with
 # `python3 imasm_link.py`, build output like target/ and bin/
 gmomonados.imasm.bin
