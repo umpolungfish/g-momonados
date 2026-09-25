@@ -751,10 +751,10 @@ fn bit_register_divmod_program(a_width: usize, b_width: usize) -> String {
     source
 }
 
-/// Compose a bounded, width-specialized Euclidean chain. Each quotient and
-/// remainder is produced by the same IMASM restoring divider, with early
-/// closure when the encoded divisor reaches zero. The width controls only
-/// circuit topology; both operands remain runtime B4 tapes.
+/// Split common powers of two into a scale register, then repeatedly shift
+/// even arms and cancel the smaller odd arm from the larger. The live IMASM
+/// loop is width-specialized but has no division chain or iteration ceiling.
+/// A final multiplication rejoins the scale with the odd GCD.
 fn bit_register_gcd_program(a_width: usize, b_width: usize) -> String {
     use core::fmt::Write as _;
 
@@ -763,13 +763,18 @@ fn bit_register_gcd_program(a_width: usize, b_width: usize) -> String {
     let b_input = a_input + a_width;
     let a_bank = b_input + b_width;
     let b_bank = a_bank + width;
-    let quotient = b_bank + width;
-    let remainder = quotient + width;
-    let work = remainder + width + 1;
+    let scale = b_bank + width;
+    let difference = scale + width;
+    let borrow = difference + width;
+    let result = borrow + 1;
+    let product = result + width;
+    let work = product + 2 * width;
     let a_bits: Vec<usize> = (a_bank..a_bank + width).collect();
     let b_bits: Vec<usize> = (b_bank..b_bank + width).collect();
-    let q_bits: Vec<usize> = (quotient..quotient + width).collect();
-    let r_bits: Vec<usize> = (remainder..remainder + width + 1).collect();
+    let scale_bits: Vec<usize> = (scale..scale + width).collect();
+    let difference_bits: Vec<usize> = (difference..difference + width).collect();
+    let result_bits: Vec<usize> = (result..result + width).collect();
+    let product_bits: Vec<usize> = (product..product + 2 * width).collect();
     let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
     for bit in 0..a_width { writeln!(source, "READ %r{}", a_input + bit).unwrap(); }
     for bit in 0..b_width { writeln!(source, "READ %r{}", b_input + bit).unwrap(); }
@@ -778,37 +783,64 @@ fn bit_register_gcd_program(a_width: usize, b_width: usize) -> String {
         else { writeln!(source, "MOVE %r11 %r{}", a_bits[bit]).unwrap(); }
         if bit < b_width { writeln!(source, "MOVE %r{} %r{}", b_input + bit, b_bits[bit]).unwrap(); }
         else { writeln!(source, "MOVE %r11 %r{}", b_bits[bit]).unwrap(); }
+        writeln!(source, "MOVE %r{} %r{}", if bit == 0 { 12 } else { 11 }, scale_bits[bit]).unwrap();
     }
 
-    // Euclid takes fewer than 2w divisions for w-bit nonnegative operands.
-    // All iterations are present in the word; divisor-zero branches close
-    // the chain as soon as the live remainder becomes zero.
-    for iteration in 0..(2 * width + 1) {
-        for (bit, &register) in b_bits.iter().enumerate() {
-            writeln!(source, "JT %r{register} .gcd_zero_{iteration}_{bit}").unwrap();
-            writeln!(source, "JF %r{register} .gcd_continue_{iteration}").unwrap();
-            writeln!(source, ".gcd_zero_{iteration}_{bit}:").unwrap();
-        }
-        source.push_str("JMP .gcd_done\n");
-        writeln!(source, ".gcd_continue_{iteration}:").unwrap();
-        append_bit_register_divmod(
-            &mut source, &a_bits, &b_bits, &q_bits, &r_bits, work,
-            &alloc::format!("gcd_div_{iteration}"),
-        );
+    source.push_str(".gcd_loop:\n");
+    for &register in &a_bits { writeln!(source, "JF %r{register} .gcd_a_nonzero").unwrap(); }
+    source.push_str("JMP .gcd_emit_b\n.gcd_a_nonzero:\n");
+    for &register in &b_bits { writeln!(source, "JF %r{register} .gcd_b_nonzero").unwrap(); }
+    source.push_str("JMP .gcd_emit_a\n.gcd_b_nonzero:\n");
+    writeln!(source, "JT %r{} .gcd_a_even", a_bits[0]).unwrap();
+    writeln!(source, "JT %r{} .gcd_shift_b", b_bits[0]).unwrap();
+    source.push_str("JMP .gcd_odd_pair\n.gcd_a_even:\n");
+    writeln!(source, "JT %r{} .gcd_shift_both", b_bits[0]).unwrap();
+    source.push_str("JMP .gcd_shift_a\n.gcd_shift_both:\n");
+    for bit in (1..width).rev() {
+        writeln!(source, "MOVE %r{} %r{}", scale_bits[bit - 1], scale_bits[bit]).unwrap();
+    }
+    writeln!(source, "MOVE %r11 %r{}", scale_bits[0]).unwrap();
+    for bit in 0..width - 1 {
+        writeln!(source, "MOVE %r{} %r{}", b_bits[bit + 1], b_bits[bit]).unwrap();
+    }
+    writeln!(source, "MOVE %r11 %r{}", b_bits[width - 1]).unwrap();
+    source.push_str(".gcd_shift_a:\n");
+    for bit in 0..width - 1 {
+        writeln!(source, "MOVE %r{} %r{}", a_bits[bit + 1], a_bits[bit]).unwrap();
+    }
+    writeln!(source, "MOVE %r11 %r{}", a_bits[width - 1]).unwrap();
+    source.push_str("JMP .gcd_loop\n.gcd_shift_b:\n");
+    for bit in 0..width - 1 {
+        writeln!(source, "MOVE %r{} %r{}", b_bits[bit + 1], b_bits[bit]).unwrap();
+    }
+    writeln!(source, "MOVE %r11 %r{}", b_bits[width - 1]).unwrap();
+    source.push_str("JMP .gcd_loop\n.gcd_odd_pair:\n");
+    for (positive, negative, label) in [(&a_bits, &b_bits, "ab"), (&b_bits, &a_bits, "ba")] {
+        writeln!(source, ".gcd_sub_{label}:").unwrap();
+        writeln!(source, "MOVE %r11 %r{borrow}").unwrap();
         for bit in 0..width {
-            writeln!(source, "MOVE %r{} %r{}", b_bits[bit], a_bits[bit]).unwrap();
-            writeln!(source, "MOVE %r{} %r{}", r_bits[bit], b_bits[bit]).unwrap();
+            writeln!(source, "MOVE %r{} %r0", positive[bit]).unwrap();
+            writeln!(source, "MOVE %r{} %r1", negative[bit]).unwrap();
+            writeln!(source, "MOVE %r{borrow} %r2\nCALL .full_subtractor").unwrap();
+            writeln!(source, "MOVE %r3 %r{}", difference_bits[bit]).unwrap();
+            writeln!(source, "MOVE %r4 %r{borrow}").unwrap();
         }
+        if label == "ab" {
+            writeln!(source, "JF %r{borrow} .gcd_sub_ba").unwrap();
+        }
+        for bit in 0..width - 1 {
+            writeln!(source, "MOVE %r{} %r{}", difference_bits[bit + 1], positive[bit]).unwrap();
+        }
+        writeln!(source, "MOVE %r11 %r{}", positive[width - 1]).unwrap();
+        source.push_str("JMP .gcd_loop\n");
     }
-    // The final bound check prevents a truncated Euclidean chain from
-    // emitting a plausible value if the width-bound invariant is violated.
-    for (bit, &register) in b_bits.iter().enumerate() {
-        writeln!(source, "JT %r{register} .gcd_final_zero_{bit}").unwrap();
-        source.push_str("HALT\n");
-        writeln!(source, ".gcd_final_zero_{bit}:").unwrap();
-    }
-    source.push_str(".gcd_done:\n");
-    for register in &a_bits { writeln!(source, "EMIT %r{register}").unwrap(); }
+    source.push_str(".gcd_emit_a:\n");
+    for bit in 0..width { writeln!(source, "MOVE %r{} %r{}", a_bits[bit], result_bits[bit]).unwrap(); }
+    source.push_str("JMP .gcd_rejoin\n.gcd_emit_b:\n");
+    for bit in 0..width { writeln!(source, "MOVE %r{} %r{}", b_bits[bit], result_bits[bit]).unwrap(); }
+    source.push_str(".gcd_rejoin:\n");
+    append_bit_register_mul(&mut source, &result_bits, &scale_bits, &product_bits, work);
+    for bit in 0..width { writeln!(source, "EMIT %r{}", product_bits[bit]).unwrap(); }
     source.push_str("HALT\n");
     source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
     source
@@ -1287,7 +1319,7 @@ pub fn modulo_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
     divmod_encoded_lsb_first(a, b).map(|(_, remainder)| remainder)
 }
 
-/// Run an unrolled Euclidean closure in one IMASM instruction stream and
+/// Run the split/shift/cancel/rejoin GCD circuit in one IMASM stream and
 /// return the greatest common divisor at the common input width.
 pub fn gcd_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
     fn decode(stream: &str) -> Result<Vec<B4>, String> {
@@ -1311,7 +1343,7 @@ pub fn gcd_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
     vm.set_reads(reads);
     vm.run(None);
     if !vm.halted || vm.emit_buffer.len() != width {
-        return Err("IMASM Euclidean membrane failed to close a complete gcd tape".into());
+        return Err("IMASM binary GCD membrane failed to close a complete gcd tape".into());
     }
     let mut result = String::new();
     for cell in &vm.emit_buffer {
@@ -2300,7 +2332,8 @@ mod tests {
     }
 
     #[test]
-    fn imasm_euclidean_closure_matches_small_gcds() {
+    fn imasm_split_rejoin_closure_matches_small_gcds() {
+        assert!(!bit_register_gcd_program(5, 5).contains("gcd_div"));
         fn stream(value: usize) -> String {
             if value == 0 { return String::from("⊤"); }
             let mut n = value;
@@ -2330,6 +2363,8 @@ mod tests {
         assert_eq!(gcd_encoded_lsb_first("⊥⊥⊤", "⊥⊤").unwrap(), "⊥⊤⊤");
         let wide = gcd_encoded_lsb_first(&"⊥".repeat(65), &"⊥".repeat(40)).unwrap();
         assert_eq!(wide, format!("{}{}", "⊥".repeat(5), "⊤".repeat(60)));
+        let wider = gcd_encoded_lsb_first(&"⊥".repeat(129), &"⊥".repeat(64)).unwrap();
+        assert_eq!(wider, format!("⊥{}", "⊤".repeat(128)));
     }
 
     #[test]

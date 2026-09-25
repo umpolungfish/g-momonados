@@ -53,25 +53,30 @@ product closure. Output is buffered until the pair closes.
 The host holds only encoded tapes, phase addresses, and the circuit's control
 flow. It performs no factor arithmetic. Register widths follow the encoded
 source and factor words. The binary bakes N and the base as full IMASM words.
+The factor-return GCD circuit splits common powers of two into an encoded
+scale register, shifts even arms, cancels the smaller odd arm from the larger,
+then multiplies the odd result by the scale. It loops in IMASM until one arm
+is zero. Its instruction stream has no quotient or restoring-division stage.
 
 Direct binary trials with `timeout --kill-after=2s 60s`:
 
 | Baked N | Returned factors | In-process time | Result |
 |---|---|---:|---|
-| 21 | 7 × 3 | 20.8 ms with fused closure latch | closed |
+| 21 | 7 × 3 | 11.5 ms with split/rejoin GCD | closed |
 | 35 | 7 × 5 | 21.7 ms | closed |
 | 143 | 11 × 13 | 49.3 ms | closed |
-| 8051 | 83 × 97 | 202.6 ms after resident square and cancellation | closed |
+| 8051 | 83 × 97 | 130.9 ms with split/rejoin GCD | closed |
+| 10002200057 | 100003 × 100019 | 60 s with split/rejoin GCD | timed out |
 | 10007000070049 | 10007 × 1000000007 | 60 s | timed out |
 
-The 14-digit case reached the same one-minute boundary before and after
-resident square assembly. Its phase orbit, rather than repeated assembly or
-complement division, is the remaining measured bottleneck. The executable
-does not emit partial reports while the phase orbit is open.
+The 11-digit case reaches the one-minute boundary after the GCD split/rejoin
+change. The 14-digit case reached the same boundary before and after resident
+square assembly. Both runs are silent while their phase orbits are open.
 
 `RUSTFLAGS='-D warnings' cargo test --test paired_frame_return --quiet`
 passed all 41 tests. These include comparison of repeated resident phase
 squares with the independent encoded arithmetic path, exact and rejected
 complements, a 131-bit complement, the SIXTEEN_3 transport, and the existing
 arithmetic closure cases. The latch test runs the IMASM stream with both exact
-and mismatched targets and checks that only the exact closure is fixed.
+and mismatched targets and checks that only the exact closure is fixed. The
+GCD tests cover zero arms, all small pairs, and 65- and 129-bit operands.
