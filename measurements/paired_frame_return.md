@@ -40,9 +40,12 @@ to that stage.
 
 ## Contained phase extractor
 
-`./imasm_phase_factor_build.sh N [base] [output]` converts N and the base to
-cell-binary IMASM words before release compilation. The resulting binary takes
-no operands. It enters an odd-modulus Montgomery evaluation frame and
+`./imasm_phase_factor_build.sh N [base] [output] [sweep|single] [sparse|every]`
+converts N and the base to cell-binary IMASM words before release compilation.
+The default `sweep sparse` keeps trying successive bases and reads support at
+the initial and dyadic checkpoints. `single every` is a diagnostic build that
+tries just the baked base and reads support at every phase state. The resulting
+binary takes no operands. It enters an odd-modulus Montgomery evaluation frame and
 repeatedly squares a phase residue through one resident IMASM circuit. Each
 square uses conditional encoded additions of the residue and modulus, shifts
 the joint register, and cancels one remaining modulus contribution. The entry
@@ -152,12 +155,30 @@ Small tests compare the fused readout with the separate encoded GCD for both
 run-compressed and width-eight support layouts.
 
 The fused membrane closes the 404-digit input in 40.235 seconds of membrane
-time (42.91 seconds wall time). The 682-digit input remains silent through the
-60-second timeout. The one-pass register fusion does not yet move that wider
-closure inside the minute boundary.
+time (42.91 seconds wall time). Two additional isolated-base reruns of the same
+base-two binary closed in 39.416 and 41.337 seconds of membrane time (44.67 and
+43.89 seconds wall time). That is stable within this small sample, though close
+enough to the limit that host-load variation still matters.
 
-The 682-digit input was also baked with phase bases 3, 4, and N−1. Each binary
-ran silently to the one-minute timeout. A base-two variant that reads the
-support/GCD register at every phase state also reached the timeout. The
-power-of-two checkpoint schedule remains in the primary membrane because the
-denser read did not produce an earlier closure.
+The initial 682-digit base-3, base-4, and N−1 trials used the default base
+sweep, so they did not isolate those seeds. Single-base binaries now isolate
+the comparison. With the same baked 682-digit modulus and the same 60-second
+timeout, base 2, base 3, base 4, and N−1 all timed out; the N−1 run also spent
+the limit without advancing to another seed. An isolated base-2 build reading
+support at every phase state timed out at the same boundary as sparse base 2.
+These results rule out the outer base sweep as the sole cause, but do not yet
+separate the cost of one support/GCD read from the cost of phase squaring: the
+run is still silent until closure, so a timeout exposes neither phase count nor
+the last completed internal operation. The every-state comparison likewise
+does not establish a useful speedup or slowdown under this censoring.
+
+There is no 65,536-cell frame cap or digit-threshold branch in this route.
+`MontgomeryPhase::new` sets the frame width to the encoded modulus length;
+register addresses in the generated circuits scale from that width. The dense
+register bank grows to the largest referenced address when loaded and is then
+cleared and reused between evaluations. Thus the 682-digit case has a wider
+resident frame (2,264 cells versus 1,340 for the 404-digit case, about 1.69×),
+but no observed spill/reallocation cliff between those widths. A separate
+scaling exponent is not justified: all 682-digit results are right-censored at
+the fixed one-minute acceptance timeout. The target remains a fixed 60-second
+wall limit, not a fitted asymptotic law.
