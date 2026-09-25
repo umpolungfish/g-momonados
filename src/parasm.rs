@@ -4,11 +4,11 @@
 //! Belnap FOUR VM with 19-instruction ISA, assembler, dialetheic alignment,
 //! measurement sequence algebra, and IG snapshot bridge.
 
+use crate::belnap::B4;
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::belnap::B4;
 
 // ── ParaASM instruction set ─────────────────────────────────────────
 
@@ -17,32 +17,38 @@ use crate::belnap::B4;
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParaAsm {
     // ── Frobenius core (mirrors 4 of 12 IMASM tokens) ──
-    ENGAGR(usize),              // Engage Both — register → paradox
-    FSPLIT(usize, usize, usize),// Fork — src → (dst1, dst2); B bifurcates to T+F
-    FFUSE(Vec<usize>, usize),   // Fuse — join many sources → dst
-    IFIX(usize),                // Permanent brand — linear ! exponential
+    ENGAGR(usize),               // Engage Both — register → paradox
+    FSPLIT(usize, usize, usize), // Fork — src → (dst1, dst2); B bifurcates to T+F
+    FFUSE(Vec<usize>, usize),    // Fuse — join many sources → dst
+    IFIX(usize),                 // Permanent brand — linear ! exponential
 
     // ── Register ops ──
-    MOVE(usize, usize),      // Copy src → dst
-    CLEAR(usize),            // Reset register to N
+    MOVE(usize, usize), // Copy src → dst
+    CLEAR(usize),       // Reset register to N
 
     // ── Control flow ──
-    JMP(String),             // Unconditional jump to label
-    JB(usize, String),       // Jump if B
-    JT(usize, String),       // Jump if T
-    JF(usize, String),       // Jump if F
-    JN(usize, String),       // Jump if N
-    CALL(String),            // Call subroutine (push return addr)
-    RET,                     // Return from subroutine
-    HALT,                    // Stop execution
+    JMP(String),        // Unconditional jump to label
+    JB(usize, String),  // Jump if B
+    JT(usize, String),  // Jump if T
+    JF(usize, String),  // Jump if F
+    JN(usize, String),  // Jump if N
+    CALL(String),       // Call subroutine (push return addr)
+    JmpPc(usize),       // Assembled jump address
+    JbPc(usize, usize), // Assembled conditional addresses
+    JtPc(usize, usize),
+    JfPc(usize, usize),
+    JnPc(usize, usize),
+    CallPc(usize),
+    RET,  // Return from subroutine
+    HALT, // Stop execution
 
     // ── Stack ──
-    PUSH(usize),             // Push register to data stack
-    POP(usize),              // Pop data stack → register
+    PUSH(usize), // Push register to data stack
+    POP(usize),  // Pop data stack → register
 
     // ── I/O (noop in kernel mode) ──
-    EMIT(usize),             // Emit register value
-    READ(usize),             // Read input → register (defaults N)
+    EMIT(usize), // Emit register value
+    READ(usize), // Read input → register (defaults N)
 }
 
 /// Dynamically sized ripple-carry addition. Bits use the numeral encoding
@@ -51,7 +57,8 @@ pub enum ParaAsm {
 pub const BIT_REGISTER_ADD_ASM: &str = include_str!("../.imasm/bit_register_add.imasm");
 /// Dynamically sized ripple-borrow subtraction over the same encoded tape.
 pub const BIT_REGISTER_SUB_ASM: &str = include_str!("../.imasm/bit_register_sub.imasm");
-const BIT_REGISTER_GATE_LIBRARY_ASM: &str = include_str!("../.imasm/bit_register_gate_library.imasm");
+const BIT_REGISTER_GATE_LIBRARY_ASM: &str =
+    include_str!("../.imasm/bit_register_gate_library.imasm");
 const PAIRED_FRAME_LIBRARY_ASM: &str = include_str!("../.imasm/paired_frame_library.imasm");
 
 struct BitRegisterMulLayout {
@@ -118,11 +125,21 @@ fn append_bit_register_add(
     source.push_str("MOVE %r11 %r");
     writeln!(source, "{carry}").unwrap();
     for (bit, &out) in sum.iter().enumerate() {
-        if let Some(&input) = left.get(bit) { writeln!(source, "MOVE %r{input} %r0").unwrap(); }
-        else { source.push_str("MOVE %r11 %r0\n"); }
-        if let Some(&input) = right.get(bit) { writeln!(source, "MOVE %r{input} %r1").unwrap(); }
-        else { source.push_str("MOVE %r11 %r1\n"); }
-        writeln!(source, "MOVE %r{carry} %r2\nCALL .full_adder\nMOVE %r3 %r{out}\nMOVE %r4 %r{carry}").unwrap();
+        if let Some(&input) = left.get(bit) {
+            writeln!(source, "MOVE %r{input} %r0").unwrap();
+        } else {
+            source.push_str("MOVE %r11 %r0\n");
+        }
+        if let Some(&input) = right.get(bit) {
+            writeln!(source, "MOVE %r{input} %r1").unwrap();
+        } else {
+            source.push_str("MOVE %r11 %r1\n");
+        }
+        writeln!(
+            source,
+            "MOVE %r{carry} %r2\nCALL .full_adder\nMOVE %r3 %r{out}\nMOVE %r4 %r{carry}"
+        )
+        .unwrap();
     }
 }
 
@@ -139,17 +156,41 @@ fn append_bit_register_equality(
     for bit in 0..width {
         let a = left.get(bit).copied();
         let b = right.get(bit).copied();
-        if let Some(a) = a { writeln!(source, "JT %r{a} .{label}_{bit}_left_zero").unwrap(); }
-        else { writeln!(source, "JMP .{label}_{bit}_left_zero").unwrap(); }
-        if let Some(a) = a { writeln!(source, "JF %r{a} .{label}_{bit}_left_one").unwrap(); }
-        else { source.push_str("HALT\n"); }
+        if let Some(a) = a {
+            writeln!(source, "JT %r{a} .{label}_{bit}_left_zero").unwrap();
+        } else {
+            writeln!(source, "JMP .{label}_{bit}_left_zero").unwrap();
+        }
+        if let Some(a) = a {
+            writeln!(source, "JF %r{a} .{label}_{bit}_left_one").unwrap();
+        } else {
+            source.push_str("HALT\n");
+        }
         writeln!(source, ".{label}_{bit}_left_zero:").unwrap();
-        if let Some(b) = b { writeln!(source, "JT %r{b} .{label}_{bit}_next\nJF %r{b} .{label}_{bit}_mismatch").unwrap(); }
-        else { writeln!(source, "JMP .{label}_{bit}_next").unwrap(); }
+        if let Some(b) = b {
+            writeln!(
+                source,
+                "JT %r{b} .{label}_{bit}_next\nJF %r{b} .{label}_{bit}_mismatch"
+            )
+            .unwrap();
+        } else {
+            writeln!(source, "JMP .{label}_{bit}_next").unwrap();
+        }
         writeln!(source, ".{label}_{bit}_left_one:").unwrap();
-        if let Some(b) = b { writeln!(source, "JF %r{b} .{label}_{bit}_next\nJT %r{b} .{label}_{bit}_mismatch").unwrap(); }
-        else { writeln!(source, "JMP .{label}_{bit}_mismatch").unwrap(); }
-        writeln!(source, ".{label}_{bit}_mismatch:\nMOVE %r12 %r{verdict}\n.{label}_{bit}_next:").unwrap();
+        if let Some(b) = b {
+            writeln!(
+                source,
+                "JF %r{b} .{label}_{bit}_next\nJT %r{b} .{label}_{bit}_mismatch"
+            )
+            .unwrap();
+        } else {
+            writeln!(source, "JMP .{label}_{bit}_mismatch").unwrap();
+        }
+        writeln!(
+            source,
+            ".{label}_{bit}_mismatch:\nMOVE %r12 %r{verdict}\n.{label}_{bit}_next:"
+        )
+        .unwrap();
     }
 }
 
@@ -167,7 +208,11 @@ fn append_word_insertion_check(
         let source_bits = if target_index == insertion_index {
             None
         } else {
-            let source_index = if target_index < insertion_index { target_index } else { target_index - 1 };
+            let source_index = if target_index < insertion_index {
+                target_index
+            } else {
+                target_index - 1
+            };
             from.get(source_index).copied()
         };
         for bit in 0..4 {
@@ -175,7 +220,11 @@ fn append_word_insertion_check(
             if let Some(source_register) = source_bits.map(|bits| bits[bit]) {
                 writeln!(source, "MOVE %r{source_register} %r0").unwrap();
             } else if target_index == insertion_index {
-                source.push_str(if (inserted_token >> bit) & 1 == 1 { "MOVE %r12 %r0\n" } else { "MOVE %r11 %r0\n" });
+                source.push_str(if (inserted_token >> bit) & 1 == 1 {
+                    "MOVE %r12 %r0\n"
+                } else {
+                    "MOVE %r11 %r0\n"
+                });
             } else {
                 source.push_str("MOVE %r11 %r0\n");
             }
@@ -199,11 +248,31 @@ const EDIT_SQUARE_C: &str = "⊢∈≻⋈⊥≺⋈∋⊙⊡⊣";
 // Layout: prime bases 2,3,5; each prime's additive (3,5,8) and
 // multiplicative (2,4,8) exponent rows; then both radicals and support masks.
 const EDIT_SQUARE_LANE_TAPES: &[&str] = &[
-    "⊤⊥", "⊥⊥", "⊥⊤⊥",
-    "⊤", "⊤", "⊥⊥", "⊥", "⊤⊥", "⊥⊥",
-    "⊥", "⊤", "⊤", "⊤", "⊤", "⊤",
-    "⊤", "⊥", "⊤", "⊤", "⊤", "⊤",
-    "⊤⊥⊥⊥⊥", "⊤⊥", "⊥⊥⊥", "⊥⊤⊤",
+    "⊤⊥",
+    "⊥⊥",
+    "⊥⊤⊥",
+    "⊤",
+    "⊤",
+    "⊥⊥",
+    "⊥",
+    "⊤⊥",
+    "⊥⊥",
+    "⊥",
+    "⊤",
+    "⊤",
+    "⊤",
+    "⊤",
+    "⊤",
+    "⊤",
+    "⊥",
+    "⊤",
+    "⊤",
+    "⊤",
+    "⊤",
+    "⊤⊥⊥⊥⊥",
+    "⊤⊥",
+    "⊥⊥⊥",
+    "⊥⊤⊤",
 ];
 
 struct EditSquareLayout {
@@ -229,13 +298,18 @@ fn canonical_word_cells(word: &str) -> Result<(Vec<[usize; 4]>, Vec<B4>), String
     let mut registers = Vec::new();
     let mut data = Vec::new();
     for glyph in word.chars() {
-        let ordinal = imasm_core::imasm16_3::ALL_TOKENS.iter()
+        let ordinal = imasm_core::imasm16_3::ALL_TOKENS
+            .iter()
             .position(|token| token.glyph() == glyph)
             .ok_or_else(|| alloc::format!("unknown IMASM token {glyph:?}"))?;
         let start = registers.len() * 4;
         registers.push([start, start + 1, start + 2, start + 3]);
         for bit in 0..4 {
-            data.push(if (ordinal >> bit) & 1 == 1 { B4::F } else { B4::T });
+            data.push(if (ordinal >> bit) & 1 == 1 {
+                B4::F
+            } else {
+                B4::T
+            });
         }
     }
     Ok((registers, data))
@@ -245,23 +319,41 @@ fn append_nonzero_check(source: &mut String, bits: &[usize], verdict: usize, lab
     use core::fmt::Write as _;
     writeln!(source, "MOVE %r12 %r{verdict}").unwrap();
     for (bit, &register) in bits.iter().enumerate() {
-        writeln!(source, "JF %r{register} .{label}_nonzero\nJT %r{register} .{label}_next_{bit}").unwrap();
+        writeln!(
+            source,
+            "JF %r{register} .{label}_nonzero\nJT %r{register} .{label}_next_{bit}"
+        )
+        .unwrap();
         writeln!(source, ".{label}_next_{bit}:").unwrap();
     }
-    writeln!(source, "JMP .{label}_done\n.{label}_nonzero:\nMOVE %r11 %r{verdict}\n.{label}_done:").unwrap();
+    writeln!(
+        source,
+        "JMP .{label}_done\n.{label}_nonzero:\nMOVE %r11 %r{verdict}\n.{label}_done:"
+    )
+    .unwrap();
 }
 
-fn bit_register_edit_square_program(x_width: usize, s_width: usize) -> Result<EditSquareLayout, String> {
+fn bit_register_edit_square_program(
+    x_width: usize,
+    s_width: usize,
+) -> Result<EditSquareLayout, String> {
     use core::fmt::Write as _;
 
-    let words = [EDIT_SQUARE_D1, EDIT_SQUARE_A, EDIT_SQUARE_D2, EDIT_SQUARE_B, EDIT_SQUARE_C];
+    let words = [
+        EDIT_SQUARE_D1,
+        EDIT_SQUARE_A,
+        EDIT_SQUARE_D2,
+        EDIT_SQUARE_B,
+        EDIT_SQUARE_C,
+    ];
     let mut reads = Vec::new();
     let mut next = 32usize;
     let mut word_regs: Vec<Vec<[usize; 4]>> = Vec::new();
     for word in words {
         let (relative, encoded) = canonical_word_cells(word)?;
         let base = next;
-        let cells: Vec<[usize; 4]> = relative.iter()
+        let cells: Vec<[usize; 4]> = relative
+            .iter()
             .map(|bits| bits.map(|register| base + register))
             .collect();
         next += encoded.len();
@@ -275,37 +367,99 @@ fn bit_register_edit_square_program(x_width: usize, s_width: usize) -> Result<Ed
     next += s_width;
     let read_end = next;
     let width = core::cmp::max(x_width, s_width) + 2;
-    let x: Vec<usize> = (next..next + width).collect(); next += width;
-    let s: Vec<usize> = (next..next + width).collect(); next += width;
-    let one: Vec<usize> = (next..next + width).collect(); next += width;
-    let a: Vec<usize> = (next..next + width).collect(); next += width;
-    let d2: Vec<usize> = (next..next + width).collect(); next += width;
-    let b: Vec<usize> = (next..next + width).collect(); next += width;
-    let sum: Vec<usize> = (next..next + width + 1).collect(); next += width + 1;
-    let product: Vec<usize> = (next..next + width * 2).collect(); next += width * 2;
-    let scratch = next; next += 4;
-    let edit_verdict = next; next += 1;
-    let relation_verdict = next; next += 1;
-    let x_positive = next; next += 1;
-    let s_positive = next; next += 1;
-    let closed = next; next += 1;
+    let x: Vec<usize> = (next..next + width).collect();
+    next += width;
+    let s: Vec<usize> = (next..next + width).collect();
+    next += width;
+    let one: Vec<usize> = (next..next + width).collect();
+    next += width;
+    let a: Vec<usize> = (next..next + width).collect();
+    next += width;
+    let d2: Vec<usize> = (next..next + width).collect();
+    next += width;
+    let b: Vec<usize> = (next..next + width).collect();
+    next += width;
+    let sum: Vec<usize> = (next..next + width + 1).collect();
+    next += width + 1;
+    let product: Vec<usize> = (next..next + width * 2).collect();
+    next += width * 2;
+    let scratch = next;
+    next += 4;
+    let edit_verdict = next;
+    next += 1;
+    let relation_verdict = next;
+    next += 1;
+    let x_positive = next;
+    next += 1;
+    let s_positive = next;
+    next += 1;
+    let closed = next;
+    next += 1;
     let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
-    for reg in 32..read_end { writeln!(source, "READ %r{reg}").unwrap(); }
+    for reg in 32..read_end {
+        writeln!(source, "READ %r{reg}").unwrap();
+    }
     let [d1_regs, a_regs, d2_regs, b_regs, c_regs] = word_regs.as_slice() else {
         return Err("edit-square word register layout failed".into());
     };
-    let bot = imasm_core::imasm16_3::ALL_TOKENS.iter().position(|token| token.glyph() == '⊥').unwrap();
-    let boxplus = imasm_core::imasm16_3::ALL_TOKENS.iter().position(|token| token.glyph() == '⊞').unwrap();
+    let bot = imasm_core::imasm16_3::ALL_TOKENS
+        .iter()
+        .position(|token| token.glyph() == '⊥')
+        .unwrap();
+    let boxplus = imasm_core::imasm16_3::ALL_TOKENS
+        .iter()
+        .position(|token| token.glyph() == '⊞')
+        .unwrap();
     writeln!(source, "MOVE %r11 %r{edit_verdict}").unwrap();
-    append_word_insertion_check(&mut source, d1_regs, a_regs, 4, bot, edit_verdict, "edit_bot");
-    append_word_insertion_check(&mut source, d1_regs, d2_regs, 5, boxplus, edit_verdict, "edit_boxplus");
-    append_word_insertion_check(&mut source, a_regs, b_regs, 6, boxplus, edit_verdict, "edit_boxplus_after_bot");
-    append_word_insertion_check(&mut source, d2_regs, b_regs, 4, bot, edit_verdict, "edit_bot_after_boxplus");
+    append_word_insertion_check(
+        &mut source,
+        d1_regs,
+        a_regs,
+        4,
+        bot,
+        edit_verdict,
+        "edit_bot",
+    );
+    append_word_insertion_check(
+        &mut source,
+        d1_regs,
+        d2_regs,
+        5,
+        boxplus,
+        edit_verdict,
+        "edit_boxplus",
+    );
+    append_word_insertion_check(
+        &mut source,
+        a_regs,
+        b_regs,
+        6,
+        boxplus,
+        edit_verdict,
+        "edit_boxplus_after_bot",
+    );
+    append_word_insertion_check(
+        &mut source,
+        d2_regs,
+        b_regs,
+        4,
+        bot,
+        edit_verdict,
+        "edit_bot_after_boxplus",
+    );
 
-    for bit in 0..x_width { writeln!(source, "MOVE %r{} %r{}", x_input[bit], x[bit]).unwrap(); }
-    for bit in x_width..width { writeln!(source, "MOVE %r11 %r{}", x[bit]).unwrap(); }
-    for bit in 0..s_width { writeln!(source, "MOVE %r{} %r{}", s_input[bit], s[bit]).unwrap(); }
-    for bit in s_width..width { writeln!(source, "MOVE %r11 %r{}", s[bit]).unwrap(); }
+    for bit in 0..x_width {
+        writeln!(source, "MOVE %r{} %r{}", x_input[bit], x[bit]).unwrap();
+    }
+    for bit in x_width..width {
+        writeln!(source, "MOVE %r11 %r{}", x[bit]).unwrap();
+    }
+    for bit in 0..s_width {
+        writeln!(source, "MOVE %r{} %r{}", s_input[bit], s[bit]).unwrap();
+    }
+    for bit in s_width..width {
+        writeln!(source, "MOVE %r11 %r{}", s[bit]).unwrap();
+    }
     for (bit, &reg) in one.iter().enumerate() {
         writeln!(source, "MOVE %r{} %r{reg}", if bit == 0 { 12 } else { 11 }).unwrap();
     }
@@ -318,8 +472,20 @@ fn bit_register_edit_square_program(x_width: usize, s_width: usize) -> Result<Ed
     // Sum's high product-width cells are literal zero; allocate explicit
     // zero registers so equality remains an ordinary IMASM bit comparison.
     let mut sum_compare = sum.clone();
-    for _ in sum.len()..product.len() { sum_compare.push(next); next += 1; source.push_str("MOVE %r11 %r"); writeln!(source, "{}", next - 1).unwrap(); }
-    append_bit_register_equality(&mut source, &sum_compare, &product, product.len(), relation_verdict, "square_relation");
+    for _ in sum.len()..product.len() {
+        sum_compare.push(next);
+        next += 1;
+        source.push_str("MOVE %r11 %r");
+        writeln!(source, "{}", next - 1).unwrap();
+    }
+    append_bit_register_equality(
+        &mut source,
+        &sum_compare,
+        &product,
+        product.len(),
+        relation_verdict,
+        "square_relation",
+    );
     append_nonzero_check(&mut source, &x, x_positive, "square_x_positive");
     append_nonzero_check(&mut source, &s, s_positive, "square_s_positive");
 
@@ -328,29 +494,82 @@ fn bit_register_edit_square_program(x_width: usize, s_width: usize) -> Result<Ed
         let mut tape = Vec::new();
         for symbol in encoded.chars() {
             tape.push(next);
-            writeln!(source, "MOVE %r{} %r{next}", if symbol == '⊥' { 12 } else { 11 }).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{next}",
+                if symbol == '⊥' { 12 } else { 11 }
+            )
+            .unwrap();
             next += 1;
         }
         lane_tapes.push(tape);
     }
 
     writeln!(source, "MOVE %r11 %r{closed}").unwrap();
-    for (index, flag) in [edit_verdict, relation_verdict, x_positive, s_positive].iter().enumerate() {
+    for (index, flag) in [edit_verdict, relation_verdict, x_positive, s_positive]
+        .iter()
+        .enumerate()
+    {
         writeln!(source, "JF %r{flag} .square_failed_{index}\nJT %r{flag} .square_passed_{index}\nHALT\n.square_failed_{index}:\nMOVE %r12 %r{closed}\n.square_passed_{index}:").unwrap();
     }
-    for reg in &x { writeln!(source, "EMIT %r{reg}").unwrap(); }
-    for reg in &a { writeln!(source, "EMIT %r{reg}").unwrap(); }
-    for reg in &d2 { writeln!(source, "EMIT %r{reg}").unwrap(); }
-    for reg in &b { writeln!(source, "EMIT %r{reg}").unwrap(); }
-    for reg in &sum { writeln!(source, "EMIT %r{reg}").unwrap(); }
-    for reg in &product { writeln!(source, "EMIT %r{reg}").unwrap(); }
-    for token in c_regs { for reg in token { writeln!(source, "EMIT %r{reg}").unwrap(); } }
-    for tape in &lane_tapes { for reg in tape { writeln!(source, "EMIT %r{reg}").unwrap(); } }
-    for reg in [edit_verdict, relation_verdict, x_positive, s_positive, closed] { writeln!(source, "EMIT %r{reg}").unwrap(); }
+    for reg in &x {
+        writeln!(source, "EMIT %r{reg}").unwrap();
+    }
+    for reg in &a {
+        writeln!(source, "EMIT %r{reg}").unwrap();
+    }
+    for reg in &d2 {
+        writeln!(source, "EMIT %r{reg}").unwrap();
+    }
+    for reg in &b {
+        writeln!(source, "EMIT %r{reg}").unwrap();
+    }
+    for reg in &sum {
+        writeln!(source, "EMIT %r{reg}").unwrap();
+    }
+    for reg in &product {
+        writeln!(source, "EMIT %r{reg}").unwrap();
+    }
+    for token in c_regs {
+        for reg in token {
+            writeln!(source, "EMIT %r{reg}").unwrap();
+        }
+    }
+    for tape in &lane_tapes {
+        for reg in tape {
+            writeln!(source, "EMIT %r{reg}").unwrap();
+        }
+    }
+    for reg in [
+        edit_verdict,
+        relation_verdict,
+        x_positive,
+        s_positive,
+        closed,
+    ] {
+        writeln!(source, "EMIT %r{reg}").unwrap();
+    }
     source.push_str("HALT\n");
     source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
 
-    Ok(EditSquareLayout { source, reads, width, x, a, d2, b, sum, product, result_word: c_regs.clone(), lane_tapes, edit_verdict, relation_verdict, x_positive, s_positive, closed })
+    Ok(EditSquareLayout {
+        source,
+        reads,
+        width,
+        x,
+        a,
+        d2,
+        b,
+        sum,
+        product,
+        result_word: c_regs.clone(),
+        lane_tapes,
+        edit_verdict,
+        relation_verdict,
+        x_positive,
+        s_positive,
+        closed,
+    })
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -394,16 +613,24 @@ pub struct EditSquareResult {
 /// LSB-first ⊤/⊥ tapes. Addition forms the truth lane; multiplication forms
 /// the factor-structure lane; the stream closes only when both values agree
 /// and all four literal edits match their encoded word witnesses.
-pub fn edit_square_encoded_lsb_first(x_input: &str, s_input: &str) -> Result<EditSquareResult, String> {
+pub fn edit_square_encoded_lsb_first(
+    x_input: &str,
+    s_input: &str,
+) -> Result<EditSquareResult, String> {
     fn decode(stream: &str) -> Result<Vec<B4>, String> {
         if stream.is_empty() {
             return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
         }
-        stream.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
-        }).collect()
+        stream
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!(
+                    "invalid numeral symbol {other:?}; expected ⊤ or ⊥"
+                )),
+            })
+            .collect()
     }
     fn emitted_bit(cell: &str) -> Result<char, String> {
         match cell.rsplit_once(" = ").map(|(_, value)| value) {
@@ -428,12 +655,18 @@ pub fn edit_square_encoded_lsb_first(x_input: &str, s_input: &str) -> Result<Edi
     let lane_emit_count: usize = layout.lane_tapes.iter().map(Vec::len).sum();
     let expected_emits = width * 4 + width + 1 + width * 2 + result_word_len + lane_emit_count + 5;
     if !vm.halted || vm.emit_buffer.len() != expected_emits {
-        return Err(alloc::format!("edit-square membrane emitted {} of {expected_emits} cells", vm.emit_buffer.len()));
+        return Err(alloc::format!(
+            "edit-square membrane emitted {} of {expected_emits} cells",
+            vm.emit_buffer.len()
+        ));
     }
     let mut cursor = 0usize;
     let mut take_tape = |length: usize| -> Result<String, String> {
         let end = cursor + length;
-        let value = vm.emit_buffer[cursor..end].iter().map(|cell| emitted_bit(cell)).collect::<Result<String, _>>()?;
+        let value = vm.emit_buffer[cursor..end]
+            .iter()
+            .map(|cell| emitted_bit(cell))
+            .collect::<Result<String, _>>()?;
         cursor = end;
         Ok(value)
     };
@@ -448,21 +681,31 @@ pub fn edit_square_encoded_lsb_first(x_input: &str, s_input: &str) -> Result<Edi
     for _ in 0..layout.result_word.len() {
         let mut ordinal = 0usize;
         for bit in 0..4 {
-            if emitted_bit(&vm.emit_buffer[cursor])? == '⊥' { ordinal |= 1 << bit; }
+            if emitted_bit(&vm.emit_buffer[cursor])? == '⊥' {
+                ordinal |= 1 << bit;
+            }
             cursor += 1;
         }
-        let glyph = imasm_core::imasm16_3::ALL_TOKENS.get(ordinal)
-            .ok_or_else(|| alloc::format!("result word contains unknown canonical token ordinal {ordinal}"))?;
+        let glyph = imasm_core::imasm16_3::ALL_TOKENS
+            .get(ordinal)
+            .ok_or_else(|| {
+                alloc::format!("result word contains unknown canonical token ordinal {ordinal}")
+            })?;
         result_word.push(glyph.glyph());
     }
     let mut take_tape = |length: usize| -> Result<String, String> {
         let end = cursor + length;
-        let value = vm.emit_buffer[cursor..end].iter().map(|cell| emitted_bit(cell)).collect::<Result<String, _>>()?;
+        let value = vm.emit_buffer[cursor..end]
+            .iter()
+            .map(|cell| emitted_bit(cell))
+            .collect::<Result<String, _>>()?;
         cursor = end;
         Ok(value)
     };
     let mut lane_values = Vec::with_capacity(layout.lane_tapes.len());
-    for tape in &layout.lane_tapes { lane_values.push(take_tape(tape.len())?); }
+    for tape in &layout.lane_tapes {
+        lane_values.push(take_tape(tape.len())?);
+    }
     drop(take_tape);
     let mut take_verdict = || -> Result<char, String> {
         let value = emitted_bit(&vm.emit_buffer[cursor])?;
@@ -475,14 +718,24 @@ pub fn edit_square_encoded_lsb_first(x_input: &str, s_input: &str) -> Result<Edi
     let s_positive = take_verdict()?;
     let closed = take_verdict()?;
     let exponents = &lane_values[3..21];
-    let falsity_exponents = (0..3).map(|prime| {
-        let i = prime * 6;
-        PrimeExponentRow {
-            prime: lane_values[prime].clone(),
-            additive_abc: [exponents[i].clone(), exponents[i + 1].clone(), exponents[i + 2].clone()],
-            multiplicative_d1_d2_c: [exponents[i + 3].clone(), exponents[i + 4].clone(), exponents[i + 5].clone()],
-        }
-    }).collect();
+    let falsity_exponents = (0..3)
+        .map(|prime| {
+            let i = prime * 6;
+            PrimeExponentRow {
+                prime: lane_values[prime].clone(),
+                additive_abc: [
+                    exponents[i].clone(),
+                    exponents[i + 1].clone(),
+                    exponents[i + 2].clone(),
+                ],
+                multiplicative_d1_d2_c: [
+                    exponents[i + 3].clone(),
+                    exponents[i + 4].clone(),
+                    exponents[i + 5].clone(),
+                ],
+            }
+        })
+        .collect();
     let information_support = RadicalSupportLane {
         additive_radical: lane_values[21].clone(),
         multiplicative_radical: lane_values[22].clone(),
@@ -490,10 +743,23 @@ pub fn edit_square_encoded_lsb_first(x_input: &str, s_input: &str) -> Result<Edi
         multiplicative_support: lane_values[24].clone(),
     };
     Ok(EditSquareResult {
-        d1, a, d2, b, g_t_sum, g_f_product, result_word,
-        falsity_exponents, information_support, lane_witness_applies: closed,
-        edit_closed, arithmetic_closed,
-        positive_inputs: if x_positive == '⊤' && s_positive == '⊤' { '⊤' } else { '⊥' },
+        d1,
+        a,
+        d2,
+        b,
+        g_t_sum,
+        g_f_product,
+        result_word,
+        falsity_exponents,
+        information_support,
+        lane_witness_applies: closed,
+        edit_closed,
+        arithmetic_closed,
+        positive_inputs: if x_positive == '⊤' && s_positive == '⊤' {
+            '⊤'
+        } else {
+            '⊥'
+        },
         closed,
     })
 }
@@ -516,19 +782,34 @@ fn append_bit_register_divmod(
     let borrow = difference_start + remainder_width;
 
     for (bit, &divisor) in divisor_bits.iter().enumerate() {
-        writeln!(source, "JT %r{divisor} .{label_prefix}_zero_check_{}", bit + 1).unwrap();
+        writeln!(
+            source,
+            "JT %r{divisor} .{label_prefix}_zero_check_{}",
+            bit + 1
+        )
+        .unwrap();
         writeln!(source, "JF %r{divisor} .{label_prefix}_nonzero").unwrap();
         writeln!(source, ".{label_prefix}_zero_check_{}:", bit + 1).unwrap();
     }
     source.push_str("HALT\n");
     writeln!(source, ".{label_prefix}_nonzero:").unwrap();
 
-    for &bit in quotient_bits { writeln!(source, "MOVE %r11 %r{bit}").unwrap(); }
-    for &bit in remainder_bits { writeln!(source, "MOVE %r11 %r{bit}").unwrap(); }
+    for &bit in quotient_bits {
+        writeln!(source, "MOVE %r11 %r{bit}").unwrap();
+    }
+    for &bit in remainder_bits {
+        writeln!(source, "MOVE %r11 %r{bit}").unwrap();
+    }
 
     for (dividend_index, &dividend) in dividend_bits.iter().enumerate().rev() {
         for position in (1..remainder_width).rev() {
-            writeln!(source, "MOVE %r{} %r{}", remainder_bits[position - 1], remainder_bits[position]).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                remainder_bits[position - 1],
+                remainder_bits[position]
+            )
+            .unwrap();
         }
         writeln!(source, "MOVE %r{dividend} %r{}", remainder_bits[0]).unwrap();
         writeln!(source, "MOVE %r11 %r{borrow}").unwrap();
@@ -544,12 +825,26 @@ fn append_bit_register_divmod(
             writeln!(source, "MOVE %r3 %r{}", difference_start + bit).unwrap();
             writeln!(source, "MOVE %r4 %r{borrow}").unwrap();
         }
-        writeln!(source, "JT %r{borrow} .{label_prefix}_take_sub_{dividend_index}").unwrap();
-        writeln!(source, "JF %r{borrow} .{label_prefix}_keep_rem_{dividend_index}").unwrap();
+        writeln!(
+            source,
+            "JT %r{borrow} .{label_prefix}_take_sub_{dividend_index}"
+        )
+        .unwrap();
+        writeln!(
+            source,
+            "JF %r{borrow} .{label_prefix}_keep_rem_{dividend_index}"
+        )
+        .unwrap();
         writeln!(source, ".{label_prefix}_take_sub_{dividend_index}:").unwrap();
         writeln!(source, "MOVE %r12 %r{}", quotient_bits[dividend_index]).unwrap();
         for bit in 0..remainder_width {
-            writeln!(source, "MOVE %r{} %r{}", difference_start + bit, remainder_bits[bit]).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                difference_start + bit,
+                remainder_bits[bit]
+            )
+            .unwrap();
         }
         writeln!(source, "JMP .{label_prefix}_step_end_{dividend_index}").unwrap();
         writeln!(source, ".{label_prefix}_keep_rem_{dividend_index}:").unwrap();
@@ -563,7 +858,11 @@ fn append_bit_register_divmod(
 /// operand bits remain READ data and all partial products and carries are
 /// computed by IMASM gates. `extra_width` reserves a third encoded tape for
 /// the closure comparator nested around this product.
-fn bit_register_mul_body(a_width: usize, b_width: usize, extra_width: usize) -> BitRegisterMulLayout {
+fn bit_register_mul_body(
+    a_width: usize,
+    b_width: usize,
+    extra_width: usize,
+) -> BitRegisterMulLayout {
     use core::fmt::Write as _;
 
     let a_start = 32usize;
@@ -575,33 +874,46 @@ fn bit_register_mul_body(a_width: usize, b_width: usize, extra_width: usize) -> 
     let mut source = String::new();
 
     source.push_str("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
-    for bit in 0..a_width { writeln!(source, "READ %r{}", a_start + bit).unwrap(); }
-    for bit in 0..b_width { writeln!(source, "READ %r{}", b_start + bit).unwrap(); }
-    for bit in 0..extra_width { writeln!(source, "READ %r{}", extra_start + bit).unwrap(); }
+    for bit in 0..a_width {
+        writeln!(source, "READ %r{}", a_start + bit).unwrap();
+    }
+    for bit in 0..b_width {
+        writeln!(source, "READ %r{}", b_start + bit).unwrap();
+    }
+    for bit in 0..extra_width {
+        writeln!(source, "READ %r{}", extra_start + bit).unwrap();
+    }
     if extra_width > 0 {
         // The compiler supplies addresses only. Pairing and reverse transport
         // execute in the resident IMASM stream before product closure.
         for group in (0..a_width.max(b_width)).step_by(2) {
             for (lane, start, width, bit) in [
-                (0, a_start, a_width, group), (1, a_start, a_width, group + 1),
-                (2, b_start, b_width, group), (3, b_start, b_width, group + 1),
+                (0, a_start, a_width, group),
+                (1, a_start, a_width, group + 1),
+                (2, b_start, b_width, group),
+                (3, b_start, b_width, group + 1),
             ] {
                 let from = if bit < width { start + bit } else { 11 };
                 writeln!(source, "MOVE %r{from} %r{lane}").unwrap();
             }
             source.push_str("CALL .paired_transport\n");
             for (lane, start, width, bit) in [
-                (0, a_start, a_width, group), (1, a_start, a_width, group + 1),
-                (2, b_start, b_width, group), (3, b_start, b_width, group + 1),
+                (0, a_start, a_width, group),
+                (1, a_start, a_width, group + 1),
+                (2, b_start, b_width, group),
+                (3, b_start, b_width, group + 1),
             ] {
-                if bit < width { writeln!(source, "MOVE %r{lane} %r{}", start + bit).unwrap(); }
+                if bit < width {
+                    writeln!(source, "MOVE %r{lane} %r{}", start + bit).unwrap();
+                }
             }
         }
     }
     let a_bits: Vec<usize> = (a_start..a_start + a_width).collect();
     let b_bits: Vec<usize> = (b_start..b_start + b_width).collect();
     let product_bits: Vec<usize> = (product_start..product_start + product_width).collect();
-    let next_register = append_bit_register_mul(&mut source, &a_bits, &b_bits, &product_bits, scratch_start);
+    let next_register =
+        append_bit_register_mul(&mut source, &a_bits, &b_bits, &product_bits, scratch_start);
     BitRegisterMulLayout {
         source,
         a_start,
@@ -694,19 +1006,31 @@ fn bit_register_divmod_program(a_width: usize, b_width: usize) -> String {
     let mut source = String::new();
 
     source.push_str("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
-    for bit in 0..a_width { writeln!(source, "READ %r{}", a_start + bit).unwrap(); }
-    for bit in 0..b_width { writeln!(source, "READ %r{}", b_start + bit).unwrap(); }
+    for bit in 0..a_width {
+        writeln!(source, "READ %r{}", a_start + bit).unwrap();
+    }
+    for bit in 0..b_width {
+        writeln!(source, "READ %r{}", b_start + bit).unwrap();
+    }
 
     // A zero divisor has no emitted quotient/remainder. T means 0, F means 1.
     for bit in 0..b_width {
-        writeln!(source, "JT %r{} .divisor_zero_check_{}", b_start + bit, bit + 1).unwrap();
+        writeln!(
+            source,
+            "JT %r{} .divisor_zero_check_{}",
+            b_start + bit,
+            bit + 1
+        )
+        .unwrap();
         source.push_str("JF %r");
         writeln!(source, "{} .divisor_nonzero", b_start + bit).unwrap();
         writeln!(source, ".divisor_zero_check_{}:", bit + 1).unwrap();
     }
     source.push_str("HALT\n.divisor_nonzero:\n");
 
-    for bit in 0..a_width { writeln!(source, "MOVE %r11 %r{}", quotient_start + bit).unwrap(); }
+    for bit in 0..a_width {
+        writeln!(source, "MOVE %r11 %r{}", quotient_start + bit).unwrap();
+    }
     // Initialize each remainder cell, including its guard bit.
     for bit in 0..remainder_width {
         writeln!(source, "MOVE %r11 %r{}", remainder_start + bit).unwrap();
@@ -714,9 +1038,21 @@ fn bit_register_divmod_program(a_width: usize, b_width: usize) -> String {
 
     for dividend_bit in (0..a_width).rev() {
         for position in (1..remainder_width).rev() {
-            writeln!(source, "MOVE %r{} %r{}", remainder_start + position - 1, remainder_start + position).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                remainder_start + position - 1,
+                remainder_start + position
+            )
+            .unwrap();
         }
-        writeln!(source, "MOVE %r{} %r{}", a_start + dividend_bit, remainder_start).unwrap();
+        writeln!(
+            source,
+            "MOVE %r{} %r{}",
+            a_start + dividend_bit,
+            remainder_start
+        )
+        .unwrap();
         source.push_str("MOVE %r11 %r");
         writeln!(source, "{borrow}").unwrap();
         for bit in 0..remainder_width {
@@ -736,7 +1072,13 @@ fn bit_register_divmod_program(a_width: usize, b_width: usize) -> String {
         writeln!(source, ".take_sub_{dividend_bit}:").unwrap();
         writeln!(source, "MOVE %r12 %r{}", quotient_start + dividend_bit).unwrap();
         for bit in 0..remainder_width {
-            writeln!(source, "MOVE %r{} %r{}", difference_start + bit, remainder_start + bit).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                difference_start + bit,
+                remainder_start + bit
+            )
+            .unwrap();
         }
         writeln!(source, "JMP .div_step_end_{dividend_bit}").unwrap();
         writeln!(source, ".keep_rem_{dividend_bit}:").unwrap();
@@ -744,8 +1086,12 @@ fn bit_register_divmod_program(a_width: usize, b_width: usize) -> String {
         writeln!(source, ".div_step_end_{dividend_bit}:").unwrap();
     }
 
-    for bit in 0..a_width { writeln!(source, "EMIT %r{}", quotient_start + bit).unwrap(); }
-    for bit in 0..remainder_width { writeln!(source, "EMIT %r{}", remainder_start + bit).unwrap(); }
+    for bit in 0..a_width {
+        writeln!(source, "EMIT %r{}", quotient_start + bit).unwrap();
+    }
+    for bit in 0..remainder_width {
+        writeln!(source, "EMIT %r{}", remainder_start + bit).unwrap();
+    }
     source.push_str("HALT\n");
     source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
     source
@@ -776,20 +1122,40 @@ fn bit_register_gcd_program(a_width: usize, b_width: usize) -> String {
     let result_bits: Vec<usize> = (result..result + width).collect();
     let product_bits: Vec<usize> = (product..product + 2 * width).collect();
     let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
-    for bit in 0..a_width { writeln!(source, "READ %r{}", a_input + bit).unwrap(); }
-    for bit in 0..b_width { writeln!(source, "READ %r{}", b_input + bit).unwrap(); }
+    for bit in 0..a_width {
+        writeln!(source, "READ %r{}", a_input + bit).unwrap();
+    }
+    for bit in 0..b_width {
+        writeln!(source, "READ %r{}", b_input + bit).unwrap();
+    }
     for bit in 0..width {
-        if bit < a_width { writeln!(source, "MOVE %r{} %r{}", a_input + bit, a_bits[bit]).unwrap(); }
-        else { writeln!(source, "MOVE %r11 %r{}", a_bits[bit]).unwrap(); }
-        if bit < b_width { writeln!(source, "MOVE %r{} %r{}", b_input + bit, b_bits[bit]).unwrap(); }
-        else { writeln!(source, "MOVE %r11 %r{}", b_bits[bit]).unwrap(); }
-        writeln!(source, "MOVE %r{} %r{}", if bit == 0 { 12 } else { 11 }, scale_bits[bit]).unwrap();
+        if bit < a_width {
+            writeln!(source, "MOVE %r{} %r{}", a_input + bit, a_bits[bit]).unwrap();
+        } else {
+            writeln!(source, "MOVE %r11 %r{}", a_bits[bit]).unwrap();
+        }
+        if bit < b_width {
+            writeln!(source, "MOVE %r{} %r{}", b_input + bit, b_bits[bit]).unwrap();
+        } else {
+            writeln!(source, "MOVE %r11 %r{}", b_bits[bit]).unwrap();
+        }
+        writeln!(
+            source,
+            "MOVE %r{} %r{}",
+            if bit == 0 { 12 } else { 11 },
+            scale_bits[bit]
+        )
+        .unwrap();
     }
 
     source.push_str(".gcd_loop:\n");
-    for &register in &a_bits { writeln!(source, "JF %r{register} .gcd_a_nonzero").unwrap(); }
+    for &register in &a_bits {
+        writeln!(source, "JF %r{register} .gcd_a_nonzero").unwrap();
+    }
     source.push_str("JMP .gcd_emit_b\n.gcd_a_nonzero:\n");
-    for &register in &b_bits { writeln!(source, "JF %r{register} .gcd_b_nonzero").unwrap(); }
+    for &register in &b_bits {
+        writeln!(source, "JF %r{register} .gcd_b_nonzero").unwrap();
+    }
     source.push_str("JMP .gcd_emit_a\n.gcd_b_nonzero:\n");
     writeln!(source, "JT %r{} .gcd_a_even", a_bits[0]).unwrap();
     writeln!(source, "JT %r{} .gcd_shift_b", b_bits[0]).unwrap();
@@ -797,7 +1163,13 @@ fn bit_register_gcd_program(a_width: usize, b_width: usize) -> String {
     writeln!(source, "JT %r{} .gcd_shift_both", b_bits[0]).unwrap();
     source.push_str("JMP .gcd_shift_a\n.gcd_shift_both:\n");
     for bit in (1..width).rev() {
-        writeln!(source, "MOVE %r{} %r{}", scale_bits[bit - 1], scale_bits[bit]).unwrap();
+        writeln!(
+            source,
+            "MOVE %r{} %r{}",
+            scale_bits[bit - 1],
+            scale_bits[bit]
+        )
+        .unwrap();
     }
     writeln!(source, "MOVE %r11 %r{}", scale_bits[0]).unwrap();
     for bit in 0..width - 1 {
@@ -829,18 +1201,30 @@ fn bit_register_gcd_program(a_width: usize, b_width: usize) -> String {
             writeln!(source, "JF %r{borrow} .gcd_sub_ba").unwrap();
         }
         for bit in 0..width - 1 {
-            writeln!(source, "MOVE %r{} %r{}", difference_bits[bit + 1], positive[bit]).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                difference_bits[bit + 1],
+                positive[bit]
+            )
+            .unwrap();
         }
         writeln!(source, "MOVE %r11 %r{}", positive[width - 1]).unwrap();
         source.push_str("JMP .gcd_loop\n");
     }
     source.push_str(".gcd_emit_a:\n");
-    for bit in 0..width { writeln!(source, "MOVE %r{} %r{}", a_bits[bit], result_bits[bit]).unwrap(); }
+    for bit in 0..width {
+        writeln!(source, "MOVE %r{} %r{}", a_bits[bit], result_bits[bit]).unwrap();
+    }
     source.push_str("JMP .gcd_rejoin\n.gcd_emit_b:\n");
-    for bit in 0..width { writeln!(source, "MOVE %r{} %r{}", b_bits[bit], result_bits[bit]).unwrap(); }
+    for bit in 0..width {
+        writeln!(source, "MOVE %r{} %r{}", b_bits[bit], result_bits[bit]).unwrap();
+    }
     source.push_str(".gcd_rejoin:\n");
     append_bit_register_mul(&mut source, &result_bits, &scale_bits, &product_bits, work);
-    for bit in 0..width { writeln!(source, "EMIT %r{}", product_bits[bit]).unwrap(); }
+    for bit in 0..width {
+        writeln!(source, "EMIT %r{}", product_bits[bit]).unwrap();
+    }
     source.push_str("HALT\n");
     source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
     source
@@ -849,7 +1233,11 @@ fn bit_register_gcd_program(a_width: usize, b_width: usize) -> String {
 /// Compose the multiplication and restoring-division membranes into a
 /// width-specialized modular-exponentiation flow. The compiler wires only
 /// the tape shapes; exponent branches inspect the encoded B4 bits at runtime.
-fn bit_register_powmod_program(base_width: usize, exponent_width: usize, modulus_width: usize) -> String {
+fn bit_register_powmod_program(
+    base_width: usize,
+    exponent_width: usize,
+    modulus_width: usize,
+) -> String {
     use core::fmt::Write as _;
 
     let base_start = 32usize;
@@ -857,12 +1245,17 @@ fn bit_register_powmod_program(base_width: usize, exponent_width: usize, modulus
     let modulus_start = exponent_start + exponent_width;
     let persistent_start = modulus_start + modulus_width;
     let result_bits: Vec<usize> = (persistent_start..persistent_start + modulus_width).collect();
-    let base_bits: Vec<usize> = (persistent_start + modulus_width..persistent_start + 2 * modulus_width).collect();
-    let product_bits: Vec<usize> = (persistent_start + 2 * modulus_width..persistent_start + 4 * modulus_width).collect();
+    let base_bits: Vec<usize> =
+        (persistent_start + modulus_width..persistent_start + 2 * modulus_width).collect();
+    let product_bits: Vec<usize> =
+        (persistent_start + 2 * modulus_width..persistent_start + 4 * modulus_width).collect();
     let quotient_width = core::cmp::max(base_width, 2 * modulus_width);
-    let quotient_bits: Vec<usize> = (persistent_start + 4 * modulus_width..persistent_start + 4 * modulus_width + quotient_width).collect();
+    let quotient_bits: Vec<usize> = (persistent_start + 4 * modulus_width
+        ..persistent_start + 4 * modulus_width + quotient_width)
+        .collect();
     let remainder_bits: Vec<usize> = (persistent_start + 4 * modulus_width + quotient_width
-        ..persistent_start + 5 * modulus_width + quotient_width + 1).collect();
+        ..persistent_start + 5 * modulus_width + quotient_width + 1)
+        .collect();
     let work_start = persistent_start + 5 * modulus_width + quotient_width + 1;
     let base_input: Vec<usize> = (base_start..base_start + base_width).collect();
     let exponent: Vec<usize> = (exponent_start..exponent_start + exponent_width).collect();
@@ -870,46 +1263,112 @@ fn bit_register_powmod_program(base_width: usize, exponent_width: usize, modulus
     let one_bit = [12usize]; // FSPLIT's F arm is encoded one (⊥).
 
     let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
-    for bit in 0..base_width { writeln!(source, "READ %r{}", base_start + bit).unwrap(); }
-    for bit in 0..exponent_width { writeln!(source, "READ %r{}", exponent_start + bit).unwrap(); }
-    for bit in 0..modulus_width { writeln!(source, "READ %r{}", modulus_start + bit).unwrap(); }
+    for bit in 0..base_width {
+        writeln!(source, "READ %r{}", base_start + bit).unwrap();
+    }
+    for bit in 0..exponent_width {
+        writeln!(source, "READ %r{}", exponent_start + bit).unwrap();
+    }
+    for bit in 0..modulus_width {
+        writeln!(source, "READ %r{}", modulus_start + bit).unwrap();
+    }
 
     // Set result to 1 mod N and the phase base to base mod N. Both reductions
     // share the same IMASM divider and return their residues on the tape.
-    append_bit_register_divmod(&mut source, &one_bit, &modulus, &quotient_bits[..1], &remainder_bits, work_start, "pow_one_reduce");
+    append_bit_register_divmod(
+        &mut source,
+        &one_bit,
+        &modulus,
+        &quotient_bits[..1],
+        &remainder_bits,
+        work_start,
+        "pow_one_reduce",
+    );
     for bit in 0..modulus_width {
-        writeln!(source, "MOVE %r{} %r{}", remainder_bits[bit], result_bits[bit]).unwrap();
+        writeln!(
+            source,
+            "MOVE %r{} %r{}",
+            remainder_bits[bit], result_bits[bit]
+        )
+        .unwrap();
     }
-    append_bit_register_divmod(&mut source, &base_input, &modulus, &quotient_bits[..base_width], &remainder_bits, work_start, "pow_base_reduce");
+    append_bit_register_divmod(
+        &mut source,
+        &base_input,
+        &modulus,
+        &quotient_bits[..base_width],
+        &remainder_bits,
+        work_start,
+        "pow_base_reduce",
+    );
     for bit in 0..modulus_width {
-        writeln!(source, "MOVE %r{} %r{}", remainder_bits[bit], base_bits[bit]).unwrap();
+        writeln!(
+            source,
+            "MOVE %r{} %r{}",
+            remainder_bits[bit], base_bits[bit]
+        )
+        .unwrap();
     }
 
     for (index, &exponent_bit) in exponent.iter().enumerate() {
         writeln!(source, "JT %r{exponent_bit} .pow_skip_product_{index}").unwrap();
         writeln!(source, "JF %r{exponent_bit} .pow_product_{index}").unwrap();
         writeln!(source, ".pow_product_{index}:").unwrap();
-        append_bit_register_mul(&mut source, &result_bits, &base_bits, &product_bits, work_start);
+        append_bit_register_mul(
+            &mut source,
+            &result_bits,
+            &base_bits,
+            &product_bits,
+            work_start,
+        );
         append_bit_register_divmod(
-            &mut source, &product_bits, &modulus, &quotient_bits[..2 * modulus_width],
-            &remainder_bits, work_start, &alloc::format!("pow_result_reduce_{index}"),
+            &mut source,
+            &product_bits,
+            &modulus,
+            &quotient_bits[..2 * modulus_width],
+            &remainder_bits,
+            work_start,
+            &alloc::format!("pow_result_reduce_{index}"),
         );
         for bit in 0..modulus_width {
-            writeln!(source, "MOVE %r{} %r{}", remainder_bits[bit], result_bits[bit]).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                remainder_bits[bit], result_bits[bit]
+            )
+            .unwrap();
         }
         writeln!(source, ".pow_skip_product_{index}:").unwrap();
 
-        append_bit_register_mul(&mut source, &base_bits, &base_bits, &product_bits, work_start);
+        append_bit_register_mul(
+            &mut source,
+            &base_bits,
+            &base_bits,
+            &product_bits,
+            work_start,
+        );
         append_bit_register_divmod(
-            &mut source, &product_bits, &modulus, &quotient_bits[..2 * modulus_width],
-            &remainder_bits, work_start, &alloc::format!("pow_base_square_reduce_{index}"),
+            &mut source,
+            &product_bits,
+            &modulus,
+            &quotient_bits[..2 * modulus_width],
+            &remainder_bits,
+            work_start,
+            &alloc::format!("pow_base_square_reduce_{index}"),
         );
         for bit in 0..modulus_width {
-            writeln!(source, "MOVE %r{} %r{}", remainder_bits[bit], base_bits[bit]).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                remainder_bits[bit], base_bits[bit]
+            )
+            .unwrap();
         }
     }
 
-    for &bit in &result_bits { writeln!(source, "EMIT %r{bit}").unwrap(); }
+    for &bit in &result_bits {
+        writeln!(source, "EMIT %r{bit}").unwrap();
+    }
     source.push_str("HALT\n");
     source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
     source
@@ -921,6 +1380,314 @@ pub struct PhaseSquare {
     vm: ParaVM,
     modulus: Vec<B4>,
     width: usize,
+}
+
+/// Montgomery residues use R = 2^width. For odd N, the low product cell
+/// selects an N addition before each right shift, so reduction stays in the
+/// same multiplication/comultiplication circuit as the phase square.
+pub struct MontgomeryPhase {
+    enter_vm: ParaVM,
+    enter_input_width: usize,
+    square_vm: ParaVM,
+    support_vm: ParaVM,
+    modulus: Vec<B4>,
+    width: usize,
+}
+
+fn append_reduce_once(
+    source: &mut String,
+    accumulator: &[usize],
+    modulus: &[usize],
+    difference: &[usize],
+    borrow: usize,
+    label: &str,
+) {
+    use core::fmt::Write as _;
+    writeln!(source, "MOVE %r11 %r{borrow}").unwrap();
+    for (bit, &register) in accumulator.iter().enumerate() {
+        writeln!(source, "MOVE %r{register} %r0").unwrap();
+        if let Some(&modulus_bit) = modulus.get(bit) {
+            writeln!(source, "MOVE %r{modulus_bit} %r1").unwrap();
+        } else {
+            source.push_str("MOVE %r11 %r1\n");
+        }
+        writeln!(source, "MOVE %r{borrow} %r2\nCALL .full_subtractor").unwrap();
+        writeln!(source, "MOVE %r3 %r{}", difference[bit]).unwrap();
+        writeln!(source, "MOVE %r4 %r{borrow}").unwrap();
+    }
+    writeln!(source, "JF %r{borrow} .{label}_done").unwrap();
+    for (&from, &to) in difference.iter().zip(accumulator) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    writeln!(source, ".{label}_done:").unwrap();
+}
+
+fn montgomery_enter_program(width: usize, input_width: usize) -> String {
+    use core::fmt::Write as _;
+    let input: Vec<_> = (32..32 + input_width).collect();
+    let modulus: Vec<_> = (32 + input_width..32 + input_width + width).collect();
+    let accumulator: Vec<_> =
+        (32 + input_width + width..32 + input_width + 2 * width + 2).collect();
+    let difference: Vec<_> =
+        (32 + input_width + 2 * width + 2..32 + input_width + 3 * width + 4).collect();
+    let borrow = 32 + input_width + 3 * width + 4;
+    let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for &register in input.iter().chain(modulus.iter()) {
+        writeln!(source, "READ %r{register}").unwrap();
+    }
+    if input_width <= width {
+        for (bit, &register) in accumulator.iter().enumerate() {
+            if bit < input_width {
+                writeln!(source, "MOVE %r{} %r{register}", input[bit]).unwrap();
+            } else {
+                writeln!(source, "MOVE %r11 %r{register}").unwrap();
+            }
+        }
+        // Canonical width-w N occupies at least 2^(w-1); one cancellation
+        // normalizes every input with at most w cells.
+        append_reduce_once(
+            &mut source,
+            &accumulator,
+            &modulus,
+            &difference,
+            borrow,
+            "enter_input_reduce",
+        );
+    } else {
+        for &register in &accumulator {
+            writeln!(source, "MOVE %r11 %r{register}").unwrap();
+        }
+        for (step, &cell) in input.iter().enumerate().rev() {
+            for bit in (1..accumulator.len()).rev() {
+                writeln!(
+                    source,
+                    "MOVE %r{} %r{}",
+                    accumulator[bit - 1],
+                    accumulator[bit]
+                )
+                .unwrap();
+            }
+            writeln!(source, "MOVE %r{cell} %r{}", accumulator[0]).unwrap();
+            append_reduce_once(
+                &mut source,
+                &accumulator,
+                &modulus,
+                &difference,
+                borrow,
+                &alloc::format!("enter_input_reduce_{step}"),
+            );
+        }
+    }
+    for step in 0..width {
+        for bit in (1..accumulator.len()).rev() {
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                accumulator[bit - 1],
+                accumulator[bit]
+            )
+            .unwrap();
+        }
+        writeln!(source, "MOVE %r11 %r{}", accumulator[0]).unwrap();
+        append_reduce_once(
+            &mut source,
+            &accumulator,
+            &modulus,
+            &difference,
+            borrow,
+            &alloc::format!("enter_reduce_{step}"),
+        );
+    }
+    for &register in accumulator.iter().take(width) {
+        writeln!(source, "EMIT %r{register}").unwrap();
+    }
+    source.push_str("HALT\n");
+    source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    source
+}
+
+fn montgomery_square_program(width: usize) -> String {
+    use core::fmt::Write as _;
+    let input: Vec<_> = (32..32 + width).collect();
+    let modulus: Vec<_> = (32 + width..32 + 2 * width).collect();
+    let accumulator: Vec<_> = (32 + 2 * width..32 + 3 * width + 2).collect();
+    let difference: Vec<_> = (32 + 3 * width + 2..32 + 4 * width + 4).collect();
+    let borrow = 32 + 4 * width + 4;
+    let carry = borrow + 1;
+    let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for &register in input.iter().chain(modulus.iter()) {
+        writeln!(source, "READ %r{register}").unwrap();
+    }
+    for &register in &accumulator {
+        writeln!(source, "MOVE %r11 %r{register}").unwrap();
+    }
+    for bit in 0..width {
+        writeln!(source, "JT %r{} .mont_skip_base_{bit}", input[bit]).unwrap();
+        append_bit_register_add(&mut source, &accumulator, &input, &accumulator, carry);
+        writeln!(source, ".mont_skip_base_{bit}:").unwrap();
+        writeln!(source, "JT %r{} .mont_skip_modulus_{bit}", accumulator[0]).unwrap();
+        append_bit_register_add(&mut source, &accumulator, &modulus, &accumulator, carry);
+        writeln!(source, ".mont_skip_modulus_{bit}:").unwrap();
+        for position in 0..accumulator.len() - 1 {
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                accumulator[position + 1],
+                accumulator[position]
+            )
+            .unwrap();
+        }
+        writeln!(source, "MOVE %r11 %r{}", accumulator[accumulator.len() - 1]).unwrap();
+    }
+    append_reduce_once(
+        &mut source,
+        &accumulator,
+        &modulus,
+        &difference,
+        borrow,
+        "mont_final_reduce",
+    );
+    for &register in accumulator.iter().take(width) {
+        writeln!(source, "EMIT %r{register}").unwrap();
+    }
+    source.push_str("HALT\n");
+    source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    source
+}
+
+/// Evaluate N's support polynomial in eight-cell frames. Each frame performs
+/// one Montgomery product by x^8 and adds its selected x^j register states.
+/// This is the same coefficient polynomial regrouped at frame width eight.
+fn montgomery_support_program(width: usize) -> String {
+    use core::fmt::Write as _;
+    let residue: Vec<_> = (32..32 + width).collect();
+    let modulus: Vec<_> = (32 + width..32 + 2 * width).collect();
+    let unit: Vec<_> = (32 + 2 * width..32 + 3 * width).collect();
+    let coefficient = 32 + 3 * width;
+    let powers_start = coefficient + 1;
+    let powers: Vec<Vec<usize>> = (0..=8)
+        .map(|power| (powers_start + power * width..powers_start + (power + 1) * width).collect())
+        .collect();
+    let multiplier: Vec<_> = (powers_start + 9 * width..powers_start + 10 * width).collect();
+    let accumulator: Vec<_> = (powers_start + 10 * width..powers_start + 11 * width + 2).collect();
+    let product: Vec<_> = (powers_start + 11 * width + 2..powers_start + 12 * width + 4).collect();
+    let difference: Vec<_> =
+        (powers_start + 12 * width + 4..powers_start + 13 * width + 6).collect();
+    let borrow = powers_start + 13 * width + 6;
+    let carry = borrow + 1;
+    let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for &register in residue.iter().chain(modulus.iter()).chain(unit.iter()) {
+        writeln!(source, "READ %r{register}").unwrap();
+    }
+    for (&from, &to) in unit.iter().zip(&powers[0]) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    for (&from, &to) in residue.iter().zip(&powers[1]) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    for (&from, &to) in residue.iter().zip(&multiplier) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    for power in 2..=8 {
+        for (bit, &register) in powers[power - 1].iter().enumerate() {
+            writeln!(source, "MOVE %r{register} %r{}", accumulator[bit]).unwrap();
+        }
+        writeln!(
+            source,
+            "MOVE %r11 %r{}\nMOVE %r11 %r{}",
+            accumulator[width],
+            accumulator[width + 1]
+        )
+        .unwrap();
+        source.push_str("CALL .support_montgomery_product\n");
+        for (bit, &register) in powers[power].iter().enumerate() {
+            writeln!(source, "MOVE %r{} %r{register}", accumulator[bit]).unwrap();
+        }
+    }
+    for &register in &accumulator {
+        writeln!(source, "MOVE %r11 %r{register}").unwrap();
+    }
+    let group_count = width.div_ceil(8);
+    for group in (0..group_count).rev() {
+        for (&from, &to) in powers[8].iter().zip(&multiplier) {
+            writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+        }
+        source.push_str("CALL .support_montgomery_product\n");
+        let top_remainder = width % 8;
+        let group_width = if group + 1 == group_count && top_remainder != 0 {
+            top_remainder
+        } else {
+            8
+        };
+        for position in (0..group_width).rev() {
+            writeln!(source, "READ %r{coefficient}").unwrap();
+            writeln!(
+                source,
+                "JT %r{coefficient} .support_skip_add_{group}_{position}"
+            )
+            .unwrap();
+            append_bit_register_add(
+                &mut source,
+                &accumulator,
+                &powers[position],
+                &accumulator,
+                carry,
+            );
+            append_reduce_once(
+                &mut source,
+                &accumulator,
+                &modulus,
+                &difference,
+                borrow,
+                &alloc::format!("support_add_reduce_{group}_{position}"),
+            );
+            writeln!(source, ".support_skip_add_{group}_{position}:").unwrap();
+        }
+    }
+    for &register in accumulator.iter().take(width) {
+        writeln!(source, "EMIT %r{register}").unwrap();
+    }
+    source.push_str("HALT\n.support_montgomery_product:\n");
+    for &register in &product {
+        writeln!(source, "MOVE %r11 %r{register}").unwrap();
+    }
+    for bit in 0..width {
+        writeln!(
+            source,
+            "JT %r{} .support_skip_residue_{bit}",
+            accumulator[bit]
+        )
+        .unwrap();
+        append_bit_register_add(&mut source, &product, &multiplier, &product, carry);
+        writeln!(source, ".support_skip_residue_{bit}:").unwrap();
+        writeln!(source, "JT %r{} .support_skip_modulus_{bit}", product[0]).unwrap();
+        append_bit_register_add(&mut source, &product, &modulus, &product, carry);
+        writeln!(source, ".support_skip_modulus_{bit}:").unwrap();
+        for position in 0..product.len() - 1 {
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                product[position + 1],
+                product[position]
+            )
+            .unwrap();
+        }
+        writeln!(source, "MOVE %r11 %r{}", product[product.len() - 1]).unwrap();
+    }
+    append_reduce_once(
+        &mut source,
+        &product,
+        &modulus,
+        &difference,
+        borrow,
+        "support_product_final_reduce",
+    );
+    for (from, to) in product.iter().zip(&accumulator) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    source.push_str("RET\n");
+    source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    source
 }
 
 /// Build the odd-anchor inverse recurrence. At step k, the residual's low
@@ -939,32 +1706,79 @@ fn bit_register_complement_program(candidate_width: usize, source_width: usize) 
     for reg in candidate_start..source_start + source_width {
         writeln!(source, "READ %r{reg}").unwrap();
     }
-    writeln!(source, "JF %r{candidate_start} .complement_odd\nHALT\n.complement_odd:").unwrap();
+    writeln!(
+        source,
+        "JF %r{candidate_start} .complement_odd\nHALT\n.complement_odd:"
+    )
+    .unwrap();
     for bit in 0..width {
-        let input = if bit < source_width { source_start + bit } else { 11 };
+        let input = if bit < source_width {
+            source_start + bit
+        } else {
+            11
+        };
         writeln!(source, "MOVE %r{input} %r{}", residual_start + bit).unwrap();
     }
     for step in 0..source_width {
-        writeln!(source, "MOVE %r{residual_start} %r{}", complement_start + step).unwrap();
-        writeln!(source, "JT %r{} .complement_shift_{step}", complement_start + step).unwrap();
+        writeln!(
+            source,
+            "MOVE %r{residual_start} %r{}",
+            complement_start + step
+        )
+        .unwrap();
+        writeln!(
+            source,
+            "JT %r{} .complement_shift_{step}",
+            complement_start + step
+        )
+        .unwrap();
         writeln!(source, "MOVE %r11 %r{borrow}").unwrap();
         for bit in 0..width {
             writeln!(source, "MOVE %r{} %r0", residual_start + bit).unwrap();
-            let input = if bit < candidate_width { candidate_start + bit } else { 11 };
-            writeln!(source, "MOVE %r{input} %r1\nMOVE %r{borrow} %r2\nCALL .full_subtractor").unwrap();
-            writeln!(source, "MOVE %r3 %r{}\nMOVE %r4 %r{borrow}", difference_start + bit).unwrap();
+            let input = if bit < candidate_width {
+                candidate_start + bit
+            } else {
+                11
+            };
+            writeln!(
+                source,
+                "MOVE %r{input} %r1\nMOVE %r{borrow} %r2\nCALL .full_subtractor"
+            )
+            .unwrap();
+            writeln!(
+                source,
+                "MOVE %r3 %r{}\nMOVE %r4 %r{borrow}",
+                difference_start + bit
+            )
+            .unwrap();
         }
         for bit in 0..width {
-            writeln!(source, "MOVE %r{} %r{}", difference_start + bit, residual_start + bit).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                difference_start + bit,
+                residual_start + bit
+            )
+            .unwrap();
         }
         writeln!(source, ".complement_shift_{step}:").unwrap();
         for bit in 0..width - 1 {
-            writeln!(source, "MOVE %r{} %r{}", residual_start + bit + 1, residual_start + bit).unwrap();
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                residual_start + bit + 1,
+                residual_start + bit
+            )
+            .unwrap();
         }
     }
     for bit in 0..width {
-        writeln!(source, "JT %r{} .complement_zero_{bit}\nHALT\n.complement_zero_{bit}:",
-            residual_start + bit).unwrap();
+        writeln!(
+            source,
+            "JT %r{} .complement_zero_{bit}\nHALT\n.complement_zero_{bit}:",
+            residual_start + bit
+        )
+        .unwrap();
     }
     for bit in 0..source_width {
         writeln!(source, "EMIT %r{}", complement_start + bit).unwrap();
@@ -974,13 +1788,20 @@ fn bit_register_complement_program(candidate_width: usize, source_width: usize) 
     source
 }
 
-pub fn complement_encoded_lsb_first(candidate: &str, source: &str)
-    -> Result<Option<String>, String> {
-    let decode = |stream: &str| stream.chars().map(|symbol| match symbol {
-        '⊤' => Ok(B4::T),
-        '⊥' => Ok(B4::F),
-        other => Err(alloc::format!("invalid complement cell {other:?}")),
-    }).collect::<Result<Vec<_>, _>>();
+pub fn complement_encoded_lsb_first(
+    candidate: &str,
+    source: &str,
+) -> Result<Option<String>, String> {
+    let decode = |stream: &str| {
+        stream
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!("invalid complement cell {other:?}")),
+            })
+            .collect::<Result<Vec<_>, _>>()
+    };
     let candidate_bits = decode(candidate)?;
     let source_bits = decode(source)?;
     if candidate_bits.is_empty() || source_bits.is_empty() {
@@ -989,17 +1810,25 @@ pub fn complement_encoded_lsb_first(candidate: &str, source: &str)
     let mut reads = candidate_bits.clone();
     reads.extend_from_slice(&source_bits);
     let mut vm = ParaVM::new();
-    vm.load(&bit_register_complement_program(candidate_bits.len(), source_bits.len()))?;
+    vm.load(&bit_register_complement_program(
+        candidate_bits.len(),
+        source_bits.len(),
+    ))?;
     vm.set_reads(reads);
     vm.run(None);
-    if !vm.halted { return Err("complement did not halt".into()); }
-    if vm.emit_buffer.is_empty() { return Ok(None); }
+    if !vm.halted {
+        return Err("complement did not halt".into());
+    }
+    if vm.emit_buffer.is_empty() {
+        return Ok(None);
+    }
     if vm.emit_buffer.len() != source_bits.len() {
         return Err("complement emitted an incomplete word".into());
     }
     let mut complement = String::new();
     for cell in &vm.emit_buffer {
-        let (_, value) = cell.rsplit_once(" = ")
+        let (_, value) = cell
+            .rsplit_once(" = ")
             .ok_or_else(|| "complement emitted a malformed cell".to_string())?;
         match value {
             "T" => complement.push('⊤'),
@@ -1013,12 +1842,17 @@ pub fn complement_encoded_lsb_first(candidate: &str, source: &str)
 impl PhaseSquare {
     pub fn new(modulus: &str) -> Result<Self, String> {
         use core::fmt::Write as _;
-        let bits = modulus.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid phase modulus cell {other:?}")),
-        }).collect::<Result<Vec<_>, _>>()?;
-        if bits.is_empty() { return Err("empty phase modulus".into()); }
+        let bits = modulus
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!("invalid phase modulus cell {other:?}")),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if bits.is_empty() {
+            return Err("empty phase modulus".into());
+        }
         let width = bits.len();
         let base_start = 32;
         let modulus_start = base_start + width;
@@ -1036,8 +1870,15 @@ impl PhaseSquare {
             writeln!(source, "READ %r{register}").unwrap();
         }
         append_bit_register_mul(&mut source, &base, &base, &product, work_start);
-        append_bit_register_divmod(&mut source, &product, &modulus_regs, &quotient,
-            &remainder, work_start, "phase_square_reduce");
+        append_bit_register_divmod(
+            &mut source,
+            &product,
+            &modulus_regs,
+            &quotient,
+            &remainder,
+            work_start,
+            "phase_square_reduce",
+        );
         for register in remainder.iter().take(width) {
             writeln!(source, "EMIT %r{register}").unwrap();
         }
@@ -1045,16 +1886,25 @@ impl PhaseSquare {
         source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
         let mut vm = ParaVM::new();
         vm.load(&source)?;
-        Ok(Self { vm, modulus: bits, width })
+        Ok(Self {
+            vm,
+            modulus: bits,
+            width,
+        })
     }
 
     pub fn observe(&mut self, residue: &str) -> Result<String, String> {
-        let mut reads = residue.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid phase residue cell {other:?}")),
-        }).collect::<Result<Vec<_>, _>>()?;
-        if reads.len() > self.width { return Err("phase residue exceeds modulus width".into()); }
+        let mut reads = residue
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!("invalid phase residue cell {other:?}")),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if reads.len() > self.width {
+            return Err("phase residue exceeds modulus width".into());
+        }
         reads.resize(self.width, B4::T);
         reads.extend_from_slice(&self.modulus);
         self.vm.registers.clear();
@@ -1071,12 +1921,169 @@ impl PhaseSquare {
         }
         let mut result = String::new();
         for cell in &self.vm.emit_buffer {
-            let (_, value) = cell.rsplit_once(" = ")
+            let (_, value) = cell
+                .rsplit_once(" = ")
                 .ok_or_else(|| "resident phase square emitted a malformed cell".to_string())?;
             match value {
                 "T" => result.push('⊤'),
                 "F" => result.push('⊥'),
                 _ => return Err(alloc::format!("resident phase square emitted {value}")),
+            }
+        }
+        Ok(result)
+    }
+}
+
+impl MontgomeryPhase {
+    pub fn new(modulus: &str) -> Result<Self, String> {
+        let bits = modulus
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!("invalid phase modulus cell {other:?}")),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if bits.is_empty() || bits[0] != B4::F || bits.last() != Some(&B4::F) {
+            return Err("Montgomery phase requires a canonical odd modulus".into());
+        }
+        let width = bits.len();
+        let mut enter_vm = ParaVM::new();
+        enter_vm.load(&montgomery_enter_program(width, width))?;
+        enter_vm.enable_dense_belief();
+        let mut square_vm = ParaVM::new();
+        square_vm.load(&montgomery_square_program(width))?;
+        square_vm.enable_dense_belief();
+        let mut support_vm = ParaVM::new();
+        support_vm.load(&montgomery_support_program(width))?;
+        support_vm.enable_dense_belief();
+        Ok(Self {
+            enter_vm,
+            enter_input_width: width,
+            square_vm,
+            support_vm,
+            modulus: bits,
+            width,
+        })
+    }
+
+    fn execute(&mut self, residue: &str, entering: bool) -> Result<String, String> {
+        let mut reads = residue
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!("invalid phase residue cell {other:?}")),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if entering {
+            let input_width = reads.len().max(self.width);
+            if self.enter_input_width != input_width {
+                self.enter_vm
+                    .load(&montgomery_enter_program(self.width, input_width))?;
+                self.enter_input_width = input_width;
+            }
+            reads.resize(input_width, B4::T);
+        } else {
+            if reads.len() > self.width {
+                return Err("phase residue exceeds modulus width".into());
+            }
+            reads.resize(self.width, B4::T);
+        }
+        reads.extend_from_slice(&self.modulus);
+        let vm = if entering {
+            &mut self.enter_vm
+        } else {
+            &mut self.square_vm
+        };
+        vm.registers.clear();
+        vm.belief.clear();
+        vm.clear_dense_belief();
+        vm.call_stack.clear();
+        vm.data_stack.clear();
+        vm.emit_buffer.clear();
+        vm.pc = 0;
+        vm.halted = false;
+        vm.set_reads(reads);
+        vm.run(None);
+        if !vm.halted || vm.emit_buffer.len() != self.width {
+            return Err("Montgomery phase emitted an incomplete residue".into());
+        }
+        let mut result = String::new();
+        for cell in &vm.emit_buffer {
+            let (_, value) = cell
+                .rsplit_once(" = ")
+                .ok_or_else(|| "Montgomery phase emitted a malformed cell".to_string())?;
+            match value {
+                "T" => result.push('⊤'),
+                "F" => result.push('⊥'),
+                _ => return Err(alloc::format!("Montgomery phase emitted {value}")),
+            }
+        }
+        Ok(result)
+    }
+
+    pub fn enter(&mut self, residue: &str) -> Result<String, String> {
+        self.execute(residue, true)
+    }
+
+    pub fn observe(&mut self, residue: &str) -> Result<String, String> {
+        self.execute(residue, false)
+    }
+
+    /// Evaluate N's bit-support polynomial at a phase residue inside the same
+    /// Montgomery frame. The encoded coefficient stream is consumed by the
+    /// resident IMASM Horner circuit. The result is R-scaled, which preserves
+    /// its gcd with the odd modulus and lets extraction act on that readout.
+    pub fn support_polynomial(
+        &mut self,
+        residue: &str,
+        one_montgomery: &str,
+        coefficients_lsb_first: &str,
+    ) -> Result<String, String> {
+        let decode = |stream: &str| {
+            stream
+                .chars()
+                .map(|symbol| match symbol {
+                    '⊤' => Ok(B4::T),
+                    '⊥' => Ok(B4::F),
+                    other => Err(alloc::format!("invalid support-polynomial cell {other:?}")),
+                })
+                .collect::<Result<Vec<_>, _>>()
+        };
+        let mut reads = decode(residue)?;
+        let mut unit = decode(one_montgomery)?;
+        if reads.len() > self.width || unit.len() > self.width {
+            return Err("support-polynomial register exceeds modulus width".into());
+        }
+        reads.resize(self.width, B4::T);
+        unit.resize(self.width, B4::T);
+        reads.extend_from_slice(&self.modulus);
+        reads.extend(unit);
+        reads.extend(decode(coefficients_lsb_first)?.into_iter().rev());
+        let vm = &mut self.support_vm;
+        vm.registers.clear();
+        vm.belief.clear();
+        vm.clear_dense_belief();
+        vm.call_stack.clear();
+        vm.data_stack.clear();
+        vm.emit_buffer.clear();
+        vm.pc = 0;
+        vm.halted = false;
+        vm.set_reads(reads);
+        vm.run(None);
+        if !vm.halted || vm.emit_buffer.len() != self.width {
+            return Err("support-polynomial circuit emitted an incomplete residue".into());
+        }
+        let mut result = String::new();
+        for cell in &vm.emit_buffer {
+            let (_, value) = cell
+                .rsplit_once(" = ")
+                .ok_or_else(|| "support-polynomial circuit emitted a malformed cell".to_string())?;
+            match value {
+                "T" => result.push('⊤'),
+                "F" => result.push('⊥'),
+                _ => return Err(alloc::format!("support-polynomial circuit emitted {value}")),
             }
         }
         Ok(result)
@@ -1092,11 +2099,16 @@ pub fn add_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
         if stream.is_empty() {
             return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
         }
-        stream.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
-        }).collect()
+        stream
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!(
+                    "invalid numeral symbol {other:?}; expected ⊤ or ⊥"
+                )),
+            })
+            .collect()
     }
 
     let left = decode(a)?;
@@ -1119,7 +2131,8 @@ pub fn add_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
 
     let mut result = String::new();
     for cell in &vm.emit_buffer {
-        let (_, value) = cell.rsplit_once(" = ")
+        let (_, value) = cell
+            .rsplit_once(" = ")
             .ok_or_else(|| "IMASM adder emitted a malformed cell".to_string())?;
         match value {
             "T" => result.push('⊤'),
@@ -1138,11 +2151,16 @@ pub fn subtract_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
         if stream.is_empty() {
             return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
         }
-        stream.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
-        }).collect()
+        stream
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!(
+                    "invalid numeral symbol {other:?}; expected ⊤ or ⊥"
+                )),
+            })
+            .collect()
     }
 
     let left = decode(a)?;
@@ -1165,12 +2183,17 @@ pub fn subtract_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
 
     let mut result = String::new();
     for cell in &vm.emit_buffer {
-        let (_, value) = cell.rsplit_once(" = ")
+        let (_, value) = cell
+            .rsplit_once(" = ")
             .ok_or_else(|| "IMASM subtractor emitted a malformed cell".to_string())?;
         match value {
             "T" => result.push('⊤'),
             "F" => result.push('⊥'),
-            _ => return Err(alloc::format!("IMASM subtractor emitted non-bit state {value}")),
+            _ => {
+                return Err(alloc::format!(
+                    "IMASM subtractor emitted non-bit state {value}"
+                ))
+            }
         }
     }
     Ok(result)
@@ -1184,11 +2207,16 @@ pub fn multiply_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
         if stream.is_empty() {
             return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
         }
-        stream.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
-        }).collect()
+        stream
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!(
+                    "invalid numeral symbol {other:?}; expected ⊤ or ⊥"
+                )),
+            })
+            .collect()
     }
 
     let left = decode(a)?;
@@ -1207,12 +2235,17 @@ pub fn multiply_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
 
     let mut product = String::new();
     for cell in &vm.emit_buffer {
-        let (_, value) = cell.rsplit_once(" = ")
+        let (_, value) = cell
+            .rsplit_once(" = ")
             .ok_or_else(|| "IMASM multiplier emitted a malformed cell".to_string())?;
         match value {
             "T" => product.push('⊤'),
             "F" => product.push('⊥'),
-            _ => return Err(alloc::format!("IMASM multiplier emitted non-bit state {value}")),
+            _ => {
+                return Err(alloc::format!(
+                    "IMASM multiplier emitted non-bit state {value}"
+                ))
+            }
         }
     }
     if product.chars().count() != left.len() + right.len() {
@@ -1230,11 +2263,16 @@ pub fn product_closure_encoded_lsb_first(a: &str, b: &str, n: &str) -> Result<ch
         if stream.is_empty() {
             return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
         }
-        stream.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
-        }).collect()
+        stream
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!(
+                    "invalid numeral symbol {other:?}; expected ⊤ or ⊥"
+                )),
+            })
+            .collect()
     }
 
     let left = decode(a)?;
@@ -1246,7 +2284,11 @@ pub fn product_closure_encoded_lsb_first(a: &str, b: &str, n: &str) -> Result<ch
     reads.extend_from_slice(&target);
 
     let mut vm = ParaVM::new();
-    vm.load(&bit_register_product_closure_program(left.len(), right.len(), target.len()))?;
+    vm.load(&bit_register_product_closure_program(
+        left.len(),
+        right.len(),
+        target.len(),
+    ))?;
     vm.set_reads(reads);
     vm.run(None);
     if !vm.halted || vm.emit_buffer.len() != 1 {
@@ -1255,7 +2297,9 @@ pub fn product_closure_encoded_lsb_first(a: &str, b: &str, n: &str) -> Result<ch
     match vm.emit_buffer[0].rsplit_once(" = ").map(|(_, value)| value) {
         Some("T [FIXED]") => Ok('⊤'),
         Some("F") => Ok('⊥'),
-        Some(value) => Err(alloc::format!("product-closure emitted non-classical state {value}")),
+        Some(value) => Err(alloc::format!(
+            "product-closure emitted non-classical state {value}"
+        )),
         None => Err("product-closure emitted a malformed verdict cell".into()),
     }
 }
@@ -1269,11 +2313,16 @@ pub fn divmod_encoded_lsb_first(a: &str, b: &str) -> Result<(String, String), St
         if stream.is_empty() {
             return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
         }
-        stream.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
-        }).collect()
+        stream
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!(
+                    "invalid numeral symbol {other:?}; expected ⊤ or ⊥"
+                )),
+            })
+            .collect()
     }
 
     let left = decode(a)?;
@@ -1297,12 +2346,17 @@ pub fn divmod_encoded_lsb_first(a: &str, b: &str) -> Result<(String, String), St
     }
     let mut cells = Vec::with_capacity(vm.emit_buffer.len());
     for cell in &vm.emit_buffer {
-        let (_, value) = cell.rsplit_once(" = ")
+        let (_, value) = cell
+            .rsplit_once(" = ")
             .ok_or_else(|| "IMASM divider emitted a malformed cell".to_string())?;
         cells.push(match value {
             "T" => '⊤',
             "F" => '⊥',
-            _ => return Err(alloc::format!("IMASM divider emitted non-bit state {value}")),
+            _ => {
+                return Err(alloc::format!(
+                    "IMASM divider emitted non-bit state {value}"
+                ))
+            }
         });
     }
     let remainder_width = b_width + 1;
@@ -1326,11 +2380,16 @@ pub fn gcd_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
         if stream.is_empty() {
             return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
         }
-        stream.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
-        }).collect()
+        stream
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!(
+                    "invalid numeral symbol {other:?}; expected ⊤ or ⊥"
+                )),
+            })
+            .collect()
     }
 
     let left = decode(a)?;
@@ -1347,7 +2406,8 @@ pub fn gcd_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
     }
     let mut result = String::new();
     for cell in &vm.emit_buffer {
-        let (_, value) = cell.rsplit_once(" = ")
+        let (_, value) = cell
+            .rsplit_once(" = ")
             .ok_or_else(|| "IMASM gcd emitted a malformed cell".to_string())?;
         match value {
             "T" => result.push('⊤'),
@@ -1361,16 +2421,25 @@ pub fn gcd_encoded_lsb_first(a: &str, b: &str) -> Result<String, String> {
 /// Modular exponentiation as one composed IMASM membrane: encoded base,
 /// exponent, and modulus tapes enter READ; phase-bit branches select product
 /// closures; every modular reduction reuses the instruction-level divider.
-pub fn powmod_encoded_lsb_first(base: &str, exponent: &str, modulus: &str) -> Result<String, String> {
+pub fn powmod_encoded_lsb_first(
+    base: &str,
+    exponent: &str,
+    modulus: &str,
+) -> Result<String, String> {
     fn decode(stream: &str) -> Result<Vec<B4>, String> {
         if stream.is_empty() {
             return Err("expected a non-empty LSB-first ⊤/⊥ bitstream".into());
         }
-        stream.chars().map(|symbol| match symbol {
-            '⊤' => Ok(B4::T),
-            '⊥' => Ok(B4::F),
-            other => Err(alloc::format!("invalid numeral symbol {other:?}; expected ⊤ or ⊥")),
-        }).collect()
+        stream
+            .chars()
+            .map(|symbol| match symbol {
+                '⊤' => Ok(B4::T),
+                '⊥' => Ok(B4::F),
+                other => Err(alloc::format!(
+                    "invalid numeral symbol {other:?}; expected ⊤ or ⊥"
+                )),
+            })
+            .collect()
     }
 
     let base_bits = decode(base)?;
@@ -1382,7 +2451,11 @@ pub fn powmod_encoded_lsb_first(base: &str, exponent: &str, modulus: &str) -> Re
     reads.extend_from_slice(&modulus_bits);
 
     let mut vm = ParaVM::new();
-    vm.load(&bit_register_powmod_program(base_bits.len(), exponent_bits.len(), modulus_bits.len()))?;
+    vm.load(&bit_register_powmod_program(
+        base_bits.len(),
+        exponent_bits.len(),
+        modulus_bits.len(),
+    ))?;
     vm.set_reads(reads);
     vm.run(None);
     if !vm.halted {
@@ -1396,12 +2469,17 @@ pub fn powmod_encoded_lsb_first(base: &str, exponent: &str, modulus: &str) -> Re
     }
     let mut residue = String::new();
     for cell in &vm.emit_buffer {
-        let (_, value) = cell.rsplit_once(" = ")
+        let (_, value) = cell
+            .rsplit_once(" = ")
             .ok_or_else(|| "IMASM modular-phase program emitted a malformed cell".to_string())?;
         match value {
             "T" => residue.push('⊤'),
             "F" => residue.push('⊥'),
-            _ => return Err(alloc::format!("IMASM modular-phase program emitted non-bit state {value}")),
+            _ => {
+                return Err(alloc::format!(
+                    "IMASM modular-phase program emitted non-bit state {value}"
+                ))
+            }
         }
     }
     Ok(residue)
@@ -1410,31 +2488,39 @@ pub fn powmod_encoded_lsb_first(base: &str, exponent: &str, modulus: &str) -> Re
 impl ParaAsm {
     pub fn op_name(&self) -> &'static str {
         match self {
-            ParaAsm::ENGAGR(_)  => "ENGAGR",
+            ParaAsm::ENGAGR(_) => "ENGAGR",
             ParaAsm::FSPLIT(..) => "FSPLIT",
-            ParaAsm::FFUSE(..)  => "FFUSE",
-            ParaAsm::IFIX(_)    => "IFIX",
-            ParaAsm::MOVE(..)   => "MOVE",
-            ParaAsm::CLEAR(_)   => "CLEAR",
-            ParaAsm::JMP(_)     => "JMP",
-            ParaAsm::JB(..)     => "JB",
-            ParaAsm::JT(..)     => "JT",
-            ParaAsm::JF(..)     => "JF",
-            ParaAsm::JN(..)     => "JN",
-            ParaAsm::CALL(_)    => "CALL",
-            ParaAsm::RET        => "RET",
-            ParaAsm::HALT       => "HALT",
-            ParaAsm::PUSH(_)    => "PUSH",
-            ParaAsm::POP(_)     => "POP",
-            ParaAsm::EMIT(_)    => "EMIT",
-            ParaAsm::READ(_)    => "READ",
+            ParaAsm::FFUSE(..) => "FFUSE",
+            ParaAsm::IFIX(_) => "IFIX",
+            ParaAsm::MOVE(..) => "MOVE",
+            ParaAsm::CLEAR(_) => "CLEAR",
+            ParaAsm::JMP(_) => "JMP",
+            ParaAsm::JB(..) => "JB",
+            ParaAsm::JT(..) => "JT",
+            ParaAsm::JF(..) => "JF",
+            ParaAsm::JN(..) => "JN",
+            ParaAsm::CALL(_) => "CALL",
+            ParaAsm::JmpPc(_) => "JMP",
+            ParaAsm::JbPc(..) => "JB",
+            ParaAsm::JtPc(..) => "JT",
+            ParaAsm::JfPc(..) => "JF",
+            ParaAsm::JnPc(..) => "JN",
+            ParaAsm::CallPc(_) => "CALL",
+            ParaAsm::RET => "RET",
+            ParaAsm::HALT => "HALT",
+            ParaAsm::PUSH(_) => "PUSH",
+            ParaAsm::POP(_) => "POP",
+            ParaAsm::EMIT(_) => "EMIT",
+            ParaAsm::READ(_) => "READ",
         }
     }
 
     /// Arity classification for kernel verification.
     pub fn is_frobenius(&self) -> bool {
-        matches!(self, ParaAsm::ENGAGR(_) | ParaAsm::FSPLIT(..) |
-                      ParaAsm::FFUSE(..) | ParaAsm::IFIX(_))
+        matches!(
+            self,
+            ParaAsm::ENGAGR(_) | ParaAsm::FSPLIT(..) | ParaAsm::FFUSE(..) | ParaAsm::IFIX(_)
+        )
     }
 }
 
@@ -1449,7 +2535,11 @@ pub struct ParaRegister {
 
 impl ParaRegister {
     pub fn new() -> Self {
-        Self { flux: B4::N, value: None, paradox_count: 0 }
+        Self {
+            flux: B4::N,
+            value: None,
+            paradox_count: 0,
+        }
     }
 
     pub fn engage(&mut self) {
@@ -1457,7 +2547,9 @@ impl ParaRegister {
         self.paradox_count += 1;
     }
 
-    pub fn is_fixed(&self) -> bool { self.value == Some("FIXED") }
+    pub fn is_fixed(&self) -> bool {
+        self.value == Some("FIXED")
+    }
 
     pub fn is_active(&self) -> bool {
         self.flux != B4::N || self.value.is_some()
@@ -1479,7 +2571,8 @@ pub struct AssembledProgram {
 /// Parse a register argument: "%r0" → 0, "%r15" → 15
 fn parse_reg(arg: &str) -> Result<usize, String> {
     if arg.starts_with("%r") {
-        arg[2..].parse::<usize>()
+        arg[2..]
+            .parse::<usize>()
             .map_err(|_| format!("bad register: {}", arg))
     } else {
         Err(format!("expected %rN, got: {}", arg))
@@ -1498,7 +2591,9 @@ pub fn assemble(text: &str) -> Result<AssembledProgram, String> {
             Some(s) => String::from(s.trim()),
             None => continue,
         };
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
 
         // Check for label: .name: [instruction]
         let (label, rest): (Option<String>, String) = if line.starts_with('.') {
@@ -1517,82 +2612,124 @@ pub fn assemble(text: &str) -> Result<AssembledProgram, String> {
             labels.insert(lbl, instrs.len());
         }
 
-        if rest.is_empty() { continue; }
+        if rest.is_empty() {
+            continue;
+        }
 
         let parts: Vec<&str> = rest.split_whitespace().collect();
-        if parts.is_empty() { continue; }
+        if parts.is_empty() {
+            continue;
+        }
 
         let op = parts[0].to_uppercase();
         let args = &parts[1..];
 
         let instr = match op.as_str() {
             "ENGAGR" => {
-                if args.len() < 1 { return Err(format!("line {}: ENGAGR needs 1 arg", lineno)); }
+                if args.len() < 1 {
+                    return Err(format!("line {}: ENGAGR needs 1 arg", lineno));
+                }
                 ParaAsm::ENGAGR(parse_reg(args[0])?)
             }
             "FSPLIT" => {
-                if args.len() < 3 { return Err(format!("line {}: FSPLIT needs 3 args", lineno)); }
-                ParaAsm::FSPLIT(parse_reg(args[0])?, parse_reg(args[1])?, parse_reg(args[2])?)
+                if args.len() < 3 {
+                    return Err(format!("line {}: FSPLIT needs 3 args", lineno));
+                }
+                ParaAsm::FSPLIT(
+                    parse_reg(args[0])?,
+                    parse_reg(args[1])?,
+                    parse_reg(args[2])?,
+                )
             }
             "FFUSE" => {
-                if args.len() < 2 { return Err(format!("line {}: FFUSE needs ≥2 args", lineno)); }
-                let sources: Result<Vec<usize>, _> = args[..args.len()-1].iter()
-                    .map(|a| parse_reg(a)).collect();
-                let dst = parse_reg(args[args.len()-1])?;
+                if args.len() < 2 {
+                    return Err(format!("line {}: FFUSE needs ≥2 args", lineno));
+                }
+                let sources: Result<Vec<usize>, _> = args[..args.len() - 1]
+                    .iter()
+                    .map(|a| parse_reg(a))
+                    .collect();
+                let dst = parse_reg(args[args.len() - 1])?;
                 ParaAsm::FFUSE(sources?, dst)
             }
             "IFIX" => {
-                if args.len() < 1 { return Err(format!("line {}: IFIX needs 1 arg", lineno)); }
+                if args.len() < 1 {
+                    return Err(format!("line {}: IFIX needs 1 arg", lineno));
+                }
                 ParaAsm::IFIX(parse_reg(args[0])?)
             }
             "MOVE" => {
-                if args.len() < 2 { return Err(format!("line {}: MOVE needs 2 args", lineno)); }
+                if args.len() < 2 {
+                    return Err(format!("line {}: MOVE needs 2 args", lineno));
+                }
                 ParaAsm::MOVE(parse_reg(args[0])?, parse_reg(args[1])?)
             }
             "CLEAR" => {
-                if args.len() < 1 { return Err(format!("line {}: CLEAR needs 1 arg", lineno)); }
+                if args.len() < 1 {
+                    return Err(format!("line {}: CLEAR needs 1 arg", lineno));
+                }
                 ParaAsm::CLEAR(parse_reg(args[0])?)
             }
             "JMP" => {
-                if args.len() < 1 { return Err(format!("line {}: JMP needs label", lineno)); }
+                if args.len() < 1 {
+                    return Err(format!("line {}: JMP needs label", lineno));
+                }
                 ParaAsm::JMP(String::from(args[0]))
             }
             "JB" => {
-                if args.len() < 2 { return Err(format!("line {}: JB needs reg + label", lineno)); }
+                if args.len() < 2 {
+                    return Err(format!("line {}: JB needs reg + label", lineno));
+                }
                 ParaAsm::JB(parse_reg(args[0])?, String::from(args[1]))
             }
             "JT" => {
-                if args.len() < 2 { return Err(format!("line {}: JT needs reg + label", lineno)); }
+                if args.len() < 2 {
+                    return Err(format!("line {}: JT needs reg + label", lineno));
+                }
                 ParaAsm::JT(parse_reg(args[0])?, String::from(args[1]))
             }
             "JF" => {
-                if args.len() < 2 { return Err(format!("line {}: JF needs reg + label", lineno)); }
+                if args.len() < 2 {
+                    return Err(format!("line {}: JF needs reg + label", lineno));
+                }
                 ParaAsm::JF(parse_reg(args[0])?, String::from(args[1]))
             }
             "JN" => {
-                if args.len() < 2 { return Err(format!("line {}: JN needs reg + label", lineno)); }
+                if args.len() < 2 {
+                    return Err(format!("line {}: JN needs reg + label", lineno));
+                }
                 ParaAsm::JN(parse_reg(args[0])?, String::from(args[1]))
             }
             "CALL" => {
-                if args.len() < 1 { return Err(format!("line {}: CALL needs label", lineno)); }
+                if args.len() < 1 {
+                    return Err(format!("line {}: CALL needs label", lineno));
+                }
                 ParaAsm::CALL(String::from(args[0]))
             }
-            "RET"  => ParaAsm::RET,
+            "RET" => ParaAsm::RET,
             "HALT" => ParaAsm::HALT,
             "PUSH" => {
-                if args.len() < 1 { return Err(format!("line {}: PUSH needs 1 arg", lineno)); }
+                if args.len() < 1 {
+                    return Err(format!("line {}: PUSH needs 1 arg", lineno));
+                }
                 ParaAsm::PUSH(parse_reg(args[0])?)
             }
             "POP" => {
-                if args.len() < 1 { return Err(format!("line {}: POP needs 1 arg", lineno)); }
+                if args.len() < 1 {
+                    return Err(format!("line {}: POP needs 1 arg", lineno));
+                }
                 ParaAsm::POP(parse_reg(args[0])?)
             }
             "EMIT" => {
-                if args.len() < 1 { return Err(format!("line {}: EMIT needs 1 arg", lineno)); }
+                if args.len() < 1 {
+                    return Err(format!("line {}: EMIT needs 1 arg", lineno));
+                }
                 ParaAsm::EMIT(parse_reg(args[0])?)
             }
             "READ" => {
-                if args.len() < 1 { return Err(format!("line {}: READ needs 1 arg", lineno)); }
+                if args.len() < 1 {
+                    return Err(format!("line {}: READ needs 1 arg", lineno));
+                }
                 ParaAsm::READ(parse_reg(args[0])?)
             }
             _ => return Err(format!("line {}: unknown opcode '{}'", lineno, op)),
@@ -1600,7 +2737,10 @@ pub fn assemble(text: &str) -> Result<AssembledProgram, String> {
         instrs.push(instr);
     }
 
-    Ok(AssembledProgram { instructions: instrs, label_map: labels })
+    Ok(AssembledProgram {
+        instructions: instrs,
+        label_map: labels,
+    })
 }
 
 // ── ParaVM ──────────────────────────────────────────────────────────
@@ -1610,6 +2750,8 @@ pub fn assemble(text: &str) -> Result<AssembledProgram, String> {
 pub struct ParaVM {
     pub registers: BTreeMap<usize, ParaRegister>,
     pub belief: BTreeMap<usize, B4>,
+    dense_belief: Vec<B4>,
+    dense_mode: bool,
     pub program: Vec<ParaAsm>,
     pub label_map: BTreeMap<String, usize>,
     pub pc: usize,
@@ -1629,6 +2771,8 @@ impl ParaVM {
         Self {
             registers: BTreeMap::new(),
             belief: BTreeMap::new(),
+            dense_belief: Vec::new(),
+            dense_mode: false,
             program: Vec::new(),
             label_map: BTreeMap::new(),
             pc: 0,
@@ -1645,24 +2789,57 @@ impl ParaVM {
 
     /// Get or create a register, returning belief as B4.
     pub fn belief_of(&self, reg_id: usize) -> B4 {
+        if self.dense_mode {
+            return self.dense_belief.get(reg_id).copied().unwrap_or(B4::N);
+        }
         self.belief.get(&reg_id).copied().unwrap_or(B4::N)
     }
 
     /// Set belief and update register flux.
     pub fn set_belief(&mut self, reg_id: usize, val: B4) {
+        if self.dense_mode {
+            if self.dense_belief.len() <= reg_id {
+                self.dense_belief.resize(reg_id + 1, B4::N);
+            }
+            self.dense_belief[reg_id] = val;
+            return;
+        }
         self.belief.insert(reg_id, val);
-        self.registers.entry(reg_id).or_insert_with(ParaRegister::new).flux = val;
+        self.registers
+            .entry(reg_id)
+            .or_insert_with(ParaRegister::new)
+            .flux = val;
+    }
+
+    /// The resident arithmetic program uses indexed IMASM registers and does
+    /// not inspect per-cell metadata. Keep its live values in a dense bank.
+    pub fn enable_dense_belief(&mut self) {
+        self.dense_mode = true;
+        for (&reg_id, &value) in &self.belief {
+            if self.dense_belief.len() <= reg_id {
+                self.dense_belief.resize(reg_id + 1, B4::N);
+            }
+            self.dense_belief[reg_id] = value;
+        }
+    }
+
+    pub fn clear_dense_belief(&mut self) {
+        self.dense_belief.fill(B4::N);
     }
 
     /// Engage a register — set to Both, increment paradox counter.
     pub fn engage(&mut self, reg_id: usize) {
-        self.registers.entry(reg_id).or_insert_with(ParaRegister::new).engage();
-        self.belief.insert(reg_id, B4::B);
+        self.registers
+            .entry(reg_id)
+            .or_insert_with(ParaRegister::new)
+            .engage();
+        self.set_belief(reg_id, B4::B);
     }
 
     /// Resolve a label to a PC address.
     pub fn resolve(&self, label: &str) -> Result<usize, String> {
-        self.label_map.get(label)
+        self.label_map
+            .get(label)
             .copied()
             .ok_or_else(|| format!("undefined label: {}", label))
     }
@@ -1671,6 +2848,36 @@ impl ParaVM {
     pub fn load_program(&mut self, prog: AssembledProgram) {
         self.program = prog.instructions;
         self.label_map = prog.label_map;
+        for instruction in &mut self.program {
+            let linked = match &*instruction {
+                ParaAsm::JMP(label) => self.label_map.get(label).copied().map(ParaAsm::JmpPc),
+                ParaAsm::JB(reg, label) => self
+                    .label_map
+                    .get(label)
+                    .copied()
+                    .map(|pc| ParaAsm::JbPc(*reg, pc)),
+                ParaAsm::JT(reg, label) => self
+                    .label_map
+                    .get(label)
+                    .copied()
+                    .map(|pc| ParaAsm::JtPc(*reg, pc)),
+                ParaAsm::JF(reg, label) => self
+                    .label_map
+                    .get(label)
+                    .copied()
+                    .map(|pc| ParaAsm::JfPc(*reg, pc)),
+                ParaAsm::JN(reg, label) => self
+                    .label_map
+                    .get(label)
+                    .copied()
+                    .map(|pc| ParaAsm::JnPc(*reg, pc)),
+                ParaAsm::CALL(label) => self.label_map.get(label).copied().map(ParaAsm::CallPc),
+                _ => None,
+            };
+            if let Some(linked) = linked {
+                *instruction = linked;
+            }
+        }
         self.pc = 0;
         self.halted = false;
         self.total_steps = 0;
@@ -1708,13 +2915,25 @@ impl ParaVM {
                     self.set_belief(*d1, B4::T);
                     self.set_belief(*d2, B4::F);
                     let bump = p + 1;
-                    self.registers.entry(*d1).or_insert_with(ParaRegister::new).paradox_count = bump;
-                    self.registers.entry(*d2).or_insert_with(ParaRegister::new).paradox_count = bump;
+                    self.registers
+                        .entry(*d1)
+                        .or_insert_with(ParaRegister::new)
+                        .paradox_count = bump;
+                    self.registers
+                        .entry(*d2)
+                        .or_insert_with(ParaRegister::new)
+                        .paradox_count = bump;
                 } else {
                     self.set_belief(*d1, b);
                     self.set_belief(*d2, b);
-                    self.registers.entry(*d1).or_insert_with(ParaRegister::new).paradox_count = p;
-                    self.registers.entry(*d2).or_insert_with(ParaRegister::new).paradox_count = p;
+                    self.registers
+                        .entry(*d1)
+                        .or_insert_with(ParaRegister::new)
+                        .paradox_count = p;
+                    self.registers
+                        .entry(*d2)
+                        .or_insert_with(ParaRegister::new)
+                        .paradox_count = p;
                 }
             }
             ParaAsm::FFUSE(sources, dst) => {
@@ -1725,7 +2944,10 @@ impl ParaVM {
                 self.set_belief(*dst, joined);
             }
             ParaAsm::IFIX(r) => {
-                self.registers.entry(*r).or_insert_with(ParaRegister::new).value = Some("FIXED");
+                self.registers
+                    .entry(*r)
+                    .or_insert_with(ParaRegister::new)
+                    .value = Some("FIXED");
                 self.set_belief(*r, B4::T);
             }
             ParaAsm::MOVE(src, dst) => {
@@ -1733,7 +2955,10 @@ impl ParaVM {
                 self.set_belief(*dst, v);
             }
             ParaAsm::CLEAR(r) => {
-                self.registers.entry(*r).or_insert_with(ParaRegister::new).clear();
+                self.registers
+                    .entry(*r)
+                    .or_insert_with(ParaRegister::new)
+                    .clear();
                 self.belief.insert(*r, B4::N);
             }
             ParaAsm::JMP(label) => {
@@ -1743,22 +2968,30 @@ impl ParaVM {
             }
             ParaAsm::JB(r, label) => {
                 if self.belief_of(*r) == B4::B {
-                    if let Ok(addr) = self.resolve(label) { self.pc = addr; }
+                    if let Ok(addr) = self.resolve(label) {
+                        self.pc = addr;
+                    }
                 }
             }
             ParaAsm::JT(r, label) => {
                 if self.belief_of(*r) == B4::T {
-                    if let Ok(addr) = self.resolve(label) { self.pc = addr; }
+                    if let Ok(addr) = self.resolve(label) {
+                        self.pc = addr;
+                    }
                 }
             }
             ParaAsm::JF(r, label) => {
                 if self.belief_of(*r) == B4::F {
-                    if let Ok(addr) = self.resolve(label) { self.pc = addr; }
+                    if let Ok(addr) = self.resolve(label) {
+                        self.pc = addr;
+                    }
                 }
             }
             ParaAsm::JN(r, label) => {
                 if self.belief_of(*r) == B4::N {
-                    if let Ok(addr) = self.resolve(label) { self.pc = addr; }
+                    if let Ok(addr) = self.resolve(label) {
+                        self.pc = addr;
+                    }
                 }
             }
             ParaAsm::CALL(label) => {
@@ -1766,6 +2999,33 @@ impl ParaVM {
                     self.call_stack.push(self.pc);
                     self.pc = addr;
                 }
+            }
+            ParaAsm::JmpPc(addr) => {
+                self.pc = *addr;
+            }
+            ParaAsm::JbPc(reg, addr) => {
+                if self.belief_of(*reg) == B4::B {
+                    self.pc = *addr;
+                }
+            }
+            ParaAsm::JtPc(reg, addr) => {
+                if self.belief_of(*reg) == B4::T {
+                    self.pc = *addr;
+                }
+            }
+            ParaAsm::JfPc(reg, addr) => {
+                if self.belief_of(*reg) == B4::F {
+                    self.pc = *addr;
+                }
+            }
+            ParaAsm::JnPc(reg, addr) => {
+                if self.belief_of(*reg) == B4::N {
+                    self.pc = *addr;
+                }
+            }
+            ParaAsm::CallPc(addr) => {
+                self.call_stack.push(self.pc);
+                self.pc = *addr;
             }
             ParaAsm::RET => {
                 if let Some(addr) = self.call_stack.pop() {
@@ -1788,8 +3048,11 @@ impl ParaVM {
                 let b = self.belief_of(*r);
                 let fixed = if self.registers.get(r).map_or(false, |reg| reg.is_fixed()) {
                     " [FIXED]"
-                } else { "" };
-                self.emit_buffer.push(format!("%r{} = {}{}", r, b.name(), fixed));
+                } else {
+                    ""
+                };
+                self.emit_buffer
+                    .push(format!("%r{} = {}{}", r, b.name(), fixed));
             }
             ParaAsm::READ(r) => {
                 let val = if let Some(ref buf) = self.read_buffer {
@@ -1825,9 +3088,13 @@ impl ParaVM {
         let mut n = 0;
         while !self.halted {
             if let Some(max) = steps {
-                if n >= max { break; }
+                if n >= max {
+                    break;
+                }
             }
-            if !self.step() { break; }
+            if !self.step() {
+                break;
+            }
             n += 1;
         }
     }
@@ -1871,7 +3138,12 @@ impl ParaVM {
         let mut fixed = 0usize;
 
         // Collect all register IDs
-        let mut ids: Vec<usize> = self.registers.keys().chain(self.belief.keys()).copied().collect();
+        let mut ids: Vec<usize> = self
+            .registers
+            .keys()
+            .chain(self.belief.keys())
+            .copied()
+            .collect();
         ids.sort();
         ids.dedup();
 
@@ -1885,8 +3157,12 @@ impl ParaVM {
             }
             if let Some(reg) = self.registers.get(&rid) {
                 paradox += reg.paradox_count;
-                if reg.is_active() { active += 1; }
-                if reg.is_fixed() { fixed += 1; }
+                if reg.is_active() {
+                    active += 1;
+                }
+                if reg.is_fixed() {
+                    fixed += 1;
+                }
             }
         }
 
@@ -1897,7 +3173,10 @@ impl ParaVM {
             active,
             fixed,
             paradox,
-            dist_n, dist_t, dist_f, dist_b,
+            dist_n,
+            dist_t,
+            dist_f,
+            dist_b,
             halted: self.halted,
             data_stack_depth: self.data_stack.len(),
             call_stack_depth: self.call_stack.len(),
@@ -1906,13 +3185,18 @@ impl ParaVM {
 
     /// Active registers: (id, belief, paradox_count, is_fixed).
     pub fn active_regs(&self) -> Vec<(usize, B4, u32, bool)> {
-        let mut ids: Vec<usize> = self.registers.keys().chain(self.belief.keys()).copied().collect();
+        let mut ids: Vec<usize> = self
+            .registers
+            .keys()
+            .chain(self.belief.keys())
+            .copied()
+            .collect();
         ids.sort();
         ids.dedup();
         ids.into_iter()
             .filter(|rid| {
                 self.registers.get(rid).map_or(false, |r| r.is_active())
-                || self.belief.contains_key(rid)
+                    || self.belief.contains_key(rid)
             })
             .map(|rid| {
                 let reg = self.registers.get(&rid);
@@ -1944,8 +3228,12 @@ pub fn b_is_only_bifurcation_point() -> bool {
     for &r in &[B4::N, B4::T, B4::F, B4::B] {
         // execute fsplit
         let (d1, d2) = if r == B4::B { (B4::T, B4::F) } else { (r, r) };
-        if r == B4::B && d1 == d2 { return false; }
-        if r != B4::B && d1 != d2 { return false; }
+        if r == B4::B && d1 == d2 {
+            return false;
+        }
+        if r != B4::B && d1 != d2 {
+            return false;
+        }
     }
     true
 }
@@ -1960,12 +3248,10 @@ pub fn dialetheic_alignment_tri() -> (bool, bool, bool) {
             && b_is_only_bifurcation_point()
     };
     // logical: B is dialetheic, nothing else is
-    let log = B4::B.dialetheic()
-        && ![B4::N, B4::T, B4::F].iter().any(|x| x.dialetheic());
+    let log = B4::B.dialetheic() && ![B4::N, B4::T, B4::F].iter().any(|x| x.dialetheic());
     // algebraic: N not designated, T∨F=B, designated(B∧¬B)
-    let alg = !B4::N.designated()
-        && B4::T.join(B4::F) == B4::B
-        && B4::B.band(B4::B.bnot()).designated();
+    let alg =
+        !B4::N.designated() && B4::T.join(B4::F) == B4::B && B4::B.band(B4::B.bnot()).designated();
     (op, log, alg)
 }
 
@@ -1974,14 +3260,24 @@ pub fn dialetheic_alignment_tri() -> (bool, bool, bool) {
 /// Cost of measuring q with bias.
 /// B→B: cost 2, B→T/F: cost 1, non-B: cost 0.
 pub fn measure_cost(q: B4, bias: B4) -> u8 {
-    if q != B4::B { return 0; }
-    if bias == B4::B { 2 } else { 1 }
+    if q != B4::B {
+        return 0;
+    }
+    if bias == B4::B {
+        2
+    } else {
+        1
+    }
 }
 
 /// Single measurement step: collapse B under bias.
 pub fn measure_step(q: B4, bias: B4) -> B4 {
     if q == B4::B {
-        if bias == B4::B { B4::B } else { bias }
+        if bias == B4::B {
+            B4::B
+        } else {
+            bias
+        }
     } else {
         q
     }
@@ -1989,13 +3285,17 @@ pub fn measure_step(q: B4, bias: B4) -> B4 {
 
 /// Is q irreversible once collapsed? (T/F/N cannot return to B via single ops.)
 pub fn collapse_irreversible(q: B4) -> bool {
-    if q == B4::B { return true; }
+    if q == B4::B {
+        return true;
+    }
     // Check: none of bnot, join(q,q), meet(q,q), band(q,q), bor(q,q) returns B
     ![q.bnot(), q.join(q), q.meet(q), q.band(q), q.bor(q)].contains(&B4::B)
 }
 
 /// Wigner's-friend-then-collapse cost: B→B measurement then collapse = 3.
-pub fn wigner_then_collapse_cost(n: u32) -> u32 { 3 * n }
+pub fn wigner_then_collapse_cost(n: u32) -> u32 {
+    3 * n
+}
 
 // ── Kernel-state bridge (mirrors p4ramill_py.kernel) ────────────────
 
@@ -2010,7 +3310,13 @@ pub struct KernelState {
 
 impl KernelState {
     pub fn new() -> Self {
-        Self { r0: B4::B, r1: B4::B, r2: B4::B, paradox_count: 0, cycle_count: 0 }
+        Self {
+            r0: B4::B,
+            r1: B4::B,
+            r2: B4::B,
+            paradox_count: 0,
+            cycle_count: 0,
+        }
     }
 
     /// Apply one frobenius kernel step: fsplit(r0)→(r1,r2), ffuse(r1,r2)→r0.
@@ -2029,7 +3335,9 @@ impl KernelState {
 
     /// Run n kernel steps.
     pub fn kernel_run(&mut self, n: u32) {
-        for _ in 0..n { self.kernel_step(); }
+        for _ in 0..n {
+            self.kernel_step();
+        }
     }
 }
 
@@ -2059,12 +3367,15 @@ mod tests {
     #[test]
     fn test_vm_basic_cycle() {
         let mut vm = ParaVM::new();
-        vm.load("
+        vm.load(
+            "
             ENGAGR %r0
             FSPLIT %r0 %r1 %r2
             FFUSE %r1 %r2 %r0
             HALT
-        ").unwrap();
+        ",
+        )
+        .unwrap();
         vm.run(None);
         let snap = vm.snapshot();
         // After ENGAGR: r0=B, paradox=1
@@ -2088,26 +3399,38 @@ mod tests {
                     let mut vm = ParaVM::new();
                     vm.load(BIT_REGISTER_ADD_ASM).unwrap();
                     vm.set_reads(vec![
-                        prefix_a, prefix_b,
+                        prefix_a,
+                        prefix_b,
                         if a { F } else { T },
                         if b { F } else { T },
                         N,
                     ]);
                     vm.run(None);
 
-                    let emitted: Vec<B4> = vm.emit_buffer.iter().map(|line| {
-                        if line.ends_with("= T") { T }
-                        else if line.ends_with("= F") { F }
-                        else { panic!("IMASM adder emitted a non-bit value: {line}") }
-                    }).collect();
+                    let emitted: Vec<B4> = vm
+                        .emit_buffer
+                        .iter()
+                        .map(|line| {
+                            if line.ends_with("= T") {
+                                T
+                            } else if line.ends_with("= F") {
+                                F
+                            } else {
+                                panic!("IMASM adder emitted a non-bit value: {line}")
+                            }
+                        })
+                        .collect();
                     let sum = a ^ b ^ carry_in;
                     let carry_out = (a && b) || (a && carry_in) || (b && carry_in);
                     assert!(vm.halted, "stream terminator must close the IMASM loop");
-                    assert_eq!(emitted, vec![
-                        T, // The prefix always sums to zero.
-                        if sum { F } else { T },
-                        if carry_out { F } else { T },
-                    ]);
+                    assert_eq!(
+                        emitted,
+                        vec![
+                            T, // The prefix always sums to zero.
+                            if sum { F } else { T },
+                            if carry_out { F } else { T },
+                        ]
+                    );
                     assert_eq!(vm.read_pos, 5);
                 }
             }
@@ -2130,11 +3453,19 @@ mod tests {
         vm.load(BIT_REGISTER_ADD_ASM).unwrap();
         vm.set_reads(reads);
         vm.run(None);
-        let emitted: Vec<B4> = vm.emit_buffer.iter().map(|line| {
-            if line.ends_with("= T") { T }
-            else if line.ends_with("= F") { F }
-            else { panic!("IMASM adder emitted a non-bit value: {line}") }
-        }).collect();
+        let emitted: Vec<B4> = vm
+            .emit_buffer
+            .iter()
+            .map(|line| {
+                if line.ends_with("= T") {
+                    T
+                } else if line.ends_with("= F") {
+                    F
+                } else {
+                    panic!("IMASM adder emitted a non-bit value: {line}")
+                }
+            })
+            .collect();
         assert!(vm.halted, "stream terminator must close the IMASM loop");
         assert_eq!(emitted, [vec![T; width], vec![F]].concat());
         assert_eq!(vm.read_pos, width * 2 + 1);
@@ -2158,25 +3489,37 @@ mod tests {
                     let mut vm = ParaVM::new();
                     vm.load(BIT_REGISTER_SUB_ASM).unwrap();
                     vm.set_reads(vec![
-                        prefix_a, prefix_b,
+                        prefix_a,
+                        prefix_b,
                         if a { F } else { T },
                         if b { F } else { T },
                         N,
                     ]);
                     vm.run(None);
-                    let emitted: Vec<B4> = vm.emit_buffer.iter().map(|line| {
-                        if line.ends_with("= T") { T }
-                        else if line.ends_with("= F") { F }
-                        else { panic!("IMASM subtractor emitted a non-bit value: {line}") }
-                    }).collect();
+                    let emitted: Vec<B4> = vm
+                        .emit_buffer
+                        .iter()
+                        .map(|line| {
+                            if line.ends_with("= T") {
+                                T
+                            } else if line.ends_with("= F") {
+                                F
+                            } else {
+                                panic!("IMASM subtractor emitted a non-bit value: {line}")
+                            }
+                        })
+                        .collect();
                     let difference = a ^ b ^ borrow_in;
                     let borrow_out = (!a && (b || borrow_in)) || (b && borrow_in);
                     assert!(vm.halted, "stream terminator must close the IMASM loop");
-                    assert_eq!(emitted, vec![
-                        if borrow_in { F } else { T },
-                        if difference { F } else { T },
-                        if borrow_out { F } else { T },
-                    ]);
+                    assert_eq!(
+                        emitted,
+                        vec![
+                            if borrow_in { F } else { T },
+                            if difference { F } else { T },
+                            if borrow_out { F } else { T },
+                        ]
+                    );
                 }
             }
         }
@@ -2190,17 +3533,27 @@ mod tests {
         let width = 300usize;
         let mut reads = Vec::with_capacity((width + 1) * 2 + 1);
         reads.extend([T, F]); // low subtrahend bit is one
-        for _ in 1..width { reads.extend([T, T]); }
+        for _ in 1..width {
+            reads.extend([T, T]);
+        }
         reads.extend([F, T, N]); // top bit of 2^300, then terminator
         let mut vm = ParaVM::new();
         vm.load(BIT_REGISTER_SUB_ASM).unwrap();
         vm.set_reads(reads);
         vm.run(None);
-        let emitted: Vec<B4> = vm.emit_buffer.iter().map(|line| {
-            if line.ends_with("= T") { T }
-            else if line.ends_with("= F") { F }
-            else { panic!("IMASM subtractor emitted a non-bit value: {line}") }
-        }).collect();
+        let emitted: Vec<B4> = vm
+            .emit_buffer
+            .iter()
+            .map(|line| {
+                if line.ends_with("= T") {
+                    T
+                } else if line.ends_with("= F") {
+                    F
+                } else {
+                    panic!("IMASM subtractor emitted a non-bit value: {line}")
+                }
+            })
+            .collect();
         assert!(vm.halted);
         assert_eq!(emitted, [vec![F; width], vec![T, T]].concat());
         assert_eq!(vm.read_pos, (width + 1) * 2 + 1);
@@ -2215,7 +3568,9 @@ mod tests {
     #[test]
     fn imasm_multiplier_matches_all_small_encoded_products() {
         fn stream(value: usize) -> String {
-            if value == 0 { return String::from("⊤"); }
+            if value == 0 {
+                return String::from("⊤");
+            }
             let mut n = value;
             let mut bits = String::new();
             while n != 0 {
@@ -2225,7 +3580,15 @@ mod tests {
             bits
         }
         fn padded_product(value: usize, width: usize) -> String {
-            (0..width).map(|bit| if (value >> bit) & 1 == 1 { '⊥' } else { '⊤' }).collect()
+            (0..width)
+                .map(|bit| {
+                    if (value >> bit) & 1 == 1 {
+                        '⊥'
+                    } else {
+                        '⊤'
+                    }
+                })
+                .collect()
         }
 
         for a in 0..10usize {
@@ -2233,8 +3596,11 @@ mod tests {
                 let a_stream = stream(a);
                 let b_stream = stream(b);
                 let got = multiply_encoded_lsb_first(&a_stream, &b_stream).unwrap();
-                assert_eq!(got, padded_product(a * b, a_stream.chars().count() + b_stream.chars().count()),
-                    "encoded product {a} × {b}");
+                assert_eq!(
+                    got,
+                    padded_product(a * b, a_stream.chars().count() + b_stream.chars().count()),
+                    "encoded product {a} × {b}"
+                );
             }
         }
     }
@@ -2248,9 +3614,18 @@ mod tests {
 
     #[test]
     fn imasm_product_and_closure_are_nested_in_one_stream() {
-        assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊥⊥⊥⊥").unwrap(), '⊤');
-        assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥").unwrap(), '⊥');
-        assert_eq!(product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥⊤").unwrap(), '⊥');
+        assert_eq!(
+            product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊥⊥⊥⊥").unwrap(),
+            '⊤'
+        );
+        assert_eq!(
+            product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥").unwrap(),
+            '⊥'
+        );
+        assert_eq!(
+            product_closure_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊤⊤⊤⊤⊥⊤").unwrap(),
+            '⊥'
+        );
     }
 
     #[test]
@@ -2291,15 +3666,35 @@ mod tests {
         assert_eq!(result.positive_inputs, '⊤');
         assert_eq!(result.closed, '⊤');
         assert_eq!(result.lane_witness_applies, '⊤');
-        assert_eq!(result.falsity_exponents, vec![
-            PrimeExponentRow { prime: "⊤⊥".into(), additive_abc: ["⊤".into(), "⊤".into(), "⊥⊥".into()], multiplicative_d1_d2_c: ["⊥".into(), "⊤⊥".into(), "⊥⊥".into()] },
-            PrimeExponentRow { prime: "⊥⊥".into(), additive_abc: ["⊥".into(), "⊤".into(), "⊤".into()], multiplicative_d1_d2_c: ["⊤".into(), "⊤".into(), "⊤".into()] },
-            PrimeExponentRow { prime: "⊥⊤⊥".into(), additive_abc: ["⊤".into(), "⊥".into(), "⊤".into()], multiplicative_d1_d2_c: ["⊤".into(), "⊤".into(), "⊤".into()] },
-        ]);
-        assert_eq!(result.information_support, RadicalSupportLane {
-            additive_radical: "⊤⊥⊥⊥⊥".into(), multiplicative_radical: "⊤⊥".into(),
-            additive_support: "⊥⊥⊥".into(), multiplicative_support: "⊥⊤⊤".into(),
-        });
+        assert_eq!(
+            result.falsity_exponents,
+            vec![
+                PrimeExponentRow {
+                    prime: "⊤⊥".into(),
+                    additive_abc: ["⊤".into(), "⊤".into(), "⊥⊥".into()],
+                    multiplicative_d1_d2_c: ["⊥".into(), "⊤⊥".into(), "⊥⊥".into()]
+                },
+                PrimeExponentRow {
+                    prime: "⊥⊥".into(),
+                    additive_abc: ["⊥".into(), "⊤".into(), "⊤".into()],
+                    multiplicative_d1_d2_c: ["⊤".into(), "⊤".into(), "⊤".into()]
+                },
+                PrimeExponentRow {
+                    prime: "⊥⊤⊥".into(),
+                    additive_abc: ["⊤".into(), "⊥".into(), "⊤".into()],
+                    multiplicative_d1_d2_c: ["⊤".into(), "⊤".into(), "⊤".into()]
+                },
+            ]
+        );
+        assert_eq!(
+            result.information_support,
+            RadicalSupportLane {
+                additive_radical: "⊤⊥⊥⊥⊥".into(),
+                multiplicative_radical: "⊤⊥".into(),
+                additive_support: "⊥⊥⊥".into(),
+                multiplicative_support: "⊥⊤⊤".into(),
+            }
+        );
     }
 
     #[test]
@@ -2318,14 +3713,23 @@ mod tests {
         let n = format!("{}⊤", p);
         assert_eq!(product_closure_encoded_lsb_first(&p, "⊥", &n).unwrap(), '⊤');
         let wrong = format!("⊤{}", &p["⊥".len()..]);
-        assert_eq!(product_closure_encoded_lsb_first(&p, "⊥", &wrong).unwrap(), '⊥');
+        assert_eq!(
+            product_closure_encoded_lsb_first(&p, "⊥", &wrong).unwrap(),
+            '⊥'
+        );
     }
 
     #[test]
     fn imasm_modular_phase_winding_composes_product_and_divisor_closure() {
-        assert_eq!(powmod_encoded_lsb_first("⊤⊥", "⊤⊥⊤⊥", "⊥⊤⊤⊤⊥").unwrap(), "⊤⊤⊥⊤⊤");
+        assert_eq!(
+            powmod_encoded_lsb_first("⊤⊥", "⊤⊥⊤⊥", "⊥⊤⊤⊤⊥").unwrap(),
+            "⊤⊤⊥⊤⊤"
+        );
         assert_eq!(powmod_encoded_lsb_first("⊥⊥", "⊥⊤⊥", "⊥⊥⊥").unwrap(), "⊥⊤⊥");
-        assert_eq!(powmod_encoded_lsb_first("⊥⊤⊤⊥", "⊥⊥", "⊥⊤⊥").unwrap(), "⊤⊤⊥");
+        assert_eq!(
+            powmod_encoded_lsb_first("⊥⊤⊤⊥", "⊥⊥", "⊥⊤⊥").unwrap(),
+            "⊤⊤⊥"
+        );
         assert_eq!(powmod_encoded_lsb_first("⊤", "⊤", "⊥⊥⊥").unwrap(), "⊥⊤⊤");
         assert_eq!(powmod_encoded_lsb_first("⊥", "⊤", "⊥").unwrap(), "⊤");
         assert!(powmod_encoded_lsb_first("⊥", "⊥", "⊤").is_err());
@@ -2335,7 +3739,9 @@ mod tests {
     fn imasm_split_rejoin_closure_matches_small_gcds() {
         assert!(!bit_register_gcd_program(5, 5).contains("gcd_div"));
         fn stream(value: usize) -> String {
-            if value == 0 { return String::from("⊤"); }
+            if value == 0 {
+                return String::from("⊤");
+            }
             let mut n = value;
             let mut bits = String::new();
             while n != 0 {
@@ -2345,10 +3751,20 @@ mod tests {
             bits
         }
         fn expected(value: usize, width: usize) -> String {
-            (0..width).map(|bit| if (value >> bit) & 1 == 1 { '⊥' } else { '⊤' }).collect()
+            (0..width)
+                .map(|bit| {
+                    if (value >> bit) & 1 == 1 {
+                        '⊥'
+                    } else {
+                        '⊤'
+                    }
+                })
+                .collect()
         }
         fn gcd(mut a: usize, mut b: usize) -> usize {
-            while b != 0 { (a, b) = (b, a % b); }
+            while b != 0 {
+                (a, b) = (b, a % b);
+            }
             a
         }
 
@@ -2357,7 +3773,11 @@ mod tests {
                 let left = stream(a);
                 let right = stream(b);
                 let width = left.chars().count().max(right.chars().count());
-                assert_eq!(gcd_encoded_lsb_first(&left, &right).unwrap(), expected(gcd(a, b), width), "gcd({a}, {b})");
+                assert_eq!(
+                    gcd_encoded_lsb_first(&left, &right).unwrap(),
+                    expected(gcd(a, b), width),
+                    "gcd({a}, {b})"
+                );
             }
         }
         assert_eq!(gcd_encoded_lsb_first("⊥⊥⊤", "⊥⊤").unwrap(), "⊥⊤⊤");
@@ -2370,7 +3790,9 @@ mod tests {
     #[test]
     fn imasm_restoring_divider_matches_small_quotients_and_remainders() {
         fn stream(value: usize) -> String {
-            if value == 0 { return String::from("⊤"); }
+            if value == 0 {
+                return String::from("⊤");
+            }
             let mut n = value;
             let mut bits = String::new();
             while n != 0 {
@@ -2380,7 +3802,15 @@ mod tests {
             bits
         }
         fn padded(value: usize, width: usize) -> String {
-            (0..width).map(|bit| if (value >> bit) & 1 == 1 { '⊥' } else { '⊤' }).collect()
+            (0..width)
+                .map(|bit| {
+                    if (value >> bit) & 1 == 1 {
+                        '⊥'
+                    } else {
+                        '⊤'
+                    }
+                })
+                .collect()
         }
 
         for dividend in 0..20usize {
@@ -2388,10 +3818,16 @@ mod tests {
                 let a = stream(dividend);
                 let b = stream(divisor);
                 let (q, r) = divmod_encoded_lsb_first(&a, &b).unwrap();
-                assert_eq!(q, padded(dividend / divisor, a.chars().count()),
-                    "quotient {dividend} / {divisor}");
-                assert_eq!(r, padded(dividend % divisor, b.chars().count() + 1),
-                    "remainder {dividend} mod {divisor}");
+                assert_eq!(
+                    q,
+                    padded(dividend / divisor, a.chars().count()),
+                    "quotient {dividend} / {divisor}"
+                );
+                assert_eq!(
+                    r,
+                    padded(dividend % divisor, b.chars().count() + 1),
+                    "remainder {dividend} mod {divisor}"
+                );
             }
         }
         assert!(divmod_encoded_lsb_first("⊥", "⊤").is_err());
@@ -2425,7 +3861,8 @@ mod tests {
         vm.set_belief(13, B4::N);
         // The input binary, re-expressed in the native B4 alphabet.
         vm.read_buffer = Some(vec![B4::T, B4::F, B4::B, B4::N]);
-        vm.load("
+        vm.load(
+            "
             READ %r0
             CALL .decode
             READ %r0
@@ -2450,14 +3887,22 @@ mod tests {
             .dB: MOVE %r13 %r1   ; B -> N
             EMIT %r1
             RET
-        ").unwrap();
+        ",
+        )
+        .unwrap();
         vm.run(None);
         // The permutation applied to [T,F,B,N] is [F,B,N,T].
-        let emitted: Vec<&str> = vm.emit_buffer.iter()
+        let emitted: Vec<&str> = vm
+            .emit_buffer
+            .iter()
             .map(|s| s.rsplit(' ').next().unwrap_or(""))
             .collect();
-        assert_eq!(emitted, vec!["F", "B", "N", "T"],
-            "IMASM-native decode did not apply the permutation; emit = {:?}", vm.emit_buffer);
+        assert_eq!(
+            emitted,
+            vec!["F", "B", "N", "T"],
+            "IMASM-native decode did not apply the permutation; emit = {:?}",
+            vm.emit_buffer
+        );
     }
 
     #[test]
@@ -2469,10 +3914,15 @@ mod tests {
         // each leaf emits the CANONICAL IMASM token code, so the trie IS a real
         // 16-entry decode table realized as control flow. 16 opcodes × 16 operands
         // is the whole 256-byte space, decoded without a byte of data storage.
-        const CELLS: [&str; 4] = ["N", "T", "F", "B"];      // cell index -> B4 name
-        let perm = |w: usize| (w * 7 + 3) % 16;             // wire code -> opcode ordinal (a bijection)
-        let canon = |ord: usize| -> (usize, usize) {        // ordinal -> canonical (hi,lo) cells
-            if ord < 12 { (ord / 4, ord % 4) } else { (3, 3) } // >=12: (B,B) = unknown
+        const CELLS: [&str; 4] = ["N", "T", "F", "B"]; // cell index -> B4 name
+        let perm = |w: usize| (w * 7 + 3) % 16; // wire code -> opcode ordinal (a bijection)
+        let canon = |ord: usize| -> (usize, usize) {
+            // ordinal -> canonical (hi,lo) cells
+            if ord < 12 {
+                (ord / 4, ord % 4)
+            } else {
+                (3, 3)
+            } // >=12: (B,B) = unknown
         };
         // const cells live in r10..r13 (N,T,F,B); emit one canonical cell.
         let emit_cell = |idx: usize| format!("MOVE %r{} %r4\nEMIT %r4\n", 10 + idx);
@@ -2487,9 +3937,9 @@ mod tests {
             for j in 0..4 {
                 let (hi, lo) = canon(perm(i * 4 + j));
                 prog += &format!(".L{}_{}:\n", i, j);
-                prog += &emit_cell(hi);          // canonical opcode hi
-                prog += &emit_cell(lo);          // canonical opcode lo
-                prog += "EMIT %r2\nEMIT %r3\n";  // operand, passed through
+                prog += &emit_cell(hi); // canonical opcode hi
+                prog += &emit_cell(lo); // canonical opcode lo
+                prog += "EMIT %r2\nEMIT %r3\n"; // operand, passed through
                 prog += "JMP .done\n";
             }
         }
@@ -2505,7 +3955,8 @@ mod tests {
             vm.read_buffer = Some(bytes.iter().map(|&v| as_b4(v)).collect());
             vm.load(&prog).unwrap();
             vm.run(None);
-            vm.emit_buffer.iter()
+            vm.emit_buffer
+                .iter()
                 .map(|s| String::from(s.rsplit(' ').next().unwrap_or("")))
                 .collect()
         };
@@ -2516,11 +3967,17 @@ mod tests {
         for bytes in [[1usize, 0, 2, 3], [0, 3, 1, 1], [2, 2, 3, 0], [3, 1, 0, 2]] {
             let (chi, clo) = canon(perm(bytes[0] * 4 + bytes[1]));
             let expected = vec![
-                CELLS[chi].to_string(), CELLS[clo].to_string(),
-                CELLS[bytes[2]].to_string(), CELLS[bytes[3]].to_string(),
+                CELLS[chi].to_string(),
+                CELLS[clo].to_string(),
+                CELLS[bytes[2]].to_string(),
+                CELLS[bytes[3]].to_string(),
             ];
-            assert_eq!(decode_byte(bytes), expected,
-                "full-byte decode mismatch for wire byte {:?}", bytes);
+            assert_eq!(
+                decode_byte(bytes),
+                expected,
+                "full-byte decode mismatch for wire byte {:?}",
+                bytes
+            );
         }
     }
 
@@ -2532,7 +3989,11 @@ mod tests {
         // HALTs. Feed a stream ending in a stop byte, collect the full IMASM word.
         let perm = |w: usize| (w * 7 + 3) % 16;
         let canon = |ord: usize| -> (usize, usize) {
-            if ord < 12 { (ord / 4, ord % 4) } else { (3, 3) }
+            if ord < 12 {
+                (ord / 4, ord % 4)
+            } else {
+                (3, 3)
+            }
         };
         let emit_cell = |idx: usize| format!("MOVE %r{} %r4\nEMIT %r4\n", 10 + idx);
         let cells = ["N", "T", "F", "B"];
@@ -2545,7 +4006,7 @@ mod tests {
             for j in 0..4 {
                 prog += &format!(".L{}_{}:\n", i, j);
                 if i == 3 && j == 3 {
-                    prog += "HALT\n";               // reserved stop-opcode ends the stream
+                    prog += "HALT\n"; // reserved stop-opcode ends the stream
                 } else {
                     let (hi, lo) = canon(perm(i * 4 + j));
                     prog += &emit_cell(hi);
@@ -2563,12 +4024,15 @@ mod tests {
         vm.set_belief(13, B4::B);
         let b = |v: usize| B4::from_u8(v as u8);
         // Two real instructions, then a stop byte (opcode (B,B)).
-        let stream = [1usize, 0, 2, 3,   0, 3, 1, 1,   3, 3, 0, 0];
+        let stream = [1usize, 0, 2, 3, 0, 3, 1, 1, 3, 3, 0, 0];
         vm.read_buffer = Some(stream.iter().map(|&v| b(v)).collect());
         vm.load(&prog).unwrap();
         vm.run(Some(10_000));
-        let word: Vec<String> = vm.emit_buffer.iter()
-            .map(|s| String::from(s.rsplit(' ').next().unwrap_or(""))).collect();
+        let word: Vec<String> = vm
+            .emit_buffer
+            .iter()
+            .map(|s| String::from(s.rsplit(' ').next().unwrap_or("")))
+            .collect();
 
         // Expected: decode of the first two bytes (4 cells each), stop emits nothing.
         let mut expected = Vec::new();
@@ -2596,37 +4060,48 @@ mod tests {
         // EVM opcode -> IMASM glyph (arm-splitting supplied by the CFG, as a full
         // lifter would; the per-opcode map is 1:1):
         let lift = |seq: &[&str]| -> String {
-            seq.iter().map(|op| match *op {
-                "ENTRY"                 => "⊢", // function entry (VINIT)
-                "JUMPI"                 => "∈", // conditional branch = fork (FSPLIT)
-                "THEN_BB"               => "≻", // taken basic block, work (AFWD)
-                "THEN_TAG"              => "⊤", // the taken arm (EVALT)
-                "ELSE_BB"               => "≺", // fall-through block, work (AREV)
-                "ELSE_TAG"              => "⊥", // the else arm (EVALF)
-                "JUMPDEST"              => "∋", // the merge point (FFUSE)
-                "SSTORE"                => "⊡", // state commit, irreversible (IFIX)
-                "STOP" | "RETURN"       => "⊣", // terminator (TANCH)
-                _                       => "⊙", // unmodeled op = identity (IMSCRIB)
-            }).collect()
+            seq.iter()
+                .map(|op| match *op {
+                    "ENTRY" => "⊢",           // function entry (VINIT)
+                    "JUMPI" => "∈",           // conditional branch = fork (FSPLIT)
+                    "THEN_BB" => "≻",         // taken basic block, work (AFWD)
+                    "THEN_TAG" => "⊤",        // the taken arm (EVALT)
+                    "ELSE_BB" => "≺",         // fall-through block, work (AREV)
+                    "ELSE_TAG" => "⊥",        // the else arm (EVALF)
+                    "JUMPDEST" => "∋",        // the merge point (FFUSE)
+                    "SSTORE" => "⊡",          // state commit, irreversible (IFIX)
+                    "STOP" | "RETURN" => "⊣", // terminator (TANCH)
+                    _ => "⊙",                 // unmodeled op = identity (IMSCRIB)
+                })
+                .collect()
         };
 
         // withdraw(), checks-effects-interactions: the guard's paths MERGE
         // (JUMPDEST) before the state write. Effects land after the fork resolves.
-        let safe = lift(&["ENTRY", "JUMPI", "THEN_BB", "THEN_TAG",
-                          "ELSE_BB", "ELSE_TAG", "JUMPDEST", "SSTORE", "STOP"]);
+        let safe = lift(&[
+            "ENTRY", "JUMPI", "THEN_BB", "THEN_TAG", "ELSE_BB", "ELSE_TAG", "JUMPDEST", "SSTORE",
+            "STOP",
+        ]);
         // withdraw(), vulnerable: SSTORE commits state while the branch is still
         // open (no JUMPDEST merge before it) — the re-entrancy window.
-        let vuln = lift(&["ENTRY", "JUMPI", "THEN_BB", "THEN_TAG",
-                          "SSTORE", "ELSE_BB", "ELSE_TAG", "STOP"]);
+        let vuln = lift(&[
+            "ENTRY", "JUMPI", "THEN_BB", "THEN_TAG", "SSTORE", "ELSE_BB", "ELSE_TAG", "STOP",
+        ]);
 
         let verdict = |word: &str| -> char {
             let steps = imasm_core::imasm16_3::parse_glyph_word(word);
             imasm_core::imasm16_3::tri_ancestral_verdict(&steps).0
         };
-        assert_eq!(verdict(&safe), 'T',
-            "checks-effects-interactions should close; word = {safe}");
-        assert_eq!(verdict(&vuln), 'B',
-            "reentrant ordering should open (B); word = {vuln}");
+        assert_eq!(
+            verdict(&safe),
+            'T',
+            "checks-effects-interactions should close; word = {safe}"
+        );
+        assert_eq!(
+            verdict(&vuln),
+            'B',
+            "reentrant ordering should open (B); word = {vuln}"
+        );
     }
 
     // ── shared trie machinery for the round-trip planks (4, 5) ──────────────
@@ -2634,7 +4109,12 @@ mod tests {
     // two cells and emits table(code) as two cells: disassemble and recompile are
     // the same generator with inverse tables.
     fn b4_idx(name: &str) -> usize {
-        match name { "T" => 1, "F" => 2, "B" => 3, _ => 0 }
+        match name {
+            "T" => 1,
+            "F" => 2,
+            "B" => 3,
+            _ => 0,
+        }
     }
     fn gen_code_trie(table: &dyn Fn(usize) -> usize) -> String {
         let emit_cell = |idx: usize| format!("MOVE %r{} %r4\nEMIT %r4\n", 10 + idx);
@@ -2661,12 +4141,16 @@ mod tests {
         vm.set_belief(12, B4::F);
         vm.set_belief(13, B4::B);
         vm.read_buffer = Some(vec![
-            B4::from_u8((code / 4) as u8), B4::from_u8((code % 4) as u8),
+            B4::from_u8((code / 4) as u8),
+            B4::from_u8((code % 4) as u8),
         ]);
         vm.load(prog).unwrap();
         vm.run(Some(10_000));
-        let cells: Vec<usize> = vm.emit_buffer.iter()
-            .map(|s| b4_idx(s.rsplit(' ').next().unwrap_or(""))).collect();
+        let cells: Vec<usize> = vm
+            .emit_buffer
+            .iter()
+            .map(|s| b4_idx(s.rsplit(' ').next().unwrap_or("")))
+            .collect();
         cells[0] * 4 + cells[1]
     }
 
@@ -2685,7 +4169,10 @@ mod tests {
         for w in 0..16 {
             let lifted = run_code_trie(&disasm, w);
             let back = run_code_trie(&recomp, lifted);
-            assert_eq!(back, w, "recompile is not the inverse of disassemble at code {w}");
+            assert_eq!(
+                back, w,
+                "recompile is not the inverse of disassemble at code {w}"
+            );
         }
     }
 
@@ -2704,11 +4191,14 @@ mod tests {
         let recomp = gen_code_trie(&inv_perm);
         // The tool's own word: the twelve IMASM opcodes, the alphabet it is made of.
         let self_word: Vec<usize> = (0..12).collect();
-        let reproduced: Vec<usize> = self_word.iter()
+        let reproduced: Vec<usize> = self_word
+            .iter()
             .map(|&c| run_code_trie(&recomp, run_code_trie(&disasm, c)))
             .collect();
-        assert_eq!(reproduced, self_word,
-            "the tool did not reproduce its own word under disassemble∘recompile");
+        assert_eq!(
+            reproduced, self_word,
+            "the tool did not reproduce its own word under disassemble∘recompile"
+        );
     }
 
     #[test]
@@ -2721,8 +4211,11 @@ mod tests {
         // holds on it: δ opens, μ closes, and the pair is the identity.
         let tool_word = "⊢∈≻⊤≺⊥∋⊡⊣";
         let steps = imasm_core::imasm16_3::parse_glyph_word(tool_word);
-        assert_eq!(imasm_core::imasm16_3::tri_ancestral_verdict(&steps).0, 'T',
-            "the tool's own word must close under the kernel");
+        assert_eq!(
+            imasm_core::imasm16_3::tri_ancestral_verdict(&steps).0,
+            'T',
+            "the tool's own word must close under the kernel"
+        );
 
         // SELF-APPLICATION: the tool's own word, encoded and run THROUGH the tool
         // (disassemble, then recompile), returns itself. R∘D = id on every code, so
@@ -2734,11 +4227,17 @@ mod tests {
         let alphabet = "⊢⊣≻≺⋈⊤∈∋⊙⊥⊞⊡";
         for g in tool_word.chars() {
             let o = alphabet.chars().position(|c| c == g).unwrap(); // opcode ordinal
-            let wire = inv_perm(o);                                 // its wire byte
-            assert_eq!(run_code_trie(&disasm, wire), o,
-                "the tool did not disassemble its own word back to itself");
-            assert_eq!(run_code_trie(&recomp, o), wire,
-                "the tool did not recompile its own word back to its bytes");
+            let wire = inv_perm(o); // its wire byte
+            assert_eq!(
+                run_code_trie(&disasm, wire),
+                o,
+                "the tool did not disassemble its own word back to itself"
+            );
+            assert_eq!(
+                run_code_trie(&recomp, o),
+                wire,
+                "the tool did not recompile its own word back to its bytes"
+            );
         }
         // This closes it. There is no further "reflective quine" outside this: the
         // tool's word, its byte encoding, and its self-application co-type — they
@@ -2758,25 +4257,38 @@ mod tests {
         // lifter is a parasm word, and the word it emits is verdicted by imasm16_3,
         // also the grammar. (Predecessor-counted merges are the next rung and want
         // the crystal FS; here a JUMPDEST lifts straight to FFUSE.)
-        enum Act { Emit(usize), Skip1, Halt }
-        let jeq = |c: u8| match c { 0 => "JN", 1 => "JT", 2 => "JF", _ => "JB" };
+        enum Act {
+            Emit(usize),
+            Skip1,
+            Halt,
+        }
+        let jeq = |c: u8| match c {
+            0 => "JN",
+            1 => "JT",
+            2 => "JF",
+            _ => "JB",
+        };
         let entries: [([u8; 4], Act); 10] = [
-            ([0, 0, 0, 0], Act::Emit(1)),   // 0x00 STOP     -> TANCH
-            ([1, 1, 1, 0], Act::Emit(2)),   // 0x54 SLOAD    -> AFWD
-            ([1, 1, 1, 1], Act::Emit(11)),  // 0x55 SSTORE   -> IFIX
-            ([1, 1, 1, 3], Act::Emit(6)),   // 0x57 JUMPI    -> FSPLIT
-            ([1, 1, 2, 3], Act::Emit(7)),   // 0x5b JUMPDEST -> FFUSE
-            ([1, 2, 0, 0], Act::Skip1),     // 0x60 PUSH1    -> skip 1 operand byte
-            ([3, 3, 0, 1], Act::Emit(2)),   // 0xf1 CALL     -> AFWD
-            ([3, 3, 0, 3], Act::Emit(1)),   // 0xf3 RETURN   -> TANCH
-            ([3, 3, 3, 1], Act::Emit(1)),   // 0xfd REVERT   -> TANCH
-            ([3, 3, 3, 2], Act::Halt),      // 0xfe sentinel -> HALT (end of input)
+            ([0, 0, 0, 0], Act::Emit(1)),  // 0x00 STOP     -> TANCH
+            ([1, 1, 1, 0], Act::Emit(2)),  // 0x54 SLOAD    -> AFWD
+            ([1, 1, 1, 1], Act::Emit(11)), // 0x55 SSTORE   -> IFIX
+            ([1, 1, 1, 3], Act::Emit(6)),  // 0x57 JUMPI    -> FSPLIT
+            ([1, 1, 2, 3], Act::Emit(7)),  // 0x5b JUMPDEST -> FFUSE
+            ([1, 2, 0, 0], Act::Skip1),    // 0x60 PUSH1    -> skip 1 operand byte
+            ([3, 3, 0, 1], Act::Emit(2)),  // 0xf1 CALL     -> AFWD
+            ([3, 3, 0, 3], Act::Emit(1)),  // 0xf3 RETURN   -> TANCH
+            ([3, 3, 3, 1], Act::Emit(1)),  // 0xfd REVERT   -> TANCH
+            ([3, 3, 3, 2], Act::Halt),     // 0xfe sentinel -> HALT (end of input)
         ];
-        let emit_tok = |ord: usize| format!(
-            "MOVE %r{} %r4\nEMIT %r4\nMOVE %r{} %r4\nEMIT %r4\n",
-            10 + ord / 4, 10 + ord % 4);
+        let emit_tok = |ord: usize| {
+            format!(
+                "MOVE %r{} %r4\nEMIT %r4\nMOVE %r{} %r4\nEMIT %r4\n",
+                10 + ord / 4,
+                10 + ord % 4
+            )
+        };
 
-        let mut prog = emit_tok(0);                         // VINIT once
+        let mut prog = emit_tok(0); // VINIT once
         prog += ".top:\nREAD %r0\nREAD %r1\nREAD %r2\nREAD %r3\n";
         for (i, (c, act)) in entries.iter().enumerate() {
             prog += &format!("{} %r0 .c1_{i}\nJMP .sk_{i}\n", jeq(c[0]));
@@ -2785,13 +4297,20 @@ mod tests {
             prog += &format!(".c3_{i}:\n{} %r3 .hit_{i}\nJMP .sk_{i}\n", jeq(c[3]));
             prog += &format!(".hit_{i}:\n");
             match act {
-                Act::Emit(o) => { prog += &emit_tok(*o); prog += "JMP .top\n"; }
-                Act::Skip1 => { prog += "READ %r5\nREAD %r5\nREAD %r5\nREAD %r5\nJMP .top\n"; }
-                Act::Halt => { prog += "HALT\n"; }
+                Act::Emit(o) => {
+                    prog += &emit_tok(*o);
+                    prog += "JMP .top\n";
+                }
+                Act::Skip1 => {
+                    prog += "READ %r5\nREAD %r5\nREAD %r5\nREAD %r5\nJMP .top\n";
+                }
+                Act::Halt => {
+                    prog += "HALT\n";
+                }
             }
             prog += &format!(".sk_{i}:\n");
         }
-        prog += "JMP .top\n";                               // unmatched byte: skip it
+        prog += "JMP .top\n"; // unmatched byte: skip it
 
         // Run the lifter on a bytecode string, returning the lifted word and
         // the kernel's verdict over it.
@@ -2799,10 +4318,11 @@ mod tests {
             let mut bytes: Vec<u8> = (0..hex.len() / 2)
                 .map(|k| u8::from_str_radix(&hex[2 * k..2 * k + 2], 16).unwrap())
                 .collect();
-            bytes.push(0xfe);                               // end-of-input sentinel
-            let cells: Vec<B4> = bytes.iter().flat_map(|&b| {
-                [b >> 6 & 3, b >> 4 & 3, b >> 2 & 3, b & 3].map(B4::from_u8)
-            }).collect();
+            bytes.push(0xfe); // end-of-input sentinel
+            let cells: Vec<B4> = bytes
+                .iter()
+                .flat_map(|&b| [b >> 6 & 3, b >> 4 & 3, b >> 2 & 3, b & 3].map(B4::from_u8))
+                .collect();
             let mut vm = ParaVM::new();
             for (r, v) in [(10, B4::N), (11, B4::T), (12, B4::F), (13, B4::B)] {
                 vm.set_belief(r, v);
@@ -2810,23 +4330,34 @@ mod tests {
             vm.read_buffer = Some(cells);
             vm.load(&prog).unwrap();
             vm.run(Some(200_000));
-            let vals: Vec<u8> = vm.emit_buffer.iter().map(|s| {
-                match s.rsplit(' ').next().unwrap_or("") { "T" => 1, "F" => 2, "B" => 3, _ => 0 }
-            }).collect();
+            let vals: Vec<u8> = vm
+                .emit_buffer
+                .iter()
+                .map(|s| match s.rsplit(' ').next().unwrap_or("") {
+                    "T" => 1,
+                    "F" => 2,
+                    "B" => 3,
+                    _ => 0,
+                })
+                .collect();
             let alphabet = ["⊢", "⊣", "≻", "≺", "⋈", "⊤", "∈", "∋", "⊙", "⊥", "⊞", "⊡"];
-            let word: String = vals.chunks(2)
+            let word: String = vals
+                .chunks(2)
                 .map(|p| alphabet[(p[0] * 4 + p.get(1).copied().unwrap_or(0)) as usize])
                 .collect();
             let steps = imasm_core::imasm16_3::parse_glyph_word(&word);
-            (word.clone(), imasm_core::imasm16_3::tri_ancestral_verdict(&steps).0)
+            (
+                word.clone(),
+                imasm_core::imasm16_3::tri_ancestral_verdict(&steps).0,
+            )
         };
 
         // What this rung proves: the lifter written IN the grammar emits the
         // same word the reference lifters emit, from real EVM bytes, with no
         // Rust or Python anywhere in the lift path. The bytes go in through the
         // kernel's input, the trie dispatches, the word comes out.
-        let (vuln, _) = run("600160075755005b00");   // commit inside the branch
-        let (safe, _) = run("6001600657545b5500");   // guard before the commit
+        let (vuln, _) = run("600160075755005b00"); // commit inside the branch
+        let (safe, _) = run("6001600657545b5500"); // guard before the commit
         assert_eq!(vuln, "⊢∈⊡⊣∋⊣", "in-grammar lift of the unguarded ordering");
         assert_eq!(safe, "⊢∈≻∋⊡⊣", "in-grammar lift of the guarded ordering");
 
@@ -2908,7 +4439,8 @@ mod tests {
     #[test]
     fn test_call_ret() {
         let mut vm = ParaVM::new();
-        vm.load("
+        vm.load(
+            "
             JMP .main
         .sub:
             IFIX %r1
@@ -2917,7 +4449,9 @@ mod tests {
             MOVE %r0 %r1
             CALL .sub
             HALT
-        ").unwrap();
+        ",
+        )
+        .unwrap();
         vm.set_belief(0, B4::T);
         vm.run(None);
         let snap = vm.snapshot();
