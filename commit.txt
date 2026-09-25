@@ -1,1 +1,1 @@
-I transport arithmetic values across Gödel evaluation frames and register each return closure at widths 2–8. I preserve the decimal source as an IMASM word, operate on values selected from distinct frames, reframe the result, and read it back. The RSA battery remains open until its factors close.
+I execute paired FOUR-register transport in IMASM before product closure. I preserve both operand tapes through packing and reversal, cover all paired states and wide streams, and verify the integrated path through the CLI with warnings denied.
