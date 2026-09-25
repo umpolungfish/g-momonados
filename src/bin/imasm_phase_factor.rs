@@ -83,6 +83,10 @@ fn factor_from_candidate(n: &str, candidate: String) -> Result<Option<(String, S
     Ok(Some((candidate, complement)))
 }
 
+fn should_read_support(phase_index: usize, base: &str) -> bool {
+    (phase_index == 0 && base != "⊥⊤") || (phase_index > 8 && phase_index.is_power_of_two())
+}
+
 fn phase_return(n: &str, base: &str) -> Result<Option<(String, String)>, String> {
     let mut square = parasm::MontgomeryPhase::new(n)?;
     let unit = trim(square.enter("⊥")?);
@@ -93,7 +97,9 @@ fn phase_return(n: &str, base: &str) -> Result<Option<(String, String)>, String>
     let mut previous = unit;
     let mut phase_index = 0usize;
     loop {
-        if phase_index == 0 || (phase_index > 8 && phase_index.is_power_of_two()) {
+        // At x = 2 the support polynomial is exactly N, so its gcd cannot
+        // select a proper factor. Skip that tautological frame.
+        if should_read_support(phase_index, base) {
             let support = square.support_polynomial(&current, &one_montgomery, n)?;
             let candidate = trim(parasm::gcd_encoded_lsb_first(&support, n)?);
             if let Some(pair) = factor_from_candidate(n, candidate)? {
@@ -142,11 +148,18 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::proper_factor;
+    use super::{proper_factor, should_read_support};
 
     #[test]
     fn extracted_pair_closes_inside_the_complement_register() {
         let pair = proper_factor("⊥⊥⊥⊥", "⊥⊥⊤", "⊤").unwrap();
         assert_eq!(pair, Some(("⊥⊥".into(), "⊥⊤⊥".into())));
+    }
+
+    #[test]
+    fn base_two_skips_the_trivial_support_frame() {
+        assert!(!should_read_support(0, "⊥⊤"));
+        assert!(should_read_support(0, "⊥⊥"));
+        assert!(should_read_support(16, "⊥⊤"));
     }
 }

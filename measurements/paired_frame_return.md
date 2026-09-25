@@ -90,7 +90,7 @@ the release-profile binary. The 27-digit pair also closes in the release
 binary, with both factors represented only as emitted IMASM numeral words.
 
 `RUSTFLAGS='-D warnings' cargo test --test paired_frame_return --quiet`
-passed all 44 tests. These include comparison of repeated resident phase
+passed all 45 tests. These include comparison of repeated resident phase
 squares with the independent encoded arithmetic path, exact and rejected
 complements, a 131-bit complement, the SIXTEEN_3 transport, and the existing
 arithmetic closure cases. A support-polynomial frame test extracts 5 from the
@@ -102,3 +102,43 @@ and mismatched targets and checks that only the exact closure is fixed. The
 GCD tests cover zero arms, all small pairs, and 65- and 129-bit operands. The
 Montgomery tests compare shifted-frame squaring with the encoded arithmetic
 control across odd moduli, a 129-bit modulus, and an oversized base.
+
+## Support-run compression
+
+The width-eight support evaluator selects a second circuit when the baked
+support has sufficiently few one-runs. A run of length `m` is evaluated as
+`1 + x + ... + x^(m-1)` by binary doubling of the pair `(x^m, sum)`. The
+translation, geometric sum, additions, and reductions all execute in the
+Montgomery IMASM register circuit. Dense support patterns retain the original
+width-eight circuit.
+
+The sweep uses `N = (2^61 - 1)(2^e - 1)`, with both factors Mersenne primes.
+The executable receives only the encoded numeral for `N`; the returned factor
+words are decoded after the run. The first five timings are from the width-eight
+support circuit. The final two use support-run compression.
+
+| `e` | N digits | returned factors | circuit | elapsed | result |
+|---:|---:|---|---|---:|---|
+| 89 | 46 | `(2^61 - 1) × (2^89 - 1)` | width-eight | 0.594 ms | closed |
+| 107 | 51 | `(2^61 - 1) × (2^107 - 1)` | width-eight | 0.744 ms | closed |
+| 127 | 57 | `(2^61 - 1) × (2^127 - 1)` | width-eight | 0.976 ms | closed |
+| 521 | 176 | `(2^61 - 1) × (2^521 - 1)` | width-eight | 13.218 s | closed |
+| 607 | 202 | `(2^61 - 1) × (2^607 - 1)` | width-eight | 18.227 s | closed |
+| 1279 | 404 | `(2^61 - 1) × (2^1279 - 1)` | support-run | 42.534 s | closed |
+| 2203 | 682 | no pair emitted | support-run | 60 s | timeout |
+
+For `e = 1279`, the encoded support has three one-runs. The width-eight
+evaluator and two alternate phase seeds each reached the one-minute timeout.
+The run circuit closes the same input in 42.534 s. The phase reader also skips
+the base-2 support frame because evaluating the support polynomial at `x = 2`
+returns `N` exactly and cannot select a proper factor. At `e = 2203`, the
+run-compressed circuit reaches the one-minute boundary without emitting a pair.
+The next cost reduction is to fuse the geometric-run accumulator with the
+phase checkpoint readout, avoiding a full support-polynomial evaluation at
+each checkpoint.
+
+The run-compressed circuit is checked against direct geometric evaluation at
+20 encoded cells, while the width-eight control is checked across full and
+partial frames. `RUSTFLAGS='-D warnings' cargo test --lib` passes 152 tests;
+the paired-frame integration target passes 45, and the phase-factor binary
+target passes 37.

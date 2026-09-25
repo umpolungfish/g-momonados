@@ -205,6 +205,37 @@ fn support_frame_evaluation_matches_encoded_horner_across_partial_frames() {
 }
 
 #[test]
+fn long_support_run_uses_exact_frame_geometric_sum() {
+    use num_bigint::BigUint;
+    let modulus = "⊥".repeat(20); // 2^20 - 1, one support run
+    let width = modulus.chars().count();
+    let mut phase = parasm::MontgomeryPhase::new(&modulus).unwrap();
+    let one_montgomery = phase.enter("⊥").unwrap();
+    let x = "⊥⊥"; // 3
+    let x_montgomery = phase.enter(x).unwrap();
+    let observed = phase
+        .support_polynomial(&x_montgomery, &one_montgomery, &modulus)
+        .unwrap();
+
+    let modulus_value = (BigUint::from(1u8) << 20usize) - BigUint::from(1u8);
+    let mut expected_value = BigUint::from(0u8);
+    for _ in 0..width {
+        expected_value = (expected_value * 3u8 + 1u8) % &modulus_value;
+    }
+    assert_eq!(expected_value, BigUint::from(660_550u32));
+    let expected = (0..width)
+        .map(|bit| {
+            if ((&expected_value >> bit) & BigUint::from(1u8)) == BigUint::from(1u8) {
+                '⊥'
+            } else {
+                '⊤'
+            }
+        })
+        .collect::<String>();
+    assert_eq!(observed, phase.enter(&expected).unwrap());
+}
+
+#[test]
 fn encoded_complement_cancels_and_returns_both_signs_of_residual() {
     assert_eq!(
         parasm::complement_encoded_lsb_first("⊥⊥", "⊥⊤⊥⊤⊥").unwrap(),
