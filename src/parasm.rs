@@ -1390,6 +1390,7 @@ pub struct MontgomeryPhase {
     enter_input_width: usize,
     square_vm: ParaVM,
     support_vm: ParaVM,
+    support_coefficients: Option<String>,
     modulus: Vec<B4>,
     width: usize,
 }
@@ -1690,6 +1691,320 @@ fn montgomery_support_program(width: usize) -> String {
     source
 }
 
+fn append_montgomery_product_call(
+    source: &mut String,
+    left: &[usize],
+    right: &[usize],
+    output: &[usize],
+    accumulator: &[usize],
+    multiplier: &[usize],
+) {
+    use core::fmt::Write as _;
+    for &register in accumulator.iter().chain(multiplier) {
+        writeln!(source, "MOVE %r11 %r{register}").unwrap();
+    }
+    for (&from, &to) in left.iter().zip(accumulator) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    for (&from, &to) in right.iter().zip(multiplier) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    source.push_str("CALL .support_montgomery_product\n");
+    for (&from, &to) in accumulator.iter().zip(output) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+}
+
+fn append_montgomery_add(
+    source: &mut String,
+    left: &[usize],
+    right: &[usize],
+    output: &[usize],
+    sum: &[usize],
+    modulus: &[usize],
+    difference: &[usize],
+    borrow: usize,
+    carry: usize,
+    label: &str,
+) {
+    use core::fmt::Write as _;
+    append_bit_register_add(source, left, right, sum, carry);
+    append_reduce_once(source, sum, modulus, difference, borrow, label);
+    for (&from, &to) in sum.iter().zip(output) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+}
+
+fn append_montgomery_power(
+    source: &mut String,
+    base: &[usize],
+    exponent: usize,
+    one: &[usize],
+    output: &[usize],
+    current: &[usize],
+    accumulator: &[usize],
+    multiplier: &[usize],
+) {
+    use core::fmt::Write as _;
+    for (&from, &to) in one.iter().zip(output) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    if exponent == 0 {
+        return;
+    }
+    for (&from, &to) in base.iter().zip(current) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    let mut remaining = exponent;
+    while remaining != 0 {
+        if remaining & 1 != 0 {
+            append_montgomery_product_call(
+                source,
+                output,
+                current,
+                output,
+                accumulator,
+                multiplier,
+            );
+        }
+        remaining >>= 1;
+        if remaining != 0 {
+            append_montgomery_product_call(
+                source,
+                current,
+                current,
+                current,
+                accumulator,
+                multiplier,
+            );
+        }
+    }
+}
+
+/// Compile a support polynomial with long runs as geometric sums. A run of
+/// `m` set cells is evaluated as 1+x+...+x^(m-1) by binary doubling, so its
+/// circuit depth follows the encoded run length rather than every coefficient.
+fn montgomery_support_run_program(width: usize, coefficients: &[B4]) -> String {
+    use core::fmt::Write as _;
+    let mut next = 32;
+    let mut allocate = |count: usize| {
+        let registers = (next..next + count).collect::<Vec<_>>();
+        next += count;
+        registers
+    };
+    let residue = allocate(width);
+    let modulus = allocate(width);
+    let one = allocate(width);
+    let offset = allocate(width);
+    let total = allocate(width);
+    let run_power = allocate(width);
+    let run_sum = allocate(width);
+    let one_plus_power = allocate(width);
+    let contribution = allocate(width);
+    let gap_power = allocate(width);
+    let current_power = allocate(width);
+    let accumulator = allocate(width + 2);
+    let multiplier = allocate(width);
+    let product = allocate(width + 2);
+    let difference = allocate(width + 2);
+    let borrow = next;
+    next += 1;
+    let carry = next;
+
+    let mut source = String::from("ENGAGR %r10\nFSPLIT %r10 %r11 %r12\n");
+    for register in residue.iter().chain(&modulus).chain(&one) {
+        writeln!(source, "READ %r{register}").unwrap();
+    }
+    for (&from, &to) in one.iter().zip(&offset) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    for register in &total {
+        writeln!(source, "MOVE %r11 %r{register}").unwrap();
+    }
+
+    let mut runs = Vec::new();
+    let mut position = 0;
+    while position < coefficients.len() {
+        while position < coefficients.len() && coefficients[position] != B4::F {
+            position += 1;
+        }
+        if position == coefficients.len() {
+            break;
+        }
+        let start = position;
+        while position < coefficients.len() && coefficients[position] == B4::F {
+            position += 1;
+        }
+        runs.push((start, position - start));
+    }
+
+    let mut cursor = 0;
+    for (run_index, (start, length)) in runs.into_iter().enumerate() {
+        let gap = start - cursor;
+        if gap != 0 {
+            append_montgomery_power(
+                &mut source,
+                &residue,
+                gap,
+                &one,
+                &gap_power,
+                &current_power,
+                &accumulator,
+                &multiplier,
+            );
+            append_montgomery_product_call(
+                &mut source,
+                &offset,
+                &gap_power,
+                &offset,
+                &accumulator,
+                &multiplier,
+            );
+        }
+
+        for (index, register) in run_power.iter().enumerate() {
+            writeln!(source, "MOVE %r{} %r{register}", one[index]).unwrap();
+        }
+        for register in &run_sum {
+            writeln!(source, "MOVE %r11 %r{register}").unwrap();
+        }
+
+        let highest_bit = (usize::BITS - 1 - length.leading_zeros()) as usize;
+        for bit in (0..=highest_bit).rev() {
+            append_montgomery_add(
+                &mut source,
+                &one,
+                &run_power,
+                &one_plus_power,
+                &accumulator,
+                &modulus,
+                &difference,
+                borrow,
+                carry,
+                &alloc::format!("support_run_{run_index}_one_plus_{bit}"),
+            );
+            append_montgomery_product_call(
+                &mut source,
+                &run_sum,
+                &one_plus_power,
+                &run_sum,
+                &accumulator,
+                &multiplier,
+            );
+            append_montgomery_product_call(
+                &mut source,
+                &run_power,
+                &run_power,
+                &run_power,
+                &accumulator,
+                &multiplier,
+            );
+            if (length >> bit) & 1 != 0 {
+                append_montgomery_add(
+                    &mut source,
+                    &run_sum,
+                    &run_power,
+                    &run_sum,
+                    &accumulator,
+                    &modulus,
+                    &difference,
+                    borrow,
+                    carry,
+                    &alloc::format!("support_run_{run_index}_append_{bit}"),
+                );
+                append_montgomery_product_call(
+                    &mut source,
+                    &run_power,
+                    &residue,
+                    &run_power,
+                    &accumulator,
+                    &multiplier,
+                );
+            }
+        }
+
+        append_montgomery_product_call(
+            &mut source,
+            &offset,
+            &run_sum,
+            &contribution,
+            &accumulator,
+            &multiplier,
+        );
+        append_montgomery_add(
+            &mut source,
+            &total,
+            &contribution,
+            &total,
+            &accumulator,
+            &modulus,
+            &difference,
+            borrow,
+            carry,
+            &alloc::format!("support_run_{run_index}_accumulate"),
+        );
+        append_montgomery_product_call(
+            &mut source,
+            &offset,
+            &run_power,
+            &offset,
+            &accumulator,
+            &multiplier,
+        );
+        cursor = start + length;
+    }
+
+    for register in &total {
+        writeln!(source, "EMIT %r{register}").unwrap();
+    }
+    source.push_str("HALT\n.support_montgomery_product:\n");
+    for &register in &product {
+        writeln!(source, "MOVE %r11 %r{register}").unwrap();
+    }
+    for bit in 0..width {
+        writeln!(
+            source,
+            "JT %r{} .support_run_skip_residue_{bit}",
+            accumulator[bit]
+        )
+        .unwrap();
+        append_bit_register_add(&mut source, &product, &multiplier, &product, carry);
+        writeln!(source, ".support_run_skip_residue_{bit}:").unwrap();
+        writeln!(
+            source,
+            "JT %r{} .support_run_skip_modulus_{bit}",
+            product[0]
+        )
+        .unwrap();
+        append_bit_register_add(&mut source, &product, &modulus, &product, carry);
+        writeln!(source, ".support_run_skip_modulus_{bit}:").unwrap();
+        for position in 0..product.len() - 1 {
+            writeln!(
+                source,
+                "MOVE %r{} %r{}",
+                product[position + 1],
+                product[position]
+            )
+            .unwrap();
+        }
+        writeln!(source, "MOVE %r11 %r{}", product[product.len() - 1]).unwrap();
+    }
+    append_reduce_once(
+        &mut source,
+        &product,
+        &modulus,
+        &difference,
+        borrow,
+        "support_run_product_final_reduce",
+    );
+    for (&from, &to) in product.iter().zip(&accumulator) {
+        writeln!(source, "MOVE %r{from} %r{to}").unwrap();
+    }
+    source.push_str("RET\n");
+    source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
+    source
+}
+
 /// Build the odd-anchor inverse recurrence. At step k, the residual's low
 /// cell selects q_k. A selected bit subtracts the candidate register, then
 /// the signed residual shifts once. The remaining residual is the closure.
@@ -1954,14 +2269,13 @@ impl MontgomeryPhase {
         let mut square_vm = ParaVM::new();
         square_vm.load(&montgomery_square_program(width))?;
         square_vm.enable_dense_belief();
-        let mut support_vm = ParaVM::new();
-        support_vm.load(&montgomery_support_program(width))?;
-        support_vm.enable_dense_belief();
+        let support_vm = ParaVM::new();
         Ok(Self {
             enter_vm,
             enter_input_width: width,
             square_vm,
             support_vm,
+            support_coefficients: None,
             modulus: bits,
             width,
         })
@@ -2051,16 +2365,37 @@ impl MontgomeryPhase {
                 })
                 .collect::<Result<Vec<_>, _>>()
         };
+        let coefficient_bits = decode(coefficients_lsb_first)?;
         let mut reads = decode(residue)?;
         let mut unit = decode(one_montgomery)?;
         if reads.len() > self.width || unit.len() > self.width {
             return Err("support-polynomial register exceeds modulus width".into());
         }
+        if self.support_coefficients.as_deref() != Some(coefficients_lsb_first) {
+            let mut set_runs = 0usize;
+            let mut active = false;
+            for bit in &coefficient_bits {
+                if *bit == B4::F && !active {
+                    set_runs += 1;
+                    active = true;
+                } else if *bit != B4::F {
+                    active = false;
+                }
+            }
+            let circuit = if set_runs <= self.width.div_ceil(8) {
+                montgomery_support_run_program(self.width, &coefficient_bits)
+            } else {
+                montgomery_support_program(self.width)
+            };
+            self.support_vm.load(&circuit)?;
+            self.support_vm.enable_dense_belief();
+            self.support_coefficients = Some(String::from(coefficients_lsb_first));
+        }
         reads.resize(self.width, B4::T);
         unit.resize(self.width, B4::T);
         reads.extend_from_slice(&self.modulus);
         reads.extend(unit);
-        reads.extend(decode(coefficients_lsb_first)?.into_iter().rev());
+        reads.extend(coefficient_bits.into_iter().rev());
         let vm = &mut self.support_vm;
         vm.registers.clear();
         vm.belief.clear();
