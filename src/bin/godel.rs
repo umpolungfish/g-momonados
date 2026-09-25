@@ -1,5 +1,6 @@
 use imasm_core::imasm16_3::{leq_c, leq_i, Reg16_3};
 use vox_core::{godel_analyzer, godel_calculus};
+use vox_core::{godel_analyzer, godel_calculus, godel_product};
 
 fn support_pattern_state(bits_le: &str, frame_width: usize) -> Reg16_3 {
     let symbols = frame_codes(bits_le, frame_width);
@@ -249,15 +250,19 @@ fn dispatch(args: &[&str]) -> Result<String, String> {
         "analyze" => analyze_with_kernel(args),
         "frame-op" => frame_operation_with_kernel(args),
         "lte2" => godel_analyzer::command(args),
+        "analyze" | "lte2" => godel_analyzer::command(args),
+        "product" => godel_product::command(args),
         "selftest" | "verify" => {
             let mut out = godel_calculus::selftest_report()?;
             out.push_str(&godel_analyzer::selftest_report()?);
+            out.push_str(&godel_product::selftest_report()?);
             Ok(out)
         }
         "help" | "-h" | "--help" => Ok(format!(
-            "{}{}",
+            "{}{}{}",
             godel_calculus::help(),
-            godel_analyzer::help_addendum()
+            godel_analyzer::help_addendum(),
+            godel_product::help_addendum()
         )),
         _ => godel_calculus::command(args),
     }
