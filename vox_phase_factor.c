@@ -33,9 +33,8 @@ typedef struct {
 typedef struct State State;
 struct State {
     uint64_t hash;
-    Number previous;
-    Number current;
     State *next;
+    char cell_strings[2u * MODULUS_BITS + 2u];
 };
 
 typedef struct {
@@ -47,6 +46,8 @@ typedef struct {
 static Number modulus;
 static Number mont_one;
 static uint64_t n0_inverse;
+static char modulus_cells[MODULUS_BITS + 1u];
+static char base_cells[LIMBS * 64u + 1u];
 
 static long syscall6(long number, long a0, long a1, long a2,
                      long a3, long a4, long a5) {
@@ -86,19 +87,43 @@ static size_t utf8_cell(const char *at) {
     return 2;
 }
 
-static int decode_godel_word(const char *word, Number *out) {
+static int decode_godel_word(const char *word, Number *out,
+                             char *cell_string, size_t cell_capacity) {
     byte_zero(out, sizeof(*out));
     size_t bit = 0;
     for (size_t i = 0; word[i] != 0; ++i) {
         if ((unsigned char)word[i] != 0xe2) continue;
         size_t value = utf8_cell(word + i);
         if (value == 2) continue;
-        if (bit >= LIMBS * 64u) return 0;
+        if (bit >= LIMBS * 64u || bit >= cell_capacity) return 0;
+        cell_string[bit] = value != 0 ? 'F' : 'T';
         if (value != 0) out->limb[bit / 64u] |= (uint64_t)1u << (bit % 64u);
         ++bit;
         i += 2;
     }
-    return bit != 0;
+    if (bit == 0) return 0;
+    cell_string[bit] = 0;
+    return 1;
+}
+
+static void number_to_cells(char *cells, const Number *number) {
+    for (size_t bit = 0; bit < MODULUS_BITS; ++bit)
+        cells[bit] = ((number->limb[bit / 64u] >> (bit % 64u)) & 1u) ? 'F' : 'T';
+    cells[MODULUS_BITS] = 0;
+}
+
+static void cells_to_number(Number *number, const char *cells) {
+    byte_zero(number, sizeof(*number));
+    for (size_t bit = 0; bit < MODULUS_BITS; ++bit)
+        if (cells[bit] == 'F') number->limb[bit / 64u] |= (uint64_t)1u << (bit % 64u);
+}
+
+static int cells_equal_number(const char *cells, const Number *number) {
+    for (size_t bit = 0; bit < MODULUS_BITS; ++bit) {
+        char expected = ((number->limb[bit / 64u] >> (bit % 64u)) & 1u) ? 'F' : 'T';
+        if (cells[bit] != expected) return 0;
+    }
+    return 1;
 }
 
 static int compare(const Number *a, const Number *b) {
@@ -258,9 +283,9 @@ static State *new_state(const Number *current, const Number *previous,
     State *state = (State *)map_memory(sizeof(State));
     if (state == 0) return 0;
     state->hash = hash;
-    byte_copy(&state->current, current, sizeof(*current));
-    byte_copy(&state->previous, previous, sizeof(*previous));
     state->next = next;
+    number_to_cells(state->cell_strings, current);
+    number_to_cells(state->cell_strings + MODULUS_BITS + 1u, previous);
     return state;
 }
 
@@ -276,7 +301,7 @@ static int map_init(StateMap *map) {
 static State *map_find(StateMap *map, const Number *current, uint64_t hash) {
     size_t slot = (size_t)(hash % map->capacity);
     for (State *state = map->bucket[slot]; state != 0; state = state->next)
-        if (state->hash == hash && equal(&state->current, current)) return state;
+        if (state->hash == hash && cells_equal_number(state->cell_strings, current)) return state;
     return 0;
 }
 
@@ -491,8 +516,9 @@ static void add_one_mod(Number *number) {
 int main(void) {
     uint64_t started = clock_nanoseconds();
     Number baked_base;
-    if (!decode_godel_word(baked_n, &modulus)
-        || !decode_godel_word(baked_base_word, &baked_base)) {
+    if (!decode_godel_word(baked_n, &modulus, modulus_cells, MODULUS_BITS)
+        || !decode_godel_word(baked_base_word, &baked_base,
+                              base_cells, LIMBS * 64u)) {
         static const char message[] = "encoded input decode failed\n";
         emit_bytes(message, sizeof(message) - 1u);
         return 2;
@@ -540,11 +566,13 @@ int main(void) {
             uint64_t hash = hash_number(&current);
             State *prior = map_find(&seen, &current, hash);
             if (prior != 0) {
-                Number delta, candidate, complement;
-                if (compare(&previous, &prior->previous) >= 0)
-                    (void)subtract(&delta, &previous, &prior->previous);
+                Number earlier_previous, delta, candidate, complement;
+                cells_to_number(&earlier_previous,
+                                prior->cell_strings + MODULUS_BITS + 1u);
+                if (compare(&previous, &earlier_previous) >= 0)
+                    (void)subtract(&delta, &previous, &earlier_previous);
                 else
-                    (void)subtract(&delta, &prior->previous, &previous);
+                    (void)subtract(&delta, &earlier_previous, &previous);
                 binary_gcd(&candidate, &delta, &modulus);
                 if (!is_one(&candidate) && !is_zero(&candidate)
                     && !equal(&candidate, &modulus)) {
