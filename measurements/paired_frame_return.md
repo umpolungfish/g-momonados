@@ -223,3 +223,36 @@ test and verifies that the default sweep path closes within the minute. This is
 the VOX-compiled full-control
 path; the earlier `imasm_phase_factor` executable in this document is a
 separate resident-circuit prototype and retains its host-side Rust orchestration.
+
+### Balanced and wider baked semiprimes
+
+The next battery uses balanced generated prime pairs and larger known Mersenne
+prime pairs. Every case was built as a separate baked `.glyphs` membrane, then
+invoked through `vox run` with a 60-second timeout. The balanced random inputs
+have both factor widths at least 256 bits. Their exact operands and run output
+are retained in the corresponding log files.
+
+| Factor widths | Modulus digits | Support schedule | V⊙x wall | Result |
+|---:|---:|---|---:|---|
+| 256 × 256 bits | 154 | base sweep, every phase | >60 s | no closure |
+| 1024 × 1024 bits | 617 | base sweep, every phase | >60 s | no closure |
+| 2048 × 2048 bits | 1233 | base sweep, every phase | >60 s | no closure |
+| 4096 × 4096 bits | 2466 | base sweep, every phase | >60 s | no closure |
+| 8192 × 8192 bits | 4932 | base sweep, every phase | >60 s | no closure |
+| 9689 × 9941 bits | 5910 | base sweep, every phase | >60 s | no closure |
+| 9689 × 9941 bits | 5910 | base sweep, sparse checkpoints | >60 s | no closure |
+| 9689 × 9941 bits | 5910 | base 2 only, every phase | >60 s | no closure |
+| 19937 × 21701 bits | 12535 | base sweep, sparse checkpoints | >60 s | no closure |
+| 19937 × 21701 bits | 12535 | base 2 only, every phase | >60 s | no closure |
+
+The same 5910-digit input timed out with both support schedules and with base 2
+alone. The sparse schedule and eliminating the base sweep did not move this
+case inside the cutoff. The 12535-digit case also timed out both with the base
+sweep and with base 2 alone. The largest case built and ran at 12535 digits.
+Its first build attempt exposed a host argument-size limit
+in the template substitution; the builder now writes the already-imscribed
+operands into a generated C include using the shell's builtin `printf`, so word
+size no longer travels through one `sed` argument. The rebuilt 8192-bit-factor
+case and both larger Mersenne cases passed that build path and reached the
+runtime cutoff. All timeout exits are 124; elapsed wall reports include process
+termination and cleanup after the 60-second timeout.

@@ -70,9 +70,9 @@ if [[ -e "$OUTPUT_MODULE" ]]; then
 fi
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
-sed -e "s|@@N_WORD@@|$N_WORD|g" \
-    -e "s|@@BASE_WORD@@|$BASE_WORD|g" \
-    vox_phase_factor.c > "$TEMP_DIR/phase_factor.c"
+printf 'static const char baked_n[] = "%s";\nstatic const char baked_base_word[] = "%s";\n' \
+  "$N_WORD" "$BASE_WORD" > "$TEMP_DIR/baked_inputs.h"
+cp vox_phase_factor.c "$TEMP_DIR/phase_factor.c"
 
 cc -O2 -std=c11 -Wall -Wextra -Werror \
   -fno-pie -no-pie -nostdlib -static -fno-stack-protector -fno-builtin \
