@@ -23,8 +23,7 @@
 #define SUPPORT_EVERY_PHASE 0
 #endif
 
-static const char baked_n[] = "@@N_WORD@@";
-static const char baked_base_word[] = "@@BASE_WORD@@";
+#include "baked_inputs.h"
 
 typedef struct {
     uint64_t limb[LIMBS];
