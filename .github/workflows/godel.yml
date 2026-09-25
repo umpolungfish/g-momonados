@@ -1,6 +1,18 @@
 name: Gödel calculus
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.toml"
+      - "src/bin/godel.rs"
+      - "src/lib.rs"
+      - "vendor/vox/src/godel_calculus.rs"
+      - "vendor/vox/src/godel_analyzer.rs"
+      - "vendor/vox/src/godel_product.rs"
+      - "vendor/vox/src/rbd_products.txt"
+      - "vendor/vox/src/lib.rs"
+      - ".github/workflows/godel.yml"
   pull_request:
     paths:
       - "Cargo.toml"
@@ -8,6 +20,8 @@ on:
       - "src/lib.rs"
       - "vendor/vox/src/godel_calculus.rs"
       - "vendor/vox/src/godel_analyzer.rs"
+      - "vendor/vox/src/godel_product.rs"
+      - "vendor/vox/src/rbd_products.txt"
       - "vendor/vox/src/lib.rs"
       - ".github/workflows/godel.yml"
   workflow_dispatch:
@@ -25,5 +39,7 @@ jobs:
         run: cargo test --manifest-path vendor/vox/Cargo.toml --lib godel_calculus
       - name: Test vendored Vox structural analyzer
         run: cargo test --manifest-path vendor/vox/Cargo.toml --lib godel_analyzer
+      - name: Test vendored Vox product analyzer
+        run: cargo test --manifest-path vendor/vox/Cargo.toml --lib godel_product
       - name: Run g-mOMonadOS calculus self-test
         run: cargo run --bin godel -- selftest

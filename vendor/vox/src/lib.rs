@@ -14,6 +14,7 @@ extern crate alloc;
 pub mod vox;
 pub mod godel_calculus;
 pub mod godel_analyzer;
+pub mod godel_product;
 pub mod vox_decode;
 pub mod lanes;
 pub mod genetic;
