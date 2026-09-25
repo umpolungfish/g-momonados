@@ -1,1 +1,1 @@
-I fuse paired factor frames before fixing exact IMASM product closure, and I preserve mismatches as unfixed. I verify both paths and bake a contained encoded-numeral trial.
+I replace the factor-return GCD divider with a looping IMASM split, shift, cancellation, and multiplicative rejoin. I test the encoded circuit across small and wide operands and bake contained semiprime trials.
