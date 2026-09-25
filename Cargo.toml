@@ -22,6 +22,10 @@ path = "src/main.rs"
 name = "godel"
 path = "src/bin/godel.rs"
 
+[[bin]]
+name = "imasm_phase_factor"
+path = "src/bin/imasm_phase_factor.rs"
+
 [lib]
 name = "g_momonados"
 path = "src/lib.rs"
