@@ -155,3 +155,9 @@ The fused membrane closes the 404-digit input in 40.235 seconds of membrane
 time (42.91 seconds wall time). The 682-digit input remains silent through the
 60-second timeout. The one-pass register fusion does not yet move that wider
 closure inside the minute boundary.
+
+The 682-digit input was also baked with phase bases 3, 4, and N−1. Each binary
+ran silently to the one-minute timeout. A base-two variant that reads the
+support/GCD register at every phase state also reached the timeout. The
+power-of-two checkpoint schedule remains in the primary membrane because the
+denser read did not produce an earlier closure.
