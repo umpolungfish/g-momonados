@@ -52,6 +52,7 @@ pub const BIT_REGISTER_ADD_ASM: &str = include_str!("../.imasm/bit_register_add.
 /// Dynamically sized ripple-borrow subtraction over the same encoded tape.
 pub const BIT_REGISTER_SUB_ASM: &str = include_str!("../.imasm/bit_register_sub.imasm");
 const BIT_REGISTER_GATE_LIBRARY_ASM: &str = include_str!("../.imasm/bit_register_gate_library.imasm");
+const PAIRED_FRAME_LIBRARY_ASM: &str = include_str!("../.imasm/paired_frame_library.imasm");
 
 struct BitRegisterMulLayout {
     source: String,
@@ -577,6 +578,26 @@ fn bit_register_mul_body(a_width: usize, b_width: usize, extra_width: usize) -> 
     for bit in 0..a_width { writeln!(source, "READ %r{}", a_start + bit).unwrap(); }
     for bit in 0..b_width { writeln!(source, "READ %r{}", b_start + bit).unwrap(); }
     for bit in 0..extra_width { writeln!(source, "READ %r{}", extra_start + bit).unwrap(); }
+    if extra_width > 0 {
+        // The compiler supplies addresses only. Pairing and reverse transport
+        // execute in the resident IMASM stream before product closure.
+        for group in (0..a_width.max(b_width)).step_by(2) {
+            for (lane, start, width, bit) in [
+                (0, a_start, a_width, group), (1, a_start, a_width, group + 1),
+                (2, b_start, b_width, group), (3, b_start, b_width, group + 1),
+            ] {
+                let from = if bit < width { start + bit } else { 11 };
+                writeln!(source, "MOVE %r{from} %r{lane}").unwrap();
+            }
+            source.push_str("CALL .paired_transport\n");
+            for (lane, start, width, bit) in [
+                (0, a_start, a_width, group), (1, a_start, a_width, group + 1),
+                (2, b_start, b_width, group), (3, b_start, b_width, group + 1),
+            ] {
+                if bit < width { writeln!(source, "MOVE %r{lane} %r{}", start + bit).unwrap(); }
+            }
+        }
+    }
     let a_bits: Vec<usize> = (a_start..a_start + a_width).collect();
     let b_bits: Vec<usize> = (b_start..b_start + b_width).collect();
     let product_bits: Vec<usize> = (product_start..product_start + product_width).collect();
@@ -645,6 +666,7 @@ fn bit_register_product_closure_program(a_width: usize, b_width: usize, n_width:
         writeln!(layout.source, ".cmp_after_{bit}:").unwrap();
     }
     writeln!(layout.source, "EMIT %r{closure}\nHALT").unwrap();
+    layout.source.push_str(PAIRED_FRAME_LIBRARY_ASM);
     layout.source.push_str(BIT_REGISTER_GATE_LIBRARY_ASM);
     layout.source
 }
