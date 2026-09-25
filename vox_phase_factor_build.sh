@@ -2,8 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-if [[ "${1:-}" == "--help" || "$#" -lt 1 || "$#" -gt 5 ]]; then
-  echo 'usage: ./vox_phase_factor_build.sh <odd-semiprime-decimal> [phase-base-decimal] [output-membrane.glyphs] [sweep|single] [sparse|every]'
+if [[ "${1:-}" == "--help" || "$#" -lt 1 || "$#" -gt 6 ]]; then
+  echo 'usage: ./vox_phase_factor_build.sh <odd-semiprime-decimal> [phase-base-decimal] [output-membrane.glyphs] [sweep|single] [sparse|every] [nested-extract-depth]'
   exit 0
 fi
 
@@ -12,6 +12,7 @@ BASE_DECIMAL="${2:-2}"
 OUTPUT_MODULE="${3:-membranes/vox_phase_factor_$(date +%s).glyphs}"
 SEED_MODE="${4:-sweep}"
 SUPPORT_MODE="${5:-every}"
+NEST_DEPTH_DECIMAL="${6:-1}"
 VOX_BIN="${VOX_BIN:-/home/mrnob0dy666/imsgct/Vox/target/release/vox}"
 
 [[ "$N_DECIMAL" =~ ^[0-9]+$ && "$BASE_DECIMAL" =~ ^[0-9]+$ ]] || {
@@ -25,6 +26,39 @@ VOX_BIN="${VOX_BIN:-/home/mrnob0dy666/imsgct/Vox/target/release/vox}"
 [[ "$SUPPORT_MODE" == sparse || "$SUPPORT_MODE" == every ]] || {
   echo 'support mode must be sparse or every' >&2
   exit 2
+}
+[[ "$NEST_DEPTH_DECIMAL" =~ ^[0-9]+$ ]] || {
+  echo 'nested extraction depth must be a positive decimal integer' >&2
+  exit 2
+}
+[[ "$NEST_DEPTH_DECIMAL" =~ [1-9] ]] || {
+  echo 'nested extraction depth must be positive' >&2
+  exit 2
+}
+
+append_nested_marks() {
+  local mark="$1"
+  local remaining="$NEST_DEPTH_DECIMAL"
+  local position
+  while [[ "$remaining" =~ [1-9] ]]; do
+    EXTRACT_WORD+="$mark"
+    local result=''
+    local borrow=1
+    local digit
+    for ((position = ${#remaining} - 1; position >= 0; --position)); do
+      digit="${remaining:position:1}"
+      if (( borrow )); then
+        if [[ "$digit" == 0 ]]; then
+          digit=9
+        else
+          digit=$((digit - 1))
+          borrow=0
+        fi
+      fi
+      result="${digit}${result}"
+    done
+    remaining="$result"
+  done
 }
 [[ -x "$VOX_BIN" ]] || { echo "V⊙x executable not found: $VOX_BIN" >&2; exit 2; }
 
@@ -59,6 +93,11 @@ LIMBS=$N_LIMBS
 (( BASE_LIMBS > LIMBS )) && LIMBS=$BASE_LIMBS
 N_WORD="$(encode_word "$N_DECIMAL")"
 BASE_WORD="$(encode_word "$BASE_DECIMAL")"
+EXTRACT_WORD='⊢'
+append_nested_marks '∈'
+EXTRACT_WORD+='≻⊤≺⊥⊞⋈'
+append_nested_marks '∋'
+EXTRACT_WORD+='⊙⊡⊣'
 SINGLE_BASE=0
 SUPPORT_EVERY_PHASE=0
 [[ "$SEED_MODE" == single ]] && SINGLE_BASE=1
@@ -70,8 +109,8 @@ if [[ -e "$OUTPUT_MODULE" ]]; then
 fi
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
-printf 'static const char baked_n[] = "%s";\nstatic const char baked_base_word[] = "%s";\n' \
-  "$N_WORD" "$BASE_WORD" > "$TEMP_DIR/baked_inputs.h"
+printf 'static const char baked_n[] = "%s";\nstatic const char baked_base_word[] = "%s";\nstatic const char baked_extract_word[] = "%s";\n' \
+  "$N_WORD" "$BASE_WORD" "$EXTRACT_WORD" > "$TEMP_DIR/baked_inputs.h"
 cp vox_phase_factor.c "$TEMP_DIR/phase_factor.c"
 
 cc -O2 -std=c11 -Wall -Wextra -Werror \
