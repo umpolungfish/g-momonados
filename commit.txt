@@ -1,1 +1,1 @@
-I add scalable nested extraction frames to the baked V⊙x membrane, remove the fixed-width shell conversion from the depth input, and test depths through 256 on the asymmetric semiprime. I retain the matching 682-digit closure and the paired 1048-digit timeouts, with their membranes and run logs.
+I extend the nested extraction battery to depth 1024 on the 14-digit semiprime and depth 256 on the 682-digit semiprime. I verify both factor-word pairs against the earlier depths and retain the compiled membranes and VOX run logs.
