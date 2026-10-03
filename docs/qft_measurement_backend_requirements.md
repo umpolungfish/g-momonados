@@ -71,6 +71,16 @@ dyadic error. Increasing SK depth to five with the same net still missed that
 32-bit tolerance. Feedback precision still needs a synthesis policy that scales
 with the QFT register width.
 
+`FibonacciBraidCompiler` caches source-bound CNOT and one-qubit templates and
+streams target generators to a caller-provided sink. Its CNOT lowering routes
+nonadjacent logical wires with generated adjacent CNOT and SWAP braid words,
+then reverses the route. The 128-bit semiprime check confirms repeatable stream
+output, reverse-wire output, generator bounds, and identical CNOT output
+through target lowering. This verifies anyon-word generation and the compiler
+interface; no physical fusion readout backend is connected yet. The local
+matrices used for algebra and accuracy checks do not serve as an execution
+substrate.
+
 The required compiler path is algebraic. Kliuchnikov, Bocharov, and Svore
 approximate the target in the Fibonacci cyclotomic ring `Z[ω]`, complete the
 candidate through a relative norm equation, then exactly synthesize the resulting
