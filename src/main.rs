@@ -233,6 +233,8 @@ mod repl;
 mod fibonacci_qc;
 #[cfg(feature = "hosted")]
 mod anyon_braid_cnot;
+#[cfg(feature = "hosted")]
+mod anyon_device;
 mod winding_period;
 mod oneshot_prime_winder;
 mod nested_oneshot;
@@ -242,6 +244,7 @@ mod dynamic_nesting_prime_finder;
 mod closure_nested;
 mod factor_operator;
 mod factor_membrane;
+mod arbitrary_factor;
 mod membrane_family;
 mod shor_b4_membrane;
 mod coupled_bridge;
@@ -586,6 +589,24 @@ fn main() {
             println!("{}", factor_membrane::repl_factor_membrane(&refs));
             return;
         }
+        if matches!(head, "arbitrary_factor" | "arbitrary-factor") {
+            let input = argv.get(1).map(String::as_str).unwrap_or("");
+            if input.is_empty() || input == "help" {
+                println!("arbitrary_factor <natural-number|canonical-cell-binary-word>");
+                return;
+            }
+            match arbitrary_factor::extract(input) {
+                Ok(report) => {
+                    println!("{}", report.render());
+                    if !report.verified { std::process::exit(2); }
+                }
+                Err(error) => {
+                    eprintln!("arbitrary_factor: {error}");
+                    std::process::exit(2);
+                }
+            }
+            return;
+        }
         if matches!(head, "phase_unbraid" | "phase" | "unbraid") {
             let refs: Vec<&str> = argv[1..].iter().map(|x| x.as_str()).collect();
             println!("{}", dispatch_phase_unbraid(&refs));
@@ -605,6 +626,17 @@ fn main() {
         if head == "anyon_cnot_verify" {
             let refs: Vec<&str> = argv[1..].iter().map(|arg| arg.as_str()).collect();
             match anyon_braid_cnot::verify_file(&refs) {
+                Ok(report) => println!("{report}"),
+                Err(error) => {
+                    eprintln!("{error}");
+                    std::process::exit(2);
+                }
+            }
+            return;
+        }
+        if head == "anyon_factor" {
+            let refs: Vec<&str> = argv[1..].iter().map(|arg| arg.as_str()).collect();
+            match anyon_factor(&refs) {
                 Ok(report) => println!("{report}"),
                 Err(error) => {
                     eprintln!("{error}");
@@ -691,6 +723,28 @@ fn main() {
         return;
     }
     kmain()
+}
+
+#[cfg(feature = "hosted")]
+fn anyon_factor(args: &[&str]) -> Result<String, String> {
+    use num_bigint::BigUint;
+    let usage =
+        "usage: g-momonados anyon_factor <N>=128-bit-semiprime <base> <max_shots> <unix_socket>";
+    let n = args.first().ok_or(usage)?.parse::<BigUint>().map_err(|_| usage)?;
+    let base = args.get(1).ok_or(usage)?.parse::<BigUint>().map_err(|_| usage)?;
+    let max_shots = args.get(2).ok_or(usage)?.parse::<u32>().map_err(|_| usage)?;
+    let socket = args.get(3).ok_or(usage)?;
+    if args.len() != 4 || n.bits() < 128 || max_shots == 0 {
+        return Err(usage.into());
+    }
+    let device = anyon_device::FibonacciGenerator::connect(socket)?;
+    let result = anyon_braid_cnot::factor_semiprime_with_anyons(
+        &n, &base, max_shots, device, 7, 7, 20_000, 2, 8,
+    )?;
+    Ok(format!(
+        "Fibonacci anyon phase closure\nsource={}\nbase={}\norder={}\nfactors={} x {}\nshots={}",
+        result.source, result.base, result.order, result.p, result.q, result.shots,
+    ))
 }
 
 fn repl_phase_unbraid_tape(args: &[&str]) -> String {
