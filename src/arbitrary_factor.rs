@@ -1,18 +1,18 @@
 //! Gödel-grounded arbitrary-width factor extraction with a checked route ladder.
+use crate::factor_routes::{big_gcd, is_prime, PrimeVerdict};
+use crate::factor_routes::{
+    congruence_split, order_multiple_leaping, winding_bridge, BRIDGE_BOUND, CONGRUENCE_FB_BOUND,
+    CONGRUENCE_TRIALS, LEAP_STEPS, WINDING_BASES,
+};
+use crate::godel_analyzer::{prime_sieve_read, PrimeSieveRead};
+use crate::godel_calculus::{check, decode, encode_cell_binary, Family, Nat, Operator};
 use crate::native_numeral::{
     add_via_word, divmod_via_word, mod_pow_walk, modulo_via_word, multiply_via_word,
     subtract_via_word, to_bits_low_first,
 };
-use crate::prime_winding::{big_gcd, is_prime, PrimeVerdict};
-use crate::trilattice_factor::{
-    congruence_split, order_multiple_leaping, winding_bridge, BRIDGE_BOUND, CONGRUENCE_FB_BOUND,
-    CONGRUENCE_TRIALS, LEAP_STEPS, WINDING_BASES,
-};
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use g_momonados::godel_analyzer::{prime_sieve_read, PrimeSieveRead};
-use g_momonados::godel_calculus::{check, decode, encode_cell_binary, Family, Nat, Operator};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
@@ -28,6 +28,7 @@ pub enum Route {
     CongruenceSieve,
     OrderWinding,
     Rho,
+    AnyonPhase,
     Prime,
 }
 
@@ -41,6 +42,7 @@ impl Route {
             Self::CongruenceSieve => "congruence sieve",
             Self::OrderWinding => "order winding",
             Self::Rho => "rho",
+            Self::AnyonPhase => "anyon phase readout",
             Self::Prime => "prime (recursion bottom)",
         }
     }
@@ -51,6 +53,13 @@ pub struct Step {
     pub value: String,
     pub route: Route,
     pub factor: Option<String>,
+    pub detail: String,
+}
+
+/// A candidate supplied by the source-bound anyon phase executor. Its divisor
+/// is checked by this module before either descendant enters the factor tree.
+pub struct AnyonCandidate {
+    pub factor: BigUint,
     pub detail: String,
 }
 
@@ -84,7 +93,7 @@ impl Extraction {
         if self.factors.is_empty() {
             out.push_str("(none)\n");
         } else {
-            let terms: Vec<String> = self
+            let mut terms: Vec<String> = self
                 .factors
                 .iter()
                 .map(|(p, e)| {
@@ -95,6 +104,9 @@ impl Extraction {
                     }
                 })
                 .collect();
+            if let Some(leftover) = &self.leftover {
+                terms.push(format!("{} (unresolved)", leftover));
+            }
             out.push_str(&format!("{} = {}\n", self.source, terms.join(" × ")));
         }
         out.push_str(&format!(
@@ -107,7 +119,13 @@ impl Extraction {
         ));
         out.push_str(&format!(
             "  protocol-conformance  {}\n  expected-protocol     {}\n",
-            if self.protocol_match { "PASS" } else { "FAIL" },
+            if self.protocol_match {
+                "PASS"
+            } else if !self.verified {
+                "UNRESOLVED"
+            } else {
+                "NOT PRIME / SEMIPRIME"
+            },
             self.expected_protocol
         ));
         if let Some(left) = &self.leftover {
@@ -438,9 +456,143 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
 
 #[cfg(test)]
 mod tests {
-    use super::{extract, verified_factor, word_of, Route, SEMIPRIME_PROTOCOL};
+    use super::{
+        extract, extract_with_anyons, verified_factor, word_of, AnyonCandidate, Route,
+        SEMIPRIME_PROTOCOL,
+    };
     use num_bigint::BigUint;
     use num_traits::One;
+
+    #[test]
+    fn closes_certified_unstructured_candidate_fixtures_at_all_required_widths() {
+        let manifest = include_str!("../measurements/anyon-extractor-width-controls.tsv");
+        let mut widths = Vec::new();
+        for line in manifest.lines().skip(1) {
+            let fields: Vec<_> = line.split('\t').collect();
+            let width: u64 = fields[1].parse().unwrap();
+            let source = BigUint::parse_bytes(fields[2].as_bytes(), 10).unwrap();
+            let p = BigUint::parse_bytes(fields[3].as_bytes(), 10).unwrap();
+            let q = BigUint::parse_bytes(fields[4].as_bytes(), 10).unwrap();
+            assert_eq!(source.bits(), width);
+            assert_eq!(&p * &q, source);
+            let mut requests = 0;
+            // This callback supplies a certified fixture candidate. It tests
+            // recursive extraction and closure, not measured device phases.
+            let report = extract_with_anyons(fields[2], |requested| {
+                requests += 1;
+                assert_eq!(requested, &source);
+                Ok(Some(AnyonCandidate {
+                    factor: p.clone(),
+                    detail: "certified candidate fixture".into(),
+                }))
+            })
+            .unwrap();
+            assert_eq!(requests, 1);
+            assert!(report.verified, "{width}-bit candidate failed closure");
+            let mut expected = vec![(p.to_string(), 1), (q.to_string(), 1)];
+            if p > q {
+                expected.swap(0, 1);
+            }
+            assert_eq!(report.factors, expected);
+            assert_eq!(report.expected_protocol, SEMIPRIME_PROTOCOL);
+            widths.push(width);
+        }
+        assert_eq!(widths, vec![128, 256, 512, 1024, 2048]);
+    }
+
+    #[test]
+    fn verifies_an_anyon_candidate_for_a_balanced_128_bit_source() {
+        let source = "296650821743515430283258444261036507151";
+        let value = BigUint::parse_bytes(source.as_bytes(), 10).unwrap();
+        let p = BigUint::from(16_925_480_323_643_806_501u64);
+        let q = &value / &p;
+        let mut requests = 0;
+        // The candidate fixture checks the extractor interface. It is not a
+        // device readout or an execution of phase estimation.
+        let report = extract_with_anyons(source, |requested| {
+            requests += 1;
+            assert_eq!(requested, &value);
+            Ok(Some(AnyonCandidate {
+                factor: p.clone(),
+                detail: "candidate fixture".into(),
+            }))
+        })
+        .unwrap();
+        assert_eq!(requests, 1);
+        assert!(report.verified, "{}", report.render());
+        assert_eq!(report.factors, vec![(p.to_string(), 1), (q.to_string(), 1)]);
+        assert_eq!(report.expected_protocol, SEMIPRIME_PROTOCOL);
+        assert!(report
+            .steps
+            .iter()
+            .any(|step| step.route == Route::AnyonPhase && step.factor.is_some()));
+        assert!(!report.steps.iter().any(|step| step.route == Route::Rho));
+    }
+
+    #[test]
+    fn descends_recursively_when_an_anyon_candidate_is_itself_composite() {
+        let prime = BigUint::parse_bytes(b"18446744073709551557", 10).unwrap();
+        let square = &prime * &prime;
+        let source = &square * &square;
+        assert_eq!(source.bits(), 256);
+        let mut widths = Vec::new();
+        let report = extract_with_anyons(&source.to_string(), |requested| {
+            widths.push(requested.bits());
+            let factor = if requested == &source {
+                square.clone()
+            } else {
+                prime.clone()
+            };
+            Ok(Some(AnyonCandidate {
+                factor,
+                detail: "candidate fixture".into(),
+            }))
+        })
+        .unwrap();
+        assert_eq!(widths, vec![256, 128, 128]);
+        assert!(report.verified, "{}", report.render());
+        assert_eq!(report.factors, vec![(prime.to_string(), 4)]);
+    }
+
+    #[test]
+    fn falls_through_an_invalid_anyon_candidate_and_preserves_device_errors() {
+        let prime = BigUint::parse_bytes(b"18446744073709551557", 10).unwrap();
+        let source = (&prime * &prime).to_string();
+        let report = extract_with_anyons(&source, |_| {
+            Ok(Some(AnyonCandidate {
+                factor: &prime + BigUint::one(),
+                detail: "invalid candidate fixture".into(),
+            }))
+        })
+        .unwrap();
+        assert!(report.verified, "{}", report.render());
+        assert!(report
+            .steps
+            .iter()
+            .any(|step| step.route == Route::AnyonPhase && step.factor.is_none()));
+        assert!(report
+            .steps
+            .iter()
+            .any(|step| step.route == Route::DifferenceOfSquares && step.factor.is_some()));
+        let failure =
+            extract_with_anyons(&source, |_| Err("device readout failed".into())).unwrap_err();
+        assert_eq!(failure, "device readout failed");
+    }
+
+    #[test]
+    fn continues_the_ladder_after_an_unclosed_shot_budget() {
+        let p = BigUint::from(2_097_143u64);
+        let q = BigUint::parse_bytes(b"162259276829213363391578010288127", 10).unwrap();
+        let source = &p * &q;
+        assert_eq!(source.bits(), 128);
+        let report = extract_with_anyons(&source.to_string(), |_| Ok(None)).unwrap();
+        assert!(report.verified, "{}", report.render());
+        assert_eq!(report.factors, vec![(p.to_string(), 1), (q.to_string(), 1)]);
+        assert!(report
+            .steps
+            .iter()
+            .any(|step| step.route == Route::AnyonPhase && step.factor.is_none()));
+    }
 
     #[test]
     fn preserves_stripped_prime_power_multiplicity_on_a_128_bit_source() {
@@ -515,7 +667,26 @@ mod tests {
 
 /// Extract prime powers in ascending order; every split closes through Gödel multiplication.
 pub fn extract(raw: &str) -> Result<Extraction, String> {
+    extract_inner(raw, |_| Ok(None), false)
+}
+
+/// Try measured anyon splits before the bounded ladder for each composite
+/// descendant of at least 128 bits. Smaller descendants use the ladder.
+pub fn extract_with_anyons<F>(raw: &str, splitter: F) -> Result<Extraction, String>
+where
+    F: FnMut(&BigUint) -> Result<Option<AnyonCandidate>, String>,
+{
+    extract_inner(raw, splitter, true)
+}
+
+fn extract_inner<F>(raw: &str, mut splitter: F, anyonic: bool) -> Result<Extraction, String>
+where
+    F: FnMut(&BigUint) -> Result<Option<AnyonCandidate>, String>,
+{
     let (source_value, word) = parse_source(raw)?;
+    if anyonic && source_value.bits() < 128 {
+        return Err("arbitrary anyonic extraction requires a source of at least 128 bits".into());
+    }
     let source = source_value.to_str_radix(10);
     if source_value.is_zero() {
         return Err("0 has no finite factorization".into());
@@ -581,7 +752,40 @@ pub fn extract(raw: &str) -> Result<Extraction, String> {
             }
             continue;
         }
-        match one_factor(&n, &mut steps) {
+        let measured_factor = if anyonic && n.bits() >= 128 {
+            match splitter(&n)? {
+                Some(candidate) if verified_factor(&n, &word_of(&n), &candidate.factor) => {
+                    steps.push(Step {
+                        value: n.to_string(),
+                        route: Route::AnyonPhase,
+                        factor: Some(candidate.factor.to_string()),
+                        detail: candidate.detail,
+                    });
+                    Some(candidate.factor)
+                }
+                Some(_) => {
+                    steps.push(Step {
+                        value: n.to_string(),
+                        route: Route::AnyonPhase,
+                        factor: None,
+                        detail: "discarded candidate without Gödel split closure".into(),
+                    });
+                    None
+                }
+                None => {
+                    steps.push(Step {
+                        value: n.to_string(),
+                        route: Route::AnyonPhase,
+                        factor: None,
+                        detail: "shot budget exhausted without a factor split".into(),
+                    });
+                    None
+                }
+            }
+        } else {
+            None
+        };
+        match measured_factor.or_else(|| one_factor(&n, &mut steps)) {
             Some(p) => {
                 let (q, rem) = divmod_via_word(&n, &p)
                     .ok_or_else(|| "word division failed for route candidate".to_string())?;
@@ -632,9 +836,11 @@ pub fn extract(raw: &str) -> Result<Extraction, String> {
         && product == source_value
         && check(&word_of(&product), Operator::Mul, &word_of(&one), &word).is_ok_and(|eq| eq.valid);
     let total_multiplicity: u32 = compressed.iter().map(|(_, exponent)| *exponent).sum();
-    let expected_protocol = if closed && total_multiplicity == 1 {
+    let expected_protocol = if !closed {
+        "UNRESOLVED"
+    } else if total_multiplicity == 1 {
         PRIME_PROTOCOL
-    } else if closed && total_multiplicity == 2 {
+    } else if total_multiplicity == 2 {
         SEMIPRIME_PROTOCOL
     } else {
         "UNKNOWN / COMPLEX COMPOSITE"

@@ -1,1 +1,9 @@
-I normalize the recorded factor report endings.
+I share verified factor extraction and bound congruence relation storage.
+
+I connect measured anyon candidates to recursive Gödel extraction, preserve shot-budget exhaustion as a fallback outcome, and propagate controller errors. I wire arbitrary_anyon_factor into the CLI, REPL, and menu.
+
+I move the factor routes into the shared library and use the same ladder in semiprime-tool. I handle prime-square multiplicity, report unresolved extraction with its remaining cofactor, and rebuild the standalone tools with the current protocol.
+
+I replace growing smooth-relation histories with one modular relation per factor-base pivot. I verify a nontrivial 130-bit square dependency and bounded storage under repeated relations. I verify candidate-interface extraction and Gödel closure on independently certified unstructured semiprimes at 128, 256, 512, 1024, and 2048 bits.
+
+I retain the rebuilt release ELFs and their verified checksums with the measurements.
