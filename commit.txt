@@ -1,3 +1,1 @@
-I preserve exact anyonic verdicts and verified factor multiplicities.
-
-I compare BigUint residuals with exact Belnap thresholds through 2048-bit source widths and report verdicts when verifying saved CNOT braids. I preserve stripped factor multiplicities and verify each route candidate before accepting its split. I record the successful 128-bit multiplicity closure and the unresolved balanced semiprime result.
+I normalize the recorded factor report endings.
