@@ -1,1 +1,1 @@
-I reduce dyadic feedback phases before Fibonacci braid synthesis.
+I add the 2048-bit RSA semiprime to the width-bounded modular gate-stream test. The 128, 256, 512, 1024, and 2048-bit coverage passes for sparse and dense multipliers, with the measurements recorded alongside the test.
