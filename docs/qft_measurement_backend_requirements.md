@@ -30,6 +30,16 @@ concrete production `Carrier` that compiles those requests into multi-register
 anyon braids and returns fusion measurements. Vox's test-only `InjectedControl`
 supplies test bits and does not implement that carrier.
 
+`Carrier::begin` prepares the phase control in `|0⟩` and the modular value
+register in the uniform mixture `1/N Σₓ₌₀ᴺ⁻¹ |x⟩⟨x|`. `execute_shot` applies no
+fixed `X` seed to that register, so the phase is read from its modular orbit.
+This follows the one-control-qubit construction of Parker and Plenio, where the
+mixed register selects an orbit and most values have the full order. The current reversible
+multiplier still requires `2n+3` clean scratch qubits beside the `n` mixed data
+qubits and control. The arithmetic layout therefore needs an in-place or dirty
+scratch construction to meet the single-pure-qubit resource condition.
+[Parker and Plenio, quant-ph/0001066](https://arxiv.org/abs/quant-ph/0001066).
+
 The reversible arithmetic emitter has a separate width-scaling check. It
 streams controlled modular multiplication through an elementary-gate callback,
 retains O(n) qubit workspace, and satisfies a 96n² gate bound on unstructured
@@ -89,6 +99,11 @@ did not return within the run window; the accepted measurements use depth seven.
 This gives a width-independent generated braid with measured finite precision,
 while the feedback-controlled arithmetic carrier and full factor extraction
 remain the downstream execution path.
+
+The bounded direct search `anyon_cnot_compile` also ran on this 128-bit source
+with depth 64, beam width 16, and an 8-bit target. It exhausted its budget; its
+best word retained large computational and leakage residuals. The controlled
+exchange construction remains the usable CNOT synthesis route.
 
 The spectral carrier is also insufficient by itself:
 `FixedPointQuantumMembrane::modular_phase` calls
