@@ -42,6 +42,12 @@ QFT phase accumulator. `g-momonados anyon_factor N base max_shots socket` runs
 the complete membrane through a Unix-domain controller connection and returns
 only a factor pair whose product is N.
 
+The controller adapter counts accepted fusion bits against the prepared phase
+width. It rejects early completion and reads beyond that width. Completion is
+sent to the controller only after every phase bit has arrived. The transport
+fixture exercises all 256 readouts for its 128-bit source and checks both early
+finish and excess-read rejection.
+
 The controller protocol is an execution contract, not a local source of
 measurement values. The transport test checks the 128-bit semiprime-bound
 request, exchange streaming, and readout decoding; a live controller run is
@@ -339,6 +345,15 @@ balanced semiprimes at 128, 256, 512, 1024, and 2048 bits. Its companion
 anyon callback and checks recursive factor output and Gödel product closure at
 each width. This is a candidate-interface test. Device phase measurements use
 the controller execution path described below.
+
+`bash test_full_factor_pipeline.sh` tests the production `semiprime-tool` on
+the same five unstructured sources. Only N enters the extractor. Certified
+factors are compared with its output after execution, and product closure is
+required. `FACTOR_TEST_SECONDS` sets the time limit per source (default 60).
+The 128-bit source returns its certified pair. The 256-, 512-, 1024-, and
+2048-bit runs exceed that limit and fail the test. These readings are retained
+in `measurements/full-factor-pipeline/`. The native factor engine is exercised;
+these runs do not establish measured anyon phase extraction.
 
 The release executables are retained in `measurements/anyon-compilation/` as
 `g-momonados.elf`, `semiprime-tool.elf`, and `prime-tool.elf`, with checksums in
