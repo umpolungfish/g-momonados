@@ -1,3 +1,3 @@
-I test complete factor output across all required semiprime widths.
+I let difficult native factor attempts yield to the remaining routes.
 
-I feed only N to the production extractor at 128, 256, 512, 1024, and 2048 bits. I compare returned factors with certified output oracles and require Gödel product closure. I record timeouts as test failures and preserve all readings. I also require complete fusion readout before finishing an anyon shot and retain the rebuilt executable.
+I limit each optional PARI candidate attempt to ten seconds and reap the child on expiry. I preserve continued extraction and Gödel verification, document the route handoff, and retain regression readings.

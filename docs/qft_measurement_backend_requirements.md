@@ -355,6 +355,15 @@ The 128-bit source returns its certified pair. The 256-, 512-, 1024-, and
 in `measurements/full-factor-pipeline/`. The native factor engine is exercised;
 these runs do not establish measured anyon phase extraction.
 
+The optional PARI candidate attempt is limited to ten seconds. On expiry the
+extractor kills and reaps that child, then advances through the remaining
+routes. The extraction itself continues until verified closure or an error;
+the optional engine cannot indefinitely prevent the other routes from running.
+The 256-bit production reading in
+`measurements/full-factor-pipeline/256-handoff.log` records this handoff. The
+full sweep still exceeds sixty seconds at the four larger widths after this
+change, so bounded engine work alone does not establish factor extraction there.
+
 The release executables are retained in `measurements/anyon-compilation/` as
 `g-momonados.elf`, `semiprime-tool.elf`, and `prime-tool.elf`, with checksums in
 `tool-elf-sha256.txt`. The standalone prime-square and original balanced 128-bit
