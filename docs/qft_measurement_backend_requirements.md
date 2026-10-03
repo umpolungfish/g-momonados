@@ -71,6 +71,15 @@ dyadic error. Increasing SK depth to five with the same net still missed that
 32-bit tolerance. Feedback precision still needs a synthesis policy that scales
 with the QFT register width.
 
+Feedback denominator validation now happens before constructing its power-of-
+two denominator and is bounded by the source-derived phase precision
+`2 * bits(N) + 8`. Integral-turn feedback is recognized as the identity and
+emits no braid generators. A 128-bit semiprime check confirms that the full
+QFT denominator width is accepted by the fixed-point phase target and that an
+unbounded `usize::MAX` denominator is rejected before allocation. This closes
+the width-validation path; it does not yet synthesize nontrivial feedback at
+that full precision.
+
 `FibonacciBraidCompiler` caches source-bound CNOT and one-qubit templates and
 streams target generators to a caller-provided sink. Its CNOT lowering routes
 nonadjacent logical wires with generated adjacent CNOT and SWAP braid words,
