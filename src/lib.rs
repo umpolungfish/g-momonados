@@ -18,9 +18,10 @@
 
 extern crate alloc;
 
-pub use vox_core::godel_analyzer;
-pub use vox_core::godel_calculus;
-pub use vox_core::godel_product;
+// Local godel modules (copied from Vox)
+pub mod godel_calculus;
+pub mod godel_analyzer;
+// godel_support is a submodule of godel_calculus
 
 #[cfg(feature = "hosted")]
 pub mod runtime_nesting;
@@ -56,12 +57,11 @@ mod btc_key_deriver;
 
 #[cfg(test)]
 mod godel_calculus_tests {
-    use super::{godel_analyzer, godel_calculus, godel_product};
+    use super::{godel_analyzer, godel_calculus};
 
     #[test]
     fn vendored_godel_calculus_selftest() {
         assert!(godel_calculus::selftest_report().is_ok());
         assert!(godel_analyzer::selftest_report().is_ok());
-        assert!(godel_product::selftest_report().is_ok());
     }
 }
