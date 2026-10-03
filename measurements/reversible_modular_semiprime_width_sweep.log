@@ -1,0 +1,17 @@
+Instrument: Rust test harness
+Question: Does ModularMultiply emit width-bounded elementary-gate streams for the listed semiprime moduli and both sparse and dense multipliers?
+Command: cargo test -j 1 reversible_modular::tests::elementary_gate_stream_stays_width_bounded_on_unstructured_semiprimes -- --nocapture
+Result: passed; 1 test, 0 failures; finished in 256.52s
+
+source_bits=128 multiplier=two streamed_gates=1433352 allocated_qubits=388
+source_bits=128 multiplier=dense streamed_gates=1432392 allocated_qubits=388
+source_bits=192 multiplier=two streamed_gates=3232117 allocated_qubits=580
+source_bits=192 multiplier=dense streamed_gates=3230718 allocated_qubits=580
+source_bits=256 multiplier=two streamed_gates=5739724 allocated_qubits=772
+source_bits=256 multiplier=dense streamed_gates=5737834 allocated_qubits=772
+source_bits=512 multiplier=two streamed_gates=23009032 allocated_qubits=1540
+source_bits=512 multiplier=dense streamed_gates=23005338 allocated_qubits=1540
+source_bits=1024 multiplier=two streamed_gates=91604240 allocated_qubits=3076
+source_bits=1024 multiplier=dense streamed_gates=91596421 allocated_qubits=3076
+source_bits=2048 multiplier=two streamed_gates=367168231 allocated_qubits=6148
+source_bits=2048 multiplier=dense streamed_gates=367152957 allocated_qubits=6148
