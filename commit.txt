@@ -1,1 +1,1 @@
-I reuse the Fibonacci gate net across feedback precision retries.
+I retain the Fibonacci gate net across feedback gates in a recycled phase shot.
