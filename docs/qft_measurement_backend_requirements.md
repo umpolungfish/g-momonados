@@ -84,11 +84,21 @@ that full precision.
 streams target generators to a caller-provided sink. Its CNOT lowering routes
 nonadjacent logical wires with generated adjacent CNOT and SWAP braid words,
 then reverses the route. The 128-bit semiprime check confirms repeatable stream
-output, reverse-wire output, generator bounds, and identical CNOT output
-through target lowering. This verifies anyon-word generation and the compiler
-interface; no physical fusion readout backend is connected yet. The local
-matrices used for algebra and accuracy checks do not serve as an execution
-substrate.
+output within a compiler instance, reverse-wire output, generator bounds, and
+valid CNOT output through target lowering. This verifies anyon-word generation
+and the compiler interface; no physical fusion readout backend is connected
+yet. The local matrices used for algebra and accuracy checks do not serve as an
+execution substrate.
+
+`CompiledFibonacciCarrier<D>` now implements the recycled executor's `Carrier`
+boundary by streaming each `BraidTarget` through that compiler to a
+`FibonacciAnyonDevice`. It forwards the source-bound register layout and
+uniform-residue preparation request, then delegates control fusion readout,
+finish, and abort to the device. The 128-bit semiprime adapter test checks that
+the requested register sizing reaches the device and that an X on logical wire
+7 generates only that wire's adjacent strand exchanges. This is the executor
+integration point; a concrete physical device implementation is still absent,
+and nontrivial full-width feedback currently fails its precision gate.
 
 The required compiler path is algebraic. Kliuchnikov, Bocharov, and Svore
 approximate the target in the Fibonacci cyclotomic ring `Z[ω]`, complete the
