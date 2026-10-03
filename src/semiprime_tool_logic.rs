@@ -47,18 +47,24 @@ mod tests {
     }
 
     #[test]
-    fn retains_unresolved_balanced_128_bit_source_and_route_trace() {
+    fn closes_the_original_balanced_128_bit_source_through_the_native_route() {
         let source = "296650821743515430283258444261036507151";
         let report = process_semiprime(source).unwrap();
-        assert!(!report.protocol_match);
-        assert!(report.factors.is_none());
-        assert_eq!(report.extraction.leftover.as_deref(), Some(source));
+        assert!(report.protocol_match);
+        assert_eq!(
+            report.factors,
+            Some((
+                Nat::from_decimal("16925480323643806501").unwrap(),
+                Nat::from_decimal("17526877587580975651").unwrap(),
+            ))
+        );
+        assert!(report.extraction.leftover.is_none());
         assert!(report
             .extraction
             .steps
             .iter()
-            .any(|step| step.route == crate::arbitrary_factor::Route::Rho));
-        assert!(render_report(&report).contains("UNRESOLVED"));
+            .any(|step| step.route == crate::arbitrary_factor::Route::NativeFactorEngine));
+        assert!(!render_report(&report).contains("UNRESOLVED"));
     }
 }
 
@@ -144,7 +150,7 @@ pub fn render_report(report: &SemiprimeReport) -> String {
     } else if report.extraction.verified {
         "none (complete factorization is not a prime pair)".to_string()
     } else {
-        "unresolved (route ladder has no verified prime pair)".to_string()
+        "extraction budget exhausted (no candidate pair returned)".to_string()
     };
 
     format!(
@@ -177,6 +183,8 @@ pub fn render_report(report: &SemiprimeReport) -> String {
         factor_str,
         if report.factors.is_some() {
             "PASS (∋)"
+        } else if !report.extraction.verified {
+            "NOT EVALUATED (no candidate pair)"
         } else {
             "OPEN"
         },
