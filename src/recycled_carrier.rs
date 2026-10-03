@@ -45,6 +45,12 @@ pub enum BraidTarget {
     },
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WorkPreparation {
+    /// Prepare each valid residue `0 <= x < N` with probability `1/N`.
+    UniformResidues,
+}
+
 impl CarrierGate {
     /// Stream an exact Clifford+T decomposition. In particular, Toffoli is
     /// lowered with its full phase corrections, not a relative-phase variant.
@@ -112,9 +118,11 @@ impl CarrierGate {
     }
 }
 
-/// Carrier execution boundary. `begin` prepares clean logical registers;
-/// this arithmetic layout needs clean ancillas in addition to the control.
-/// A one-pure-qubit/mixed-work implementation needs a different ancilla layout.
+/// Carrier execution boundary. `begin` prepares one pure control qubit in
+/// `|0⟩`, the modular value register in the uniform mixture over `0 <= x < N`,
+/// and the arithmetic scratch required by this gate layout in `|0⟩`. The
+/// measured phase is therefore drawn from the modular orbit of a mixed-register
+/// value, rather than from a fixed residue supplied by the executor.
 pub trait Carrier {
     fn begin(
         &mut self,
@@ -122,6 +130,7 @@ pub trait Carrier {
         base: &[char],
         qubits: usize,
         phase_bits: usize,
+        work_preparation: WorkPreparation,
     ) -> Result<(), String>;
     fn apply_target(&mut self, gate: BraidTarget) -> Result<(), String>;
     fn apply(&mut self, gate: CarrierGate) -> Result<(), String> {
@@ -281,6 +290,7 @@ impl<C: Carrier> RecycledCarrierExecutor<C> {
             program.base(),
             arithmetic.elementary_qubits(),
             phase_bits,
+            WorkPreparation::UniformResidues,
         ) {
             self.carrier.abort();
             return Err(error);
@@ -306,8 +316,6 @@ impl<C: Carrier> RecycledCarrierExecutor<C> {
         arithmetic: &ModularMultiply,
         powers: &[BigUint],
     ) -> Result<Vec<char>, String> {
-        self.carrier
-            .apply(CarrierGate::Reversible(ElementaryGate::X(1)))?;
         let mut readout = BigUint::zero();
         let mut tape = Vec::with_capacity(powers.len());
         for (bit_index, multiplier) in powers.iter().rev().enumerate() {
@@ -483,24 +491,21 @@ mod tests {
             base: &[char],
             qubits: usize,
             phase_bits: usize,
+            work_preparation: WorkPreparation,
         ) -> Result<(), String> {
             assert_eq!(source, self.source);
             assert_eq!(value(source)?.bits(), 128);
             assert_eq!(value(base)?, BigUint::from(2u8));
             assert_eq!(qubits, 388);
             assert_eq!(phase_bits, 256);
+            assert_eq!(work_preparation, WorkPreparation::UniformResidues);
             self.started = true;
             Ok(())
         }
         fn apply_target(&mut self, operation: BraidTarget) -> Result<(), String> {
             self.calls += 1;
-            if self.calls == 1 {
-                assert_eq!(operation, BraidTarget::X(1));
-                Ok(())
-            } else {
-                assert_eq!(operation, BraidTarget::H(0));
-                Err("calibrated carrier unavailable".into())
-            }
+            assert_eq!(operation, BraidTarget::H(0));
+            Err("calibrated carrier unavailable".into())
         }
         fn measure_control(&mut self) -> Result<bool, String> {
             panic!("failed carrier must not reach phase measurement");
@@ -537,7 +542,7 @@ mod tests {
         );
         assert!(executor.carrier().started);
         assert!(executor.carrier().aborted);
-        assert_eq!(executor.carrier().calls, 2);
+        assert_eq!(executor.carrier().calls, 1);
         let mut factor_executor = RecycledCarrierExecutor::new(UnavailableCarrier {
             source: executor.carrier().source.clone(),
             started: false,
@@ -547,5 +552,49 @@ mod tests {
         assert!(factor_executor.execute_factor_shot(&program).is_err());
         assert_eq!(factor_executor.last_error(), Some("calibrated carrier unavailable"));
         assert!(factor_executor.carrier().aborted);
+    }
+
+    struct RecordingCarrier {
+        targets: Vec<BraidTarget>,
+    }
+    impl Carrier for RecordingCarrier {
+        fn begin(
+            &mut self,
+            _source: &[char],
+            _base: &[char],
+            _qubits: usize,
+            _phase_bits: usize,
+            _work_preparation: WorkPreparation,
+        ) -> Result<(), String> {
+            Ok(())
+        }
+        fn apply_target(&mut self, target: BraidTarget) -> Result<(), String> {
+            self.targets.push(target);
+            Ok(())
+        }
+        fn measure_control(&mut self) -> Result<bool, String> {
+            Ok(false)
+        }
+        fn finish(&mut self) -> Result<(), String> {
+            Ok(())
+        }
+        fn abort(&mut self) {}
+    }
+
+    #[test]
+    fn mixed_work_phase_shot_does_not_seed_a_fixed_residue_on_128_bit_semiprime() {
+        let n = BigUint::parse_bytes(b"296650821743515430283258444261036507151", 10).unwrap();
+        assert_eq!(n.bits(), 128);
+        let arithmetic = ModularMultiply::new(&n).unwrap();
+        let carrier = RecordingCarrier { targets: Vec::new() };
+        let mut executor = RecycledCarrierExecutor::new(carrier);
+        let phase = executor
+            .execute_shot(&arithmetic, &[BigUint::one()])
+            .unwrap();
+        assert_eq!(value(&phase).unwrap(), BigUint::zero());
+        assert_eq!(
+            executor.carrier().targets,
+            [BraidTarget::H(0), BraidTarget::H(0)]
+        );
     }
 }
