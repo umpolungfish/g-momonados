@@ -1,3 +1,1 @@
-I start recycled phase finding from a uniform mixed distribution over valid modular residues instead of a fixed seed value.
-I make the carrier's uniform-residue preparation request explicit and verify the 128-bit phase shot emits no residue-seeding gate.
-I record the bounded direct CNOT search result and the remaining arithmetic scratch requirement.
+I reuse the Fibonacci gate net across feedback precision retries.
