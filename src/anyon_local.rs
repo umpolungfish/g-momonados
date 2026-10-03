@@ -203,6 +203,20 @@ impl FibonacciLocal {
                 denominator_bits,
                 ..
             } => {
+                let source_width = usize::try_from(
+                    self.format
+                        .modulus_bits
+                        .checked_add(1)
+                        .ok_or("feedback source width overflow")?,
+                )
+                    .map_err(|_| "feedback source width exceeds host indexing")?;
+                let precision_limit = source_width
+                    .checked_mul(2)
+                    .and_then(|width| width.checked_add(8))
+                    .ok_or("feedback precision limit overflow")?;
+                if *denominator_bits > precision_limit {
+                    return Err("feedback denominator exceeds the source-bound phase precision".into());
+                }
                 let denominator = BigUint::one() << *denominator_bits;
                 let phase = FixedComplex::winding_twiddle(
                     &(-BigInt::from(numerator.clone())),
