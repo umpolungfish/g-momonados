@@ -36,6 +36,10 @@ pub mod reversible_modular;
 pub mod recycled_carrier;
 pub mod anyon_local;
 pub mod anyon_pair;
+#[cfg(feature = "hosted")]
+pub mod belnap_residual;
+#[cfg(feature = "hosted")]
+pub mod belnap_integration;
 pub mod anyon_weave;
 pub mod factor_phase;
 pub mod tokens;
