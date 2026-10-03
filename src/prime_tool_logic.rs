@@ -1,6 +1,6 @@
 //! Prime Factor - Gödel-Encoding Relationship Tool
 //!
-//! Protocol: ⊣⊣⊙∈⊤≻⋈⊥≺∋⊞⊡
+//! Protocol: ⊢⊙∈⊤≻⋈⊥≺∋⊞⊡⊣
 //! Focus: Atomic irreducibility and hermetic boundary sealing.
 
 use crate::godel_analyzer::{
@@ -9,7 +9,7 @@ use crate::godel_analyzer::{
 };
 use crate::godel_calculus::{decode, encode_cell_binary, DecodeError, Family, Nat};
 
-const PRIME_PROTOCOL_WORD: &str = "⊣⊣⊙∈⊤≻⋈⊥≺∋⊞⊡";
+const PRIME_PROTOCOL_WORD: &str = "⊢⊙∈⊤≻⋈⊥≺∋⊞⊡⊣";
 
 pub struct PrimeReport {
     pub source: Nat,

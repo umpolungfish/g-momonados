@@ -16,8 +16,8 @@ use g_momonados::godel_calculus::{check, decode, encode_cell_binary, Family, Nat
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
-const SEMIPRIME_PROTOCOL: &str = "⊢∋∈⊤⊥⊞∋≻⋈≺⊡⊣";
-const PRIME_PROTOCOL: &str = "⊣⊣⊙∈⊤≻⋈⊥≺∋⊞⊡";
+const SEMIPRIME_PROTOCOL: &str = "⊢⊙∈⊤⊥⊞∋≻⋈≺⊡⊣";
+const PRIME_PROTOCOL: &str = "⊢⊙∈⊤≻⋈⊥≺∋⊞⊡⊣";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Route {
@@ -205,15 +205,13 @@ fn pollard_brent(n: &BigUint, budget: u64) -> Option<BigUint> {
     if n <= &one {
         return None;
     }
-    if modulo_via_word(n, &two)?.is_zero() {
+    if (n % &two).is_zero() {
         return Some(two);
     }
     let c = one.clone();
     let m = 128u64;
-    let f = |x: &BigUint| -> Option<BigUint> {
-        modulo_via_word(&add_via_word(&multiply_via_word(x, x), &c), n)
-    };
-    let (mut y, mut r, mut q, mut g) = (BigUint::from(2u32), 1u64, one.clone(), one.clone());
+    let f = |x: &BigUint| -> BigUint { (x * x + &c) % n };
+    let (mut y, mut r, mut g) = (BigUint::from(2u32), 1u64, one.clone());
     let (mut x, mut ys) = (y.clone(), y.clone());
     let mut spent = 0u64;
     while g == one && spent < budget {
@@ -222,24 +220,21 @@ fn pollard_brent(n: &BigUint, budget: u64) -> Option<BigUint> {
             if spent >= budget {
                 break;
             }
-            y = f(&y)?;
+            y = f(&y);
             spent += 1;
         }
         let mut k = 0u64;
         while k < r && g == one && spent < budget {
             ys = y.clone();
+            let mut q = one.clone();
             let lim = core::cmp::min(m, r - k);
             for _ in 0..lim {
                 if spent >= budget {
                     break;
                 }
-                y = f(&y)?;
-                let diff = if x >= y {
-                    subtract_via_word(&x, &y)?
-                } else {
-                    subtract_via_word(&y, &x)?
-                };
-                q = modulo_via_word(&multiply_via_word(&q, &diff), n)?;
+                y = f(&y);
+                let diff = if x >= y { &x - &y } else { &y - &x };
+                q = (&q * &diff) % n;
                 spent += 1;
             }
             g = big_gcd(q.clone(), n.clone());
@@ -249,12 +244,8 @@ fn pollard_brent(n: &BigUint, budget: u64) -> Option<BigUint> {
     }
     if g == *n {
         while spent < budget {
-            ys = f(&ys)?;
-            let diff = if x >= ys {
-                subtract_via_word(&x, &ys)?
-            } else {
-                subtract_via_word(&ys, &x)?
-            };
+            ys = f(&ys);
+            let diff = if x >= ys { &x - &ys } else { &ys - &x };
             g = big_gcd(diff, n.clone());
             spent += 1;
             if g > one {
@@ -331,7 +322,7 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
     const BRIDGE_WORK: u64 = 512;
     const RELATION_WORK: u64 = 512;
     const ORDER_WORK: u64 = 64;
-    const RHO_WORK: u64 = 4_096;
+    const RHO_WORK: u64 = 2_000_000;
     if let Some(p) = winding_bridge(n, BRIDGE_BOUND.min(BRIDGE_WORK)).filter(|p| p > &one && p < n)
     {
         steps.push(Step {
@@ -455,13 +446,34 @@ mod tests {
         assert!(word_report.verified, "{}", word_report.render());
         assert!(word_report.protocol_match, "{}", word_report.render());
     }
+
+    #[test]
+    fn factors_an_unstructured_128_bit_semiprime() {
+        // The factors are deliberately far apart, so Fermat's close-factor
+        // route cannot solve this case. The smaller factor sets a practical
+        // deterministic rho workload while the product remains 128-bit.
+        let p = BigUint::from(2_097_143u64); // prime, well above the sieve aperture
+        let q = BigUint::parse_bytes(b"162259276829213363391578010288127", 10).unwrap(); // 2^107 - 1, prime
+        let semiprime = &p * &q;
+        assert_eq!(semiprime.bits(), 128);
+        let source = semiprime.to_str_radix(10);
+        let report = extract(&source).unwrap();
+        assert!(report.verified, "{}", report.render());
+        assert!(report.protocol_match, "{}", report.render());
+        assert_eq!(report.expected_protocol, SEMIPRIME_PROTOCOL);
+        assert_eq!(report.factors, vec![(p.to_string(), 1), (q.to_string(), 1)]);
+        assert!(!report
+            .steps
+            .iter()
+            .any(|step| step.route == Route::DifferenceOfSquares && step.factor.is_some()));
+    }
 }
 
 /// Extract prime powers in ascending order; every split closes through Gödel multiplication.
 pub fn extract(raw: &str) -> Result<Extraction, String> {
-    let (mut n, word) = parse_source(raw)?;
-    let source = n.to_str_radix(10);
-    if n.is_zero() {
+    let (source_value, word) = parse_source(raw)?;
+    let source = source_value.to_str_radix(10);
+    if source_value.is_zero() {
         return Err("0 has no finite factorization".into());
     }
     let one = BigUint::one();
@@ -469,9 +481,24 @@ pub fn extract(raw: &str) -> Result<Extraction, String> {
     let mut steps = Vec::new();
     let mut factors: Vec<(BigUint, u32)> = Vec::new();
     let mut leftover = None;
+    let mut pending = alloc::vec![source_value.clone()];
+    let iteration_limit = (source_value.bits() as usize)
+        .saturating_mul(2)
+        .saturating_add(1);
     let mut iterations = 0usize;
-    while n > one && iterations < 4096 {
+    while let Some(mut n) = pending.pop() {
+        if n <= one {
+            continue;
+        }
         iterations += 1;
+        if iterations > iteration_limit {
+            let mut cofactor = n;
+            for pending_value in pending {
+                cofactor = multiply_via_word(&cofactor, &pending_value);
+            }
+            leftover = Some(cofactor);
+            break;
+        }
         if is_prime(&n.to_string()) == PrimeVerdict::Prime {
             steps.push(Step {
                 value: n.to_string(),
@@ -480,8 +507,7 @@ pub fn extract(raw: &str) -> Result<Extraction, String> {
                 detail: "prime (recursion bottom)".into(),
             });
             factors.push((n.clone(), 1));
-            n = one.clone();
-            break;
+            continue;
         }
         if modulo_via_word(&n, &two)
             .ok_or_else(|| "word remainder failed while stripping factor 2".to_string())?
@@ -506,6 +532,9 @@ pub fn extract(raw: &str) -> Result<Extraction, String> {
                 factor: Some("2".into()),
                 detail: format!("stripped 2^{}", exponent),
             });
+            if n > one {
+                pending.push(n);
+            }
             continue;
         }
         match one_factor(&n, &mut steps) {
@@ -518,39 +547,37 @@ pub fn extract(raw: &str) -> Result<Extraction, String> {
                         p, q, n
                     ));
                 }
-                let mut exponent = 0u32;
-                while modulo_via_word(&n, &p)
-                    .ok_or_else(|| {
-                        "word remainder failed while extracting prime power".to_string()
-                    })?
-                    .is_zero()
-                {
-                    n = divmod_via_word(&n, &p)
-                        .ok_or_else(|| {
-                            "word division failed while extracting prime power".to_string()
-                        })?
-                        .0;
-                    exponent = exponent
-                        .checked_add(1)
-                        .ok_or_else(|| "factor exponent overflow".to_string())?;
+                if p <= one || q <= one || p >= n || q >= n {
+                    return Err("route did not produce two strict descendants".into());
                 }
-                if exponent == 0 {
-                    return Err("route made no descent".into());
-                }
-                factors.push((p, exponent));
+                pending.push(p);
+                pending.push(q);
             }
             None => {
-                leftover = Some(n.clone());
+                let mut cofactor = n;
+                for pending_value in pending {
+                    cofactor = multiply_via_word(&cofactor, &pending_value);
+                }
+                leftover = Some(cofactor);
                 break;
             }
         }
     }
-    if n > one && leftover.is_none() {
-        leftover = Some(n.clone());
-    }
     factors.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut compressed: Vec<(BigUint, u32)> = Vec::new();
+    for (prime, _) in factors {
+        if let Some((last, exponent)) = compressed.last_mut() {
+            if *last == prime {
+                *exponent = exponent
+                    .checked_add(1)
+                    .ok_or_else(|| "factor exponent overflow".to_string())?;
+                continue;
+            }
+        }
+        compressed.push((prime, 1));
+    }
     let mut product = one.clone();
-    for (p, exponent) in &factors {
+    for (p, exponent) in &compressed {
         for _ in 0..*exponent {
             product = multiply_via_word(&product, p);
         }
@@ -560,7 +587,7 @@ pub fn extract(raw: &str) -> Result<Extraction, String> {
     let closed = leftover.is_none()
         && product == source_value
         && check(&word_of(&product), Operator::Mul, &word_of(&one), &word).is_ok_and(|eq| eq.valid);
-    let total_multiplicity: u32 = factors.iter().map(|(_, exponent)| *exponent).sum();
+    let total_multiplicity: u32 = compressed.iter().map(|(_, exponent)| *exponent).sum();
     let expected_protocol = if closed && total_multiplicity == 1 {
         PRIME_PROTOCOL
     } else if closed && total_multiplicity == 2 {
@@ -569,14 +596,14 @@ pub fn extract(raw: &str) -> Result<Extraction, String> {
         "UNKNOWN / COMPLEX COMPOSITE"
     };
     let protocol_match = match expected_protocol {
-        PRIME_PROTOCOL => closed && factors.len() == 1 && factors[0].1 == 1,
+        PRIME_PROTOCOL => closed && compressed.len() == 1 && compressed[0].1 == 1,
         SEMIPRIME_PROTOCOL => closed && total_multiplicity == 2,
         _ => false,
     };
     Ok(Extraction {
         source,
         word,
-        factors: factors
+        factors: compressed
             .into_iter()
             .map(|(p, e)| (p.to_string(), e))
             .collect(),
