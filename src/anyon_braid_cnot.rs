@@ -213,14 +213,29 @@ pub fn compile_single_qubit(
     });
     let generators = [generators[0].clone()?, generators[1].clone()?];
     let net = build_local_net(generators, net_depth, max_gates);
+    compile_single_qubit_with_net(&algebra, target, qubit, &local_target, &net, sk_depth)
+}
+
+fn compile_single_qubit_with_net(
+    algebra: &FibonacciLocal,
+    target: &BraidTarget,
+    qubit: usize,
+    local_target: &LocalMatrix,
+    net: &GateNet,
+    sk_depth: usize,
+) -> Result<(Vec<i32>, f64), String> {
+    if local_target.0 == LocalMatrix::identity(algebra.format()).0 {
+        return Ok((Vec::new(), 0.0));
+    }
     if net.entries.is_empty() {
         return Err("single-qubit braid net is empty".into());
     }
-    let (word, error) = compile_local_split(&local_target, &scale, &net, sk_depth)?;
+    let scale = algebra.format().scale();
+    let (word, error) = compile_local_split(local_target, &scale, net, sk_depth)?;
     if word.is_empty() {
         return Err("braid synthesis collapsed a nontrivial gate to the identity".into());
     }
-    let target_float = as_matrix(&local_target, &scale);
+    let target_float = as_matrix(local_target, &scale);
     let identity_error = Matrix2::projective_distance(&target_float, &Matrix2::identity());
     if error >= identity_error {
         return Err("braid synthesis did not improve on the identity approximation".into());
@@ -229,7 +244,8 @@ pub fn compile_single_qubit(
         denominator_bits, ..
     } = target
     {
-        let width = usize::try_from(source.bits()).map_err(|_| "source width exceeds host indexing")?;
+        let width = usize::try_from(algebra.format().modulus_bits)
+            .map_err(|_| "source width exceeds host indexing")?;
         let precision_limit = width
             .checked_mul(2)
             .and_then(|value| value.checked_add(8))
@@ -238,11 +254,7 @@ pub fn compile_single_qubit(
             return Err("feedback denominator exceeds the source-bound phase precision".into());
         }
         let observed = algebra.evaluate(&word)?;
-        if !fixed_projective_error_within(
-            &observed,
-            &local_target,
-            *denominator_bits,
-        )? {
+        if !fixed_projective_error_within(&observed, local_target, *denominator_bits)? {
             return Err("anyon braid misses the requested dyadic feedback precision".into());
         }
     }
@@ -778,14 +790,26 @@ impl FibonacciBraidCompiler {
     ) -> Result<Vec<i32>, String> {
         let local = FibonacciLocal::new(&self.source)?;
         let target_matrix = local.target(target)?;
+        let scale = local.format().scale();
+        let generators = [1, 2].map(|generator| {
+            local
+                .evaluate(&[generator])
+                .map(|matrix| as_matrix(&matrix, &scale))
+        });
+        let net = build_local_net(
+            [generators[0].clone()?, generators[1].clone()?],
+            self.net_depth,
+            self.max_gates,
+        );
         let mut depth = self.sk_depth;
         loop {
-            let candidate = compile_single_qubit(
-                &self.source,
+            let candidate = compile_single_qubit_with_net(
+                &local,
                 target,
+                0,
+                &target_matrix,
+                &net,
                 depth,
-                self.net_depth,
-                self.max_gates,
             );
             let (word, _) = match candidate {
                 Ok(candidate) => candidate,
