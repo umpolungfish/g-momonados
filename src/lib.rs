@@ -24,6 +24,8 @@ pub mod godel_analyzer;
 // godel_support is a submodule of godel_calculus
 pub mod prime_tool_logic;
 pub mod semiprime_tool_logic;
+pub mod factor_routes;
+pub mod arbitrary_factor;
 
 #[cfg(feature = "hosted")]
 pub mod runtime_nesting;

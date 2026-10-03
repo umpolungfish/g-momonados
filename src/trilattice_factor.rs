@@ -92,12 +92,12 @@ use num_bigint::BigUint;
 use num_traits::{One, Zero};
 use imasm_core::lattice_flow::cycle_landings;
 use crate::prime_winding::{digit_encode, factor_bounded, big_gcd};
+use g_momonados::factor_routes::{order_multiple_leaping, winding_bridge, congruence_split, WINDING_BASES, LEAP_STEPS, BRIDGE_BOUND, CONGRUENCE_FB_BOUND, CONGRUENCE_TRIALS};
 use crate::native_numeral::encode as native_encode;
 
 /// Bases tried for the order winding, small units first. Any base sharing a
 /// factor with n is a collision that hands the factor over directly; the
 /// others are asked for their multiplicative order.
-pub(crate) const WINDING_BASES: [u64; 10] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
 
 /// The 12 dialects (of 88) whose gate-pass sequence reached the exact true
 /// multiplicative order of a mod n, checked via `dialect-probe` on four cases
@@ -111,12 +111,10 @@ pub const DIALECT_REGISTER: [u8; 12] = [9, 25, 32, 35, 40, 43, 52, 54, 66, 72, 7
 /// not a memory one: the leaping search holds only the two leapers, no table, so
 /// nothing grows with the winding. A meeting arrives in about sqrt(order) leaps,
 /// so this reach covers orders up to roughly its square.
-pub(crate) const LEAP_STEPS: u64 = 80_000_000;
 
 /// Number of precomputed jumps the leaper draws from. The leap taken at a point
 /// is chosen by that point, so the walk is a deterministic function and two
 /// leapers on it must eventually meet.
-const LEAP_BUCKETS: usize = 32;
 
 /// A positive multiple of the multiplicative order of `a` modulo `n`, found by
 /// the table-free leaping search of the ob3ect `table_free_winding_by_leaping`
@@ -133,56 +131,7 @@ const LEAP_BUCKETS: usize = 32;
 /// stride would only drift and take a full order to return. Memory is the two
 /// leapers and the precomputed jumps, nothing that grows with the order, so
 /// there is no table and no cap on reach beyond the leap-step time budget.
-pub(crate) fn order_multiple_leaping(a: &BigUint, n: &BigUint, steps: u64) -> Option<BigUint> {
-    use alloc::vec::Vec;
-    use crate::native_numeral::{add_via_word, mod_pow_walk, modulo_via_word, multiply_via_word, subtract_via_word, to_bits_low_first};
-    let one = BigUint::one();
-    let a = modulo_via_word(a, n).unwrap();
-    if a == one { return Some(one); }
-    // Small pre-walk catches a tiny order directly.
-    let mut v = one.clone();
-    for k in 1..=64u64 {
-        v = modulo_via_word(&multiply_via_word(&v, &a), n).unwrap();
-        if v == one { return Some(BigUint::from(k)); }
-    }
 
-    // The jumps: LARGE pseudo-random exponents s_i, as group elements a^{s_i}.
-    // A step at point x multiplies by the jump its low word selects, and adds
-    // that jump's exponent to the leaper's accumulated distance.
-    let mut jexp: Vec<u64> = Vec::with_capacity(LEAP_BUCKETS);
-    let mut jump: Vec<BigUint> = Vec::with_capacity(LEAP_BUCKETS);
-    let mut seed: u64 = 0x2545F4914F6CDD1D;
-    for _ in 0..LEAP_BUCKETS {
-        seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17; // xorshift
-        let s = (seed >> 1) | 1; // a large odd exponent
-        jexp.push(s);
-        jump.push(mod_pow_walk(&a, &to_bits_low_first(&BigUint::from(s)), n));
-    }
-    let bucket = |x: &BigUint| -> usize {
-        (x.to_u64_digits().first().copied().unwrap_or(0) as usize) % LEAP_BUCKETS
-    };
-
-    let (mut tx, mut te) = (a.clone(), one.clone());      // slow leaper
-    let (mut hx, mut he) = (a.clone(), one.clone());      // fast leaper
-    let mut moved = 0u64;
-    while moved < steps {
-        let bt = bucket(&tx);
-        tx = modulo_via_word(&multiply_via_word(&tx, &jump[bt]), n).unwrap();
-        te = add_via_word(&te, &BigUint::from(jexp[bt]));
-        for _ in 0..2 {
-            let bh = bucket(&hx);
-            hx = modulo_via_word(&multiply_via_word(&hx, &jump[bh]), n).unwrap();
-            he = add_via_word(&he, &BigUint::from(jexp[bh]));
-        }
-        moved += 1;
-        if tx == hx {
-            let d = if te > he { subtract_via_word(&te, &he).unwrap() } else { subtract_via_word(&he, &te).unwrap() };
-            if d > BigUint::zero() { return Some(d); }
-            break; // degenerate, no usable difference
-        }
-    }
-    None
-}
 
 /// The ob3ect's own fixed reference word.
 pub const WORD: &str = "⊢≻⊙∈⊤⋈⊥≺⊞⊡∋⋈⊣";
@@ -438,7 +387,6 @@ pub fn winding(n: &str, a_opt: Option<u64>) -> String {
 }
 
 /// The default smoothness bound for the winding-bridge route.
-pub(crate) const BRIDGE_BOUND: u64 = 300_000;
 
 /// The winding-bridge, the ⊞/⊡ decomposition past the order ceiling. When one
 /// factor p has a smooth winding, meaning p-1 has only small prime factors, the
@@ -449,27 +397,7 @@ pub(crate) const BRIDGE_BOUND: u64 = 300_000;
 /// order's size, so it breaks the sqrt-order ceiling for a smooth-winding
 /// factor; it finds nothing when both factors' windings are non-smooth, which
 /// is the case an RSA modulus is chosen to be. This is Pollard's p-1.
-pub(crate) fn winding_bridge(n: &BigUint, bound: u64) -> Option<BigUint> {
-    use crate::native_numeral::{mod_pow_walk, modulo_via_word, subtract_via_word, to_bits_low_first};
-    let one = BigUint::one();
-    let two = BigUint::from(2u32);
-    let mut a = modulo_via_word(&two, n).unwrap();
-    let mut e: u64 = 2;
-    // Check the gcd at every step. The first factor whose winding divides the
-    // accumulated M sends a to 1 mod that factor while it is still generic mod
-    // the other, so gcd(a-1, n) crosses to it. Checking only in coarse batches
-    // can let the second factor bridge inside the same batch, collapsing the
-    // gcd to n and losing the split; per-step checking catches the first
-    // crossing exactly. Cost stays dominated by the modular power, not the gcd.
-    while e <= bound {
-        a = mod_pow_walk(&a, &to_bits_low_first(&BigUint::from(e)), n);
-        e += 1;
-        if a.is_zero() || a == one { break; } // bridged out or collapsed; no readable split
-        let g = big_gcd(subtract_via_word(&a, &one).unwrap(), n.clone());
-        if g > one && &g < n { return Some(g); }
-    }
-    None
-}
+
 
 /// The bridge subcommand: factor n by the winding-bridge (Pollard p-1) at the
 /// given smoothness bound, reading the split off the bridged winding.
@@ -578,44 +506,17 @@ pub fn squares(n: &str) -> String {
 }
 
 /// The default factor-base bound for the congruence route.
-pub(crate) const CONGRUENCE_FB_BOUND: u64 = 2000;
 /// How many trials the congruence route draws before giving up.
-pub(crate) const CONGRUENCE_TRIALS: u64 = 4_000_000;
 
 /// Primes up to `bound`, the fixed alphabet (⊣ factor base) a relation must
 /// factor over to be admitted.
-fn factor_base(bound: u64) -> alloc::vec::Vec<u64> {
-    let mut sieve = alloc::vec![true; (bound as usize) + 1];
-    let mut ps = alloc::vec::Vec::new();
-    let mut p = 2u64;
-    while p <= bound {
-        if sieve[p as usize] {
-            ps.push(p);
-            let mut m = p * p;
-            while m <= bound { sieve[m as usize] = false; m += p; }
-        }
-        p += 1;
-    }
-    ps
-}
+
 
 /// Factor `q` over the base, returning the exponent of each base prime, or None
 /// if `q` does not reduce to 1 over the base (not smooth). This is the ∈
 /// smoothness gate: only a relation that factors entirely over the alphabet is
 /// admitted, the rest discarded (≺).
-fn smooth_exponents(mut q: BigUint, fb: &[u64]) -> Option<alloc::vec::Vec<u32>> {
-    use crate::native_numeral::{divmod_via_word, modulo_via_word};
-    let mut exps = alloc::vec![0u32; fb.len()];
-    let zero = BigUint::zero();
-    for (i, &p) in fb.iter().enumerate() {
-        let bp = BigUint::from(p);
-        while modulo_via_word(&q, &bp).unwrap() == zero {
-            q = divmod_via_word(&q, &bp).unwrap().0;
-            exps[i] += 1;
-        }
-    }
-    if q == BigUint::one() { Some(exps) } else { None }
-}
+
 
 /// The congruence-of-squares split, the sub-exponential route from the ob3ect
 /// `square_congruence_from_smooth_relations` (word ⊢⊣≻∈⊥≺⊤⋈⋈∈⊞≻≻⊙∈⊤⊥∋⊡⊣). It
@@ -627,102 +528,7 @@ fn smooth_exponents(mut q: BigUint, fb: &[u64]) -> Option<alloc::vec::Vec<u32>> 
 /// sums to all-even by counting alone, guaranteed. ⊙ is the square that
 /// combination forms on both sides; ∋ resolves it to X² ≡ Y² (mod n); ⊥ throws
 /// back a trivial pair X ≡ ±Y; ⊡ records the split gcd(X - Y, n).
-pub(crate) fn congruence_split(n: &BigUint, fb_bound: u64, trials: u64) -> Option<(BigUint, BigUint)> {
-    use alloc::vec::Vec;
-    use crate::native_numeral::{add_via_word, divmod_via_word, isqrt, mod_pow_walk, modulo_via_word, multiply_via_word, subtract_via_word, to_bits_low_first};
-    let one = BigUint::one();
-    let fb = factor_base(fb_bound);
-    let k = fb.len();
 
-    // Collected smooth relations: (x, full exponents).
-    let mut rel_x: Vec<BigUint> = Vec::new();
-    let mut rel_e: Vec<Vec<u32>> = Vec::new();
-    // GF(2) reducers: each carries a parity bitmask and the set of relation ids
-    // that XOR to it, both as bit-vectors, keyed for elimination by leading bit.
-    let bits = (k + 64) / 64;
-    let mut red: Vec<(Vec<u64>, Vec<u64>, usize)> = Vec::new(); // (parity, combo, leadbit)
-
-    let getbit = |v: &[u64], i: usize| -> bool { (v[i >> 6] >> (i & 63)) & 1 == 1 };
-    let setbit = |v: &mut [u64], i: usize| { v[i >> 6] |= 1 << (i & 63); };
-
-    let mut seed: u64 = 0x1234_5678_9ABC_DEF1 ^ (n.to_u64_digits().first().copied().unwrap_or(1));
-    let nsqrt = isqrt(n);
-
-    let mut t: u64 = 0;
-    while t < trials {
-        t += 1;
-        // Trial x drawn above sqrt(n) so q = x² - n stays smaller than n.
-        seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
-        let off = BigUint::from(seed % 1_000_000_007);
-        let x = modulo_via_word(&add_via_word(&nsqrt, &off), n).unwrap();
-        if x < BigUint::from(2u32) { continue; }
-        let q = modulo_via_word(&multiply_via_word(&x, &x), n).unwrap();
-        if q == BigUint::zero() {
-            // x shares a factor with n outright.
-            let g = big_gcd(x.clone(), n.clone());
-            if g > one && &g < n { return Some((g.clone(), divmod_via_word(n, &g).unwrap().0)); }
-            continue;
-        }
-        let exps = match smooth_exponents(q.clone(), &fb) { Some(e) => e, None => continue };
-
-        // Parity row over the base.
-        let mut par = alloc::vec![0u64; bits];
-        for (i, e) in exps.iter().enumerate() { if e & 1 == 1 { setbit(&mut par, i); } }
-
-        let id = rel_x.len();
-        rel_x.push(x);
-        rel_e.push(exps);
-        let mut combo = alloc::vec![0u64; (rel_x.len() + 64) / 64];
-        // combo may need to grow as ids accumulate; size it generously below.
-        if combo.len() * 64 <= id { combo.push(0); }
-        setbit(&mut combo, id);
-
-        // Reduce the new row by existing reducers.
-        for (rpar, rcombo, lead) in red.iter() {
-            if getbit(&par, *lead) {
-                for w in 0..bits { par[w] ^= rpar[w]; }
-                while combo.len() < rcombo.len() { combo.push(0); }
-                for w in 0..rcombo.len() { combo[w] ^= rcombo[w]; }
-            }
-        }
-
-        // Zero parity → a dependency: the combo is a set of relations whose
-        // exponent sums are all even, a square on both sides.
-        let is_zero = par.iter().all(|&w| w == 0);
-        if is_zero {
-            // Build X = prod x_i mod n, and Y from halved summed exponents.
-            let mut sum = alloc::vec![0u32; k];
-            let mut xprod = one.clone();
-            for cid in 0..rel_x.len() {
-                if getbit(&combo, cid) {
-                    xprod = modulo_via_word(&multiply_via_word(&xprod, &rel_x[cid]), n).unwrap();
-                    for i in 0..k { sum[i] += rel_e[cid][i]; }
-                }
-            }
-            let mut yprod = one.clone();
-            for i in 0..k {
-                if sum[i] > 0 {
-                    let half = sum[i] / 2;
-                    let base_pow = mod_pow_walk(&BigUint::from(fb[i]), &to_bits_low_first(&BigUint::from(half)), n);
-                    yprod = modulo_via_word(&multiply_via_word(&yprod, &base_pow), n).unwrap();
-                }
-            }
-            // gcd(X - Y, n): a non-trivial common part splits n.
-            let diff = if xprod >= yprod { subtract_via_word(&xprod, &yprod).unwrap() } else { subtract_via_word(&add_via_word(n, &xprod), &yprod).unwrap() };
-            let g = big_gcd(modulo_via_word(&diff, n).unwrap(), n.clone());
-            if g > one && &g < n { return Some((g.clone(), divmod_via_word(n, &g).unwrap().0)); }
-            // Trivial (X ≡ ±Y): keep collecting for another dependency.
-        } else {
-            let lead = {
-                let mut hb = 0usize;
-                for i in 0..k { if getbit(&par, i) { hb = i; } }
-                hb
-            };
-            red.push((par, combo, lead));
-        }
-    }
-    None
-}
 
 /// The sieve subcommand: factor n by the congruence of squares over a factor
 /// base of primes up to B, reading the split off a parity cancellation.

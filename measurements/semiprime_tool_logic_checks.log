@@ -1,0 +1,10 @@
+    Blocking waiting for file lock on artifact directory
+    Finished `release` profile [optimized] target(s) in 0.02s
+     Running unittests src/lib.rs (target/release/deps/g_momonados-abeafce3b6dd8c30)
+
+running 2 tests
+test semiprime_tool_logic::tests::closes_a_128_bit_prime_square_through_the_shared_ladder ... ok
+test semiprime_tool_logic::tests::retains_unresolved_balanced_128_bit_source_and_route_trace ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 213 filtered out; finished in 4.59s
+
