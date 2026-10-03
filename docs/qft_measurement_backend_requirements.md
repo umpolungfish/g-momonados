@@ -224,6 +224,27 @@ serve as the requested production measurement backend.
 
 ## Bounded arbitrary extraction
 
+`arbitrary_anyon_factor <natural|canonical-cell-binary-word> <base> <max_shots> <unix_socket>`
+connects the same controller adapter to the recursive extractor. For each
+composite descendant of at least 128 bits, it first executes the source-bound
+anyon phase program. A returned candidate must satisfy exact division and
+Gödel multiplication closure before both descendants are processed. Its route
+trace records the phase base, recovered order, and number of shots. Descendants
+below the controller's minimum width use the bounded ladder.
+
+A completed shot budget without a factor is represented as `None` by
+`try_factor_with_anyons`; the extractor records that outcome and continues the
+ladder. Compilation, transport, and readout failures remain errors. A candidate
+that fails Gödel closure is discarded and the ladder continues. The direct
+`anyon_factor` command retains its error on an unclosed shot budget. The new
+command is available from the CLI, REPL, and menu.
+
+The recursive interface checks use explicit candidate fixtures on a balanced
+128-bit source and on a 256-bit fourth power. They verify candidate closure,
+continued descent through composite candidates, invalid-candidate fallback,
+unclosed-budget fallback, and preservation of device errors. These checks
+exercise integration and verification; they supply no device phase evidence.
+
 `arbitrary_factor` recursively processes both descendants of a verified split
 and preserves stripped prime-power multiplicities when combining its result.
 Every route candidate must pass exact division and Gödel multiplication closure
@@ -286,3 +307,35 @@ The width sweeps verify reversible arithmetic emission and Fibonacci CNOT word
 generation. The controller adapter now connects measured fusion bits to the
 phase accumulator. The local transport check uses a protocol response fixture;
 it is not a device measurement or factor closure.
+# Semiprime tool aperture
+
+`semiprime-tool` uses the shared `arbitrary_factor` route ladder after acquiring
+the structural sieve reading. The ladder tries the sieve, bounded difference of
+squares, winding bridge, congruence sieve, order winding, and Brent rho. Every
+accepted split closes through Gödel multiplication. A two-prime result includes
+prime squares by counting multiplicity. An exhausted ladder reports UNRESOLVED
+with reconstruction OPEN and returns status 2. Its route trace and remaining
+cofactor accompany the structural reading.
+
+`factor_routes::congruence_split` retains one modular relation per factor-base
+pivot. Each row carries X, Y, and parity with
+X² ≡ Y² ∏(odd base primes) modulo N. Combining rows moves their shared odd
+primes into Y. The basis therefore retains at most k rows with k parity bits
+and two modular integers per row, independent of the number of trials. Dependent
+rows are processed immediately. A 130-bit semiprime test closes a nontrivial
+split from two square-root relations; repeated square relations on a 128-bit
+semiprime leave the pivot storage empty.
+
+`measurements/anyon-extractor-width-controls.tsv` carries independently drawn,
+balanced semiprimes at 128, 256, 512, 1024, and 2048 bits. Its companion
+`.proofs.jsonl` carries prime certificates verified by `qpe_semiprime_cases
+--verify`. The extractor test supplies their certified p candidates through the
+anyon callback and checks recursive factor output and Gödel product closure at
+each width. This is a candidate-interface test. Device phase measurements use
+the controller execution path described below.
+
+The release executables are retained in `measurements/anyon-compilation/` as
+`g-momonados.elf`, `semiprime-tool.elf`, and `prime-tool.elf`, with checksums in
+`tool-elf-sha256.txt`. The standalone prime-square and original balanced 128-bit
+readings are retained in `measurements/semiprime_tool_prime_square_128.log` and
+`measurements/semiprime_tool_unstructured_128.log`.

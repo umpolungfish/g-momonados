@@ -24,7 +24,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use alloc::format;
 use num_bigint::BigUint;
-use num_traits::{One, Zero};
+use num_traits::One;
 
 /// Each hex nibble's canonical IMASM word, one word per bit pattern of
 /// {T-bit, F-bit, I-bit, fork-openness-bit}, built from the ob3ect
@@ -385,45 +385,14 @@ fn sub(a: &str, b: &str) -> String {
 /// bool: Undetermined is a real, distinct answer (the vacuous case — no
 /// clear ever fired, so nothing was ever at risk), not a stand-in for
 /// either Prime or Composite.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum PrimeVerdict { Prime, Composite, Undetermined }
+pub use g_momonados::factor_routes::{PrimeVerdict, is_prime, big_gcd};
 
 /// Miller-Rabin, arbitrary precision, via BigUint::modpow. The 13 witnesses
 /// 2..41 are deterministic for every n < 3,317,044,064,679,887,385,961,981
 /// (Sinclair's known bound); past that they still carry a false-positive
 /// probability below 4^-13 per composite, the same witness practice GMP and
 /// OpenSSL use for arbitrary-size candidates.
-fn miller_rabin(n: &BigUint) -> bool {
-    use crate::native_numeral::{add_via_word, halve_even_by_word, mod_pow_walk, modulo_via_word, multiply_via_word, subtract_via_word, to_bits_low_first};
-    let one = BigUint::one();
-    let two = add_via_word(&one, &one);
-    if *n < two { return false; }
-    if *n == two { return true; }
-    if modulo_via_word(n, &two).unwrap() == BigUint::zero() { return false; }
 
-    let n_minus_one = subtract_via_word(n, &one).unwrap();
-    let mut d = n_minus_one.clone();
-    let mut r: u32 = 0;
-    while modulo_via_word(&d, &two).unwrap() == BigUint::zero() {
-        d = halve_even_by_word(&d).unwrap();
-        r += 1;
-    }
-
-    let witnesses: [u64; 13] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41];
-    for &a_u64 in witnesses.iter() {
-        let a = BigUint::from(a_u64);
-        if a >= *n { continue; }
-        let mut x = mod_pow_walk(&a, &to_bits_low_first(&d), n);
-        if x == one || x == n_minus_one { continue; }
-        let mut passed = false;
-        for _ in 0..r.saturating_sub(1) {
-            x = modulo_via_word(&multiply_via_word(&x, &x), n).unwrap();
-            if x == n_minus_one { passed = true; break; }
-        }
-        if !passed { return false; }
-    }
-    true
-}
 
 /// N is prime iff real arithmetic says so: exact trial division by every
 /// odd number up to 1000 (catches the overwhelming majority of composites
@@ -432,40 +401,7 @@ fn miller_rabin(n: &BigUint) -> bool {
 /// for the callers below that still match on it (`find`, `factor`), but
 /// this function never produces it: trial division and Miller-Rabin
 /// together always resolve to a definite answer.
-pub fn is_prime(a: &str) -> PrimeVerdict {
-    let t = trim(a);
-    let n: BigUint = match t.parse() {
-        Ok(v) => v,
-        Err(_) => return PrimeVerdict::Composite,
-    };
-    use crate::native_numeral::{divmod_small_on_limbs, word_bits};
-    let two = BigUint::from(2u32);
-    if n < two { return PrimeVerdict::Composite; }
-    if n == two { return PrimeVerdict::Prime; }
-    // n's own word read once here, not once per candidate divisor below --
-    // n never changes across this loop, so its limbs don't need re-reading
-    // on every one of the up to 500 divisors tried.
-    let n_limbs = word_bits(&n);
-    if divmod_small_on_limbs(&n_limbs, 2).1 == 0 { return PrimeVerdict::Composite; }
 
-    // Every trial divisor here fits in a u64 with room to spare (d <= 1000),
-    // so d*d does too -- that comparison stays plain u64 arithmetic, the
-    // same way an ordering check stays native throughout this file's other
-    // conversions. The reduction itself reads n's own limbs (extracted
-    // once, above) through the limb-at-a-time small-divisor primitive
-    // rather than the general bit-at-a-time one.
-    let mut d: u64 = 3;
-    loop {
-        if BigUint::from(d * d) > n { break; }
-        if divmod_small_on_limbs(&n_limbs, d).1 == 0 {
-            return if n == BigUint::from(d) { PrimeVerdict::Prime } else { PrimeVerdict::Composite };
-        }
-        if d >= 1000 { break; }
-        d += 2;
-    }
-
-    if miller_rabin(&n) { PrimeVerdict::Prime } else { PrimeVerdict::Composite }
-}
 
 fn prime_verdict_str(v: PrimeVerdict) -> &'static str {
     match v {
@@ -575,14 +511,7 @@ pub fn range(lo: &str, hi: &str, count_only: bool) -> String {
 
 /// a / b, both nonzero, Euclid's algorithm on BigUint. Public so the
 /// trilattice winding route reads the same gcd rather than carrying its own.
-pub fn big_gcd(mut a: BigUint, mut b: BigUint) -> BigUint {
-    while !b.is_zero() {
-        let t = b.clone();
-        b = crate::native_numeral::modulo_via_word(&a, &b).unwrap();
-        a = t;
-    }
-    a
-}
+
 
 /// Brent's polynomial x -> x^2 + c mod n.
 fn brent_f(x: &BigUint, c: &BigUint, n: &BigUint) -> BigUint {

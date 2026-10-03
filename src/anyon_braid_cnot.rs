@@ -776,6 +776,28 @@ pub fn factor_semiprime_with_anyons<D: FibonacciAnyonDevice>(
     refinement: usize,
     minimum_accuracy_bits: usize,
 ) -> Result<AnyonicFactorization, String> {
+    try_factor_with_anyons(
+        n, base, max_shots, device, sk_depth, net_depth, max_gates,
+        refinement, minimum_accuracy_bits,
+    )?.ok_or_else(|| format!(
+        "anyon phase readout did not close a factor pair within {max_shots} shots"
+    ))
+}
+
+/// Return None for a completed shot budget without closure. Device,
+/// compilation, and readout failures remain errors for the caller to handle.
+#[allow(clippy::too_many_arguments)]
+pub fn try_factor_with_anyons<D: FibonacciAnyonDevice>(
+    n: &BigUint,
+    base: &BigUint,
+    max_shots: u32,
+    device: D,
+    sk_depth: usize,
+    net_depth: usize,
+    max_gates: usize,
+    refinement: usize,
+    minimum_accuracy_bits: usize,
+) -> Result<Option<AnyonicFactorization>, String> {
     if n.bits() < 128 || max_shots == 0 {
         return Err("anyonic phase factorization requires a source of at least 128 bits and a positive shot budget".into());
     }
@@ -807,19 +829,17 @@ pub fn factor_semiprime_with_anyons<D: FibonacciAnyonDevice>(
             .execute_factor_shot(&program)
             .map_err(|error| format!("anyon phase shot {shots} failed: {error}"))?;
         if let Some(pair) = readout.result_pair {
-            return Ok(AnyonicFactorization {
+            return Ok(Some(AnyonicFactorization {
                 source: pair.source,
                 base: pair.base,
                 order: pair.order,
                 p: pair.p,
                 q: pair.q,
                 shots,
-            });
+            }));
         }
     }
-    Err(format!(
-        "anyon phase readout did not close a factor pair within {max_shots} shots"
-    ))
+    Ok(None)
 }
 
 impl FibonacciBraidCompiler {
