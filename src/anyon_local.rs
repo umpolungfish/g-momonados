@@ -160,6 +160,7 @@ impl FibonacciLocal {
     /// Fixed-precision local target for the streamed carrier's gate request.
     /// CNOT needs a two-qubit computational subspace and leakage checks.
     pub fn target(&self, gate: &BraidTarget) -> Result<LocalMatrix, String> {
+        let reduced_gate = gate.reduced_feedback();
         let zero = FixedComplex {
             re: BigInt::zero(),
             im: BigInt::zero(),
@@ -168,7 +169,7 @@ impl FibonacciLocal {
             re: self.format.scale(),
             im: BigInt::zero(),
         };
-        match gate {
+        match &reduced_gate {
             BraidTarget::X(_) => Ok(LocalMatrix([zero.clone(), one.clone(), one, zero])),
             BraidTarget::H(_) => {
                 let scale = self
@@ -478,5 +479,48 @@ mod tests {
                     .unwrap();
             assert_eq!(a, b);
         }
+    }
+
+    #[test]
+    fn dyadic_feedback_reduction_preserves_source_width_phase() {
+        let source = BigUint::parse_bytes(
+            b"296650821743515430283258444261036507151",
+            10,
+        )
+        .unwrap();
+        assert_eq!(source.bits(), 128);
+        let algebra = FibonacciLocal::new(&source).unwrap();
+        let unreduced = algebra
+            .target(&BraidTarget::Feedback {
+                qubit: 0,
+                numerator: BigUint::from(12u8),
+                denominator_bits: 8,
+            })
+            .unwrap();
+        let reduced = algebra
+            .target(&BraidTarget::Feedback {
+                qubit: 0,
+                numerator: BigUint::from(3u8),
+                denominator_bits: 6,
+            })
+            .unwrap();
+        assert!(unreduced
+            .0
+            .iter()
+            .zip(&reduced.0)
+            .all(|(left, right)| left == right));
+        assert_eq!(
+            BraidTarget::Feedback {
+                qubit: 0,
+                numerator: BigUint::zero(),
+                denominator_bits: usize::MAX,
+            }
+            .reduced_feedback(),
+            BraidTarget::Feedback {
+                qubit: 0,
+                numerator: BigUint::zero(),
+                denominator_bits: 0,
+            }
+        );
     }
 }

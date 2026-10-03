@@ -81,7 +81,13 @@ the width-validation path; it does not yet synthesize nontrivial feedback at
 that full precision.
 
 `FibonacciBraidCompiler` caches source-bound CNOT and one-qubit templates and
-streams target generators to a caller-provided sink. Its CNOT lowering routes
+streams target generators to a caller-provided sink. It retains its local gate
+net across distinct feedback targets in one shot, so changing the measured
+phase does not rebuild the same exponentially growing search net. Dyadic
+feedback fractions are reduced by their common powers of two before target
+construction; this preserves the phase and avoids requesting denominator bits
+the reduced fraction does not contain. A source-width check confirms that
+`12/2^8` and `3/2^6` produce identical fixed-point targets. Its CNOT lowering routes
 nonadjacent logical wires with generated adjacent CNOT and SWAP braid words,
 then reverses the route. The 128-bit semiprime check confirms repeatable stream
 output within a compiler instance, reverse-wire output, generator bounds, and
