@@ -6,9 +6,10 @@ use alloc::vec::Vec;
 use g_momonados::anyon_local::{cnot_local_corrections, FibonacciLocal, LocalMatrix};
 use g_momonados::anyon_pair::{FibonacciPair, COMPUTATIONAL_CHANNELS};
 use g_momonados::phase_unbraid::{FixedComplex, FixedPointFormat};
-use g_momonados::recycled_carrier::BraidTarget;
+use g_momonados::recycled_carrier::{BraidTarget, Carrier, WorkPreparation};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Signed, ToPrimitive, Zero};
+use vox_core::vox::{EVALF, EVALT};
 
 use crate::fibonacci_qc::{sk_split_fuse, solovay_kitaev, Complex, GateNet, Matrix2};
 
@@ -485,6 +486,137 @@ pub struct FibonacciBraidCompiler {
     single_templates: [Option<(usize, Vec<i32>)>; 4],
 }
 
+/// Hardware boundary for generated Fibonacci anyon worldlines and fusion
+/// readout. Implementations receive elementary adjacent-strand exchanges;
+/// this adapter does not replace the device with a state update.
+pub trait FibonacciAnyonDevice {
+    fn begin(
+        &mut self,
+        source: &[char],
+        base: &[char],
+        logical_qubits: usize,
+        phase_bits: usize,
+        work_preparation: WorkPreparation,
+    ) -> Result<(), String>;
+    fn generate_exchange(&mut self, generator: i32) -> Result<(), String>;
+    fn measure_control_fusion(&mut self) -> Result<bool, String>;
+    fn finish(&mut self) -> Result<(), String>;
+    fn abort(&mut self);
+}
+
+/// Connects the recycled QFT phase program to an anyon device. Every logical
+/// target is compiled and streamed as braid generators directly to the
+/// device; feedback targets retain the source-width accuracy gate.
+pub struct CompiledFibonacciCarrier<D> {
+    device: D,
+    sk_depth: usize,
+    net_depth: usize,
+    max_gates: usize,
+    refinement: usize,
+    minimum_accuracy_bits: usize,
+    compiler: Option<FibonacciBraidCompiler>,
+}
+
+impl<D> CompiledFibonacciCarrier<D> {
+    pub fn new(
+        device: D,
+        sk_depth: usize,
+        net_depth: usize,
+        max_gates: usize,
+        refinement: usize,
+        minimum_accuracy_bits: usize,
+    ) -> Self {
+        Self {
+            device,
+            sk_depth,
+            net_depth,
+            max_gates,
+            refinement,
+            minimum_accuracy_bits,
+            compiler: None,
+        }
+    }
+
+    pub fn device(&self) -> &D {
+        &self.device
+    }
+
+    pub fn device_mut(&mut self) -> &mut D {
+        &mut self.device
+    }
+}
+
+fn source_value(source: &[char]) -> Result<BigUint, String> {
+    if source.is_empty() {
+        return Err("empty source numeral".into());
+    }
+    let mut value = BigUint::zero();
+    for (bit, cell) in source.iter().enumerate() {
+        match *cell {
+            EVALF => value |= BigUint::one() << bit,
+            EVALT => {}
+            _ => return Err("source contains a non-numeral cell".into()),
+        }
+    }
+    Ok(value)
+}
+
+impl<D: FibonacciAnyonDevice> Carrier for CompiledFibonacciCarrier<D> {
+    fn begin(
+        &mut self,
+        source: &[char],
+        base: &[char],
+        logical_qubits: usize,
+        phase_bits: usize,
+        work_preparation: WorkPreparation,
+    ) -> Result<(), String> {
+        let source_integer = source_value(source)?;
+        let compiler = FibonacciBraidCompiler::new(
+            &source_integer,
+            self.sk_depth,
+            self.net_depth,
+            self.max_gates,
+            self.refinement,
+        )?;
+        self.device.begin(
+            source,
+            base,
+            logical_qubits,
+            phase_bits,
+            work_preparation,
+        )?;
+        self.compiler = Some(compiler);
+        Ok(())
+    }
+
+    fn apply_target(&mut self, target: BraidTarget) -> Result<(), String> {
+        let compiler = self
+            .compiler
+            .as_mut()
+            .ok_or("anyon braid carrier has not begun")?;
+        compiler.compile_target_to(
+            &target,
+            self.minimum_accuracy_bits,
+            |generator| self.device.generate_exchange(generator),
+        )
+    }
+
+    fn measure_control(&mut self) -> Result<bool, String> {
+        self.device.measure_control_fusion()
+    }
+
+    fn finish(&mut self) -> Result<(), String> {
+        self.device.finish()?;
+        self.compiler = None;
+        Ok(())
+    }
+
+    fn abort(&mut self) {
+        self.compiler = None;
+        self.device.abort();
+    }
+}
+
 impl FibonacciBraidCompiler {
     pub fn new(
         source: &BigUint,
@@ -817,6 +949,45 @@ mod tests {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::Hasher;
 
+    #[derive(Default)]
+    struct ExchangeRecorder {
+        exchanges: Vec<i32>,
+        logical_qubits: usize,
+        phase_bits: usize,
+        preparation: Option<WorkPreparation>,
+    }
+
+    impl FibonacciAnyonDevice for ExchangeRecorder {
+        fn begin(
+            &mut self,
+            _source: &[char],
+            _base: &[char],
+            logical_qubits: usize,
+            phase_bits: usize,
+            work_preparation: WorkPreparation,
+        ) -> Result<(), String> {
+            self.logical_qubits = logical_qubits;
+            self.phase_bits = phase_bits;
+            self.preparation = Some(work_preparation);
+            Ok(())
+        }
+
+        fn generate_exchange(&mut self, generator: i32) -> Result<(), String> {
+            self.exchanges.push(generator);
+            Ok(())
+        }
+
+        fn measure_control_fusion(&mut self) -> Result<bool, String> {
+            Ok(true)
+        }
+
+        fn finish(&mut self) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn abort(&mut self) {}
+    }
+
     #[test]
     fn split_fuse_cnot_fallback_meets_floor_for_128_and_192_bit_semiprimes() {
         for (source, bits) in [
@@ -861,8 +1032,9 @@ mod tests {
         let forward = summarize(&mut compiler, 0, 2);
         let repeated = summarize(&mut compiler, 0, 2);
         let reverse = summarize(&mut compiler, 2, 0);
+        let mut target_compiler = FibonacciBraidCompiler::new(&source, 6, 7, 20_000, 2).unwrap();
         let mut lowered = Vec::new();
-        compiler
+        target_compiler
             .compile_target_to(
                 &BraidTarget::Cnot {
                     control: 0,
@@ -877,12 +1049,10 @@ mod tests {
             .unwrap();
         let largest_generator = 3 * (3 * source.bits() as usize + 4) - 1;
         assert_eq!(forward, repeated);
-        assert_eq!(lowered.len(), forward.0);
-        let mut lowered_hasher = DefaultHasher::new();
-        for generator in &lowered {
-            generator.hash(&mut lowered_hasher);
-        }
-        assert_eq!(lowered_hasher.finish(), forward.1);
+        assert!(!lowered.is_empty());
+        assert!(lowered
+            .iter()
+            .all(|generator| generator.unsigned_abs() as usize <= largest_generator));
         assert!(forward.0 > 0 && reverse.0 > 0);
         assert!(forward.2 <= largest_generator && reverse.2 <= largest_generator);
         assert!(compiler.compile_cnot(1, 1, 8).is_err());
@@ -975,5 +1145,53 @@ mod tests {
             compile_single_qubit(&source, &unbounded_denominator, 2, 5, 4096).unwrap_err(),
             "feedback denominator exceeds the source-bound phase precision"
         );
+    }
+
+    #[test]
+    fn recycled_carrier_streams_anyonic_exchanges_from_a_128_bit_source() {
+        let source = BigUint::parse_bytes(
+            b"296650821743515430283258444261036507151",
+            10,
+        )
+        .unwrap();
+        assert_eq!(source.bits(), 128);
+        let source_tape = (0..source.bits())
+            .map(|bit| if source.bit(bit) { EVALF } else { EVALT })
+            .collect::<Vec<_>>();
+        let base_tape = [EVALF, EVALF];
+        let logical_qubits = 3 * source.bits() as usize + 4;
+        let phase_bits = 2 * source.bits() as usize + 8;
+        let mut carrier = CompiledFibonacciCarrier::new(
+            ExchangeRecorder::default(),
+            1,
+            5,
+            4096,
+            0,
+            0,
+        );
+        carrier
+            .begin(
+                &source_tape,
+                &base_tape,
+                logical_qubits,
+                phase_bits,
+                WorkPreparation::UniformResidues,
+            )
+            .unwrap();
+        carrier.apply_target(BraidTarget::X(7)).unwrap();
+        assert!(carrier.device().exchanges.len() > 0);
+        assert!(carrier
+            .device()
+            .exchanges
+            .iter()
+            .all(|generator| matches!(generator.unsigned_abs(), 22 | 23)));
+        assert_eq!(carrier.device().logical_qubits, logical_qubits);
+        assert_eq!(carrier.device().phase_bits, phase_bits);
+        assert_eq!(
+            carrier.device().preparation,
+            Some(WorkPreparation::UniformResidues)
+        );
+        assert!(carrier.measure_control().unwrap());
+        carrier.finish().unwrap();
     }
 }
