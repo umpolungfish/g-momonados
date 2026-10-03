@@ -1,3 +1,3 @@
-I make saved Fibonacci CNOT words enforce the same residual accuracy floor as compilation.
-I align compile and verification accuracy bits to the fixed-point scale exponent.
-I preserve the passing 128-bit verification and rejected 30-bit control.
+I start recycled phase finding from a uniform mixed distribution over valid modular residues instead of a fixed seed value.
+I make the carrier's uniform-residue preparation request explicit and verify the 128-bit phase shot emits no residue-seeding gate.
+I record the bounded direct CNOT search result and the remaining arithmetic scratch requirement.
