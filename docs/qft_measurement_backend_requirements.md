@@ -100,6 +100,16 @@ This gives a width-independent generated braid with measured finite precision,
 while the feedback-controlled arithmetic carrier and full factor extraction
 remain the downstream execution path.
 
+Depth diagnostics on the same 128-bit semiprime show the word-growth cost of
+the current compiler. With a depth-seven net and exchange refinement two, SK
+depths two, three, and four produced 1,894, 3,708, and 12,850 braid generators
+at 4, 5, and 7 residual accuracy bits. Depth four with a depth-eight net
+produced 15,238 generators at 8 bits. A depth-nine net capped at 100,000
+entries did not improve the depth-three result: it produced 5,248 generators
+at 5 bits. The accepted 24-bit setting remains 1,425,830 generators. The
+current synthesis path therefore has no demonstrated short CNOT word at the
+precision needed by the repeated modular arithmetic circuit.
+
 The bounded direct search `anyon_cnot_compile` also ran on this 128-bit source
 with depth 64, beam width 16, and an 8-bit target. It exhausted its budget; its
 best word retained large computational and leakage residuals. The controlled
