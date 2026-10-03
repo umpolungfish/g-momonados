@@ -66,7 +66,7 @@ mod tests {
             eps: 1e-6,
             reject: 1e-2,
         };
-        let (residual, tier) = pair.belnap_verdict(&[], thresholds).unwrap();
+        let (residual, tier) = pair.belnap_verdict(&[1], thresholds).unwrap();
         assert_eq!(residual.comp, V::F);
         assert_eq!(tier, Tier::Failed);
     }
