@@ -9,4 +9,3 @@ arbitrary factor extraction
   product-closure  closed (godel check mul)
   protocol-conformance  FAIL
   expected-protocol     UNKNOWN / COMPLEX COMPOSITE
-
