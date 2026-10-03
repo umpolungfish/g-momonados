@@ -485,6 +485,7 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
 fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
     use std::io::Write;
     use std::process::{Command, Stdio};
+    use std::time::{Duration, Instant};
     let mut child = Command::new("gp")
         .args(["-q", "-f", "-s", "64000000"])
         .stdin(Stdio::piped())
@@ -501,6 +502,26 @@ fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
         let _ = child.kill();
         let _ = child.wait();
         return None;
+    }
+    // This optional route must yield to the remaining extraction routes.
+    // Killing and reaping our own GP child leaves no abandoned factoring job.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                eprintln!(
+                    "factor extraction: {}-bit native candidate attempt ended; advancing routes",
+                    n.bits()
+                );
+                return None;
+            }
+        }
     }
     let output = child.wait_with_output().ok()?;
     if !output.status.success() {
