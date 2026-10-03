@@ -22,6 +22,8 @@ extern crate alloc;
 pub mod godel_calculus;
 pub mod godel_analyzer;
 // godel_support is a submodule of godel_calculus
+pub mod prime_tool_logic;
+pub mod semiprime_tool_logic;
 
 #[cfg(feature = "hosted")]
 pub mod runtime_nesting;

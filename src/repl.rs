@@ -2102,6 +2102,39 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                     }
                 }
             }
+            "prime_tool" | "prime-tool" => {
+                let input = parts.next().unwrap_or("");
+                if input.is_empty() || input == "help" {
+                    sprintln!("prime_tool: usage: prime_tool <natural-number|cell-binary-word>");
+                } else {
+                    match g_momonados::prime_tool_logic::process_prime(input) {
+                        Ok(report) => sprintln!("{}", g_momonados::prime_tool_logic::render_report(&report)),
+                        Err(error) => sprintln!("prime_tool: {error}"),
+                    }
+                }
+            }
+            "semiprime_tool" | "semiprime-tool" => {
+                let input = parts.next().unwrap_or("");
+                if input.is_empty() || input == "help" {
+                    sprintln!("semiprime_tool: usage: semiprime_tool <natural-number|cell-binary-word>");
+                } else {
+                    match g_momonados::semiprime_tool_logic::process_semiprime(input) {
+                        Ok(report) => sprintln!("{}", g_momonados::semiprime_tool_logic::render_report(&report)),
+                        Err(error) => sprintln!("semiprime_tool: {error}"),
+                    }
+                }
+            }
+            "arbitrary_factor" | "arbitrary-factor" => {
+                let input = parts.next().unwrap_or("");
+                if input.is_empty() || input == "help" {
+                    sprintln!("arbitrary_factor: usage: arbitrary_factor <natural-number|canonical-cell-binary-word>");
+                } else {
+                    match crate::arbitrary_factor::extract(input) {
+                        Ok(report) => sprintln!("{}", report.render()),
+                        Err(error) => sprintln!("arbitrary_factor: {error}"),
+                    }
+                }
+            }
             "trilattice_factor" | "tfactor" => {
                 use crate::trilattice_factor as tf;
                 let sub = parts.next().unwrap_or("");
