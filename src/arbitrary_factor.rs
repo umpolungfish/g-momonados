@@ -29,6 +29,7 @@ pub enum Route {
     OrderWinding,
     Rho,
     AnyonPhase,
+    NativeFactorEngine,
     Prime,
 }
 
@@ -43,6 +44,7 @@ impl Route {
             Self::OrderWinding => "order winding",
             Self::Rho => "rho",
             Self::AnyonPhase => "anyon phase readout",
+            Self::NativeFactorEngine => "native factor engine",
             Self::Prime => "prime (recursion bottom)",
         }
     }
@@ -228,6 +230,10 @@ fn difference_of_squares_bounded(n: &BigUint, steps: u64) -> Option<BigUint> {
 }
 
 fn pollard_brent(n: &BigUint, budget: u64) -> Option<BigUint> {
+    pollard_brent_seeded(n, budget, 0)
+}
+
+fn pollard_brent_seeded(n: &BigUint, budget: u64, seed: u64) -> Option<BigUint> {
     let one = BigUint::one();
     let two = BigUint::from(2u32);
     if n <= &one {
@@ -236,10 +242,10 @@ fn pollard_brent(n: &BigUint, budget: u64) -> Option<BigUint> {
     if (n % &two).is_zero() {
         return Some(two);
     }
-    let c = one.clone();
+    let c = BigUint::from(seed) * 2u32 + &one;
     let m = 128u64;
     let f = |x: &BigUint| -> BigUint { (x * x + &c) % n };
-    let (mut y, mut r, mut g) = (BigUint::from(2u32), 1u64, one.clone());
+    let (mut y, mut r, mut g) = ((BigUint::from(seed) + 2u32) % n, 1u64, one.clone());
     let (mut x, mut ys) = (y.clone(), y.clone());
     let mut spent = 0u64;
     while g == one && spent < budget {
@@ -324,6 +330,25 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
         factor: None,
         detail: "no factor ≤ 2^16".into(),
     });
+    // Perfect squares close immediately, before a native engine is needed.
+    if let Some(p) = difference_of_squares_bounded(n, 1).filter(|p| verified_factor(n, &word, p)) {
+        steps.push(Step {
+            value,
+            route: Route::DifferenceOfSquares,
+            factor: Some(p.to_string()),
+            detail: "first square bridge closes".into(),
+        });
+        return Some(p);
+    }
+    if let Some(p) = native_factor_candidate(n).filter(|p| verified_factor(n, &word, p)) {
+        steps.push(Step {
+            value,
+            route: Route::NativeFactorEngine,
+            factor: Some(p.to_string()),
+            detail: "PARI factor candidate; Gödel multiplication closed".into(),
+        });
+        return Some(p);
+    }
     const SQUARES_WORK: u64 = 4_096;
     if let Some(p) = difference_of_squares_bounded(n, SQUARES_WORK) {
         if verified_factor(n, &word, &p) {
@@ -452,6 +477,91 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
         detail: "rho exhausted its step budget".into(),
     });
     None
+}
+
+/// The local native engine receives N alone. Its output is a candidate and
+/// passes the same word-level split gate as every other route.
+#[cfg(feature = "hosted")]
+fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+    let mut child = Command::new("gp")
+        .args(["-q", "-f", "-s", "64000000"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .ok()?;
+    let input = format!("print(factor({})[1,1]);quit(0)\n", n.to_str_radix(10));
+    let written = child
+        .stdin
+        .take()
+        .and_then(|mut pipe| pipe.write_all(input.as_bytes()).ok());
+    if written.is_none() {
+        let _ = child.kill();
+        let _ = child.wait();
+        return None;
+    }
+    let output = child.wait_with_output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let candidate = core::str::from_utf8(&output.stdout).ok()?.trim();
+    if candidate.is_empty() || !candidate.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    BigUint::parse_bytes(candidate.as_bytes(), 10)
+}
+
+#[cfg(not(feature = "hosted"))]
+fn native_factor_candidate(_: &BigUint) -> Option<BigUint> {
+    None
+}
+
+/// Exhaustion advances seeds and work budgets. A steadily advancing exact
+/// divisor lane runs beside the retries, with no retained state history.
+fn continue_factor(n: &BigUint, steps: &mut Vec<Step>) -> Result<BigUint, String> {
+    let word = word_of(n);
+    let slot = steps.len();
+    steps.push(Step {
+        value: n.to_string(),
+        route: Route::Rho,
+        factor: None,
+        detail: "continuing extraction".into(),
+    });
+    let mut attempt = 1u64;
+    let mut budget = 2_000_000u64;
+    let mut divisor = BigUint::from(65_537u32);
+    loop {
+        #[cfg(feature = "hosted")]
+        std::eprintln!(
+            "factor extraction: {}-bit cofactor, retry {attempt}, rho work {budget}",
+            n.bits()
+        );
+        if let Some(p) =
+            pollard_brent_seeded(n, budget, attempt).filter(|p| verified_factor(n, &word, p))
+        {
+            steps[slot].factor = Some(p.to_string());
+            steps[slot].detail = format!("retry {attempt} closes through Gödel multiplication");
+            return Ok(p);
+        }
+        for _ in 0..1_024 {
+            if &divisor * &divisor > *n {
+                return Err("primality and exhaustive divisor readings disagree".into());
+            }
+            if (n % &divisor).is_zero() && verified_factor(n, &word, &divisor) {
+                steps[slot].route = Route::SieveLane;
+                steps[slot].factor = Some(divisor.to_string());
+                steps[slot].detail =
+                    "continuing divisor lane closes through Gödel multiplication".into();
+                return Ok(divisor);
+            }
+            divisor += 2u32;
+        }
+        attempt = attempt.wrapping_add(1);
+        budget = budget.saturating_mul(2).min(64_000_000);
+        steps[slot].detail = format!("continuing at retry {attempt}, rho work {budget}");
+    }
 }
 
 #[cfg(test)]
@@ -695,7 +805,7 @@ where
     let two = BigUint::from(2u32);
     let mut steps = Vec::new();
     let mut factors: Vec<(BigUint, u32)> = Vec::new();
-    let mut leftover = None;
+    let leftover: Option<BigUint> = None;
     let mut pending = alloc::vec![source_value.clone()];
     let iteration_limit = (source_value.bits() as usize)
         .saturating_mul(2)
@@ -707,12 +817,7 @@ where
         }
         iterations += 1;
         if iterations > iteration_limit {
-            let mut cofactor = n;
-            for pending_value in pending {
-                cofactor = multiply_via_word(&cofactor, &pending_value);
-            }
-            leftover = Some(cofactor);
-            break;
+            return Err("strict-descendant extraction exceeded its structural node bound".into());
         }
         if is_prime(&n.to_string()) == PrimeVerdict::Prime {
             steps.push(Step {
@@ -785,31 +890,23 @@ where
         } else {
             None
         };
-        match measured_factor.or_else(|| one_factor(&n, &mut steps)) {
-            Some(p) => {
-                let (q, rem) = divmod_via_word(&n, &p)
-                    .ok_or_else(|| "word division failed for route candidate".to_string())?;
-                if !rem.is_zero() || !verify_split(&word_of(&n), &p, &q) {
-                    return Err(format!(
-                        "route split failed Gödel multiplication closure: {} × {} against {}",
-                        p, q, n
-                    ));
-                }
-                if p <= one || q <= one || p >= n || q >= n {
-                    return Err("route did not produce two strict descendants".into());
-                }
-                pending.push(p);
-                pending.push(q);
-            }
-            None => {
-                let mut cofactor = n;
-                for pending_value in pending {
-                    cofactor = multiply_via_word(&cofactor, &pending_value);
-                }
-                leftover = Some(cofactor);
-                break;
-            }
+        let p = match measured_factor.or_else(|| one_factor(&n, &mut steps)) {
+            Some(candidate) => candidate,
+            None => continue_factor(&n, &mut steps)?,
+        };
+        let (q, rem) = divmod_via_word(&n, &p)
+            .ok_or_else(|| "word division failed for route candidate".to_string())?;
+        if !rem.is_zero() || !verify_split(&word_of(&n), &p, &q) {
+            return Err(format!(
+                "route split failed Gödel multiplication closure: {} × {} against {}",
+                p, q, n
+            ));
         }
+        if p <= one || q <= one || p >= n || q >= n {
+            return Err("route did not produce two strict descendants".into());
+        }
+        pending.push(p);
+        pending.push(q);
     }
     factors.sort_by(|a, b| a.0.cmp(&b.0));
     let mut compressed: Vec<(BigUint, u32)> = Vec::new();
@@ -835,6 +932,11 @@ where
     let closed = leftover.is_none()
         && product == source_value
         && check(&word_of(&product), Operator::Mul, &word_of(&one), &word).is_ok_and(|eq| eq.valid);
+    if !closed {
+        return Err(
+            "factorization did not reconstruct the source through Gödel multiplication".into(),
+        );
+    }
     let total_multiplicity: u32 = compressed.iter().map(|(_, exponent)| *exponent).sum();
     let expected_protocol = if !closed {
         "UNRESOLVED"

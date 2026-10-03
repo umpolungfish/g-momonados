@@ -1,6 +1,6 @@
     Blocking waiting for file lock on artifact directory
    Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
-    Finished `release` profile [optimized] target(s) in 1m 49s
+    Finished `release` profile [optimized] target(s) in 1m 38s
      Running unittests src/lib.rs (target/release/deps/g_momonados-abeafce3b6dd8c30)
 
 running 9 tests
@@ -9,10 +9,9 @@ test arbitrary_factor::tests::preserves_stripped_prime_power_multiplicity_on_a_1
 test arbitrary_factor::tests::verifies_an_anyon_candidate_for_a_balanced_128_bit_source ... ok
 test arbitrary_factor::tests::descends_recursively_when_an_anyon_candidate_is_itself_composite ... ok
 test arbitrary_factor::tests::falls_through_an_invalid_anyon_candidate_and_preserves_device_errors ... ok
-test arbitrary_factor::tests::closes_a_128_bit_prime_square_through_godel_multiplication ... ok
 test arbitrary_factor::tests::continues_the_ladder_after_an_unclosed_shot_budget ... ok
 test arbitrary_factor::tests::factors_an_unbalanced_128_bit_semiprime ... ok
+test arbitrary_factor::tests::closes_a_128_bit_prime_square_through_godel_multiplication ... ok
 test arbitrary_factor::tests::closes_certified_unstructured_candidate_fixtures_at_all_required_widths ... ok
 
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 206 filtered out; finished in 12.53s
-
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 206 filtered out; finished in 11.28s

@@ -6,4 +6,3 @@ test factor_routes::tests::duplicate_relations_do_not_grow_the_basis_on_a_128_bi
 test factor_routes::tests::streaming_dependency_closes_on_a_130_bit_semiprime ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 213 filtered out; finished in 0.04s
-
