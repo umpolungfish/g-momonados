@@ -149,8 +149,28 @@ source-width CNOT residual does not reach the requested number of bits. The
 local net is built from the generators
 recoupled into the pair basis used by the CNOT target. The complete emitted word
 is reevaluated in source-width fixed point after recoupling before its residual
-is reported. `anyon_cnot_verify N <report> [minimum_accuracy_bits]`
+is reported. `anyon_cnot_verify N <report> [minimum_accuracy_bits=0] [eps=1e-6] [reject=1e-2]`
 reevaluates a saved word and enforces the requested floor independently.
+It also reports the computational and leakage Belnap values and their tier.
+Computational classification includes the maximum of the computational and
+unitarity residuals; leakage classification uses the maximum leakage amplitude
+component. Both comparisons operate directly on the BigUint residuals and the
+fixed-point scale. The finite floating-point thresholds are interpreted as
+exact dyadic rationals, so comparison requires no residual conversion or
+truncation. Thresholds must satisfy `0 <= eps < reject`. Zero clean tolerance
+therefore affirms only an exactly zero residual, including at 2048-bit source
+width. The caller's tolerance-based tier is reported alongside the raw residuals
+and the independently enforced accuracy floor.
+
+Exact threshold checks cover source widths 128, 256, 512, 1024, and 2048,
+including a positive one-unit residual at zero clean tolerance and comparisons
+at both band boundaries. Subnormal thresholds and invalid configurations have
+separate checks. Saved-word verification of the 24,672-generator CNOT for the
+128-bit source `296650821743515430283258444261036507151` reaches nine residual
+accuracy bits. Its default Belnap verdict is computational `B`, leakage `T`,
+tier `Inconsistent`. With caller thresholds `eps=0.002`, `reject=0.01`, its
+verdict is `T,T`, tier `Terminal`. These are tolerance-dependent classifications
+of the same raw residual; the braid's residual remains positive.
 
 The split/fuse CNOT compiler was run on unstructured semiprimes at 128, 256,
 512, 1024, and 2048 bits. At every width it emitted 24,672 Fibonacci generators
@@ -201,6 +221,24 @@ residue by repeated squaring. It does not calculate the conditional inner
 product below. The historical `measure_and_descend_arithmetic_reference` is
 test-only and calls `resident_order` before creating its sample; it cannot
 serve as the requested production measurement backend.
+
+## Bounded arbitrary extraction
+
+`arbitrary_factor` recursively processes both descendants of a verified split
+and preserves stripped prime-power multiplicities when combining its result.
+Every route candidate must pass exact division and Gödel multiplication closure
+before it is returned by the ladder. An invalid candidate falls through to the
+next available route. Final closure includes the multiplicities of every prime
+factor.
+
+The 128-bit regression cases cover a prime square, an unbalanced semiprime with
+a 21-bit prime and a 107-bit Mersenne prime, and a composite with 39 powers of
+two beside an 89-bit Mersenne prime. The unbalanced case is labelled explicitly
+as such. The balanced, unstructured 128-bit source
+`296650821743515430283258444261036507151` exhausts the current route apertures
+and the two-million-step Brent budget. Its whole source remains the unresolved
+cofactor, product closure is `OPEN`, and the CLI exits with status two. This
+measured case remains a requirement for complete arbitrary factor extraction.
 
 ## Required calculation
 

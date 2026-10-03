@@ -1,1 +1,3 @@
-I compile the Fibonacci CNOT braid at 128, 256, 512, 1024, and 2048 bits, meeting nine residual accuracy bits at every width. I record the width measurements and add the 2048-bit RSA modulus to the modular gate-stream test.
+I preserve exact anyonic verdicts and verified factor multiplicities.
+
+I compare BigUint residuals with exact Belnap thresholds through 2048-bit source widths and report verdicts when verifying saved CNOT braids. I preserve stripped factor multiplicities and verify each route candidate before accepting its split. I record the successful 128-bit multiplicity closure and the unresolved balanced semiprime result.
