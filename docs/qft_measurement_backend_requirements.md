@@ -77,13 +77,13 @@ source-width CNOT residual does not reach the requested number of bits. The
 local net is built from the generators
 recoupled into the pair basis used by the CNOT target. The complete emitted word
 is reevaluated in source-width fixed point after recoupling before its residual
-is reported. `anyon_cnot_verify N <report>` reevaluates a saved word at another
-source width.
+is reported. `anyon_cnot_verify N <report> [minimum_accuracy_bits]`
+reevaluates a saved word and enforces the requested floor independently.
 
 For the 128-bit semiprime `296650821743515430283258444261036507151`, SK depth
 seven with a depth-seven net and a 20-bit accuracy floor produced a
-1,425,830-generator word. The compile pass measured 24 residual accuracy bits;
-`anyon_cnot_verify` independently reevaluated the saved word and measured 25.
+1,425,830-generator word. Both the compile pass and the independent saved-word
+verifier measure 24 residual accuracy bits.
 The same settings at SK depth two fail the 20-bit floor. Synthesis depth eight
 did not return within the run window; the accepted measurements use depth seven.
 This gives a width-independent generated braid with measured finite precision,
