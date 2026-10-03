@@ -264,6 +264,22 @@ fn local_phase_target(format: &FixedPointFormat) -> Result<LocalMatrix, String> 
 }
 
 pub fn compile(args: &[&str]) -> Result<String, String> {
+    match compile_variant(args, false) {
+        Ok(report) => Ok(report),
+        Err(error) if error.starts_with("CNOT braid reaches ") => {
+            compile_variant(args, true).map_err(|split_error| {
+                if split_error.starts_with("CNOT braid reaches ") {
+                    split_error
+                } else {
+                    error
+                }
+            })
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn compile_variant(args: &[&str], split_fuse: bool) -> Result<String, String> {
     if args.is_empty() || args.len() > 6 {
         return Err("usage: anyon_cnot_word N [sk_depth=2] [net_depth=7] [max_gates=20000] [exchange_refinement=2] [minimum_accuracy_bits=0]".into());
     }
@@ -288,9 +304,10 @@ pub fn compile(args: &[&str]) -> Result<String, String> {
     let target_net = build_local_net(pair_local_generators(&pair, true)?, net_depth, max_gates);
     let control_net = build_local_net(pair_local_generators(&pair, false)?, net_depth, max_gates);
     let scale = local.format().scale();
-    let (basis, basis_error) = compile_local(&corrections.target_basis, &scale, &target_net, sk_depth)?;
-    let (target_y, y_error) = compile_local(&corrections.target_y, &scale, &target_net, sk_depth)?;
-    let (control_phase, phase_error) = compile_local(&phase, &scale, &control_net, sk_depth)?;
+    let compile_local_gate = if split_fuse { compile_local_split } else { compile_local };
+    let (basis, basis_error) = compile_local_gate(&corrections.target_basis, &scale, &target_net, sk_depth)?;
+    let (target_y, y_error) = compile_local_gate(&corrections.target_y, &scale, &target_net, sk_depth)?;
+    let (control_phase, phase_error) = compile_local_gate(&phase, &scale, &control_net, sk_depth)?;
 
     // The target triple occupies the right end of the six-strand register.
     // Its two local generators are sigma_4 and sigma_5. The control triple
@@ -380,6 +397,27 @@ pub fn verify_file(args: &[&str]) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn split_fuse_cnot_fallback_meets_floor_for_128_and_192_bit_semiprimes() {
+        for (source, bits) in [
+            ("296650821743515430283258444261036507151", 128),
+            ("3448910520600450090963625683018141073856509123385137086401", 192),
+        ] {
+            let report = compile(&[source, "4", "7", "20000", "2", "8"]).unwrap();
+            assert!(report.starts_with(&format!("source_bits={bits} ")));
+            assert!(report.contains("residual_accuracy_bits=9\n"));
+            assert!(report.contains("physical_word_length=24672 "));
+        }
+    }
+
+    #[test]
+    fn cnot_compiler_keeps_shorter_regular_word_when_it_meets_floor() {
+        let source = "296650821743515430283258444261036507151";
+        let report = compile(&[source, "7", "7", "20000", "2", "20"]).unwrap();
+        assert!(report.contains("residual_accuracy_bits=24\n"));
+        assert!(report.contains("physical_word_length=1425830 "));
+    }
 
     #[test]
     fn single_qubit_gates_compile_to_offset_anyon_braids_on_128_bit_semiprime() {
