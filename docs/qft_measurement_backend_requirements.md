@@ -25,10 +25,27 @@ does not eliminate work proportional to the occupied residue count.
 Vox's `structural_quantum_executor::Program` describes controlled modular powers,
 inverse Fourier transformation and measurement. G-mOMonadOS implements Vox's
 `Executor` trait with `RecycledCarrierExecutor<C>`, which streams the reversible
-gates and requests one measured control bit at each phase step. It still needs a
-concrete production `Carrier` that compiles those requests into multi-register
-anyon braids and returns fusion measurements. Vox's test-only `InjectedControl`
-supplies test bits and does not implement that carrier.
+gates and requests one measured control bit at each phase step.
+`anyon_braid_cnot::factor_semiprime_with_anyons` binds a chosen coprime base to
+the resident source, compiles each target to Fibonacci exchanges, executes
+shots through a caller-supplied `FibonacciAnyonDevice`, and returns only a pair
+whose product closes on the source. Vox's
+`FixedPointQuantumMembrane::from_n_with_base` preserves a selected base through
+the phase program, so an unproductive orbit can be retried with another base.
+The compiler retains source-bound gate templates across completed shots.
+`anyon_device::FibonacciGenerator` is the concrete streamed controller adapter.
+It sends little-endian source/base words and adjacent Fibonacci exchanges over
+the `g-momonados/fibonacci-anyons-v1` newline-delimited JSON protocol. It sends
+no phase or factor result to the controller. Each control-fusion request blocks
+for the controller's measured `fusion_bit`, which is the bit consumed by the
+QFT phase accumulator. `g-momonados anyon_factor N base max_shots socket` runs
+the complete membrane through a Unix-domain controller connection and returns
+only a factor pair whose product is N.
+
+The controller protocol is an execution contract, not a local source of
+measurement values. The transport test checks the 128-bit semiprime-bound
+request, exchange streaming, and readout decoding; a live controller run is
+required to ground measured phase and factor closure.
 
 `Carrier::begin` prepares the phase control in `|0⟩` and the modular value
 register in the uniform mixture `1/N Σₓ₌₀ᴺ⁻¹ |x⟩⟨x|`. `execute_shot` applies no
@@ -43,9 +60,9 @@ scratch construction to meet the single-pure-qubit resource condition.
 The reversible arithmetic emitter has a separate width-scaling check. It
 streams controlled modular multiplication through an elementary-gate callback,
 retains O(n) qubit workspace, and satisfies a 96n² gate bound on unstructured
-semiprimes from 128 through 1024 bits for multipliers 2 and N−1. Both dense and
-sparse constants emit about 91.6 million gates at 1024 bits, versus about 1.43
-million at 128 bits. The test retains no gate list and applies no state-vector
+semiprimes at 128, 192, 256, 512, 1024, and 2048 bits for multipliers 2 and
+N−1. The 2048-bit case emits about 367 million gates for each multiplier while
+allocating 6148 qubits. The test retains no gate list and applies no state-vector
 update. Repeating the multiplication for the QFT control powers raises the
 circuit count by another factor proportional to n; this check establishes the
 arithmetic-emission scaling, not phase measurement or factor extraction.
@@ -92,8 +109,9 @@ nonadjacent logical wires with generated adjacent CNOT and SWAP braid words,
 then reverses the route. The 128-bit semiprime check confirms repeatable stream
 output within a compiler instance, reverse-wire output, generator bounds, and
 valid CNOT output through target lowering. This verifies anyon-word generation
-and the compiler interface; no physical fusion readout backend is connected
-yet. The local matrices used for algebra and accuracy checks do not serve as an
+and the compiler interface. The streamed controller adapter supplies the
+fusion-readout boundary; a live physical controller session has not been run.
+The local matrices used for algebra and accuracy checks do not serve as an
 execution substrate.
 
 `CompiledFibonacciCarrier<D>` now implements the recycled executor's `Carrier`
@@ -103,8 +121,17 @@ uniform-residue preparation request, then delegates control fusion readout,
 finish, and abort to the device. The 128-bit semiprime adapter test checks that
 the requested register sizing reaches the device and that an X on logical wire
 7 generates only that wire's adjacent strand exchanges. This is the executor
-integration point; a concrete physical device implementation is still absent,
-and nontrivial full-width feedback currently fails its precision gate.
+integration point; the controller wire adapter exists, but live controller
+execution remains unverified. Feedback rotations retain
+their full source-width dyadic angles, while braid approximation now uses an
+approximate-QFT error budget. For an `m`-bit phase tape, each feedback unitary
+is compiled to error at most `1/(64m)`, bounding the accumulated operator
+error across at most `m` corrections by `1/64`. This reduces the required
+synthesis tolerance from O(m) bits to O(log m) bits without shortening the
+measured phase tape. A nontrivial feedback rotation with a 264-bit denominator
+compiled for a 128-bit semiprime at the derived 15-bit gate tolerance. That
+single-correction result does not establish the full phase circuit or factor
+closure.
 
 The required compiler path is algebraic. Kliuchnikov, Bocharov, and Svore
 approximate the target in the Fibonacci cyclotomic ring `Z[ω]`, complete the
@@ -124,6 +151,13 @@ recoupled into the pair basis used by the CNOT target. The complete emitted word
 is reevaluated in source-width fixed point after recoupling before its residual
 is reported. `anyon_cnot_verify N <report> [minimum_accuracy_bits]`
 reevaluates a saved word and enforces the requested floor independently.
+
+The split/fuse CNOT compiler was run on unstructured semiprimes at 128, 256,
+512, 1024, and 2048 bits. At every width it emitted 24,672 Fibonacci generators
+and measured nine residual accuracy bits. The debug sweep took 270.09 seconds;
+the width-dependent fixed-point compilation is the measured cost. These runs
+verify CNOT word generation at each source width and do not execute phase
+feedback or factor extraction.
 
 For the 128-bit semiprime `296650821743515430283258444261036507151`, SK depth
 seven with a depth-seven net and a 20-bit accuracy floor produced a
@@ -210,4 +244,7 @@ algorithm](https://arxiv.org/html/1712.07311v4), Sections 4 and 5.2.
 - Verified multiplication of returned factors to the baked input, without
   fixture factors entering the execution path.
 
-No factoring test or quantum job was run for this assessment.
+The width sweeps verify reversible arithmetic emission and Fibonacci CNOT word
+generation. The controller adapter now connects measured fusion bits to the
+phase accumulator. The local transport check uses a protocol response fixture;
+it is not a device measurement or factor closure.
