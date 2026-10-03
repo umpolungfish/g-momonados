@@ -177,6 +177,16 @@ fn verify_split(source_word: &str, p: &BigUint, q: &BigUint) -> bool {
     matches!(check(&word_of(p), Operator::Mul, &word_of(q), source_word), Ok(eq) if eq.valid)
 }
 
+fn verified_factor(n: &BigUint, word: &str, p: &BigUint) -> bool {
+    if p <= &BigUint::one() || p >= n {
+        return false;
+    }
+    let Some((q, remainder)) = divmod_via_word(n, p) else {
+        return false;
+    };
+    remainder.is_zero() && q > BigUint::one() && verify_split(word, p, &q)
+}
+
 fn difference_of_squares_bounded(n: &BigUint, steps: u64) -> Option<BigUint> {
     use crate::native_numeral::isqrt;
     let one = BigUint::one();
@@ -265,7 +275,7 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
     let two = BigUint::from(2u32);
     let value = n.to_str_radix(10);
     let word = word_of(n);
-    if modulo_via_word(n, &two)?.is_zero() {
+    if modulo_via_word(n, &two)?.is_zero() && verified_factor(n, &word, &two) {
         steps.push(Step {
             value,
             route: Route::Trivial,
@@ -277,7 +287,7 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
     match prime_sieve_read(&word, 1usize << 16) {
         Ok(PrimeSieveRead::Factor { p, .. }) => {
             let p = nat_to_biguint(&p);
-            if p > one && &p < n {
+            if verified_factor(n, &word, &p) {
                 steps.push(Step {
                     value,
                     route: Route::SieveLane,
@@ -298,7 +308,7 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
     });
     const SQUARES_WORK: u64 = 4_096;
     if let Some(p) = difference_of_squares_bounded(n, SQUARES_WORK) {
-        if p > one && &p < n {
+        if verified_factor(n, &word, &p) {
             steps.push(Step {
                 value: value.clone(),
                 route: Route::DifferenceOfSquares,
@@ -323,7 +333,8 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
     const RELATION_WORK: u64 = 512;
     const ORDER_WORK: u64 = 64;
     const RHO_WORK: u64 = 2_000_000;
-    if let Some(p) = winding_bridge(n, BRIDGE_BOUND.min(BRIDGE_WORK)).filter(|p| p > &one && p < n)
+    if let Some(p) =
+        winding_bridge(n, BRIDGE_BOUND.min(BRIDGE_WORK)).filter(|p| verified_factor(n, &word, p))
     {
         steps.push(Step {
             value: value.clone(),
@@ -342,7 +353,7 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
     if let Some((p, _)) =
         congruence_split(n, CONGRUENCE_FB_BOUND, CONGRUENCE_TRIALS.min(RELATION_WORK))
     {
-        if p > one && &p < n {
+        if verified_factor(n, &word, &p) {
             steps.push(Step {
                 value: value.clone(),
                 route: Route::CongruenceSieve,
@@ -364,7 +375,7 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
             continue;
         }
         let shared = big_gcd(a.clone(), n.clone());
-        if shared > one && &shared < n {
+        if verified_factor(n, &word, &shared) {
             steps.push(Step {
                 value: value.clone(),
                 route: Route::OrderWinding,
@@ -387,7 +398,7 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
                 break;
             }
             let p = big_gcd(subtract_via_word(&a_half, &one)?, n.clone());
-            if p > one && &p < n {
+            if verified_factor(n, &word, &p) {
                 steps.push(Step {
                     value: value.clone(),
                     route: Route::OrderWinding,
@@ -405,7 +416,9 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
         factor: None,
         detail: "no base closed in leap budget".into(),
     });
-    if let Some(p) = pollard_brent(n, LEAP_STEPS.min(RHO_WORK)).filter(|p| p > &one && p < n) {
+    if let Some(p) =
+        pollard_brent(n, LEAP_STEPS.min(RHO_WORK)).filter(|p| verified_factor(n, &word, p))
+    {
         steps.push(Step {
             value,
             route: Route::Rho,
@@ -425,8 +438,39 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
 
 #[cfg(test)]
 mod tests {
-    use super::{extract, word_of, Route, SEMIPRIME_PROTOCOL};
+    use super::{extract, verified_factor, word_of, Route, SEMIPRIME_PROTOCOL};
     use num_bigint::BigUint;
+    use num_traits::One;
+
+    #[test]
+    fn preserves_stripped_prime_power_multiplicity_on_a_128_bit_source() {
+        let prime = (BigUint::one() << 89usize) - BigUint::one();
+        let source = &prime << 39usize;
+        assert_eq!(source.bits(), 128);
+        let report = extract(&source.to_str_radix(10)).unwrap();
+        assert!(report.verified, "{}", report.render());
+        assert_eq!(
+            report.factors,
+            vec![("2".to_string(), 39), (prime.to_string(), 1)]
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_route_candidates_against_the_128_bit_source_word() {
+        let source = BigUint::parse_bytes(b"296650821743515430283258444261036507151", 10).unwrap();
+        let prime = BigUint::from(16_925_480_323_643_806_501u64);
+        assert_eq!(source.bits(), 128);
+        let word = word_of(&source);
+        assert!(verified_factor(&source, &word, &prime));
+        assert!(!verified_factor(&source, &word, &(&prime + BigUint::one())));
+        assert!(!verified_factor(
+            &source,
+            &word_of(&(&source + BigUint::one())),
+            &prime
+        ));
+        assert!(!verified_factor(&source, &word, &BigUint::one()));
+        assert!(!verified_factor(&source, &word, &source));
+    }
 
     #[test]
     fn closes_a_128_bit_prime_square_through_godel_multiplication() {
@@ -448,10 +492,10 @@ mod tests {
     }
 
     #[test]
-    fn factors_an_unstructured_128_bit_semiprime() {
+    fn factors_an_unbalanced_128_bit_semiprime() {
         // The factors are deliberately far apart, so Fermat's close-factor
-        // route cannot solve this case. The smaller factor sets a practical
-        // deterministic rho workload while the product remains 128-bit.
+        // route cannot solve this case within its budget. Both prime factors
+        // exceed the sieve aperture and their product remains 128-bit.
         let p = BigUint::from(2_097_143u64); // prime, well above the sieve aperture
         let q = BigUint::parse_bytes(b"162259276829213363391578010288127", 10).unwrap(); // 2^107 - 1, prime
         let semiprime = &p * &q;
@@ -565,16 +609,16 @@ pub fn extract(raw: &str) -> Result<Extraction, String> {
     }
     factors.sort_by(|a, b| a.0.cmp(&b.0));
     let mut compressed: Vec<(BigUint, u32)> = Vec::new();
-    for (prime, _) in factors {
+    for (prime, count) in factors {
         if let Some((last, exponent)) = compressed.last_mut() {
             if *last == prime {
                 *exponent = exponent
-                    .checked_add(1)
+                    .checked_add(count)
                     .ok_or_else(|| "factor exponent overflow".to_string())?;
                 continue;
             }
         }
-        compressed.push((prime, 1));
+        compressed.push((prime, count));
     }
     let mut product = one.clone();
     for (p, exponent) in &compressed {
