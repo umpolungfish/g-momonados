@@ -264,22 +264,33 @@ fn local_phase_target(format: &FixedPointFormat) -> Result<LocalMatrix, String> 
 }
 
 pub fn compile(args: &[&str]) -> Result<String, String> {
-    match compile_variant(args, false) {
-        Ok(report) => Ok(report),
+    compile_selected(args, true).map(|candidate| candidate.report)
+}
+
+struct CnotCandidate {
+    report: String,
+    word: Vec<i32>,
+    accuracy_bits: usize,
+}
+
+fn compile_selected(args: &[&str], render_report: bool) -> Result<CnotCandidate, String> {
+    let sk_depth = args.get(1).and_then(|value| value.parse::<usize>().ok()).unwrap_or(2);
+    let minimum_accuracy = args.get(5).and_then(|value| value.parse::<usize>().ok()).unwrap_or(0);
+    let split_first = sk_depth < 7
+        && minimum_accuracy > 0
+        && minimum_accuracy >= sk_depth.saturating_mul(2);
+    match compile_variant(args, split_first, render_report) {
+        Ok(candidate) => Ok(candidate),
         Err(error) if error.starts_with("CNOT braid reaches ") => {
-            compile_variant(args, true).map_err(|split_error| {
-                if split_error.starts_with("CNOT braid reaches ") {
-                    split_error
-                } else {
-                    error
-                }
+            compile_variant(args, !split_first, render_report).map_err(|fallback_error| {
+                format!("{error}; alternate synthesis failed: {fallback_error}")
             })
         }
         Err(error) => Err(error),
     }
 }
 
-fn compile_variant(args: &[&str], split_fuse: bool) -> Result<String, String> {
+fn compile_variant(args: &[&str], split_fuse: bool, render_report: bool) -> Result<CnotCandidate, String> {
     if args.is_empty() || args.len() > 6 {
         return Err("usage: anyon_cnot_word N [sk_depth=2] [net_depth=7] [max_gates=20000] [exchange_refinement=2] [minimum_accuracy_bits=0]".into());
     }
@@ -340,20 +351,422 @@ fn compile_variant(args: &[&str], split_fuse: bool) -> Result<String, String> {
             "CNOT braid reaches {residual_accuracy_bits} residual accuracy bits, below the requested {minimum_accuracy_bits}"
         ));
     }
-    let residual_bits = if residual.maximum().is_zero() { "exact".to_string() }
-        else { format!("2^-{}", (pair.format().w_bits as usize).saturating_sub(residual.maximum().bits() as usize)) };
-    let mut output = format!(
-        "source_bits={} sk_depth={} net_depth={} net_capacity={} refinement={} minimum_accuracy_bits={} residual_accuracy_bits={}\nlocal_projective_errors basis={:.8e} target_y={:.8e} control_phase={:.8e}\nphysical_word_length={} residual={residual_bits}\ncomputational={} leakage={} unitarity={}\nword=",
-        source.bits(), sk_depth, net_depth, max_gates, refinement,
-        minimum_accuracy_bits, residual_accuracy_bits,
-        basis_error, y_error, phase_error, word.len(), residual.computational,
-        residual.leakage, residual.unitarity,
-    );
-    for (index, gate) in word.iter().enumerate() {
-        if index != 0 { output.push(','); }
-        output.push_str(&gate.to_string());
+    let report = if render_report {
+        let residual_bits = if residual.maximum().is_zero() { "exact".to_string() }
+            else { format!("2^-{}", (pair.format().w_bits as usize).saturating_sub(residual.maximum().bits() as usize)) };
+        let mut output = format!(
+            "source_bits={} sk_depth={} net_depth={} net_capacity={} refinement={} minimum_accuracy_bits={} residual_accuracy_bits={}\nlocal_projective_errors basis={:.8e} target_y={:.8e} control_phase={:.8e}\nphysical_word_length={} residual={residual_bits}\ncomputational={} leakage={} unitarity={}\nword=",
+            source.bits(), sk_depth, net_depth, max_gates, refinement,
+            minimum_accuracy_bits, residual_accuracy_bits,
+            basis_error, y_error, phase_error, word.len(), residual.computational,
+            residual.leakage, residual.unitarity,
+        );
+        for (index, gate) in word.iter().enumerate() {
+            if index != 0 { output.push(','); }
+            output.push_str(&gate.to_string());
+        }
+        output
+    } else {
+        String::new()
+    };
+    Ok(CnotCandidate { report, word, accuracy_bits: residual_accuracy_bits })
+}
+
+fn shifted_generator(gate: i32, qubit: usize) -> Result<i32, String> {
+    let offset = qubit
+        .checked_mul(3)
+        .ok_or("logical anyon block offset overflow")?;
+    let offset = i32::try_from(offset).map_err(|_| "logical anyon block exceeds braid index")?;
+    let magnitude = i32::try_from(gate.unsigned_abs())
+        .map_err(|_| "braid generator exceeds index representation")?;
+    let shifted = magnitude
+        .checked_add(offset)
+        .ok_or("shifted braid generator overflow")?;
+    Ok(gate.signum() * shifted)
+}
+
+fn emit_shifted<F>(word: &[i32], qubit: usize, emit: &mut F) -> Result<(), String>
+where
+    F: FnMut(i32) -> Result<(), String>,
+{
+    for &gate in word {
+        emit(shifted_generator(gate, qubit)?)?;
     }
-    Ok(output)
+    Ok(())
+}
+
+fn emit_inverse_shifted<F>(word: &[i32], qubit: usize, emit: &mut F) -> Result<(), String>
+where
+    F: FnMut(i32) -> Result<(), String>,
+{
+    for &gate in word.iter().rev() {
+        emit(shifted_generator(-gate, qubit)?)?;
+    }
+    Ok(())
+}
+
+fn emit_reverse_cnot<F>(cnot: &[i32], hadamard: &[i32], left: usize, emit: &mut F) -> Result<(), String>
+where
+    F: FnMut(i32) -> Result<(), String>,
+{
+    emit_shifted(hadamard, left, emit)?;
+    emit_shifted(hadamard, left + 1, emit)?;
+    emit_shifted(cnot, left, emit)?;
+    emit_shifted(hadamard, left, emit)?;
+    emit_shifted(hadamard, left + 1, emit)
+}
+
+fn emit_inverse_reverse_cnot<F>(cnot: &[i32], hadamard: &[i32], left: usize, emit: &mut F) -> Result<(), String>
+where
+    F: FnMut(i32) -> Result<(), String>,
+{
+    emit_inverse_shifted(hadamard, left + 1, emit)?;
+    emit_inverse_shifted(hadamard, left, emit)?;
+    emit_inverse_shifted(cnot, left, emit)?;
+    emit_inverse_shifted(hadamard, left + 1, emit)?;
+    emit_inverse_shifted(hadamard, left, emit)
+}
+
+fn emit_swap<F>(cnot: &[i32], hadamard: &[i32], left: usize, emit: &mut F) -> Result<(), String>
+where
+    F: FnMut(i32) -> Result<(), String>,
+{
+    emit_shifted(cnot, left, emit)?;
+    emit_reverse_cnot(cnot, hadamard, left, emit)?;
+    emit_shifted(cnot, left, emit)
+}
+
+fn emit_inverse_swap<F>(cnot: &[i32], hadamard: &[i32], left: usize, emit: &mut F) -> Result<(), String>
+where
+    F: FnMut(i32) -> Result<(), String>,
+{
+    emit_inverse_shifted(cnot, left, emit)?;
+    emit_inverse_reverse_cnot(cnot, hadamard, left, emit)?;
+    emit_inverse_shifted(cnot, left, emit)
+}
+
+/// Compile a logical CNOT between any two encoded qubits in a register.
+/// Adjacent CNOT words occupy six consecutive strands; distant wires are
+/// brought together with logical SWAPs, then the routing words are inverted.
+pub fn compile_cnot_target(
+    source: &BigUint,
+    control: usize,
+    target: usize,
+    sk_depth: usize,
+    net_depth: usize,
+    max_gates: usize,
+    refinement: usize,
+    minimum_accuracy_bits: usize,
+) -> Result<Vec<i32>, String> {
+    let mut compiler = FibonacciBraidCompiler::new(
+        source,
+        sk_depth,
+        net_depth,
+        max_gates,
+        refinement,
+    )?;
+    compiler.compile_cnot(control, target, minimum_accuracy_bits)
+}
+
+/// Reuses source-bound local braid templates while streaming gates for one
+/// factorization circuit. Template caches are keyed by the required residual
+/// floor, so repeated arithmetic CNOTs do not rerun Solovay–Kitaev synthesis.
+pub struct FibonacciBraidCompiler {
+    source: BigUint,
+    sk_depth: usize,
+    net_depth: usize,
+    max_gates: usize,
+    refinement: usize,
+    cnot_template: Option<(Vec<i32>, usize)>,
+    hadamard_template: Option<(Vec<i32>, usize)>,
+    single_templates: [Option<(usize, Vec<i32>)>; 4],
+}
+
+impl FibonacciBraidCompiler {
+    pub fn new(
+        source: &BigUint,
+        sk_depth: usize,
+        net_depth: usize,
+        max_gates: usize,
+        refinement: usize,
+    ) -> Result<Self, String> {
+        if source.bits() < 128 {
+            return Err("anyon CNOT compilation requires a source of at least 128 bits".into());
+        }
+        if max_gates == 0 {
+            return Err("net capacity must be positive".into());
+        }
+        Ok(Self {
+            source: source.clone(),
+            sk_depth,
+            net_depth,
+            max_gates,
+            refinement,
+            cnot_template: None,
+            hadamard_template: None,
+            single_templates: core::array::from_fn(|_| None),
+        })
+    }
+
+    fn cnot_template(&mut self, accuracy_bits: usize) -> Result<Vec<i32>, String> {
+        if let Some((word, achieved_bits)) = &self.cnot_template {
+            if *achieved_bits >= accuracy_bits {
+                return Ok(word.clone());
+            }
+        }
+        self.cnot_template = None;
+        let args = [
+            self.source.to_str_radix(10),
+            self.sk_depth.to_string(),
+            self.net_depth.to_string(),
+            self.max_gates.to_string(),
+            self.refinement.to_string(),
+            accuracy_bits.to_string(),
+        ];
+        let refs: Vec<_> = args.iter().map(String::as_str).collect();
+        let candidate = compile_selected(&refs, false)?;
+        let word = candidate.word;
+        self.cnot_template = Some((word.clone(), candidate.accuracy_bits));
+        Ok(word)
+    }
+
+    fn hadamard_template(&mut self, accuracy_bits: usize) -> Result<Vec<i32>, String> {
+        if let Some((word, achieved_bits)) = &self.hadamard_template {
+            if *achieved_bits >= accuracy_bits {
+                return Ok(word.clone());
+            }
+        }
+        self.hadamard_template = None;
+        let target = BraidTarget::H(0);
+        let local = FibonacciLocal::new(&self.source)?;
+        let target_matrix = local.target(&target)?;
+        let mut depth = self.sk_depth;
+        loop {
+            let (word, _) = compile_single_qubit(
+                &self.source,
+                &target,
+                depth,
+                self.net_depth,
+                self.max_gates,
+            )?;
+            let observed = local.evaluate(&word)?;
+            if fixed_projective_error_within(&observed, &target_matrix, accuracy_bits)? {
+                self.hadamard_template = Some((word.clone(), accuracy_bits));
+                return Ok(word);
+            }
+            depth = depth
+                .checked_add(1)
+                .ok_or("Hadamard braid depth overflow")?;
+            if depth > self.sk_depth.saturating_add(4) {
+                return Err("Hadamard braid misses the requested CNOT routing precision".into());
+            }
+        }
+    }
+
+    /// Compile every target emitted by `CarrierGate::lower_for_braid` into
+    /// source-bound Fibonacci generators. The sink receives generators as
+    /// they are produced, allowing direct fusion-hardware or braid-tape use.
+    pub fn compile_target_to<F>(
+        &mut self,
+        target: &BraidTarget,
+        minimum_accuracy_bits: usize,
+        mut emit: F,
+    ) -> Result<(), String>
+    where
+        F: FnMut(i32) -> Result<(), String>,
+    {
+        if let BraidTarget::Cnot { control, target } = target {
+            return self.compile_cnot_to(
+                *control,
+                *target,
+                minimum_accuracy_bits,
+                emit,
+            );
+        }
+
+        let (qubit, local_target, cache_slot, accuracy_bits) = match target {
+            BraidTarget::X(qubit) => (*qubit, BraidTarget::X(0), Some(0), minimum_accuracy_bits),
+            BraidTarget::H(qubit) => (*qubit, BraidTarget::H(0), None, minimum_accuracy_bits),
+            BraidTarget::T { qubit, inverse } => (
+                *qubit,
+                BraidTarget::T { qubit: 0, inverse: *inverse },
+                Some(if *inverse { 3 } else { 2 }),
+                minimum_accuracy_bits,
+            ),
+            BraidTarget::Feedback { qubit, numerator, denominator_bits } => (
+                *qubit,
+                BraidTarget::Feedback {
+                    qubit: 0,
+                    numerator: numerator.clone(),
+                    denominator_bits: *denominator_bits,
+                },
+                None,
+                minimum_accuracy_bits.max(*denominator_bits),
+            ),
+            BraidTarget::Cnot { .. } => unreachable!(),
+        };
+
+        let word = if matches!(local_target, BraidTarget::H(0)) {
+            self.hadamard_template(accuracy_bits)?
+        } else if let Some(slot) = cache_slot {
+            if let Some((achieved, word)) = &self.single_templates[slot] {
+                if *achieved >= accuracy_bits {
+                    word.clone()
+                } else {
+                    self.single_templates[slot] = None;
+                    self.compile_single_template(&local_target, slot, accuracy_bits)?
+                }
+            } else {
+                self.compile_single_template(&local_target, slot, accuracy_bits)?
+            }
+        } else {
+            self.compile_single_uncached(&local_target, accuracy_bits)?
+        };
+        emit_shifted(&word, qubit, &mut emit)
+    }
+
+    fn compile_single_template(
+        &mut self,
+        target: &BraidTarget,
+        slot: usize,
+        accuracy_bits: usize,
+    ) -> Result<Vec<i32>, String> {
+        let word = self.compile_single_uncached(target, accuracy_bits)?;
+        self.single_templates[slot] = Some((accuracy_bits, word.clone()));
+        Ok(word)
+    }
+
+    fn compile_single_uncached(
+        &self,
+        target: &BraidTarget,
+        accuracy_bits: usize,
+    ) -> Result<Vec<i32>, String> {
+        let local = FibonacciLocal::new(&self.source)?;
+        let target_matrix = local.target(target)?;
+        let mut depth = self.sk_depth;
+        loop {
+            let candidate = compile_single_qubit(
+                &self.source,
+                target,
+                depth,
+                self.net_depth,
+                self.max_gates,
+            );
+            let (word, _) = match candidate {
+                Ok(candidate) => candidate,
+                Err(error) if error == "anyon braid misses the requested dyadic feedback precision" => {
+                    depth = depth
+                        .checked_add(1)
+                        .ok_or("feedback braid depth overflow")?;
+                    if depth > self.sk_depth.saturating_add(4) {
+                        return Err(error);
+                    }
+                    continue;
+                }
+                Err(error) => return Err(error),
+            };
+            let observed = local.evaluate(&word)?;
+            if fixed_projective_error_within(&observed, &target_matrix, accuracy_bits)? {
+                return Ok(word);
+            }
+            depth = depth
+                .checked_add(1)
+                .ok_or("single-qubit braid depth overflow")?;
+            if depth > self.sk_depth.saturating_add(4) {
+                return Err("single-qubit braid misses the requested target precision".into());
+            }
+        }
+    }
+
+    pub fn compile_cnot(
+        &mut self,
+        control: usize,
+        target: usize,
+        minimum_accuracy_bits: usize,
+    ) -> Result<Vec<i32>, String> {
+        let mut word = Vec::new();
+        self.compile_cnot_to(control, target, minimum_accuracy_bits, |generator| {
+            word.push(generator);
+            Ok(())
+        })?;
+        Ok(word)
+    }
+
+    /// Stream the routed braid to a sink without retaining a second copy of
+    /// the full distant-wire word.
+    pub fn compile_cnot_to<F>(
+        &mut self,
+        control: usize,
+        target: usize,
+        minimum_accuracy_bits: usize,
+        mut emit: F,
+    ) -> Result<(), String>
+    where
+        F: FnMut(i32) -> Result<(), String>,
+    {
+        if control == target {
+            return Err("CNOT control overlaps target".into());
+        }
+        let width = usize::try_from(self.source.bits()).map_err(|_| "source width exceeds host indexing")?;
+        let logical_qubits = width
+            .checked_mul(3)
+            .and_then(|value| value.checked_add(4))
+            .ok_or("logical register width overflow")?;
+        if control >= logical_qubits || target >= logical_qubits {
+            return Err("CNOT wire lies outside the source-bound arithmetic register".into());
+        }
+        let swap_count = control.abs_diff(target) - 1;
+        let reverse_final = usize::from(control > target);
+        let cnot_count = swap_count
+            .checked_mul(6)
+            .and_then(|value| value.checked_add(1))
+            .ok_or("routed CNOT count overflow")?;
+        let hadamard_count = swap_count
+            .checked_mul(8)
+            .and_then(|value| value.checked_add(reverse_final * 4))
+            .ok_or("routed Hadamard count overflow")?;
+        let component_count = cnot_count
+            .checked_add(hadamard_count)
+            .ok_or("routed gate count overflow")?;
+        let composition_guard = usize::BITS
+            .saturating_sub(component_count.saturating_sub(1).leading_zeros());
+        let component_accuracy_bits = minimum_accuracy_bits
+            .checked_add(composition_guard as usize)
+            .and_then(|value| value.checked_add(usize::from(component_count > 1)))
+            .ok_or("routed CNOT accuracy floor overflow")?;
+        let cnot = self.cnot_template(component_accuracy_bits)?;
+        let h_word = if control > target || control.abs_diff(target) > 1 {
+            self.hadamard_template(component_accuracy_bits)?
+        } else {
+            Vec::new()
+        };
+        let adjacent_left = if control < target {
+            for left in control..target - 1 {
+                emit_swap(&cnot, &h_word, left, &mut emit)?;
+            }
+            target - 1
+        } else {
+            for left in (target + 1..control).rev() {
+                emit_swap(&cnot, &h_word, left, &mut emit)?;
+            }
+            target
+        };
+        if control < target {
+            emit_shifted(&cnot, adjacent_left, &mut emit)?;
+        } else {
+            emit_reverse_cnot(&cnot, &h_word, adjacent_left, &mut emit)?;
+        }
+        if control < target {
+            for left in (control..target - 1).rev() {
+                emit_inverse_swap(&cnot, &h_word, left, &mut emit)?;
+            }
+        } else {
+            for left in target + 1..control {
+                emit_inverse_swap(&cnot, &h_word, left, &mut emit)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 pub fn verify_file(args: &[&str]) -> Result<String, String> {
@@ -397,6 +810,9 @@ pub fn verify_file(args: &[&str]) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::hash::Hash;
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
 
     #[test]
     fn split_fuse_cnot_fallback_meets_floor_for_128_and_192_bit_semiprimes() {
@@ -417,6 +833,57 @@ mod tests {
         let report = compile(&[source, "7", "7", "20000", "2", "20"]).unwrap();
         assert!(report.contains("residual_accuracy_bits=24\n"));
         assert!(report.contains("physical_word_length=1425830 "));
+    }
+
+    #[test]
+    fn nonadjacent_cnot_targets_emit_source_bound_braids_on_128_bit_semiprime() {
+        let source = BigUint::parse_bytes(
+            b"296650821743515430283258444261036507151",
+            10,
+        )
+        .unwrap();
+        let mut compiler = FibonacciBraidCompiler::new(&source, 6, 7, 20_000, 2).unwrap();
+        let summarize = |compiler: &mut FibonacciBraidCompiler, control, target| {
+            let mut hasher = DefaultHasher::new();
+            let mut count = 0usize;
+            let mut largest = 0usize;
+            compiler.compile_cnot_to(control, target, 8, |generator| {
+                generator.hash(&mut hasher);
+                count += 1;
+                largest = largest.max(generator.unsigned_abs() as usize);
+                Ok(())
+            }).unwrap();
+            (count, hasher.finish(), largest)
+        };
+        let forward = summarize(&mut compiler, 0, 2);
+        let repeated = summarize(&mut compiler, 0, 2);
+        let reverse = summarize(&mut compiler, 2, 0);
+        let mut lowered = Vec::new();
+        compiler
+            .compile_target_to(
+                &BraidTarget::Cnot {
+                    control: 0,
+                    target: 2,
+                },
+                8,
+                |generator| {
+                    lowered.push(generator);
+                    Ok(())
+                },
+            )
+            .unwrap();
+        let largest_generator = 3 * (3 * source.bits() as usize + 4) - 1;
+        assert_eq!(forward, repeated);
+        assert_eq!(lowered.len(), forward.0);
+        let mut lowered_hasher = DefaultHasher::new();
+        for generator in &lowered {
+            generator.hash(&mut lowered_hasher);
+        }
+        assert_eq!(lowered_hasher.finish(), forward.1);
+        assert!(forward.0 > 0 && reverse.0 > 0);
+        assert!(forward.2 <= largest_generator && reverse.2 <= largest_generator);
+        assert!(compiler.compile_cnot(1, 1, 8).is_err());
+        assert!(compiler.compile_cnot(usize::MAX, 0, 8).is_err());
     }
 
     #[test]
