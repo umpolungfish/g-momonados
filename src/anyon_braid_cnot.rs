@@ -202,6 +202,9 @@ pub fn compile_single_qubit(
     let algebra = FibonacciLocal::new(source)?;
     let scale = algebra.format().scale();
     let local_target = algebra.target(target)?;
+    if local_target.0 == LocalMatrix::identity(algebra.format()).0 {
+        return Ok((Vec::new(), 0.0));
+    }
     let generators = [1, 2].map(|generator| {
         algebra
             .evaluate(&[generator])
@@ -921,6 +924,56 @@ mod tests {
         assert_eq!(
             compile_single_qubit(&source, &phase, 5, 7, 20_000).unwrap_err(),
             "anyon braid misses the requested dyadic feedback precision"
+        );
+    }
+
+    #[test]
+    fn feedback_phase_bounds_and_integral_turns_on_128_bit_semiprime() {
+        let source = BigUint::parse_bytes(
+            b"296650821743515430283258444261036507151",
+            10,
+        )
+        .unwrap();
+        assert_eq!(source.bits(), 128);
+        let integral_turn = BraidTarget::Feedback {
+            qubit: 0,
+            numerator: BigUint::from(4u8),
+            denominator_bits: 2,
+        };
+        let (word, error): (Vec<i32>, f64) =
+            compile_single_qubit(&source, &integral_turn, 2, 5, 4096).unwrap();
+        assert!(word.is_empty());
+        assert_eq!(error, 0.0);
+
+        let mut compiler = FibonacciBraidCompiler::new(&source, 2, 5, 4096, 0).unwrap();
+        let mut emitted = 0usize;
+        compiler
+            .compile_target_to(&integral_turn, 2, |_| {
+                emitted += 1;
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(emitted, 0);
+
+        let qft_denominator_bits = 2 * source.bits() as usize + 8;
+        let qft_feedback = BraidTarget::Feedback {
+            qubit: 0,
+            numerator: BigUint::one(),
+            denominator_bits: qft_denominator_bits,
+        };
+        FibonacciLocal::new(&source)
+            .unwrap()
+            .target(&qft_feedback)
+            .expect("source-derived QFT phase width must fit the phase precision");
+
+        let unbounded_denominator = BraidTarget::Feedback {
+            qubit: 0,
+            numerator: BigUint::one(),
+            denominator_bits: usize::MAX,
+        };
+        assert_eq!(
+            compile_single_qubit(&source, &unbounded_denominator, 2, 5, 4096).unwrap_err(),
+            "feedback denominator exceeds the source-bound phase precision"
         );
     }
 }
