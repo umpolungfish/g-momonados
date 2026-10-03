@@ -585,13 +585,16 @@ impl<D: FibonacciAnyonDevice> Carrier for CompiledFibonacciCarrier<D> {
         work_preparation: WorkPreparation,
     ) -> Result<(), String> {
         let source_integer = source_value(source)?;
-        let compiler = FibonacciBraidCompiler::new(
-            &source_integer,
-            self.sk_depth,
-            self.net_depth,
-            self.max_gates,
-            self.refinement,
-        )?;
+        let compiler = match self.compiler.take() {
+            Some(compiler) if compiler.source == source_integer => compiler,
+            _ => FibonacciBraidCompiler::new(
+                &source_integer,
+                self.sk_depth,
+                self.net_depth,
+                self.max_gates,
+                self.refinement,
+            )?,
+        };
         self.device.begin(
             source,
             base,
@@ -620,15 +623,85 @@ impl<D: FibonacciAnyonDevice> Carrier for CompiledFibonacciCarrier<D> {
     }
 
     fn finish(&mut self) -> Result<(), String> {
-        self.device.finish()?;
-        self.compiler = None;
-        Ok(())
+        self.device.finish()
     }
 
     fn abort(&mut self) {
         self.compiler = None;
         self.device.abort();
     }
+}
+
+/// Result of one phase readout that closes a source-bound factor pair.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AnyonicFactorization {
+    pub source: BigUint,
+    pub base: BigUint,
+    pub order: BigUint,
+    pub p: BigUint,
+    pub q: BigUint,
+    pub shots: u32,
+}
+
+/// Execute recycled phase estimation by generating each Fibonacci exchange on
+/// the supplied anyon device. The executor retains measured phase bits and
+/// arithmetic constants; it does not construct residue amplitudes or a state
+/// vector. The caller chooses a fresh base when one orbit readout is
+/// nonproductive, then passes a new device or the same reset device here.
+#[allow(clippy::too_many_arguments)]
+pub fn factor_semiprime_with_anyons<D: FibonacciAnyonDevice>(
+    n: &BigUint,
+    base: &BigUint,
+    max_shots: u32,
+    device: D,
+    sk_depth: usize,
+    net_depth: usize,
+    max_gates: usize,
+    refinement: usize,
+    minimum_accuracy_bits: usize,
+) -> Result<AnyonicFactorization, String> {
+    if n.bits() < 128 || max_shots == 0 {
+        return Err("anyonic phase factorization requires a source of at least 128 bits and a positive shot budget".into());
+    }
+    let numeral = |value: &BigUint| -> Vec<char> {
+        let bits = value.bits().max(1) as usize;
+        (0..bits)
+            .map(|bit| if value.bit(bit as u64) { EVALF } else { EVALT })
+            .collect()
+    };
+    let n_tape = numeral(n);
+    let base_tape = numeral(base);
+    let program = vox_core::fixed_point_quantum_membrane::FixedPointQuantumMembrane::from_n_with_base(
+        &n_tape,
+        &base_tape,
+    )
+    .and_then(|membrane| membrane.prepare_structural_execution())
+    .map_err(|error| error.to_string())?;
+    let carrier = CompiledFibonacciCarrier::new(
+        device,
+        sk_depth,
+        net_depth,
+        max_gates,
+        refinement,
+        minimum_accuracy_bits,
+    );
+    let mut executor = g_momonados::recycled_carrier::RecycledCarrierExecutor::new(carrier);
+    for shots in 1..=max_shots {
+        let readout = executor
+            .execute_factor_shot(&program)
+            .map_err(|error| format!("anyon phase shot {shots} failed: {error}"))?;
+        if let Some(pair) = readout.result_pair {
+            return Ok(AnyonicFactorization {
+                source: pair.source,
+                base: pair.base,
+                order: pair.order,
+                p: pair.p,
+                q: pair.q,
+                shots,
+            });
+        }
+    }
+    Err(format!("anyon phase readout did not close a factor pair within {max_shots} shots"))
 }
 
 impl FibonacciBraidCompiler {
