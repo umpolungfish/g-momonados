@@ -1,3 +1,3 @@
-I enforce a caller-selected minimum fixed-point residual accuracy for compiled Fibonacci CNOT braids.
-I record the 128-bit semiprime CNOT compile, rejection control, and independent saved-word verification.
-I update the carrier requirements with the measured accuracy floor and CLI form.
+I make saved Fibonacci CNOT words enforce the same residual accuracy floor as compilation.
+I align compile and verification accuracy bits to the fixed-point scale exponent.
+I preserve the passing 128-bit verification and rejected 30-bit control.

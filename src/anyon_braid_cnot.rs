@@ -340,14 +340,16 @@ pub fn compile(args: &[&str]) -> Result<String, String> {
 }
 
 pub fn verify_file(args: &[&str]) -> Result<String, String> {
-    if args.len() != 2 {
-        return Err("usage: anyon_cnot_verify N <compiled-word-report>".into());
+    if args.len() < 2 || args.len() > 3 {
+        return Err("usage: anyon_cnot_verify N <compiled-word-report> [minimum_accuracy_bits=0]".into());
     }
     let source = BigUint::parse_bytes(args[0].as_bytes(), 10).ok_or("invalid source integer")?;
     if source.bits() < 128 {
         return Err("anyon CNOT verification requires a source of at least 128 bits".into());
     }
     let report = std::fs::read_to_string(args[1]).map_err(|error| format!("read braid report: {error}"))?;
+    let minimum_accuracy_bits = args.get(2)
+        .map_or(Ok(0usize), |raw| raw.parse().map_err(|_| "invalid minimum accuracy"))?;
     let encoded = report.lines().find_map(|line| line.strip_prefix("word="))
         .ok_or("compiled report has no physical braid word")?;
     let word: Vec<i32> = encoded.split(',').map(|item| {
@@ -357,12 +359,21 @@ pub fn verify_file(args: &[&str]) -> Result<String, String> {
     let physical = algebra.evaluate(&word)?;
     let channels = algebra.in_pair_channels(&physical);
     let residual = algebra.cnot_residual(&channels);
-    let scale = algebra.format().scale().to_biguint().ok_or("invalid CNOT scale")?;
-    let bits = if residual.maximum().is_zero() { 0 }
-        else { scale.bits().saturating_sub(residual.maximum().bits()) };
+    let maximum_residual = residual.maximum();
+    let bits = if maximum_residual.is_zero() {
+        algebra.format().w_bits
+    } else {
+        algebra.format().w_bits.saturating_sub(maximum_residual.bits())
+    };
+    if bits < minimum_accuracy_bits as u64 {
+        return Err(format!(
+            "saved CNOT braid reaches {bits} residual accuracy bits, below the requested {minimum_accuracy_bits}"
+        ));
+    }
     Ok(format!(
-        "source_bits={} physical_word_length={} residual_accuracy_bits={} computational={} leakage={} unitarity={}",
-        source.bits(), word.len(), bits, residual.computational, residual.leakage, residual.unitarity,
+        "source_bits={} physical_word_length={} minimum_accuracy_bits={} residual_accuracy_bits={} computational={} leakage={} unitarity={}",
+        source.bits(), word.len(), minimum_accuracy_bits, bits,
+        residual.computational, residual.leakage, residual.unitarity,
     ))
 }
 
