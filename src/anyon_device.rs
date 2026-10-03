@@ -16,6 +16,7 @@ pub struct FibonacciGenerator<R: Read, W: Write> {
     active: bool,
     phase_bits: usize,
     measured_bits: usize,
+    shot_id: u64,
 }
 
 impl<R: Read, W: Write> FibonacciGenerator<R, W> {
@@ -26,6 +27,7 @@ impl<R: Read, W: Write> FibonacciGenerator<R, W> {
             active: false,
             phase_bits: 0,
             measured_bits: 0,
+            shot_id: 0,
         }
     }
 
@@ -63,11 +65,19 @@ impl<R: Read, W: Write> FibonacciGenerator<R, W> {
 
     fn require_ack(&mut self, stage: &str) -> Result<(), String> {
         let response = self.response()?;
+        self.require_shot(&response)?;
         if response.get("ok").and_then(serde_json::Value::as_bool) == Some(true) {
             Ok(())
         } else {
             Err(format!("anyon generator did not acknowledge {stage}"))
         }
+    }
+
+    fn require_shot(&self, response: &serde_json::Value) -> Result<(), String> {
+        if response.get("shot_id").and_then(serde_json::Value::as_u64) != Some(self.shot_id) {
+            return Err("anyon generator reply does not belong to the active shot".into());
+        }
+        Ok(())
     }
 }
 
@@ -109,10 +119,15 @@ impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
         };
         let source = bits(source)?;
         let base = bits(base)?;
+        self.shot_id = self
+            .shot_id
+            .checked_add(1)
+            .ok_or("anyon shot identifier overflow")?;
         self.send(
             &serde_json::json!({
                 "op": "begin",
-                "protocol": "g-momonados/fibonacci-anyons-v1",
+                "protocol": "g-momonados/fibonacci-anyons-v2",
+                "shot_id": self.shot_id,
                 "format": "little_endian_bits",
                 "source": source,
                 "base": base,
@@ -138,7 +153,7 @@ impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
             return Err("zero is not a Fibonacci exchange generator".into());
         }
         self.send(
-            &serde_json::json!({"op": "exchange", "generator": generator}),
+            &serde_json::json!({"op": "exchange", "generator": generator, "shot_id": self.shot_id}),
             false,
         )
     }
@@ -150,8 +165,22 @@ impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
         if self.measured_bits >= self.phase_bits {
             return Err("fusion readout exceeds the prepared phase width".into());
         }
-        self.send(&serde_json::json!({"op": "measure_control_fusion"}), true)?;
+        self.send(
+            &serde_json::json!({
+                "op": "measure_control_fusion", "shot_id": self.shot_id,
+                "phase_index": self.measured_bits
+            }),
+            true,
+        )?;
         let response = self.response()?;
+        self.require_shot(&response)?;
+        if response
+            .get("phase_index")
+            .and_then(serde_json::Value::as_u64)
+            != Some(self.measured_bits as u64)
+        {
+            return Err("anyon generator fusion reply has the wrong phase index".into());
+        }
         let bit = response
             .get("fusion_bit")
             .and_then(serde_json::Value::as_u64)
@@ -177,7 +206,10 @@ impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
                 self.measured_bits, self.phase_bits
             ));
         }
-        self.send(&serde_json::json!({"op": "finish"}), true)?;
+        self.send(
+            &serde_json::json!({"op": "finish", "shot_id": self.shot_id}),
+            true,
+        )?;
         self.require_ack("shot completion")?;
         self.active = false;
         Ok(())
@@ -185,7 +217,10 @@ impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
 
     fn abort(&mut self) {
         if self.active {
-            let _ = self.send(&serde_json::json!({"op": "abort"}), true);
+            let _ = self.send(
+                &serde_json::json!({"op": "abort", "shot_id": self.shot_id}),
+                true,
+            );
             self.active = false;
         }
     }
@@ -196,6 +231,81 @@ mod tests {
     use super::*;
     use num_bigint::BigUint;
     use std::io::Cursor;
+
+    #[test]
+    fn phase_tags_bind_readouts_at_all_required_source_widths() {
+        let manifest = include_str!("../measurements/anyon-extractor-width-controls.tsv");
+        let mut widths = Vec::new();
+        for line in manifest.lines().skip(1) {
+            let fields: Vec<_> = line.split('\t').collect();
+            let width: usize = fields[1].parse().unwrap();
+            let source = BigUint::parse_bytes(fields[2].as_bytes(), 10).unwrap();
+            assert_eq!(source.bits(), width as u64);
+            let source_bits: Vec<_> = (0..width)
+                .map(|bit| {
+                    if source.bit(bit as u64) {
+                        vox_core::vox::EVALF
+                    } else {
+                        vox_core::vox::EVALT
+                    }
+                })
+                .collect();
+            let base = [vox_core::vox::EVALT, vox_core::vox::EVALF];
+            let count = 2 * width + 8;
+            // Explicit transport fixtures. No phase probability or factor is
+            // inferred from these replies.
+            let mut replies = String::from("{\"ok\":true,\"shot_id\":1}\n");
+            for index in 0..count {
+                replies.push_str(&format!(
+                    "{{\"shot_id\":1,\"phase_index\":{index},\"fusion_bit\":{}}}\n",
+                    index % 2
+                ));
+            }
+            replies.push_str("{\"ok\":true,\"shot_id\":1}\n");
+            let mut device = FibonacciGenerator::new(Cursor::new(replies.into_bytes()), Vec::new());
+            device
+                .begin(
+                    &source_bits,
+                    &base,
+                    3 * width + 4,
+                    count,
+                    WorkPreparation::UniformResidues,
+                )
+                .unwrap();
+            assert!(device.finish().is_err());
+            for index in 0..count {
+                assert_eq!(device.measure_control_fusion().unwrap(), index % 2 == 1);
+            }
+            assert!(device.measure_control_fusion().is_err());
+            device.finish().unwrap();
+            for invalid in [
+                "{\"shot_id\":0,\"phase_index\":0,\"fusion_bit\":1}",
+                "{\"shot_id\":2,\"phase_index\":0,\"fusion_bit\":1}",
+                "{\"shot_id\":1,\"phase_index\":1,\"fusion_bit\":1}",
+                "{\"fusion_bit\":1}",
+            ] {
+                let replies = format!("{{\"ok\":true,\"shot_id\":1}}\n{invalid}\n");
+                let mut device =
+                    FibonacciGenerator::new(Cursor::new(replies.into_bytes()), Vec::new());
+                device
+                    .begin(
+                        &source_bits,
+                        &base,
+                        3 * width + 4,
+                        count,
+                        WorkPreparation::UniformResidues,
+                    )
+                    .unwrap();
+                assert!(device.measure_control_fusion().is_err());
+                assert_eq!(device.measured_bits, 0);
+                assert!(device.finish().is_err());
+                device.abort();
+            }
+            widths.push(width);
+            println!("{width}-bit source: {count} tagged transport replies accepted; stale, reordered, and untagged replies rejected");
+        }
+        assert_eq!(widths, vec![128, 256, 512, 1024, 2048]);
+    }
 
     #[test]
     fn exchange_stream_transports_fusion_readout_for_128_bit_semiprime() {
@@ -212,11 +322,13 @@ mod tests {
         let base_bits: Vec<char> = [vox_core::vox::EVALT, vox_core::vox::EVALF]
             .into_iter()
             .collect();
-        let mut replies = String::from("{\"ok\":true}\n");
-        for _ in 0..256 {
-            replies.push_str("{\"fusion_bit\":1}\n");
+        let mut replies = String::from("{\"ok\":true,\"shot_id\":1}\n");
+        for index in 0..256 {
+            replies.push_str(&format!(
+                "{{\"fusion_bit\":1,\"shot_id\":1,\"phase_index\":{index}}}\n"
+            ));
         }
-        replies.push_str("{\"ok\":true}\n");
+        replies.push_str("{\"ok\":true,\"shot_id\":1}\n");
         let mut device = FibonacciGenerator::new(Cursor::new(replies.into_bytes()), Vec::new());
         device
             .begin(
@@ -237,7 +349,7 @@ mod tests {
 
         let emitted = String::from_utf8(device.writer.into_inner().unwrap()).unwrap();
         assert!(emitted.contains("\"op\":\"begin\""));
-        assert!(emitted.contains("\"protocol\":\"g-momonados/fibonacci-anyons-v1\""));
+        assert!(emitted.contains("\"protocol\":\"g-momonados/fibonacci-anyons-v2\""));
         assert!(emitted.contains("\"format\":\"little_endian_bits\""));
         assert!(emitted.contains("\"work_preparation\":\"uniform_residues\""));
         assert!(emitted.contains("\"generator\":1"));
