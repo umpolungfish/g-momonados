@@ -1,0 +1,23 @@
+Recycled control QPE with fixed complex amplitudes
+N = 45217
+phase bits = 40
+W = 46
+CUDA batch amplitudes = 4096
+tape = /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/recycled-unstructured-01-replay/case_10
+shot 1: base=2, k=408735990557, measured bits=40, peak residue support=3723
+readout closure: CF: s/3723 -> period r=3723 is odd — a^(r/2) has no half-step; advancing the coprime base
+shot 2: base=16854, k=1013275421676, measured bits=40, peak residue support=102
+shot 3: base=16854, k=927039215576, measured bits=40, peak residue support=102
+shot 4: base=16854, k=1002495895913, measured bits=40, peak residue support=102
+readout closure: certified period 102 gives a trivial half-period split
+shot 5: base=37038, k=835487078967, measured bits=40, peak residue support=1241
+readout closure: CF: s/1241 -> period r=1241 is odd — a^(r/2) has no half-step; advancing the coprime base
+shot 6: base=37671, k=818653299005, measured bits=40, peak residue support=7446
+shot 7: base=37671, k=379646037472, measured bits=40, peak residue support=7446
+shot 8: base=37671, k=890123031458, measured bits=40, peak residue support=7446
+period = 7446
+factors = 103 × 439
+verified word product = true
+D(p) = ⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+D(q) = ⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+Γ(D(p),D(q)) = ⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣  (decode: 171583)

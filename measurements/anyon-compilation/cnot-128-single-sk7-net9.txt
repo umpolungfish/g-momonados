@@ -1,0 +1,2 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/g-momonados anyon_cnot_word 296650821743515430283258444261036507151 7 9 25000 2`

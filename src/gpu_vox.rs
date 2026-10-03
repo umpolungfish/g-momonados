@@ -26,6 +26,9 @@ fn code_of(c: char) -> u8 {
 }
 
 const KERNEL_SRC: &str = r#"
+#ifndef WLEN
+#define WLEN 256
+#endif
 // codes: 1 fork, 2 fuse, 3 work, 0 other. One word per thread. Output verdict
 // as 0=N, 1=T, 2=F, 3=B.
 extern "C" __global__ void vox_verdict(
@@ -34,10 +37,9 @@ extern "C" __global__ void vox_verdict(
 {
     unsigned int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= n) return;
-    const int WLEN = 256;
-    unsigned char w[256];
+    unsigned char w[WLEN];
     unsigned int L = lens[gid];
-    if (L > 256) L = 256;
+    if (L > WLEN) L = WLEN;
     for (unsigned int i=0;i<L;i++) w[i] = codes[gid*WLEN + i];
 
     unsigned int nSplit=0, nFuse=0;
@@ -148,15 +150,16 @@ pub fn verify(count: usize, seed: u64, device: usize) -> String {
 pub fn run(word: &str, device: usize) -> String {
     let w: Vec<char> = word.chars().filter(|c| !c.is_whitespace()).collect();
     if w.is_empty() { return "gpu_vox verdict <glyph-word>".into(); }
-    if w.len() > WLEN { return format!("gpu_vox: word longer than {} marks", WLEN); }
+    let word_len = w.len().next_power_of_two().max(WLEN);
 
     let ctx = match CudaContext::new(device) { Ok(c)=>c, Err(e)=>return format!("gpu_vox: no CUDA context: {e}") };
     let stream = ctx.default_stream();
-    let ptx = match compile_ptx(KERNEL_SRC) { Ok(p)=>p, Err(e)=>return format!("gpu_vox: NVRTC: {e}") };
+    let source = format!("#define WLEN {word_len}\n{KERNEL_SRC}");
+    let ptx = match compile_ptx(source) { Ok(p)=>p, Err(e)=>return format!("gpu_vox: NVRTC: {e}") };
     let module = match ctx.load_module(ptx) { Ok(m)=>m, Err(e)=>return format!("gpu_vox: module: {e}") };
     let func = match module.load_function("vox_verdict") { Ok(f)=>f, Err(e)=>return format!("gpu_vox: load: {e}") };
 
-    let mut codes = alloc::vec![0u8; WLEN];
+    let mut codes = alloc::vec![0u8; word_len];
     for (i,&c) in w.iter().enumerate() { codes[i] = code_of(c); }
     let lens = alloc::vec![w.len() as u32];
     let d_codes = match stream.clone_htod(&codes) { Ok(d)=>d, Err(e)=>return format!("gpu_vox: htod: {e}") };
@@ -171,5 +174,5 @@ pub fn run(word: &str, device: usize) -> String {
 
     let gpu = vchar(g_out[0]);
     let cpu = crate::vox::verdict(&w);
-    format!("gpu_vox verdict on device: {}   (CPU vox::verdict: {}, matches: {})", gpu, cpu, gpu == cpu)
+    format!("gpu_vox verdict on device: {} marks: {}   (CPU vox::verdict: {}, matches: {})", w.len(), gpu, cpu, gpu == cpu)
 }
