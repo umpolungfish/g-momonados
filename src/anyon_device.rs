@@ -14,6 +14,8 @@ pub struct FibonacciGenerator<R: Read, W: Write> {
     reader: BufReader<R>,
     writer: BufWriter<W>,
     active: bool,
+    phase_bits: usize,
+    measured_bits: usize,
 }
 
 impl<R: Read, W: Write> FibonacciGenerator<R, W> {
@@ -22,6 +24,8 @@ impl<R: Read, W: Write> FibonacciGenerator<R, W> {
             reader: BufReader::new(reader),
             writer: BufWriter::new(writer),
             active: false,
+            phase_bits: 0,
+            measured_bits: 0,
         }
     }
 
@@ -91,6 +95,9 @@ impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
         if self.active {
             return Err("anyon generator already has an active shot".into());
         }
+        if phase_bits == 0 {
+            return Err("anyon shot requires a positive phase width".into());
+        }
         let bits = |tape: &[char]| -> Result<String, String> {
             tape.iter()
                 .map(|cell| match *cell {
@@ -118,6 +125,8 @@ impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
             true,
         )?;
         self.active = true;
+        self.phase_bits = phase_bits;
+        self.measured_bits = 0;
         self.require_ack("shot preparation")
     }
 
@@ -138,9 +147,12 @@ impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
         if !self.active {
             return Err("fusion readout requested outside an active shot".into());
         }
+        if self.measured_bits >= self.phase_bits {
+            return Err("fusion readout exceeds the prepared phase width".into());
+        }
         self.send(&serde_json::json!({"op": "measure_control_fusion"}), true)?;
         let response = self.response()?;
-        response
+        let bit = response
             .get("fusion_bit")
             .and_then(serde_json::Value::as_u64)
             .and_then(|bit| match bit {
@@ -148,12 +160,22 @@ impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
                 1 => Some(true),
                 _ => None,
             })
-            .ok_or_else(|| "anyon generator fusion readout must be the measured bit 0 or 1".into())
+            .ok_or_else(|| {
+                "anyon generator fusion readout must be the measured bit 0 or 1".to_string()
+            })?;
+        self.measured_bits += 1;
+        Ok(bit)
     }
 
     fn finish(&mut self) -> Result<(), String> {
         if !self.active {
             return Err("anyon shot finished without preparation".into());
+        }
+        if self.measured_bits != self.phase_bits {
+            return Err(format!(
+                "anyon shot has {} fusion bits; prepared phase width is {}",
+                self.measured_bits, self.phase_bits
+            ));
         }
         self.send(&serde_json::json!({"op": "finish"}), true)?;
         self.require_ack("shot completion")?;
@@ -190,8 +212,12 @@ mod tests {
         let base_bits: Vec<char> = [vox_core::vox::EVALT, vox_core::vox::EVALF]
             .into_iter()
             .collect();
-        let replies = b"{\"ok\":true}\n{\"fusion_bit\":1}\n{\"ok\":true}\n";
-        let mut device = FibonacciGenerator::new(Cursor::new(replies), Vec::new());
+        let mut replies = String::from("{\"ok\":true}\n");
+        for _ in 0..256 {
+            replies.push_str("{\"fusion_bit\":1}\n");
+        }
+        replies.push_str("{\"ok\":true}\n");
+        let mut device = FibonacciGenerator::new(Cursor::new(replies.into_bytes()), Vec::new());
         device
             .begin(
                 &source_bits,
@@ -202,7 +228,11 @@ mod tests {
             )
             .unwrap();
         device.generate_exchange(1).unwrap();
-        assert!(device.measure_control_fusion().unwrap());
+        assert!(device.finish().is_err());
+        for _ in 0..256 {
+            assert!(device.measure_control_fusion().unwrap());
+        }
+        assert!(device.measure_control_fusion().is_err());
         device.finish().unwrap();
 
         let emitted = String::from_utf8(device.writer.into_inner().unwrap()).unwrap();
