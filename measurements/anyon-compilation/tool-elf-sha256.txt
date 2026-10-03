@@ -1,3 +1,3 @@
-4423ca72fb16a144f272ff5f537270f936afac13635cc588feac753f98f4e43e  measurements/anyon-compilation/g-momonados.elf
+2e7c849faf32e99089f7e55603add810c90d84e5a40ee69d0a8c90367bc8a338  measurements/anyon-compilation/g-momonados.elf
 22901ec8ffc188cbf64ce22847df464ca42a51d0998a693c0f8dce48e0f86230  measurements/anyon-compilation/semiprime-tool.elf
 a1e3fb5956d9ceba6febf706e24a846cf65739022975e2c07263b9e92b812201  measurements/anyon-compilation/prime-tool.elf

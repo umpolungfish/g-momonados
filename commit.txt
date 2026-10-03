@@ -1,7 +1,3 @@
-I continue factor extraction through verified native candidates.
+I test complete factor output across all required semiprime widths.
 
-I add the local PARI factor engine as a candidate route receiving N alone, and verify its split through Gödel multiplication before recursively processing both descendants. The original balanced 128-bit source now returns its prime pair with protocol and product closure PASS in the measured release command.
-
-I replace terminal ladder exhaustion with advancing Brent seeds and budgets alongside an exact divisor lane. The continuing route retains one trace record and no state history. I require complete Gödel source reconstruction before returning a successful extraction report.
-
-I verify the original balanced source, preserve the required 128 through 2048-bit candidate-interface tests, refresh the measurements and archived release ELFs, and normalize the report endings.
+I feed only N to the production extractor at 128, 256, 512, 1024, and 2048 bits. I compare returned factors with certified output oracles and require Gödel product closure. I record timeouts as test failures and preserve all readings. I also require complete fusion readout before finishing an anyon shot and retain the rebuilt executable.
