@@ -110,6 +110,15 @@ at 5 bits. The accepted 24-bit setting remains 1,425,830 generators. The
 current synthesis path therefore has no demonstrated short CNOT word at the
 precision needed by the repeated modular arithmetic circuit.
 
+The compiler now tries ordinary Solovay–Kitaev synthesis first and invokes
+split/fuse only when the requested residual-accuracy floor rejects that word.
+At depth four, split/fuse reaches 9 bits with 24,672 generators on both the
+128-bit and 192-bit sources, while ordinary synthesis reaches only 7 bits on
+the 128-bit source. At depth seven, ordinary synthesis meets the 20-bit floor
+with 24 bits and 1,425,830 generators. Split/fuse at that depth reaches 27 bits
+but expands to 4,357,176 generators, so the floor-gated fallback preserves the
+shorter word whenever it already satisfies the caller's accuracy requirement.
+
 The bounded direct search `anyon_cnot_compile` also ran on this 128-bit source
 with depth 64, beam width 16, and an 8-bit target. It exhausted its budget; its
 best word retained large computational and leakage residuals. The controlled
