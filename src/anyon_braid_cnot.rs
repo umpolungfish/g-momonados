@@ -264,8 +264,8 @@ fn local_phase_target(format: &FixedPointFormat) -> Result<LocalMatrix, String> 
 }
 
 pub fn compile(args: &[&str]) -> Result<String, String> {
-    if args.len() < 1 || args.len() > 5 {
-        return Err("usage: anyon_cnot_word N [sk_depth=2] [net_depth=7] [max_gates=20000] [exchange_refinement=2]".into());
+    if args.is_empty() || args.len() > 6 {
+        return Err("usage: anyon_cnot_word N [sk_depth=2] [net_depth=7] [max_gates=20000] [exchange_refinement=2] [minimum_accuracy_bits=0]".into());
     }
     let source = BigUint::parse_bytes(args[0].as_bytes(), 10).ok_or("invalid source integer")?;
     if source.bits() < 128 {
@@ -278,6 +278,7 @@ pub fn compile(args: &[&str]) -> Result<String, String> {
     let net_depth = parse(2, 7, "net depth")?;
     let max_gates = parse(3, 20_000, "net capacity")?;
     let refinement = parse(4, 2, "exchange refinement")?;
+    let minimum_accuracy_bits = parse(5, 0, "minimum accuracy")?;
     if max_gates == 0 { return Err("net capacity must be positive".into()); }
 
     let pair = FibonacciPair::new(&source)?;
@@ -312,11 +313,22 @@ pub fn compile(args: &[&str]) -> Result<String, String> {
     let physical = pair.evaluate(&word)?;
     let in_computational_channels = pair.in_pair_channels(&physical);
     let residual = pair.cnot_residual(&in_computational_channels);
+    let residual_accuracy_bits = if residual.maximum().is_zero() {
+        pair.format().w_bits as usize
+    } else {
+        (pair.format().w_bits as usize).saturating_sub(residual.maximum().bits() as usize)
+    };
+    if residual_accuracy_bits < minimum_accuracy_bits {
+        return Err(format!(
+            "CNOT braid reaches {residual_accuracy_bits} residual accuracy bits, below the requested {minimum_accuracy_bits}"
+        ));
+    }
     let residual_bits = if residual.maximum().is_zero() { "exact".to_string() }
         else { format!("2^-{}", (pair.format().w_bits as usize).saturating_sub(residual.maximum().bits() as usize)) };
     let mut output = format!(
-        "source_bits={} sk_depth={} net_depth={} net_capacity={} refinement={}\nlocal_projective_errors basis={:.8e} target_y={:.8e} control_phase={:.8e}\nphysical_word_length={} residual={residual_bits}\ncomputational={} leakage={} unitarity={}\nword=",
+        "source_bits={} sk_depth={} net_depth={} net_capacity={} refinement={} minimum_accuracy_bits={} residual_accuracy_bits={}\nlocal_projective_errors basis={:.8e} target_y={:.8e} control_phase={:.8e}\nphysical_word_length={} residual={residual_bits}\ncomputational={} leakage={} unitarity={}\nword=",
         source.bits(), sk_depth, net_depth, max_gates, refinement,
+        minimum_accuracy_bits, residual_accuracy_bits,
         basis_error, y_error, phase_error, word.len(), residual.computational,
         residual.leakage, residual.unitarity,
     );
