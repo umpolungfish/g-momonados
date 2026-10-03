@@ -35,7 +35,7 @@ the phase program, so an unproductive orbit can be retried with another base.
 The compiler retains source-bound gate templates across completed shots.
 `anyon_device::FibonacciGenerator` is the concrete streamed controller adapter.
 It sends little-endian source/base words and adjacent Fibonacci exchanges over
-the `g-momonados/fibonacci-anyons-v1` newline-delimited JSON protocol. It sends
+the `g-momonados/fibonacci-anyons-v2` newline-delimited JSON protocol. It sends
 no phase or factor result to the controller. Each control-fusion request blocks
 for the controller's measured `fusion_bit`, which is the bit consumed by the
 QFT phase accumulator. `g-momonados anyon_factor N base max_shots socket` runs
@@ -45,8 +45,17 @@ only a factor pair whose product is N.
 The controller adapter counts accepted fusion bits against the prepared phase
 width. It rejects early completion and reads beyond that width. Completion is
 sent to the controller only after every phase bit has arrived. The transport
-fixture exercises all 256 readouts for its 128-bit source and checks both early
-finish and excess-read rejection.
+fixtures exercise complete readout sequences at 128, 256, 512, 1024, and 2048
+source bits and check both early finish and excess-read rejection.
+
+Every request includes `shot_id`, a monotonically increasing identifier within
+the connection. Begin and finish acknowledgements must echo it. Fusion requests
+also include the zero-based `phase_index`, in phase accumulator arrival order;
+fusion replies must echo both identifiers alongside `fusion_bit`. Missing,
+stale, or reordered identifiers fail before the bit enters the accumulator.
+Controllers must implement the v2 contract; untagged v1 replies are rejected.
+`measurements/anyon_tagged_readout_checks.log` records the transport fixture
+checks. The fixture replies do not establish physical phase measurements.
 
 The controller protocol is an execution contract, not a local source of
 measurement values. The transport test checks the 128-bit semiprime-bound

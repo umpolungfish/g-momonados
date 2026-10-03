@@ -1,3 +1,3 @@
-I let difficult native factor attempts yield to the remaining routes.
+I bind each fusion reply to its shot and phase position.
 
-I limit each optional PARI candidate attempt to ten seconds and reap the child on expiry. I preserve continued extraction and Gödel verification, document the route handoff, and retain regression readings.
+I require v2 controller acknowledgements and measured fusion replies to echo their shot identifiers. I reject mismatched phase indices before advancing the accumulator. I verify complete tagged transport sequences and stale, reordered, and untagged reply rejection at all five required source widths, document the controller contract, and retain the rebuilt executable.
