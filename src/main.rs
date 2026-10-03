@@ -212,6 +212,7 @@ mod dqi_ambient;
 mod yz;
 mod yz_list;
 mod shor_qft;
+mod factor_phase;
 mod opi;
 mod weight_ladder;
 mod multilattice;
@@ -230,6 +231,8 @@ mod seals;
 mod constant_closure;
 mod repl;
 mod fibonacci_qc;
+#[cfg(feature = "hosted")]
+mod anyon_braid_cnot;
 mod winding_period;
 mod oneshot_prime_winder;
 mod nested_oneshot;
@@ -564,6 +567,15 @@ pub fn heap_used() -> (usize, usize) {
 
 #[cfg(feature = "hosted")]
 fn main() {
+    if option_env!("PHASE_UNBRAID_BAKED_EXECUTE") == Some("1") {
+        let base = option_env!("PHASE_UNBRAID_BAKED_BASE").unwrap_or("2");
+        let shots = option_env!("PHASE_UNBRAID_BAKED_SHOTS").unwrap_or("8");
+        let tape = alloc::format!("measurements/qpe-baked-{}", std::process::id());
+        let report = phase_unbraid_gpu_baked(&[base, "4096", &tape, shots]);
+        let closed = report.contains("verified word product = true");
+        println!("{report}");
+        std::process::exit(if closed { 0 } else { 2 });
+    }
     let argv: Vec<String> = std::env::args().skip(1).collect();
     if !argv.is_empty() {
         // Direct CLI: `g-momonados factor_membrane factor <N> ...` runs the
@@ -576,7 +588,29 @@ fn main() {
         }
         if matches!(head, "phase_unbraid" | "phase" | "unbraid") {
             let refs: Vec<&str> = argv[1..].iter().map(|x| x.as_str()).collect();
-            println!("{}", phase_unbraid::repl_phase_unbraid(&refs));
+            println!("{}", dispatch_phase_unbraid(&refs));
+            return;
+        }
+        if head == "anyon_cnot_word" {
+            let refs: Vec<&str> = argv[1..].iter().map(|arg| arg.as_str()).collect();
+            match anyon_braid_cnot::compile(&refs) {
+                Ok(report) => println!("{report}"),
+                Err(error) => {
+                    eprintln!("{error}");
+                    std::process::exit(2);
+                }
+            }
+            return;
+        }
+        if head == "anyon_cnot_verify" {
+            let refs: Vec<&str> = argv[1..].iter().map(|arg| arg.as_str()).collect();
+            match anyon_braid_cnot::verify_file(&refs) {
+                Ok(report) => println!("{report}"),
+                Err(error) => {
+                    eprintln!("{error}");
+                    std::process::exit(2);
+                }
+            }
             return;
         }
         if matches!(head, "factor_big" | "factorbig" | "bigfactor") {
@@ -657,6 +691,77 @@ fn main() {
         return;
     }
     kmain()
+}
+
+fn repl_phase_unbraid_tape(args: &[&str]) -> String {
+    let Some(n) = args.first() else { return "phase_unbraid tape: missing N".into() };
+    let base = args.get(1).copied().unwrap_or("2");
+    let shots = args.get(2).copied().unwrap_or("8");
+    let tile_size = args.get(3).copied().unwrap_or("4096");
+    let default_tape = alloc::format!("measurements/g-momonados-qft-tape-{}", std::process::id());
+    let tape_path = args.iter().position(|arg| *arg == "--tape")
+        .and_then(|position| args.get(position + 1)).copied().unwrap_or(&default_tape);
+    let gpu_args = [*n, base, tile_size, tape_path, shots];
+    phase_unbraid_gpu(&gpu_args)
+}
+
+fn dispatch_phase_unbraid(args: &[&str]) -> String {
+    match args.first().copied() {
+        None | Some("help") => "phase_unbraid <N|word> [base=2] [shots=8] [batch_amplitudes=4096] [--tape <fresh_dir>]\nphase_unbraid gpu <N|word> [base=2] [batch_amplitudes=4096] [fresh_tape_dir] [shots=8]\nphase_unbraid gpu-baked [base=2] [batch_amplitudes=4096] [fresh_tape_dir] [shots=8]\nRecycled control QPE measures all phase bits with a retained complex residue register.\nA baked executable uses PHASE_UNBRAID_BAKED_EXECUTE=1 and FACTOR_PHASE_SOURCE_WORD at build time.".into(),
+        Some("gpu-baked") => phase_unbraid_gpu_baked(&args[1..]),
+        Some("gpu") => phase_unbraid_gpu(&args[1..]),
+        _ => repl_phase_unbraid_tape(args),
+    }
+}
+
+fn phase_unbraid_gpu(args: &[&str]) -> String {
+    let Some(n_text) = args.first() else {
+        return "usage: phase_unbraid gpu <N> [base=2] [tile_amplitudes=4096] [tape_dir] [shots=8]".into();
+    };
+    let parsed = n_text.parse::<num_bigint::BigUint>().ok().or_else(|| {
+        let tape = vox_core::morphism_factor::parse_numeral(n_text).ok()?;
+        Some(num_bigint::BigUint::new(vox_core::morphism_factor::tape_to_limbs(&tape, (tape.len() + 31) / 32)))
+    });
+    let n = match parsed {
+        Some(value) if value.bits() >= 128 => value,
+        _ => return "phase_unbraid gpu: N must be a semiprime of at least 128 bits".into(),
+    };
+    let mut base = args.get(1).and_then(|s| s.parse::<num_bigint::BigUint>().ok()).unwrap_or_else(|| num_bigint::BigUint::from(2u8));
+    if base < num_bigint::BigUint::from(2u8) { base = num_bigint::BigUint::from(2u8); }
+    let tile_amplitudes = args.get(2).and_then(|s| s.parse::<u64>().ok()).unwrap_or(4096);
+    let tape_path = args.get(3).map(|path| (*path).to_string()).unwrap_or_else(|| {
+        alloc::format!("measurements/g-momonados-qft-tape-{}", std::process::id())
+    });
+    let shots = args.get(4).and_then(|s| s.parse::<u32>().ok()).unwrap_or(8);
+    let qft = match gpu_kernel::CudaQft::new(0) {
+        Ok(qft) => qft,
+        Err(error) => return format!("phase_unbraid gpu: {error}"),
+    };
+    match phase_unbraid::recycled_phase_report(n, base, tile_amplitudes, &tape_path, shots,
+        |low, high, feedback, format| qft.recycled_phase_mix(low, high, feedback, format)) {
+        Ok(report) => format!("CUDA phase execution on device 0\n{report}"),
+        Err(error) => format!("phase_unbraid gpu: {error}"),
+    }
+}
+
+fn phase_unbraid_gpu_baked(args: &[&str]) -> String {
+    let source = option_env!("FACTOR_PHASE_SOURCE_WORD")
+        .unwrap_or("⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣");
+    let tape = match vox_core::morphism_factor::parse_numeral(source) {
+        Ok(tape) => tape,
+        Err(_) => return "phase_unbraid gpu-baked: malformed FACTOR_PHASE_SOURCE_WORD".into(),
+    };
+    let limbs = vox_core::morphism_factor::tape_to_limbs(&tape, (tape.len() + 31) / 32);
+    let n = num_bigint::BigUint::new(limbs).to_string();
+    let base = args.first().copied().unwrap_or("2");
+    let tile_size = args.get(1).copied().unwrap_or("4096");
+    let tape_path = args.get(2).map(|path| (*path).to_string()).unwrap_or_else(|| {
+        alloc::format!("measurements/g-momonados-qft-baked-{}", std::process::id())
+    });
+    let shots = args.get(3).copied().unwrap_or("8");
+    let tape_args = vec![n, base.to_string(), tile_size.to_string(), tape_path, shots.to_string()];
+    let tape_refs: Vec<&str> = tape_args.iter().map(String::as_str).collect();
+    format!("baked source word: {source}\n{}", phase_unbraid_gpu(&tape_refs))
 }
 
 #[cfg(feature = "hosted")]
