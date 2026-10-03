@@ -97,7 +97,7 @@ use crate::native_numeral::encode as native_encode;
 /// Bases tried for the order winding, small units first. Any base sharing a
 /// factor with n is a collision that hands the factor over directly; the
 /// others are asked for their multiplicative order.
-const WINDING_BASES: [u64; 10] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+pub(crate) const WINDING_BASES: [u64; 10] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
 
 /// The 12 dialects (of 88) whose gate-pass sequence reached the exact true
 /// multiplicative order of a mod n, checked via `dialect-probe` on four cases
@@ -111,7 +111,7 @@ pub const DIALECT_REGISTER: [u8; 12] = [9, 25, 32, 35, 40, 43, 52, 54, 66, 72, 7
 /// not a memory one: the leaping search holds only the two leapers, no table, so
 /// nothing grows with the winding. A meeting arrives in about sqrt(order) leaps,
 /// so this reach covers orders up to roughly its square.
-const LEAP_STEPS: u64 = 80_000_000;
+pub(crate) const LEAP_STEPS: u64 = 80_000_000;
 
 /// Number of precomputed jumps the leaper draws from. The leap taken at a point
 /// is chosen by that point, so the walk is a deterministic function and two
@@ -133,7 +133,7 @@ const LEAP_BUCKETS: usize = 32;
 /// stride would only drift and take a full order to return. Memory is the two
 /// leapers and the precomputed jumps, nothing that grows with the order, so
 /// there is no table and no cap on reach beyond the leap-step time budget.
-fn order_multiple_leaping(a: &BigUint, n: &BigUint, steps: u64) -> Option<BigUint> {
+pub(crate) fn order_multiple_leaping(a: &BigUint, n: &BigUint, steps: u64) -> Option<BigUint> {
     use alloc::vec::Vec;
     use crate::native_numeral::{add_via_word, mod_pow_walk, modulo_via_word, multiply_via_word, subtract_via_word, to_bits_low_first};
     let one = BigUint::one();
@@ -438,7 +438,7 @@ pub fn winding(n: &str, a_opt: Option<u64>) -> String {
 }
 
 /// The default smoothness bound for the winding-bridge route.
-const BRIDGE_BOUND: u64 = 300_000;
+pub(crate) const BRIDGE_BOUND: u64 = 300_000;
 
 /// The winding-bridge, the ⊞/⊡ decomposition past the order ceiling. When one
 /// factor p has a smooth winding, meaning p-1 has only small prime factors, the
@@ -449,7 +449,7 @@ const BRIDGE_BOUND: u64 = 300_000;
 /// order's size, so it breaks the sqrt-order ceiling for a smooth-winding
 /// factor; it finds nothing when both factors' windings are non-smooth, which
 /// is the case an RSA modulus is chosen to be. This is Pollard's p-1.
-fn winding_bridge(n: &BigUint, bound: u64) -> Option<BigUint> {
+pub(crate) fn winding_bridge(n: &BigUint, bound: u64) -> Option<BigUint> {
     use crate::native_numeral::{mod_pow_walk, modulo_via_word, subtract_via_word, to_bits_low_first};
     let one = BigUint::one();
     let two = BigUint::from(2u32);
@@ -519,7 +519,7 @@ pub fn bridge(n: &str, bound_opt: Option<u64>) -> String {
 /// composite and always returns a factor; the natural bound is a safety, not a
 /// budget. It is slow when the factors are far apart, which is the case rho
 /// handles, so a caller wanting speed on an unbalanced n reaches for `factor`.
-fn difference_of_squares(n: &BigUint) -> Option<(BigUint, BigUint)> {
+pub(crate) fn difference_of_squares(n: &BigUint) -> Option<(BigUint, BigUint)> {
     use crate::native_numeral::{add_via_word, divmod_via_word, isqrt, multiply_via_word, subtract_via_word};
     let one = BigUint::one();
     let two = BigUint::from(2u32);
@@ -578,9 +578,9 @@ pub fn squares(n: &str) -> String {
 }
 
 /// The default factor-base bound for the congruence route.
-const CONGRUENCE_FB_BOUND: u64 = 2000;
+pub(crate) const CONGRUENCE_FB_BOUND: u64 = 2000;
 /// How many trials the congruence route draws before giving up.
-const CONGRUENCE_TRIALS: u64 = 4_000_000;
+pub(crate) const CONGRUENCE_TRIALS: u64 = 4_000_000;
 
 /// Primes up to `bound`, the fixed alphabet (⊣ factor base) a relation must
 /// factor over to be admitted.
@@ -627,7 +627,7 @@ fn smooth_exponents(mut q: BigUint, fb: &[u64]) -> Option<alloc::vec::Vec<u32>> 
 /// sums to all-even by counting alone, guaranteed. ⊙ is the square that
 /// combination forms on both sides; ∋ resolves it to X² ≡ Y² (mod n); ⊥ throws
 /// back a trivial pair X ≡ ±Y; ⊡ records the split gcd(X - Y, n).
-fn congruence_split(n: &BigUint, fb_bound: u64, trials: u64) -> Option<(BigUint, BigUint)> {
+pub(crate) fn congruence_split(n: &BigUint, fb_bound: u64, trials: u64) -> Option<(BigUint, BigUint)> {
     use alloc::vec::Vec;
     use crate::native_numeral::{add_via_word, divmod_via_word, isqrt, mod_pow_walk, modulo_via_word, multiply_via_word, subtract_via_word, to_bits_low_first};
     let one = BigUint::one();
