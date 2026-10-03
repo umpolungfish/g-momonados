@@ -7,7 +7,7 @@ use crate::godel_analyzer::{
     analyze_with_sieve, prime_sieve_read, render as render_analysis, DivisorBoundCertificate,
     PrimeSieveRead,
 };
-use crate::godel_calculus::{check, decode, encode_cell_binary, Family, Nat, Operator, Structure};
+use crate::godel_calculus::{check, decode, encode_cell_binary, Family, Nat, Operator};
 
 const SEMIPRIME_PROTOCOL_WORD: &str = "⊢⊙∈⊤⊥⊞∋≻⋈≺⊡⊣";
 
@@ -17,9 +17,53 @@ pub struct SemiprimeReport {
     pub factors: Option<(Nat, Nat)>,
     pub analysis: String,
     pub protocol_match: bool,
+    pub extraction: crate::arbitrary_factor::Extraction,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use num_bigint::BigUint;
+
+    #[test]
+    fn closes_a_128_bit_prime_square_through_the_shared_ladder() {
+        let p = BigUint::from(18_446_744_073_709_551_557u64);
+        let n = &p * &p;
+        assert_eq!(n.bits(), 128);
+        let report = process_semiprime(&n.to_string()).unwrap();
+        assert!(report.protocol_match);
+        assert_eq!(
+            report.factors,
+            Some((
+                Nat::from_decimal(&p.to_string()).unwrap(),
+                Nat::from_decimal(&p.to_string()).unwrap()
+            ))
+        );
+        assert!(report
+            .extraction
+            .steps
+            .iter()
+            .any(|step| step.route == crate::arbitrary_factor::Route::DifferenceOfSquares));
+    }
+
+    #[test]
+    fn retains_unresolved_balanced_128_bit_source_and_route_trace() {
+        let source = "296650821743515430283258444261036507151";
+        let report = process_semiprime(source).unwrap();
+        assert!(!report.protocol_match);
+        assert!(report.factors.is_none());
+        assert_eq!(report.extraction.leftover.as_deref(), Some(source));
+        assert!(report
+            .extraction
+            .steps
+            .iter()
+            .any(|step| step.route == crate::arbitrary_factor::Route::Rho));
+        assert!(render_report(&report).contains("UNRESOLVED"));
+    }
 }
 
 pub fn process_semiprime(raw_input: &str) -> Result<SemiprimeReport, String> {
+    let raw_input = raw_input.trim();
     let value = if raw_input.starts_with('⊢') {
         let reading = decode(raw_input).map_err(|e| e.to_string())?;
         if reading.family != Family::CellBinary {
@@ -37,23 +81,32 @@ pub fn process_semiprime(raw_input: &str) -> Result<SemiprimeReport, String> {
     let sieve_read = prime_sieve_read(&word, 65536)?;
 
     // 2. Factor Pair Extraction and product closure
-    let factors = match &sieve_read {
-        PrimeSieveRead::Factor { p, q, .. } => {
-            let p_word = encode_cell_binary(p);
-            let q_word = encode_cell_binary(q);
-            let product =
-                check(&p_word, Operator::Mul, &q_word, &word).map_err(|error| error.to_string())?;
-            let cofactor_read = prime_sieve_read(&q_word, 65536)?;
-            if product.valid
-                && q != &Nat::one()
-                && matches!(cofactor_read, PrimeSieveRead::Prime { .. })
-            {
-                Some((p.clone(), q.clone()))
-            } else {
-                None
+    let extraction = crate::arbitrary_factor::extract(raw_input)?;
+    let mut pair = Vec::new();
+    if extraction.verified {
+        for (prime, exponent) in &extraction.factors {
+            if *exponent > 2 || pair.len() + *exponent as usize > 2 {
+                pair.clear();
+                break;
+            }
+            let prime =
+                Nat::from_decimal(prime).ok_or_else(|| "factor conversion failed".to_string())?;
+            for _ in 0..*exponent {
+                pair.push(prime.clone());
             }
         }
-        _ => None,
+    }
+    let factors = if pair.len() == 2 {
+        let product = check(
+            &encode_cell_binary(&pair[0]),
+            Operator::Mul,
+            &encode_cell_binary(&pair[1]),
+            &word,
+        )
+        .map_err(|error| error.to_string())?;
+        product.valid.then(|| (pair[0].clone(), pair[1].clone()))
+    } else {
+        None
     };
 
     // 3. Structural Analysis
@@ -73,7 +126,7 @@ pub fn process_semiprime(raw_input: &str) -> Result<SemiprimeReport, String> {
 
     // 4. Protocol Conformance (Semiprime Specific)
     // Must have exactly two non-trivial prime factors and pass the conjunctive check
-    let protocol_match = factors.is_some() && verify_semiprime_protocol(&word);
+    let protocol_match = factors.is_some() && extraction.protocol_match;
 
     Ok(SemiprimeReport {
         source: value,
@@ -81,28 +134,17 @@ pub fn process_semiprime(raw_input: &str) -> Result<SemiprimeReport, String> {
         factors,
         analysis: analysis_report,
         protocol_match,
+        extraction,
     })
-}
-
-fn verify_semiprime_protocol(word: &str) -> bool {
-    if let Ok(reading) = decode(word) {
-        if reading.family == Family::CellBinary {
-            let bits = match &reading.structure {
-                Structure::CellBinary { bits_le } => bits_le,
-                _ => return false,
-            };
-            // Semiprime protocol requires popcount >= 2 and valid closure
-            return bits.iter().filter(|&&b| b).count() >= 2;
-        }
-    }
-    false
 }
 
 pub fn render_report(report: &SemiprimeReport) -> String {
     let factor_str = if let Some((p, q)) = &report.factors {
         format!("{} × {}", p, q)
+    } else if report.extraction.verified {
+        "none (complete factorization is not a prime pair)".to_string()
     } else {
-        "none (not a verified semiprime)".to_string()
+        "unresolved (route ladder has no verified prime pair)".to_string()
     };
 
     format!(
@@ -117,6 +159,8 @@ pub fn render_report(report: &SemiprimeReport) -> String {
          ── FACTORIZATION ───────────────────────────────────────\n\
          factor.pair                {}\n\
          conjunctive.reconstruction {}\n\n\
+         ── EXTRACTION ──────────────────────────────────────────\n\
+         {}\n\
          ── STRUCTURAL ANALYSIS ─────────────────────────────────\n\
          {}\n\
          ══════════════════════════════════════════════════════════\n",
@@ -124,16 +168,19 @@ pub fn render_report(report: &SemiprimeReport) -> String {
         report.word,
         if report.protocol_match {
             "PASS"
+        } else if report.extraction.verified {
+            "NOT SEMIPRIME"
         } else {
-            "FAIL"
+            "UNRESOLVED"
         },
         SEMIPRIME_PROTOCOL_WORD,
         factor_str,
         if report.factors.is_some() {
             "PASS (∋)"
         } else {
-            "FAIL"
+            "OPEN"
         },
+        report.extraction.render(),
         report.analysis,
     )
 }

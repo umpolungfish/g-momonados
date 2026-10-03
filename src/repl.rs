@@ -2124,6 +2124,14 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                     }
                 }
             }
+            #[cfg(feature = "hosted")]
+            "arbitrary_anyon_factor" | "arbitrary-anyon-factor" => {
+                let args: alloc::vec::Vec<&str> = parts.collect();
+                match crate::arbitrary_anyon_factor(&args) {
+                    Ok(report) => sprintln!("{}", report.render()),
+                    Err(error) => sprintln!("arbitrary_anyon_factor: {error}"),
+                }
+            }
             "arbitrary_factor" | "arbitrary-factor" => {
                 let input = parts.next().unwrap_or("");
                 if input.is_empty() || input == "help" {

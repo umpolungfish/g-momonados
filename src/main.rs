@@ -244,7 +244,7 @@ mod dynamic_nesting_prime_finder;
 mod closure_nested;
 mod factor_operator;
 mod factor_membrane;
-mod arbitrary_factor;
+use g_momonados::arbitrary_factor;
 mod membrane_family;
 mod shor_b4_membrane;
 mod coupled_bridge;
@@ -589,6 +589,24 @@ fn main() {
             println!("{}", factor_membrane::repl_factor_membrane(&refs));
             return;
         }
+        if matches!(head, "arbitrary_anyon_factor" | "arbitrary-anyon-factor") {
+            let refs: Vec<&str> = argv[1..].iter().map(String::as_str).collect();
+            if refs.is_empty() || refs[0] == "help" {
+                println!("arbitrary_anyon_factor <natural|canonical-cell-binary-word> <base> <max_shots> <unix_socket>");
+                return;
+            }
+            match arbitrary_anyon_factor(&refs) {
+                Ok(report) => {
+                    print!("{}", report.render());
+                    if !report.verified { std::process::exit(2); }
+                }
+                Err(error) => {
+                    eprintln!("arbitrary_anyon_factor: {error}");
+                    std::process::exit(2);
+                }
+            }
+            return;
+        }
         if matches!(head, "arbitrary_factor" | "arbitrary-factor") {
             let input = argv.get(1).map(String::as_str).unwrap_or("");
             if input.is_empty() || input == "help" {
@@ -723,6 +741,30 @@ fn main() {
         return;
     }
     kmain()
+}
+
+#[cfg(feature = "hosted")]
+fn arbitrary_anyon_factor(args: &[&str]) -> Result<arbitrary_factor::Extraction, String> {
+    use num_bigint::BigUint;
+    let usage = "usage: arbitrary_anyon_factor <natural|canonical-cell-binary-word> <base> <max_shots> <unix_socket>";
+    if args.len() != 4 {
+        return Err(usage.into());
+    }
+    let base = args[1].parse::<BigUint>().map_err(|_| usage)?;
+    let shots = args[2].parse::<u32>().map_err(|_| usage)?;
+    if base < BigUint::from(2u32) || shots == 0 {
+        return Err("arbitrary anyonic extraction requires base >= 2 and a positive shot budget".into());
+    }
+    arbitrary_factor::extract_with_anyons(args[0], |source| {
+        let device = anyon_device::FibonacciGenerator::connect(args[3])?;
+        let result = anyon_braid_cnot::try_factor_with_anyons(
+            source, &base, shots, device, 7, 7, 20_000, 2, 8,
+        )?;
+        Ok(result.map(|readout| arbitrary_factor::AnyonCandidate {
+            factor: readout.p,
+            detail: format!("base={} order={} shots={}", readout.base, readout.order, readout.shots),
+        }))
+    })
 }
 
 #[cfg(feature = "hosted")]

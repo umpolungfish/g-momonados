@@ -7,7 +7,12 @@ fn main() {
         std::process::exit(1);
     };
     match process_semiprime(input) {
-        Ok(report) => print!("{}", render_report(&report)),
+        Ok(report) => {
+            print!("{}", render_report(&report));
+            if !report.protocol_match {
+                std::process::exit(2);
+            }
+        }
         Err(error) => {
             eprintln!("semiprime-tool: {error}");
             std::process::exit(1);
