@@ -26,6 +26,14 @@ path = "src/bin/godel.rs"
 name = "imasm_phase_factor"
 path = "src/bin/imasm_phase_factor.rs"
 
+[[bin]]
+name = "semiprime-tool"
+path = "src/semiprime_tool.rs"
+
+[[bin]]
+name = "prime-tool"
+path = "src/prime_tool.rs"
+
 [lib]
 name = "g_momonados"
 path = "src/lib.rs"
