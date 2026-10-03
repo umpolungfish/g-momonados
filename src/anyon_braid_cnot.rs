@@ -496,6 +496,7 @@ pub struct FibonacciBraidCompiler {
     cnot_template: Option<(Vec<i32>, usize)>,
     hadamard_template: Option<(Vec<i32>, usize)>,
     single_templates: [Option<(usize, Vec<i32>)>; 4],
+    single_gate_net: Option<GateNet>,
 }
 
 /// Hardware boundary for generated Fibonacci anyon worldlines and fusion
@@ -652,6 +653,7 @@ impl FibonacciBraidCompiler {
             cnot_template: None,
             hadamard_template: None,
             single_templates: core::array::from_fn(|_| None),
+            single_gate_net: None,
         })
     }
 
@@ -685,29 +687,9 @@ impl FibonacciBraidCompiler {
         }
         self.hadamard_template = None;
         let target = BraidTarget::H(0);
-        let local = FibonacciLocal::new(&self.source)?;
-        let target_matrix = local.target(&target)?;
-        let mut depth = self.sk_depth;
-        loop {
-            let (word, _) = compile_single_qubit(
-                &self.source,
-                &target,
-                depth,
-                self.net_depth,
-                self.max_gates,
-            )?;
-            let observed = local.evaluate(&word)?;
-            if fixed_projective_error_within(&observed, &target_matrix, accuracy_bits)? {
-                self.hadamard_template = Some((word.clone(), accuracy_bits));
-                return Ok(word);
-            }
-            depth = depth
-                .checked_add(1)
-                .ok_or("Hadamard braid depth overflow")?;
-            if depth > self.sk_depth.saturating_add(4) {
-                return Err("Hadamard braid misses the requested CNOT routing precision".into());
-            }
-        }
+        let word = self.compile_single_uncached(&target, accuracy_bits)?;
+        self.hadamard_template = Some((word.clone(), accuracy_bits));
+        Ok(word)
     }
 
     /// Compile every target emitted by `CarrierGate::lower_for_braid` into
@@ -784,23 +766,30 @@ impl FibonacciBraidCompiler {
     }
 
     fn compile_single_uncached(
-        &self,
+        &mut self,
         target: &BraidTarget,
         accuracy_bits: usize,
     ) -> Result<Vec<i32>, String> {
         let local = FibonacciLocal::new(&self.source)?;
         let target_matrix = local.target(target)?;
-        let scale = local.format().scale();
-        let generators = [1, 2].map(|generator| {
-            local
-                .evaluate(&[generator])
-                .map(|matrix| as_matrix(&matrix, &scale))
-        });
-        let net = build_local_net(
-            [generators[0].clone()?, generators[1].clone()?],
-            self.net_depth,
-            self.max_gates,
-        );
+        if target_matrix.0 == LocalMatrix::identity(local.format()).0 {
+            return Ok(Vec::new());
+        }
+        if self.single_gate_net.is_none() {
+            let scale = local.format().scale();
+            let generators = [1, 2].map(|generator| {
+                local
+                    .evaluate(&[generator])
+                    .map(|matrix| as_matrix(&matrix, &scale))
+            });
+            self.single_gate_net = Some(build_local_net(
+                [generators[0].clone()?, generators[1].clone()?],
+                self.net_depth,
+                self.max_gates,
+            ));
+        }
+        let net = self.single_gate_net.as_ref().ok_or("single-qubit braid net was not retained")?;
+        let sk_depth = self.sk_depth;
         let mut depth = self.sk_depth;
         loop {
             let candidate = compile_single_qubit_with_net(
@@ -808,7 +797,7 @@ impl FibonacciBraidCompiler {
                 target,
                 0,
                 &target_matrix,
-                &net,
+                net,
                 depth,
             );
             let (word, _) = match candidate {
@@ -817,7 +806,7 @@ impl FibonacciBraidCompiler {
                     depth = depth
                         .checked_add(1)
                         .ok_or("feedback braid depth overflow")?;
-                    if depth > self.sk_depth.saturating_add(4) {
+                    if depth > sk_depth.saturating_add(4) {
                         return Err(error);
                     }
                     continue;
@@ -831,7 +820,7 @@ impl FibonacciBraidCompiler {
             depth = depth
                 .checked_add(1)
                 .ok_or("single-qubit braid depth overflow")?;
-            if depth > self.sk_depth.saturating_add(4) {
+            if depth > sk_depth.saturating_add(4) {
                 return Err("single-qubit braid misses the requested target precision".into());
             }
         }
@@ -1168,6 +1157,39 @@ mod tests {
         assert_eq!(
             compile_single_qubit(&source, &unbounded_denominator, 2, 5, 4096).unwrap_err(),
             "feedback denominator exceeds the source-bound phase precision"
+        );
+    }
+
+    #[test]
+    fn single_qubit_gate_net_is_reused_across_128_bit_phase_targets() {
+        let source = BigUint::parse_bytes(
+            b"296650821743515430283258444261036507151",
+            10,
+        )
+        .unwrap();
+        assert_eq!(source.bits(), 128);
+        let mut compiler = FibonacciBraidCompiler::new(&source, 1, 5, 4096, 0).unwrap();
+        compiler
+            .compile_single_uncached(&BraidTarget::X(0), 0)
+            .unwrap();
+        let net_address = compiler
+            .single_gate_net
+            .as_ref()
+            .unwrap()
+            .entries
+            .as_ptr();
+        compiler
+            .compile_single_uncached(&BraidTarget::T { qubit: 0, inverse: false }, 0)
+            .unwrap();
+        assert_eq!(
+            compiler
+                .single_gate_net
+                .as_ref()
+                .unwrap()
+                .entries
+                .as_ptr(),
+            net_address,
+            "changing the phase target must reuse the source-bound gate net"
         );
     }
 
