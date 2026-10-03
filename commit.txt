@@ -1,3 +1,3 @@
-I bind each fusion reply to its shot and phase position.
+I normalize the retained tagged-build factor reading.
 
-I require v2 controller acknowledgements and measured fusion replies to echo their shot identifiers. I reject mismatched phase indices before advancing the accumulator. I verify complete tagged transport sequences and stale, reordered, and untagged reply rejection at all five required source widths, document the controller contract, and retain the rebuilt executable.
+I remove the trailing blank line from the successful production factor regression log.
