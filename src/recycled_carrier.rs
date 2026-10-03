@@ -45,6 +45,30 @@ pub enum BraidTarget {
     },
 }
 
+impl BraidTarget {
+    /// Reduce a dyadic feedback coordinate without changing its phase.
+    /// Removing common powers of two also removes synthesis precision that
+    /// the reduced angle does not require.
+    pub fn reduced_feedback(&self) -> Self {
+        match self {
+            Self::Feedback { qubit, numerator, denominator_bits } => {
+                let mut numerator = numerator.clone();
+                let mut denominator_bits = *denominator_bits;
+                if numerator.is_zero() {
+                    denominator_bits = 0;
+                } else {
+                    while denominator_bits > 0 && !numerator.bit(0) {
+                        numerator >>= 1usize;
+                        denominator_bits -= 1;
+                    }
+                }
+                Self::Feedback { qubit: *qubit, numerator, denominator_bits }
+            }
+            _ => self.clone(),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WorkPreparation {
     /// Prepare each valid residue `0 <= x < N` with probability `1/N`.
