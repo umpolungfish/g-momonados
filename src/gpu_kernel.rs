@@ -15,10 +15,11 @@
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use cudarc::driver::{CudaContext, LaunchConfig, PushKernelArg};
+use std::collections::BTreeSet;
+use cudarc::driver::{CudaContext, CudaFunction, LaunchConfig, PushKernelArg};
 use cudarc::nvrtc::{compile_ptx, compile_ptx_with_opts, CompileOptions};
 use num_bigint::BigUint;
-use num_traits::{One, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 use crate::tokens::{Program, Token};
 use crate::kernel::Kernel;
 
@@ -754,6 +755,1109 @@ extern "C" __global__ void run_codebook(
 // the seed, and h stays m-bit-wide, which keeps everything in 64 bits even when
 // N is far past 64 bits. Sealing on h equal to zero is exactly P times Q equal
 // to N.
+const KERNEL_QFT_SRC: &str = r#"
+extern "C" __global__ void qft_bitreverse(
+    const double* input_re, const double* input_im,
+    double* output_re, double* output_im, unsigned long long count, unsigned int bits)
+{
+    unsigned long long i = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    for (; i < count; i += stride) {
+        unsigned long long x = i, reversed = 0;
+        for (unsigned int bit = 0; bit < bits; ++bit) {
+            reversed = (reversed << 1) | (x & 1ULL);
+            x >>= 1;
+        }
+        output_re[reversed] = input_re[i];
+        output_im[reversed] = input_im[i];
+    }
+}
+__device__ __forceinline__ double qft_pi() { return acos(-1.0); }
+extern "C" __global__ void qft_butterfly(
+    const double* input_re, const double* input_im,
+    double* output_re, double* output_im, unsigned long long count,
+    unsigned long long half, int inverse, double scale)
+{
+    unsigned long long pair = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    unsigned long long span = half << 1;
+    const double pi = qft_pi();
+    for (; pair < count / 2; pair += stride) {
+        unsigned long long base = (pair / half) * span;
+        unsigned long long j = pair % half;
+        unsigned long long i0 = base + j, i1 = i0 + half;
+        double angle = (inverse ? 2.0 : -2.0) * pi
+            * (double)j / (double)span;
+        double cr = cos(angle), ci = sin(angle);
+        double ur = input_re[i0], ui = input_im[i0];
+        double vr0 = input_re[i1], vi0 = input_im[i1];
+        double vr = vr0 * cr - vi0 * ci;
+        double vi = vr0 * ci + vi0 * cr;
+        output_re[i0] = (ur + vr) * scale;
+        output_im[i0] = (ui + vi) * scale;
+        output_re[i1] = (ur - vr) * scale;
+        output_im[i1] = (ui - vi) * scale;
+    }
+}
+extern "C" __global__ void qft_dif_local(
+    const double* input_re, const double* input_im,
+    double* output_re, double* output_im, unsigned long long count,
+    unsigned long long half, int inverse, double scale)
+{
+    unsigned long long pair = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    unsigned long long span = half << 1;
+    const double pi = qft_pi();
+    for (; pair < count / 2; pair += stride) {
+        unsigned long long base = (pair / half) * span;
+        unsigned long long j = pair % half;
+        unsigned long long i0 = base + j, i1 = i0 + half;
+        double angle = (inverse ? 2.0 : -2.0) * pi
+            * (double)j / (double)span;
+        double cr = cos(angle), ci = sin(angle);
+        double ar = input_re[i0], ai = input_im[i0];
+        double br = input_re[i1], bi = input_im[i1];
+        output_re[i0] = (ar + br) * scale;
+        output_im[i0] = (ai + bi) * scale;
+        output_re[i1] = ((ar - br) * cr - (ai - bi) * ci) * scale;
+        output_im[i1] = ((ar - br) * ci + (ai - bi) * cr) * scale;
+    }
+}
+extern "C" __global__ void qft_dif_cross(
+    const double* low_re, const double* low_im,
+    const double* high_re, const double* high_im,
+    double* output_low_re, double* output_low_im,
+    double* output_high_re, double* output_high_im,
+    const double* twiddle_re, const double* twiddle_im,
+    unsigned long long count, double scale)
+{
+    unsigned long long i = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    for (; i < count; i += stride) {
+        double ar = low_re[i], ai = low_im[i];
+        double br = high_re[i], bi = high_im[i];
+        double dr = ar - br, di = ai - bi;
+        double cr = twiddle_re[i], ci = twiddle_im[i];
+        output_low_re[i] = (ar + br) * scale;
+        output_low_im[i] = (ai + bi) * scale;
+        output_high_re[i] = (dr * cr - di * ci) * scale;
+        output_high_im[i] = (dr * ci + di * cr) * scale;
+    }
+}
+__device__ __forceinline__ __int128 qft_fixed_round(__int128 value, int shift) {
+    __int128 rounding = ((__int128)1) << (shift - 1);
+    return value < 0 ? -(((-value) + rounding) >> shift) : ((value + rounding) >> shift);
+}
+__device__ __forceinline__ long long qft_fixed_half(__int128 value) {
+    return (long long)(value < 0 ? -(((-value) + 1) >> 1) : (value + 1) >> 1);
+}
+__device__ __forceinline__ long long qft_fixed_product(__int128 value, int shift) {
+    return (long long)qft_fixed_round(value, shift);
+}
+extern "C" __global__ void qft_dif_local_fixed(
+    const long long* input_re, const long long* input_im,
+    long long* output_re, long long* output_im,
+    const long long* twiddle_re, const long long* twiddle_im,
+    unsigned long long count, unsigned long long half, int w_bits)
+{
+    unsigned long long pair = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    unsigned long long span = half << 1;
+    for (; pair < count / 2; pair += stride) {
+        unsigned long long base = (pair / half) * span;
+        unsigned long long j = pair % half;
+        unsigned long long i0 = base + j, i1 = i0 + half;
+        long long ar = input_re[i0], ai = input_im[i0];
+        long long br = input_re[i1], bi = input_im[i1];
+        __int128 dr = (__int128)ar - br, di = (__int128)ai - bi;
+        long long wr = twiddle_re[j], wi = twiddle_im[j];
+        long long pr = qft_fixed_product((__int128)dr * wr - (__int128)di * wi, w_bits);
+        long long pi = qft_fixed_product((__int128)dr * wi + (__int128)di * wr, w_bits);
+        output_re[i0] = qft_fixed_half((__int128)ar + br);
+        output_im[i0] = qft_fixed_half((__int128)ai + bi);
+        output_re[i1] = qft_fixed_half(pr);
+        output_im[i1] = qft_fixed_half(pi);
+    }
+}
+extern "C" __global__ void qft_dif_cross_fixed(
+    const long long* low_re, const long long* low_im,
+    const long long* high_re, const long long* high_im,
+    long long* output_low_re, long long* output_low_im,
+    long long* output_high_re, long long* output_high_im,
+    const long long* twiddle_re, const long long* twiddle_im,
+    unsigned long long count, int w_bits)
+{
+    unsigned long long i = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    for (; i < count; i += stride) {
+        long long ar = low_re[i], ai = low_im[i];
+        long long br = high_re[i], bi = high_im[i];
+        __int128 dr = (__int128)ar - br, di = (__int128)ai - bi;
+        long long wr = twiddle_re[i], wi = twiddle_im[i];
+        long long pr = qft_fixed_product((__int128)dr * wr - (__int128)di * wi, w_bits);
+        long long pi = qft_fixed_product((__int128)dr * wi + (__int128)di * wr, w_bits);
+        output_low_re[i] = qft_fixed_half((__int128)ar + br);
+        output_low_im[i] = qft_fixed_half((__int128)ai + bi);
+        output_high_re[i] = qft_fixed_half(pr);
+        output_high_im[i] = qft_fixed_half(pi);
+    }
+}
+__device__ __forceinline__ void qft_limb_add(unsigned int* out, const unsigned int* a, const unsigned int* b, int n) {
+    unsigned long long carry = 0;
+    for (int i = 0; i < n; ++i) {
+        unsigned long long sum = (unsigned long long)a[i] + b[i] + carry;
+        out[i] = (unsigned int)sum;
+        carry = sum >> 32;
+    }
+}
+__device__ __forceinline__ void qft_limb_sub(unsigned int* out, const unsigned int* a, const unsigned int* b, int n) {
+    unsigned long long borrow = 0;
+    for (int i = 0; i < n; ++i) {
+        unsigned long long av = a[i], bv = (unsigned long long)b[i] + borrow;
+        out[i] = (unsigned int)(av - bv);
+        borrow = av < bv;
+    }
+}
+__device__ __forceinline__ void qft_limb_negate(unsigned int* value, int n) {
+    unsigned long long carry = 1;
+    for (int i = 0; i < n; ++i) {
+        unsigned long long word = (unsigned long long)(~value[i]) + carry;
+        value[i] = (unsigned int)word;
+        carry = word >> 32;
+    }
+}
+__device__ __forceinline__ void qft_limb_mul(unsigned int* out, const unsigned int* a, const unsigned int* b, int n) {
+    for (int i = 0; i < 2 * n; ++i) out[i] = 0;
+    for (int i = 0; i < n; ++i) {
+        unsigned long long carry = 0;
+        for (int j = 0; j < n; ++j) {
+            int k = i + j;
+            unsigned long long value = (unsigned long long)a[i] * b[j] + out[k] + carry;
+            out[k] = (unsigned int)value;
+            carry = value >> 32;
+        }
+        int k = i + n;
+        while (carry && k < 2 * n) {
+            unsigned long long value = (unsigned long long)out[k] + carry;
+            out[k++] = (unsigned int)value;
+            carry = value >> 32;
+        }
+    }
+    if (a[n - 1] & 0x80000000U) {
+        unsigned long long borrow = 0;
+        for (int j = 0; j < n; ++j) {
+            unsigned long long lhs = out[n + j];
+            unsigned long long rhs = (unsigned long long)b[j] + borrow;
+            out[n + j] = (unsigned int)(lhs - rhs);
+            borrow = lhs < rhs;
+        }
+    }
+    if (b[n - 1] & 0x80000000U) {
+        unsigned long long borrow = 0;
+        for (int j = 0; j < n; ++j) {
+            unsigned long long lhs = out[n + j];
+            unsigned long long rhs = (unsigned long long)a[j] + borrow;
+            out[n + j] = (unsigned int)(lhs - rhs);
+            borrow = lhs < rhs;
+        }
+    }
+}
+__device__ __forceinline__ void qft_limb_round_shift(unsigned int* product, unsigned int* out, int n, int shift) {
+    int wide = 2 * n;
+    bool negative = (product[wide - 1] & 0x80000000U) != 0;
+    if (negative) qft_limb_negate(product, wide);
+    int round_word = (shift - 1) >> 5;
+    unsigned int round_bit = 1U << ((shift - 1) & 31);
+    unsigned long long carry = round_bit;
+    for (int i = round_word; i < wide && carry; ++i) {
+        unsigned long long sum = (unsigned long long)product[i] + carry;
+        product[i] = (unsigned int)sum;
+        carry = sum >> 32;
+    }
+    int word_shift = shift >> 5;
+    int bit_shift = shift & 31;
+    for (int i = 0; i < n; ++i) {
+        int source = i + word_shift;
+        unsigned int value = source < wide ? product[source] >> bit_shift : 0;
+        if (bit_shift && source + 1 < wide) value |= product[source + 1] << (32 - bit_shift);
+        out[i] = value;
+    }
+    if (negative) qft_limb_negate(out, n);
+}
+__device__ __forceinline__ void qft_limb_half(unsigned int* value, int n) {
+    bool negative = (value[n - 1] & 0x80000000U) != 0;
+    if (negative) qft_limb_negate(value, n);
+    unsigned long long carry = 1;
+    for (int i = 0; i < n && carry; ++i) {
+        unsigned long long sum = (unsigned long long)value[i] + carry;
+        value[i] = (unsigned int)sum;
+        carry = sum >> 32;
+    }
+    for (int i = 0; i < n; ++i) value[i] = (value[i] >> 1) | (i + 1 < n ? value[i + 1] << 31 : 0);
+    if (negative) qft_limb_negate(value, n);
+}
+__device__ __forceinline__ void qft_limb_complex_high(
+    const unsigned int* dr, const unsigned int* di, const unsigned int* wr, const unsigned int* wi,
+    unsigned int* out_re, unsigned int* out_im, unsigned int* scratch, int n, int w_bits)
+{
+    unsigned int* rr = scratch;
+    unsigned int* ii = scratch + 2 * n;
+    unsigned int* ri = scratch + 4 * n;
+    unsigned int* ir = scratch + 6 * n;
+    unsigned int* product_re = scratch + 8 * n;
+    unsigned int* product_im = scratch + 10 * n;
+    qft_limb_mul(rr, dr, wr, n);
+    qft_limb_mul(ii, di, wi, n);
+    qft_limb_mul(ri, dr, wi, n);
+    qft_limb_mul(ir, di, wr, n);
+    qft_limb_sub(product_re, rr, ii, 2 * n);
+    qft_limb_add(product_im, ri, ir, 2 * n);
+    qft_limb_round_shift(product_re, out_re, n, w_bits);
+    qft_limb_round_shift(product_im, out_im, n, w_bits);
+    qft_limb_half(out_re, n);
+    qft_limb_half(out_im, n);
+}
+extern "C" __global__ void qft_dif_cross_limb(
+    const unsigned int* low, const unsigned int* high, const unsigned int* twiddles,
+    unsigned int* out_low, unsigned int* out_high, unsigned int* scratch,
+    unsigned long long count, int n, int w_bits)
+{
+    unsigned long long i = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    for (; i < count; i += stride) {
+        const unsigned int* a = low + i * 2 * n;
+        const unsigned int* b = high + i * 2 * n;
+        const unsigned int* tw = twiddles + i * 2 * n;
+        unsigned int* lo = out_low + i * 2 * n;
+        unsigned int* hi = out_high + i * 2 * n;
+        unsigned int* work = scratch + i * 14 * n;
+        unsigned int* dr = work + 12 * n;
+        unsigned int* di = work + 13 * n;
+        qft_limb_add(lo, a, b, n);
+        qft_limb_add(lo + n, a + n, b + n, n);
+        qft_limb_half(lo, n);
+        qft_limb_half(lo + n, n);
+        qft_limb_sub(dr, a, b, n);
+        qft_limb_sub(di, a + n, b + n, n);
+        qft_limb_complex_high(dr, di, tw, tw + n, hi, hi + n, work, n, w_bits);
+    }
+}
+extern "C" __global__ void qft_dif_local_limb(
+    const unsigned int* input, const unsigned int* twiddles, unsigned int* output,
+    unsigned int* scratch, unsigned long long count, unsigned long long half,
+    int n, int w_bits)
+{
+    unsigned long long pair = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    unsigned long long span = half << 1;
+    for (; pair < count / 2; pair += stride) {
+        unsigned long long base = (pair / half) * span;
+        unsigned long long lane = pair % half;
+        unsigned long long i0 = base + lane, i1 = i0 + half;
+        const unsigned int* a = input + i0 * 2 * n;
+        const unsigned int* b = input + i1 * 2 * n;
+        const unsigned int* tw = twiddles + lane * 2 * n;
+        unsigned int* lo = output + i0 * 2 * n;
+        unsigned int* hi = output + i1 * 2 * n;
+        unsigned int* work = scratch + pair * 14 * n;
+        unsigned int* dr = work + 12 * n;
+        unsigned int* di = work + 13 * n;
+        qft_limb_add(lo, a, b, n);
+        qft_limb_add(lo + n, a + n, b + n, n);
+        qft_limb_half(lo, n);
+        qft_limb_half(lo + n, n);
+        qft_limb_sub(dr, a, b, n);
+        qft_limb_sub(di, a + n, b + n, n);
+        qft_limb_complex_high(dr, di, tw, tw + n, hi, hi + n, work, n, w_bits);
+    }
+}
+extern "C" __global__ void qft_recycled_limb(
+    const unsigned int* low, const unsigned int* high, const unsigned int* feedback,
+    unsigned int* out_low, unsigned int* out_high, unsigned int* scratch,
+    unsigned long long count, int n, int w_bits)
+{
+    unsigned long long i = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    for (; i < count; i += stride) {
+        const unsigned int* a = low + i * 2 * n;
+        const unsigned int* b = high + i * 2 * n;
+        unsigned int* lo = out_low + i * 2 * n;
+        unsigned int* hi = out_high + i * 2 * n;
+        unsigned int* work = scratch + i * 14 * n;
+        unsigned int* dr = work + 12 * n;
+        unsigned int* di = work + 13 * n;
+        for (int limb = 0; limb < n; ++limb) { dr[limb] = b[limb]; di[limb] = b[n + limb]; }
+        qft_limb_negate(dr, n);
+        qft_limb_negate(di, n);
+        // Preserve the existing fixed DIF intermediate rounding exactly.
+        qft_limb_complex_high(dr, di, feedback, feedback + n, hi, hi + n, work, n, w_bits);
+        qft_limb_negate(hi, n);
+        qft_limb_negate(hi + n, n);
+        qft_limb_add(hi, hi, hi, n);
+        qft_limb_add(hi + n, hi + n, hi + n, n);
+        qft_limb_add(lo, a, hi, n);
+        qft_limb_add(lo + n, a + n, hi + n, n);
+        qft_limb_sub(hi, a, hi, n);
+        qft_limb_sub(hi + n, a + n, hi + n, n);
+        qft_limb_half(lo, n);
+        qft_limb_half(lo + n, n);
+        qft_limb_half(hi, n);
+        qft_limb_half(hi + n, n);
+    }
+}
+__device__ __forceinline__ unsigned long long qft_addmod(unsigned long long a, unsigned long long b, unsigned long long n) {
+    return a >= n - b ? a - (n - b) : a + b;
+}
+__device__ __forceinline__ unsigned long long qft_mulmod(unsigned long long a, unsigned long long b, unsigned long long n) {
+    unsigned long long r = 0;
+    while (b) {
+        if (b & 1ULL) r = qft_addmod(r, a, n);
+        a = qft_addmod(a, a, n);
+        b >>= 1;
+    }
+    return r;
+}
+__device__ __forceinline__ unsigned long long qft_powmod(unsigned long long a, unsigned long long e, unsigned long long n) {
+    unsigned long long r = 1ULL % n;
+    a %= n;
+    while (e) {
+        if (e & 1ULL) r = qft_mulmod(r, a, n);
+        a = qft_mulmod(a, a, n);
+        e >>= 1;
+    }
+    return r;
+}
+extern "C" __global__ void qft_prepare_branch(
+    unsigned long long n, unsigned long long a, unsigned long long seed,
+    unsigned long long count, double amplitude,
+    double* output_re, double* output_im)
+{
+    unsigned long long i = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned long long stride = (unsigned long long)gridDim.x * blockDim.x;
+    for (; i < count; i += stride) {
+        unsigned long long residue = qft_mulmod(seed, qft_powmod(a, i, n), n);
+        output_re[i] = residue == 1ULL % n ? amplitude : 0.0;
+        output_im[i] = 0.0;
+    }
+}
+"#;
+
+pub struct CudaQft {
+    context: std::sync::Arc<CudaContext>,
+    bitreverse: CudaFunction,
+    butterfly: CudaFunction,
+    dif_local: CudaFunction,
+    dif_cross: CudaFunction,
+    dif_local_fixed: CudaFunction,
+    dif_cross_fixed: CudaFunction,
+    dif_local_limb: CudaFunction,
+    dif_cross_limb: CudaFunction,
+    recycled_limb: CudaFunction,
+    prepare_branch: CudaFunction,
+}
+
+fn qft_launch_grid(work_items: u64, threads: u32) -> u32 {
+    work_items.div_ceil(u64::from(threads)).min(0x7fff_ffff) as u32
+}
+
+fn qft_powmod_host(mut base: u64, mut exponent: u64, modulus: u64) -> u64 {
+    let mut result = 1 % modulus;
+    base %= modulus;
+    while exponent != 0 {
+        if exponent & 1 != 0 { result = ((result as u128 * base as u128) % modulus as u128) as u64; }
+        base = ((base as u128 * base as u128) % modulus as u128) as u64;
+        exponent >>= 1;
+    }
+    result
+}
+
+fn qft_phase_fraction(index: &BigUint, stage: u64) -> f64 {
+    if stage <= 52 {
+        let value = index.to_u64_digits().first().copied().unwrap_or(0) as f64;
+        return value / 2.0f64.powi(stage as i32 + 1);
+    }
+    let Some(shift) = usize::try_from(stage - 52).ok() else { return 0.0; };
+    let leading = (index >> shift).to_u64_digits().first().copied().unwrap_or(0);
+    leading as f64 / 9_007_199_254_740_992.0
+}
+
+impl CudaQft {
+    /// Feedback and measured Hadamard in one arbitrary-width device launch.
+    /// One feedback cell is shared by the entire batch.
+    pub fn recycled_phase_mix(&self, low: &mut [crate::phase_unbraid::FixedComplex], high: &mut [crate::phase_unbraid::FixedComplex], feedback: &crate::phase_unbraid::FixedComplex, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        if low.is_empty() || low.len() != high.len() { return Err("QPE CUDA branches require equal nonempty buffers".into()); }
+        let limbs = i32::try_from(Self::fixed_limb_count(format)?).map_err(|_| "QPE limb count exceeds CUDA indexing")?;
+        let count = u64::try_from(low.len()).map_err(|_| "QPE batch exceeds CUDA indexing")?;
+        let w_bits = i32::try_from(format.w_bits).map_err(|_| "QPE W exceeds CUDA shift indexing")?;
+        let scratch_len = low.len().checked_mul(14).and_then(|size| size.checked_mul(limbs as usize)).ok_or("QPE CUDA scratch size overflow")?;
+        let stream = self.context.default_stream();
+        let source_low = stream.clone_htod(&Self::fixed_limb_words(low, format)?).map_err(|e| format!("QPE upload lower branch: {e}"))?;
+        let source_high = stream.clone_htod(&Self::fixed_limb_words(high, format)?).map_err(|e| format!("QPE upload upper branch: {e}"))?;
+        let phase = stream.clone_htod(&Self::fixed_limb_words(core::slice::from_ref(feedback), format)?).map_err(|e| format!("QPE upload feedback: {e}"))?;
+        let output_len = low.len().checked_mul(2).and_then(|size| size.checked_mul(limbs as usize)).ok_or("QPE CUDA output size overflow")?;
+        let mut out_low = stream.alloc_zeros::<u32>(output_len).map_err(|e| format!("QPE allocate lower branch: {e}"))?;
+        let mut out_high = stream.alloc_zeros::<u32>(output_len).map_err(|e| format!("QPE allocate upper branch: {e}"))?;
+        let mut scratch = stream.alloc_zeros::<u32>(scratch_len).map_err(|e| format!("QPE allocate scratch: {e}"))?;
+        let threads = 128u32;
+        let mut launch = stream.launch_builder(&self.recycled_limb);
+        launch.arg(&source_low).arg(&source_high).arg(&phase).arg(&mut out_low).arg(&mut out_high)
+            .arg(&mut scratch).arg(&count).arg(&limbs).arg(&w_bits);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (qft_launch_grid(count, threads), 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("QPE fused feedback launch: {e}"))?;
+        let words = stream.clone_dtoh(&out_low).map_err(|e| format!("QPE download lower branch: {e}"))?;
+        low.clone_from_slice(&Self::fixed_from_limb_words(&words, low.len(), format)?);
+        let words = stream.clone_dtoh(&out_high).map_err(|e| format!("QPE download upper branch: {e}"))?;
+        high.clone_from_slice(&Self::fixed_from_limb_words(&words, high.len(), format)?);
+        Ok(())
+    }
+
+    pub fn new(device: usize) -> Result<Self, String> {
+        let context = CudaContext::new(device).map_err(|e| format!("QFT CUDA context: {e}"))?;
+        let ptx = compile_ptx_with_opts(KERNEL_QFT_SRC, CompileOptions {
+            options: alloc::vec!["--device-int128".into()], ..Default::default()
+        }).map_err(|e| format!("QFT NVRTC: {e}"))?;
+        let module = context.load_module(ptx).map_err(|e| format!("QFT module: {e}"))?;
+        let bitreverse = module.load_function("qft_bitreverse").map_err(|e| format!("QFT bit-reversal kernel: {e}"))?;
+        let butterfly = module.load_function("qft_butterfly").map_err(|e| format!("QFT butterfly kernel: {e}"))?;
+        let dif_local = module.load_function("qft_dif_local").map_err(|e| format!("QFT DIF local kernel: {e}"))?;
+        let dif_cross = module.load_function("qft_dif_cross").map_err(|e| format!("QFT DIF cross-tile kernel: {e}"))?;
+        let dif_local_fixed = module.load_function("qft_dif_local_fixed").map_err(|e| format!("QFT fixed DIF local kernel: {e}"))?;
+        let dif_cross_fixed = module.load_function("qft_dif_cross_fixed").map_err(|e| format!("QFT fixed DIF cross-tile kernel: {e}"))?;
+        let dif_local_limb = module.load_function("qft_dif_local_limb").map_err(|e| format!("QFT limb DIF local kernel: {e}"))?;
+        let dif_cross_limb = module.load_function("qft_dif_cross_limb").map_err(|e| format!("QFT limb DIF cross-tile kernel: {e}"))?;
+        let recycled_limb = module.load_function("qft_recycled_limb").map_err(|e| format!("QPE fused feedback kernel: {e}"))?;
+        let prepare_branch = module.load_function("qft_prepare_branch").map_err(|e| format!("QFT branch-preparation kernel: {e}"))?;
+        Ok(Self { context, bitreverse, butterfly, dif_local, dif_cross, dif_local_fixed, dif_cross_fixed, dif_local_limb, dif_cross_limb, recycled_limb, prepare_branch })
+    }
+
+    pub fn prepare_branch(&self, n: u64, base: u64, start: usize, total: usize, buffer: &mut [crate::phase_unbraid::Cx]) -> Result<(), String> {
+        if n < 2 || base == 0 || total == 0
+            || start.checked_add(buffer.len()).filter(|&end| end <= total).is_none() {
+            return Err("CUDA QPE branch requires 2 <= N, nonzero base, and a valid register tile".into());
+        }
+        let stream = self.context.default_stream();
+        let count = u64::try_from(buffer.len()).map_err(|_| "QPE tile exceeds 64-bit CUDA indexing")?;
+        let seed = qft_powmod_host(base, start as u64, n);
+        let amplitude = 1.0 / (total as f64).sqrt();
+        let mut real = stream.alloc_zeros::<f64>(buffer.len()).map_err(|e| format!("QPE branch allocate real: {e}"))?;
+        let mut imag = stream.alloc_zeros::<f64>(buffer.len()).map_err(|e| format!("QPE branch allocate imaginary: {e}"))?;
+        let threads = 256u32;
+        let grid = qft_launch_grid(count, threads);
+        let mut launch = stream.launch_builder(&self.prepare_branch);
+        launch.arg(&n).arg(&base).arg(&seed).arg(&count).arg(&amplitude).arg(&mut real).arg(&mut imag);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("QPE branch preparation launch: {e}"))?;
+        let output_re = stream.clone_dtoh(&real).map_err(|e| format!("QPE branch download real: {e}"))?;
+        let output_im = stream.clone_dtoh(&imag).map_err(|e| format!("QPE branch download imaginary: {e}"))?;
+        for ((amp, re), im) in buffer.iter_mut().zip(output_re).zip(output_im) {
+            amp.re = re;
+            amp.im = im;
+        }
+        Ok(())
+    }
+
+    pub fn prepare_branch_big(&self, n: u64, base: u64, start: &num_bigint::BigUint, qubits: u64, buffer: &mut [crate::phase_unbraid::Cx]) -> Result<(), String> {
+        if n < 2 || base == 0 || buffer.is_empty() {
+            return Err("CUDA QPE tile requires N >= 2, nonzero base, and a nonempty buffer".into());
+        }
+        let count = u64::try_from(buffer.len()).map_err(|_| "QPE tile exceeds 64-bit CUDA indexing")?;
+        let layout = crate::phase_unbraid::DenseRegisterLayout::new(qubits, 1)?;
+        if !layout.contains_range(start, count) {
+            return Err("CUDA QPE tile exceeds the logical register".into());
+        }
+        let modulus = num_bigint::BigUint::from(n);
+        let seed = num_bigint::BigUint::from(base % n).modpow(start, &modulus)
+            .to_u64_digits().first().copied().unwrap_or(0);
+        let amplitude = 1.0;
+        let stream = self.context.default_stream();
+        let mut real = stream.alloc_zeros::<f64>(buffer.len()).map_err(|e| format!("QPE branch allocate real: {e}"))?;
+        let mut imag = stream.alloc_zeros::<f64>(buffer.len()).map_err(|e| format!("QPE branch allocate imaginary: {e}"))?;
+        let threads = 256u32;
+        let grid = qft_launch_grid(count, threads);
+        let mut launch = stream.launch_builder(&self.prepare_branch);
+        launch.arg(&n).arg(&base).arg(&seed).arg(&count).arg(&amplitude).arg(&mut real).arg(&mut imag);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("QPE branch preparation launch: {e}"))?;
+        let output_re = stream.clone_dtoh(&real).map_err(|e| format!("QPE branch download real: {e}"))?;
+        let output_im = stream.clone_dtoh(&imag).map_err(|e| format!("QPE branch download imaginary: {e}"))?;
+        for ((amp, re), im) in buffer.iter_mut().zip(output_re).zip(output_im) { amp.re = re; amp.im = im; }
+        Ok(())
+    }
+
+    pub fn prepare_branch_big_inputs_cpu(n: &BigUint, base: &BigUint, start: &BigUint, qubits: u64, buffer: &mut [crate::phase_unbraid::Cx]) -> Result<(), String> {
+        if n < &BigUint::from(2u8) || base.is_zero() || buffer.is_empty() {
+            return Err("QPE tile requires N >= 2, nonzero base, and a nonempty buffer".into());
+        }
+        let count = u64::try_from(buffer.len()).map_err(|_| "QPE tile exceeds 64-bit CUDA indexing")?;
+        let layout = crate::phase_unbraid::DenseRegisterLayout::new(qubits, 1)?;
+        if !layout.contains_range(start, count) {
+            return Err("QPE tile exceeds the logical register".into());
+        }
+        let multiplier = base % n;
+        let mut residue = multiplier.modpow(start, n);
+        let amplitude = 1.0;
+        for cell in buffer.iter_mut() {
+            *cell = crate::phase_unbraid::Cx {
+                re: if residue.is_one() { amplitude } else { 0.0 },
+                im: 0.0,
+            };
+            residue = (residue * &multiplier) % n;
+        }
+        Ok(())
+    }
+
+    pub fn prepare_branch_bigint(&self, n: &BigUint, base: &BigUint, start: &BigUint, qubits: u64, buffer: &mut [crate::phase_unbraid::Cx]) -> Result<(), String> {
+        let n_limbs = n.to_u64_digits();
+        let base_limbs = base.to_u64_digits();
+        if n_limbs.len() <= 1 && base_limbs.len() <= 1 {
+            return self.prepare_branch_big(
+                n_limbs.first().copied().unwrap_or(0),
+                base_limbs.first().copied().unwrap_or(0),
+                start,
+                qubits,
+                buffer,
+            );
+        }
+        Self::prepare_branch_big_inputs_cpu(n, base, start, qubits, buffer)
+    }
+
+    fn dif_local_stage(&self, buffer: &mut [crate::phase_unbraid::Cx], half: u64, inverse: bool, scale: f64) -> Result<(), String> {
+        let stream = self.context.default_stream();
+        let real: Vec<f64> = buffer.iter().map(|cell| cell.re).collect();
+        let imag: Vec<f64> = buffer.iter().map(|cell| cell.im).collect();
+        let count = u64::try_from(buffer.len()).map_err(|_| "QFT tile exceeds 64-bit indexing")?;
+        let source_re = stream.clone_htod(&real).map_err(|e| format!("DIF tile upload real: {e}"))?;
+        let source_im = stream.clone_htod(&imag).map_err(|e| format!("DIF tile upload imaginary: {e}"))?;
+        let mut target_re = stream.alloc_zeros::<f64>(buffer.len()).map_err(|e| format!("DIF tile allocate real: {e}"))?;
+        let mut target_im = stream.alloc_zeros::<f64>(buffer.len()).map_err(|e| format!("DIF tile allocate imaginary: {e}"))?;
+        let threads = 256u32;
+        let grid = qft_launch_grid(count / 2, threads);
+        let inverse_flag = inverse as i32;
+        let mut launch = stream.launch_builder(&self.dif_local);
+        launch.arg(&source_re).arg(&source_im).arg(&mut target_re).arg(&mut target_im)
+            .arg(&count).arg(&half).arg(&inverse_flag).arg(&scale);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("DIF local-stage launch: {e}"))?;
+        let output_re = stream.clone_dtoh(&target_re).map_err(|e| format!("DIF tile download real: {e}"))?;
+        let output_im = stream.clone_dtoh(&target_im).map_err(|e| format!("DIF tile download imaginary: {e}"))?;
+        for ((cell, re), im) in buffer.iter_mut().zip(output_re).zip(output_im) { cell.re = re; cell.im = im; }
+        Ok(())
+    }
+
+    fn dif_cross_stage(&self, lower: &mut [crate::phase_unbraid::Cx], upper: &mut [crate::phase_unbraid::Cx], twiddles: &[(f64, f64)], scale: f64) -> Result<(), String> {
+        if lower.len() != upper.len() || lower.len() != twiddles.len() { return Err("DIF cross-tile buffers have inconsistent lengths".into()); }
+        let stream = self.context.default_stream();
+        let lower_re: Vec<f64> = lower.iter().map(|cell| cell.re).collect();
+        let lower_im: Vec<f64> = lower.iter().map(|cell| cell.im).collect();
+        let upper_re: Vec<f64> = upper.iter().map(|cell| cell.re).collect();
+        let upper_im: Vec<f64> = upper.iter().map(|cell| cell.im).collect();
+        let twiddle_re: Vec<f64> = twiddles.iter().map(|phase| phase.0).collect();
+        let twiddle_im: Vec<f64> = twiddles.iter().map(|phase| phase.1).collect();
+        let d_lower_re = stream.clone_htod(&lower_re).map_err(|e| format!("DIF cross upload lower real: {e}"))?;
+        let d_lower_im = stream.clone_htod(&lower_im).map_err(|e| format!("DIF cross upload lower imaginary: {e}"))?;
+        let d_upper_re = stream.clone_htod(&upper_re).map_err(|e| format!("DIF cross upload upper real: {e}"))?;
+        let d_upper_im = stream.clone_htod(&upper_im).map_err(|e| format!("DIF cross upload upper imaginary: {e}"))?;
+        let d_twiddle_re = stream.clone_htod(&twiddle_re).map_err(|e| format!("DIF twiddle upload real: {e}"))?;
+        let d_twiddle_im = stream.clone_htod(&twiddle_im).map_err(|e| format!("DIF twiddle upload imaginary: {e}"))?;
+        let mut out_lower_re = stream.alloc_zeros::<f64>(lower.len()).map_err(|e| format!("DIF output allocate lower real: {e}"))?;
+        let mut out_lower_im = stream.alloc_zeros::<f64>(lower.len()).map_err(|e| format!("DIF output allocate lower imaginary: {e}"))?;
+        let mut out_upper_re = stream.alloc_zeros::<f64>(upper.len()).map_err(|e| format!("DIF output allocate upper real: {e}"))?;
+        let mut out_upper_im = stream.alloc_zeros::<f64>(upper.len()).map_err(|e| format!("DIF output allocate upper imaginary: {e}"))?;
+        let count = u64::try_from(lower.len()).map_err(|_| "QFT tile exceeds 64-bit indexing")?;
+        let threads = 256u32;
+        let grid = qft_launch_grid(count, threads);
+        let mut launch = stream.launch_builder(&self.dif_cross);
+        launch.arg(&d_lower_re).arg(&d_lower_im).arg(&d_upper_re).arg(&d_upper_im)
+            .arg(&mut out_lower_re).arg(&mut out_lower_im).arg(&mut out_upper_re).arg(&mut out_upper_im)
+            .arg(&d_twiddle_re).arg(&d_twiddle_im).arg(&count).arg(&scale);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("DIF cross-stage launch: {e}"))?;
+        let lower_re = stream.clone_dtoh(&out_lower_re).map_err(|e| format!("DIF cross download lower real: {e}"))?;
+        let lower_im = stream.clone_dtoh(&out_lower_im).map_err(|e| format!("DIF cross download lower imaginary: {e}"))?;
+        let upper_re = stream.clone_dtoh(&out_upper_re).map_err(|e| format!("DIF cross download upper real: {e}"))?;
+        let upper_im = stream.clone_dtoh(&out_upper_im).map_err(|e| format!("DIF cross download upper imaginary: {e}"))?;
+        for ((cell, re), im) in lower.iter_mut().zip(lower_re).zip(lower_im) { cell.re = re; cell.im = im; }
+        for ((cell, re), im) in upper.iter_mut().zip(upper_re).zip(upper_im) { cell.re = re; cell.im = im; }
+        Ok(())
+    }
+
+    fn fixed_i64(values: impl Iterator<Item = num_bigint::BigInt>) -> Result<Vec<i64>, String> {
+        values.map(|value| value.to_i64().ok_or_else(|| "fixed-point value exceeds the W<=62 CUDA lane".into())).collect()
+    }
+
+    fn fixed_limb_count(format: &crate::phase_unbraid::FixedPointFormat) -> Result<usize, String> {
+        let bytes = usize::try_from(format.w_bits.saturating_add(2).div_ceil(8)).map_err(|_| "fixed-point component width exceeds host indexing")?;
+        Ok(bytes.checked_add(3).ok_or("fixed-point limb width overflow")? / 4)
+    }
+
+    fn fixed_limb_words(cells: &[crate::phase_unbraid::FixedComplex], format: &crate::phase_unbraid::FixedPointFormat) -> Result<Vec<u32>, String> {
+        let limbs = Self::fixed_limb_count(format)?;
+        let component_bytes = limbs.checked_mul(4).ok_or("fixed-point limb buffer overflow")?;
+        let word_count = cells.len().checked_mul(limbs).and_then(|count| count.checked_mul(2)).ok_or("fixed-point limb buffer overflow")?;
+        let mut words = Vec::with_capacity(word_count);
+        for cell in cells {
+            for component in [&cell.re, &cell.im] {
+                let mut bytes = component.to_signed_bytes_le();
+                if bytes.len() > component_bytes { return Err("fixed-point component exceeds the CUDA limb buffer".into()); }
+                bytes.resize(component_bytes, if component.sign() == num_bigint::Sign::Minus { 0xff } else { 0 });
+                words.extend(bytes.chunks_exact(4).map(|chunk| u32::from_le_bytes(chunk.try_into().unwrap())));
+            }
+        }
+        Ok(words)
+    }
+
+    fn fixed_from_limb_words(words: &[u32], cell_count: usize, format: &crate::phase_unbraid::FixedPointFormat) -> Result<Vec<crate::phase_unbraid::FixedComplex>, String> {
+        let limbs = Self::fixed_limb_count(format)?;
+        let expected = cell_count.checked_mul(limbs).and_then(|count| count.checked_mul(2)).ok_or("fixed-point limb result overflow")?;
+        if words.len() != expected { return Err("fixed-point CUDA result has an inconsistent limb count".into()); }
+        let component_bytes = usize::try_from(format.w_bits.saturating_add(2).div_ceil(8)).map_err(|_| "fixed-point component width exceeds host indexing")?;
+        let mut cells = Vec::with_capacity(cell_count);
+        for cell in words.chunks_exact(2 * limbs) {
+            let mut components = Vec::with_capacity(2);
+            for part in [&cell[..limbs], &cell[limbs..]] {
+                let mut bytes = Vec::with_capacity(limbs * 4);
+                for word in part { bytes.extend_from_slice(&word.to_le_bytes()); }
+                components.push(num_bigint::BigInt::from_signed_bytes_le(&bytes[..component_bytes]));
+            }
+            cells.push(crate::phase_unbraid::FixedComplex { re: components.remove(0), im: components.remove(0) });
+        }
+        Ok(cells)
+    }
+
+    fn limb_dif_cross_stage(&self, lower: &mut [crate::phase_unbraid::FixedComplex], upper: &mut [crate::phase_unbraid::FixedComplex], twiddles: &[crate::phase_unbraid::FixedComplex], format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        if lower.len() != upper.len() || lower.len() != twiddles.len() { return Err("limb DIF cross-tile buffers have inconsistent lengths".into()); }
+        let limbs = i32::try_from(Self::fixed_limb_count(format)?).map_err(|_| "fixed-point limb count exceeds CUDA indexing")?;
+        let count = u64::try_from(lower.len()).map_err(|_| "fixed QFT tile exceeds 64-bit indexing")?;
+        let w_bits = i32::try_from(format.w_bits).map_err(|_| "fixed-point W exceeds CUDA shift indexing")?;
+        let scratch_len = lower.len().checked_mul(14).and_then(|size| size.checked_mul(limbs as usize)).ok_or("CUDA limb scratch size overflow")?;
+        let low = Self::fixed_limb_words(lower, format)?;
+        let high = Self::fixed_limb_words(upper, format)?;
+        let twiddle = Self::fixed_limb_words(twiddles, format)?;
+        let stream = self.context.default_stream();
+        let d_low = stream.clone_htod(&low).map_err(|e| format!("limb DIF upload lower: {e}"))?;
+        let d_high = stream.clone_htod(&high).map_err(|e| format!("limb DIF upload upper: {e}"))?;
+        let d_twiddle = stream.clone_htod(&twiddle).map_err(|e| format!("limb DIF upload twiddles: {e}"))?;
+        let mut out_low = stream.alloc_zeros::<u32>(low.len()).map_err(|e| format!("limb DIF allocate lower: {e}"))?;
+        let mut out_high = stream.alloc_zeros::<u32>(high.len()).map_err(|e| format!("limb DIF allocate upper: {e}"))?;
+        let mut scratch = stream.alloc_zeros::<u32>(scratch_len).map_err(|e| format!("limb DIF allocate scratch: {e}"))?;
+        let threads = 128u32;
+        let grid = qft_launch_grid(count, threads);
+        let mut launch = stream.launch_builder(&self.dif_cross_limb);
+        launch.arg(&d_low).arg(&d_high).arg(&d_twiddle).arg(&mut out_low).arg(&mut out_high)
+            .arg(&mut scratch).arg(&count).arg(&limbs).arg(&w_bits);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("limb DIF cross-stage launch: {e}"))?;
+        let result_low = stream.clone_dtoh(&out_low).map_err(|e| format!("limb DIF download lower: {e}"))?;
+        let result_high = stream.clone_dtoh(&out_high).map_err(|e| format!("limb DIF download upper: {e}"))?;
+        lower.clone_from_slice(&Self::fixed_from_limb_words(&result_low, lower.len(), format)?);
+        upper.clone_from_slice(&Self::fixed_from_limb_words(&result_high, upper.len(), format)?);
+        Ok(())
+    }
+
+    fn limb_dif_local_stage(&self, buffer: &mut [crate::phase_unbraid::FixedComplex], half: u64, inverse: bool, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        if half == 0 || !half.is_power_of_two() || (buffer.len() as u64) % (half * 2) != 0 { return Err("limb DIF local stage has an invalid butterfly span".into()); }
+        let limbs = i32::try_from(Self::fixed_limb_count(format)?).map_err(|_| "fixed-point limb count exceeds CUDA indexing")?;
+        let count = u64::try_from(buffer.len()).map_err(|_| "fixed QFT tile exceeds 64-bit indexing")?;
+        let w_bits = i32::try_from(format.w_bits).map_err(|_| "fixed-point W exceeds CUDA shift indexing")?;
+        let indices = (0..half).map(BigUint::from).collect::<Vec<_>>();
+        let twiddles = crate::phase_unbraid::FixedComplex::qft_twiddle_table(&indices, u64::from(half.trailing_zeros()), inverse, format)?;
+        let input = Self::fixed_limb_words(buffer, format)?;
+        let twiddle = Self::fixed_limb_words(&twiddles, format)?;
+        let scratch_len = usize::try_from(count / 2).map_err(|_| "limb DIF scratch count exceeds host indexing")?
+            .checked_mul(14).and_then(|size| size.checked_mul(limbs as usize)).ok_or("CUDA limb scratch size overflow")?;
+        let stream = self.context.default_stream();
+        let d_input = stream.clone_htod(&input).map_err(|e| format!("limb local upload input: {e}"))?;
+        let d_twiddle = stream.clone_htod(&twiddle).map_err(|e| format!("limb local upload twiddles: {e}"))?;
+        let mut output = stream.alloc_zeros::<u32>(input.len()).map_err(|e| format!("limb local allocate output: {e}"))?;
+        let mut scratch = stream.alloc_zeros::<u32>(scratch_len).map_err(|e| format!("limb local allocate scratch: {e}"))?;
+        let threads = 128u32;
+        let grid = qft_launch_grid(count / 2, threads);
+        let mut launch = stream.launch_builder(&self.dif_local_limb);
+        launch.arg(&d_input).arg(&d_twiddle).arg(&mut output).arg(&mut scratch)
+            .arg(&count).arg(&half).arg(&limbs).arg(&w_bits);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("limb DIF local-stage launch: {e}"))?;
+        let result = stream.clone_dtoh(&output).map_err(|e| format!("limb local download: {e}"))?;
+        buffer.clone_from_slice(&Self::fixed_from_limb_words(&result, buffer.len(), format)?);
+        Ok(())
+    }
+
+    fn fixed_dif_cross_stage(&self, lower: &mut [crate::phase_unbraid::FixedComplex], upper: &mut [crate::phase_unbraid::FixedComplex], twiddles: &[crate::phase_unbraid::FixedComplex], format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        if lower.len() != upper.len() || lower.len() != twiddles.len() { return Err("fixed DIF cross-tile buffers have inconsistent lengths".into()); }
+        let stream = self.context.default_stream();
+        let low_re = Self::fixed_i64(lower.iter().map(|cell| cell.re.clone()))?;
+        let low_im = Self::fixed_i64(lower.iter().map(|cell| cell.im.clone()))?;
+        let high_re = Self::fixed_i64(upper.iter().map(|cell| cell.re.clone()))?;
+        let high_im = Self::fixed_i64(upper.iter().map(|cell| cell.im.clone()))?;
+        let twiddle_re = Self::fixed_i64(twiddles.iter().map(|cell| cell.re.clone()))?;
+        let twiddle_im = Self::fixed_i64(twiddles.iter().map(|cell| cell.im.clone()))?;
+        let source_low_re = stream.clone_htod(&low_re).map_err(|e| format!("fixed DIF upload lower real: {e}"))?;
+        let source_low_im = stream.clone_htod(&low_im).map_err(|e| format!("fixed DIF upload lower imaginary: {e}"))?;
+        let source_high_re = stream.clone_htod(&high_re).map_err(|e| format!("fixed DIF upload upper real: {e}"))?;
+        let source_high_im = stream.clone_htod(&high_im).map_err(|e| format!("fixed DIF upload upper imaginary: {e}"))?;
+        let source_twiddle_re = stream.clone_htod(&twiddle_re).map_err(|e| format!("fixed DIF upload twiddle real: {e}"))?;
+        let source_twiddle_im = stream.clone_htod(&twiddle_im).map_err(|e| format!("fixed DIF upload twiddle imaginary: {e}"))?;
+        let mut out_low_re = stream.alloc_zeros::<i64>(lower.len()).map_err(|e| format!("fixed DIF allocate lower real: {e}"))?;
+        let mut out_low_im = stream.alloc_zeros::<i64>(lower.len()).map_err(|e| format!("fixed DIF allocate lower imaginary: {e}"))?;
+        let mut out_high_re = stream.alloc_zeros::<i64>(upper.len()).map_err(|e| format!("fixed DIF allocate upper real: {e}"))?;
+        let mut out_high_im = stream.alloc_zeros::<i64>(upper.len()).map_err(|e| format!("fixed DIF allocate upper imaginary: {e}"))?;
+        let count = u64::try_from(lower.len()).map_err(|_| "fixed QFT tile exceeds 64-bit indexing")?;
+        let w_bits = i32::try_from(format.w_bits).map_err(|_| "fixed-point W exceeds CUDA kernel parameter")?;
+        let threads = 256u32;
+        let grid = qft_launch_grid(count, threads);
+        let mut launch = stream.launch_builder(&self.dif_cross_fixed);
+        launch.arg(&source_low_re).arg(&source_low_im).arg(&source_high_re).arg(&source_high_im)
+            .arg(&mut out_low_re).arg(&mut out_low_im).arg(&mut out_high_re).arg(&mut out_high_im)
+            .arg(&source_twiddle_re).arg(&source_twiddle_im).arg(&count).arg(&w_bits);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("fixed DIF cross-stage launch: {e}"))?;
+        let low_re = stream.clone_dtoh(&out_low_re).map_err(|e| format!("fixed DIF download lower real: {e}"))?;
+        let low_im = stream.clone_dtoh(&out_low_im).map_err(|e| format!("fixed DIF download lower imaginary: {e}"))?;
+        let high_re = stream.clone_dtoh(&out_high_re).map_err(|e| format!("fixed DIF download upper real: {e}"))?;
+        let high_im = stream.clone_dtoh(&out_high_im).map_err(|e| format!("fixed DIF download upper imaginary: {e}"))?;
+        for ((cell, re), im) in lower.iter_mut().zip(low_re).zip(low_im) { cell.re = re.into(); cell.im = im.into(); }
+        for ((cell, re), im) in upper.iter_mut().zip(high_re).zip(high_im) { cell.re = re.into(); cell.im = im.into(); }
+        Ok(())
+    }
+
+    fn fixed_dif_local_stage(&self, buffer: &mut [crate::phase_unbraid::FixedComplex], half: u64, inverse: bool, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        if format.w_bits > 62 { return Err("fixed CUDA butterfly currently supports W<=62".into()); }
+        if half == 0 || !half.is_power_of_two() || buffer.len() as u64 % (half * 2) != 0 {
+            return Err("fixed DIF local stage has an invalid butterfly span".into());
+        }
+        let indices = (0..half).map(BigUint::from).collect::<Vec<_>>();
+        let twiddles = crate::phase_unbraid::FixedComplex::qft_twiddle_table(&indices, u64::from(half.trailing_zeros()), inverse, format)?;
+        let stream = self.context.default_stream();
+        let source_re = Self::fixed_i64(buffer.iter().map(|cell| cell.re.clone()))?;
+        let source_im = Self::fixed_i64(buffer.iter().map(|cell| cell.im.clone()))?;
+        let twiddle_re = Self::fixed_i64(twiddles.iter().map(|cell| cell.re.clone()))?;
+        let twiddle_im = Self::fixed_i64(twiddles.iter().map(|cell| cell.im.clone()))?;
+        let input_re = stream.clone_htod(&source_re).map_err(|e| format!("fixed local upload real: {e}"))?;
+        let input_im = stream.clone_htod(&source_im).map_err(|e| format!("fixed local upload imaginary: {e}"))?;
+        let twiddle_re = stream.clone_htod(&twiddle_re).map_err(|e| format!("fixed local upload twiddle real: {e}"))?;
+        let twiddle_im = stream.clone_htod(&twiddle_im).map_err(|e| format!("fixed local upload twiddle imaginary: {e}"))?;
+        let mut output_re = stream.alloc_zeros::<i64>(buffer.len()).map_err(|e| format!("fixed local allocate real: {e}"))?;
+        let mut output_im = stream.alloc_zeros::<i64>(buffer.len()).map_err(|e| format!("fixed local allocate imaginary: {e}"))?;
+        let count = u64::try_from(buffer.len()).map_err(|_| "fixed QFT tile exceeds 64-bit indexing")?;
+        let w_bits = i32::try_from(format.w_bits).map_err(|_| "fixed-point W exceeds CUDA kernel parameter")?;
+        let threads = 256u32;
+        let grid = qft_launch_grid(count / 2, threads);
+        let mut launch = stream.launch_builder(&self.dif_local_fixed);
+        launch.arg(&input_re).arg(&input_im).arg(&mut output_re).arg(&mut output_im)
+            .arg(&twiddle_re).arg(&twiddle_im).arg(&count).arg(&half).arg(&w_bits);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("fixed DIF local-stage launch: {e}"))?;
+        let result_re = stream.clone_dtoh(&output_re).map_err(|e| format!("fixed local download real: {e}"))?;
+        let result_im = stream.clone_dtoh(&output_im).map_err(|e| format!("fixed local download imaginary: {e}"))?;
+        for ((cell, re), im) in buffer.iter_mut().zip(result_re).zip(result_im) { cell.re = re.into(); cell.im = im.into(); }
+        Ok(())
+    }
+
+    fn apply_dense_tape_cross_stage(&self, tape: &crate::phase_unbraid::DenseRegisterTape, lower_index: &BigUint, stage: u64, inverse: bool, scale: f64) -> Result<(), String> {
+        let layout = tape.layout();
+        let tile_bits = u64::from(layout.tile_amplitudes.trailing_zeros());
+        if stage < tile_bits || stage >= layout.qubits {
+            return Err("cross-tile QFT stage must be within the register and above the tile-local bits".into());
+        }
+        let tile_bit = usize::try_from(stage - tile_bits).map_err(|_| "QFT stage exceeds BigUint tile indexing")?;
+        let tile_mask = BigUint::one() << tile_bit;
+        if !(lower_index & &tile_mask).is_zero() {
+            return Err("cross-tile QFT stage requires the lower tile of a butterfly pair".into());
+        }
+        let (start, count) = layout.tile(lower_index).ok_or("lower QFT tile is outside the register")?;
+        let partner = lower_index ^ &tile_mask;
+        if layout.tile(&partner).is_none() { return Err("upper QFT tile is outside the register".into()); }
+        let mut lower = tape.read_tile(lower_index)?;
+        let mut upper = tape.read_tile(&partner)?;
+        let stage_mask = (BigUint::one() << usize::try_from(stage).map_err(|_| "QFT stage exceeds BigUint phase indexing")?) - BigUint::one();
+        let tile_len = usize::try_from(count).map_err(|_| "QFT tile exceeds host memory indexing")?;
+        let mut twiddles = Vec::with_capacity(tile_len);
+        for lane in 0..count {
+            let position = (&start + lane) & &stage_mask;
+            let fraction = qft_phase_fraction(&position, stage);
+            let angle = (if inverse { 2.0 } else { -2.0 }) * core::f64::consts::PI * fraction;
+            twiddles.push((libm::cos(angle), libm::sin(angle)));
+        }
+        self.dif_cross_stage(&mut lower, &mut upper, &twiddles, scale)?;
+        tape.write_tile(lower_index, &lower)?;
+        tape.write_tile(&partner, &upper)
+    }
+
+    fn apply_dense_tape_cross_stage_fixed(&self, tape: &crate::phase_unbraid::DenseRegisterTapeFixed, lower_index: &BigUint, stage: u64, inverse: bool, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        let layout = tape.layout();
+        let tile_bits = u64::from(layout.tile_amplitudes.trailing_zeros());
+        if stage < tile_bits || stage >= layout.qubits { return Err("cross-tile QFT stage must be within the register and above the tile-local bits".into()); }
+        let tile_bit = usize::try_from(stage - tile_bits).map_err(|_| "QFT stage exceeds BigUint tile indexing")?;
+        let tile_mask = BigUint::one() << tile_bit;
+        if !(lower_index & &tile_mask).is_zero() { return Err("cross-tile QFT stage requires the lower tile of a butterfly pair".into()); }
+        let (start, count) = layout.tile(lower_index).ok_or("lower QFT tile is outside the register")?;
+        let partner = lower_index ^ &tile_mask;
+        if layout.tile(&partner).is_none() { return Err("upper QFT tile is outside the register".into()); }
+        let mut lower = tape.read_tile(lower_index)?;
+        let mut upper = tape.read_tile(&partner)?;
+        let stage_mask = (BigUint::one() << usize::try_from(stage).map_err(|_| "QFT stage exceeds BigUint phase indexing")?) - BigUint::one();
+        let indices = (0..count).map(|lane| (&start + lane) & &stage_mask).collect::<Vec<_>>();
+        let twiddles = crate::phase_unbraid::FixedComplex::qft_twiddle_table(&indices, stage, inverse, format)?;
+        if format.w_bits <= 62 {
+            self.fixed_dif_cross_stage(&mut lower, &mut upper, &twiddles, format)?;
+        } else {
+            self.limb_dif_cross_stage(&mut lower, &mut upper, &twiddles, format)?;
+        }
+        tape.write_tile(lower_index, &lower)?;
+        tape.write_tile(&partner, &upper)
+    }
+
+    pub fn transform_dense_tape_cross_pair_fixed(&self, tape: &crate::phase_unbraid::DenseRegisterTapeFixed, lower_tile_index: &BigUint, stage: u64, inverse: bool, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        self.apply_dense_tape_cross_stage_fixed(tape, lower_tile_index, stage, inverse, format)
+    }
+
+    pub fn transform_dense_tape_cross_pair(&self, tape: &crate::phase_unbraid::DenseRegisterTape, lower_tile_index: &BigUint, stage: u64, inverse: bool) -> Result<(), String> {
+        self.apply_dense_tape_cross_stage(tape, lower_tile_index, stage, inverse, 0.5)
+    }
+
+    pub fn transform_dense_tape(&self, tape: &crate::phase_unbraid::DenseRegisterTape, inverse: bool) -> Result<(), String> {
+        let layout = tape.layout();
+        let tile_bits = u64::from(layout.tile_amplitudes.trailing_zeros());
+        for stage in (0..layout.qubits).rev() {
+            let stage_scale = 0.5;
+            let written = tape.written_tiles()?;
+            let written_set: BTreeSet<_> = written.iter().cloned().collect();
+            if stage < tile_bits {
+                let half = 1u64 << stage;
+                for tile_index in written {
+                    let mut tile = tape.read_tile(&tile_index)?;
+                    self.dif_local_stage(&mut tile, half, inverse, stage_scale)?;
+                    tape.write_tile(&tile_index, &tile)?;
+                }
+            } else {
+                let tile_bit = usize::try_from(stage - tile_bits).map_err(|_| "QFT stage exceeds BigUint tile indexing")?;
+                let tile_mask = BigUint::one() << tile_bit;
+                let mut lower_tiles = BTreeSet::new();
+                for tile_index in written {
+                    lower_tiles.insert(if (&tile_index & &tile_mask).is_zero() {
+                        tile_index
+                    } else {
+                        &tile_index ^ &tile_mask
+                    });
+                }
+                for lower_index in lower_tiles {
+                    let partner = &lower_index ^ &tile_mask;
+                    if layout.tile(&partner).is_some()
+                        && (written_set.contains(&lower_index) || written_set.contains(&partner))
+                    {
+                        self.apply_dense_tape_cross_stage(tape, &lower_index, stage, inverse, stage_scale)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn transform_dense_tape_fixed(&self, tape: &crate::phase_unbraid::DenseRegisterTapeFixed, inverse: bool, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        let layout = tape.layout();
+        if tape.format() != format { return Err("fixed tape format does not match the requested CUDA format".into()); }
+        let tile_bits = u64::from(layout.tile_amplitudes.trailing_zeros());
+        for stage in (0..layout.qubits).rev() {
+            let written = tape.written_tiles()?;
+            let written_set: BTreeSet<_> = written.iter().cloned().collect();
+            if stage < tile_bits {
+                let half = 1u64 << stage;
+                for tile_index in written {
+                    let mut tile = tape.read_tile(&tile_index)?;
+                    if format.w_bits <= 62 {
+                        self.fixed_dif_local_stage(&mut tile, half, inverse, format)?;
+                    } else {
+                        self.limb_dif_local_stage(&mut tile, half, inverse, format)?;
+                    }
+                    tape.write_tile(&tile_index, &tile)?;
+                }
+            } else {
+                let tile_bit = usize::try_from(stage - tile_bits).map_err(|_| "QFT stage exceeds BigUint tile indexing")?;
+                let tile_mask = BigUint::one() << tile_bit;
+                let mut lower_tiles = BTreeSet::new();
+                for tile_index in written {
+                    lower_tiles.insert(if (&tile_index & &tile_mask).is_zero() { tile_index } else { &tile_index ^ &tile_mask });
+                }
+                for lower_index in lower_tiles {
+                    let partner = &lower_index ^ &tile_mask;
+                    if layout.tile(&partner).is_some() && (written_set.contains(&lower_index) || written_set.contains(&partner)) {
+                        self.apply_dense_tape_cross_stage_fixed(tape, &lower_index, stage, inverse, format)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn transform_dense_tape_stage_fixed(&self, tape: &crate::phase_unbraid::DenseRegisterTapeFixed, stage: u64, inverse: bool, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        if tape.format() != format { return Err("fixed tape format does not match the requested CUDA format".into()); }
+        if stage >= tape.layout().qubits { return Err("fixed QFT stage lies outside the logical register".into()); }
+        let tile_bits = u64::from(tape.layout().tile_amplitudes.trailing_zeros());
+        if stage < tile_bits {
+            let half = 1u64 << stage;
+            for tile_index in tape.written_tiles()? {
+                let mut tile = tape.read_tile(&tile_index)?;
+                if format.w_bits <= 62 { self.fixed_dif_local_stage(&mut tile, half, inverse, format)?; }
+                else { self.limb_dif_local_stage(&mut tile, half, inverse, format)?; }
+                tape.write_tile(&tile_index, &tile)?;
+            }
+            return Ok(());
+        }
+        let tile_bit = usize::try_from(stage - tile_bits).map_err(|_| "QFT stage exceeds BigUint tile indexing")?;
+        let mask = BigUint::one() << tile_bit;
+        let written = tape.written_tiles()?;
+        let mut pairs = BTreeSet::new();
+        for tile_index in written {
+            let lower = if (&tile_index & &mask).is_zero() { tile_index } else { &tile_index ^ &mask };
+            pairs.insert(lower);
+        }
+        for lower in pairs {
+            let upper = &lower ^ &mask;
+            if tape.layout().tile(&upper).is_some() {
+                self.apply_dense_tape_cross_stage_fixed(tape, &lower, stage, inverse, format)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn prepare_branch_dense_tape(&self, n: &BigUint, base: &BigUint, tape: &crate::phase_unbraid::DenseRegisterTape) -> Result<(), String> {
+        let layout = tape.layout();
+        let mut tile_index = BigUint::zero();
+        while let Some((start, count)) = layout.tile(&tile_index) {
+            let tile_len = usize::try_from(count).map_err(|_| "QPE tile exceeds host memory indexing")?;
+            let mut amplitudes = alloc::vec![crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }; tile_len];
+            self.prepare_branch_bigint(n, base, &start, layout.qubits, &mut amplitudes)?;
+            tape.write_tile(&tile_index, &amplitudes)?;
+            tile_index += BigUint::one();
+        }
+        Ok(())
+    }
+
+    pub fn run_dense_tape_qft(&self, n: &BigUint, base: &BigUint, tape: &crate::phase_unbraid::DenseRegisterTape) -> Result<(), String> {
+        self.prepare_branch_dense_tape(n, base, tape)?;
+        self.transform_dense_tape(tape, false)
+    }
+
+    pub fn prepare_branch_dense_tape_fixed(&self, n: &BigUint, base: &BigUint, tape: &crate::phase_unbraid::DenseRegisterTapeFixed, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        if tape.format() != format { return Err("fixed tape format does not match branch preparation format".into()); }
+        let layout = tape.layout();
+        let mut tile_index = BigUint::zero();
+        while layout.tile(&tile_index).is_some() {
+            self.prepare_branch_fixed_tile(n, base, tape, &tile_index, format)?;
+            tile_index += BigUint::one();
+        }
+        Ok(())
+    }
+
+    pub fn prepare_branch_fixed_tile(&self, n: &BigUint, base: &BigUint, tape: &crate::phase_unbraid::DenseRegisterTapeFixed, tile_index: &BigUint, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        if tape.format() != format { return Err("fixed tape format does not match branch preparation format".into()); }
+        let (_, count) = tape.layout().tile(tile_index).ok_or("QPE tile is outside the logical register")?;
+        let tile_len = usize::try_from(count).map_err(|_| "QPE tile exceeds host memory indexing")?;
+        let (start, _) = tape.layout().tile(tile_index).unwrap();
+        let mut float_cells = alloc::vec![crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }; tile_len];
+        self.prepare_branch_bigint(n, base, &start, tape.layout().qubits, &mut float_cells)?;
+        let fixed_cells = float_cells.into_iter().map(|cell| crate::phase_unbraid::FixedComplex::from_f64(cell.re, cell.im, format)).collect::<Result<Vec<_>, _>>()?;
+        tape.write_tile(tile_index, &fixed_cells)
+    }
+
+    pub fn run_dense_tape_qft_fixed(&self, n: &BigUint, base: &BigUint, tape: &crate::phase_unbraid::DenseRegisterTapeFixed, format: &crate::phase_unbraid::FixedPointFormat) -> Result<(), String> {
+        self.prepare_branch_dense_tape_fixed(n, base, tape, format)?;
+        self.transform_dense_tape_fixed(tape, false, format)
+    }
+
+    /// Execute a unitary radix-2 Fourier transform on device-resident complex
+    /// amplitudes. `inverse=false` is QFT; `inverse=true` is IQFT.
+    pub fn transform(
+    &self,
+    real: &[f64],
+    imag: &[f64],
+    inverse: bool,
+) -> Result<(Vec<f64>, Vec<f64>), String> {
+    if real.is_empty() || !real.len().is_power_of_two() || real.len() != imag.len() {
+        return Err("QFT input must be equal-length, nonempty power-of-two amplitude arrays".into());
+    }
+    let count = u64::try_from(real.len()).map_err(|_| "QFT register exceeds 64-bit CUDA indexing")?;
+    let bits = count.trailing_zeros();
+    let stream = self.context.default_stream();
+    let mut source_re = stream.clone_htod(real).map_err(|e| format!("QFT upload real: {e}"))?;
+    let mut source_im = stream.clone_htod(imag).map_err(|e| format!("QFT upload imaginary: {e}"))?;
+    let mut target_re = stream.alloc_zeros::<f64>(real.len()).map_err(|e| format!("QFT allocate real: {e}"))?;
+    let mut target_im = stream.alloc_zeros::<f64>(real.len()).map_err(|e| format!("QFT allocate imaginary: {e}"))?;
+    let threads = 256u32;
+    let grid = qft_launch_grid(count, threads);
+    {
+        let mut launch = stream.launch_builder(&self.bitreverse);
+        launch.arg(&source_re).arg(&source_im).arg(&mut target_re).arg(&mut target_im).arg(&count).arg(&bits);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("QFT bit-reversal launch: {e}"))?;
+    }
+    core::mem::swap(&mut source_re, &mut target_re);
+    core::mem::swap(&mut source_im, &mut target_im);
+    for stage in 0..bits {
+        let half = 1u64 << stage;
+        let pairs = count / 2;
+        let launch_grid = qft_launch_grid(pairs, threads);
+        let scale = if stage + 1 == bits { 1.0 / (count as f64).sqrt() } else { 1.0 };
+        let inverse_flag = inverse as i32;
+        let mut launch = stream.launch_builder(&self.butterfly);
+        launch.arg(&source_re).arg(&source_im).arg(&mut target_re).arg(&mut target_im)
+            .arg(&count).arg(&half).arg(&inverse_flag).arg(&scale);
+        unsafe { launch.launch(LaunchConfig { grid_dim: (launch_grid, 1, 1), block_dim: (threads, 1, 1), shared_mem_bytes: 0 }) }
+            .map_err(|e| format!("QFT stage {stage} launch: {e}"))?;
+        core::mem::swap(&mut source_re, &mut target_re);
+        core::mem::swap(&mut source_im, &mut target_im);
+    }
+    let output_re = stream.clone_dtoh(&source_re).map_err(|e| format!("QFT download real: {e}"))?;
+    let output_im = stream.clone_dtoh(&source_im).map_err(|e| format!("QFT download imaginary: {e}"))?;
+    Ok((output_re, output_im))
+}
+}
+
+pub fn qft_transform(real: &[f64], imag: &[f64], inverse: bool, device: usize) -> Result<(Vec<f64>, Vec<f64>), String> {
+    CudaQft::new(device)?.transform(real, imag, inverse)
+}
+
+pub fn qft_periodic_probe(qubits: u32, period: usize, offset: usize, device: usize) -> String {
+    if qubits > 24 || qubits == 0 {
+        return "qft_probe: qubits must be in 1..=24 for the validation register".into();
+    }
+    let count = 1usize << qubits;
+    if period == 0 || count % period != 0 || offset >= period {
+        return "qft_probe: period must divide 2^qubits and offset must be below period".into();
+    }
+    let terms = count / period;
+    let amplitude = 1.0 / (terms as f64).sqrt();
+    let mut real = alloc::vec![0.0; count];
+    let imag = alloc::vec![0.0; count];
+    for index in (offset..count).step_by(period) { real[index] = amplitude; }
+    let qft = match CudaQft::new(device) {
+        Ok(qft) => qft,
+        Err(error) => return error,
+    };
+    let (spectrum_re, spectrum_im) = match qft.transform(&real, &imag, false) {
+        Ok(spectrum) => spectrum,
+        Err(error) => return error,
+    };
+    let expected_spacing = count / period;
+    let peak_threshold = 1e-10;
+    let peaks: Vec<usize> = spectrum_re.iter().zip(&spectrum_im).enumerate()
+        .filter_map(|(index, (re, im))| ((re * re + im * im) > peak_threshold).then_some(index))
+        .collect();
+    let (roundtrip_re, roundtrip_im) = match qft.transform(&spectrum_re, &spectrum_im, true) {
+        Ok(state) => state,
+        Err(error) => return error,
+    };
+    let max_error = real.iter().zip(&roundtrip_re).zip(imag.iter().zip(&roundtrip_im))
+        .map(|((expected_re, actual_re), (expected_im, actual_im))|
+            (expected_re - actual_re).abs().max((expected_im - actual_im).abs()))
+        .fold(0.0f64, f64::max);
+    let supported: Vec<usize> = peaks.iter().copied().filter(|k| k % expected_spacing == 0).collect();
+    format!("CUDA QFT/IQFT spectral probe on device {device}: {qubits} qubits, M={count}, periodic comb r={period}, offset={offset}\n  observed spectral bins: {}\n  expected spacing: {expected_spacing}; supported bins: {}\n  maximum QFT→IQFT amplitude error: {max_error:.3e}\n  spectral support verified: {}",
+        peaks.iter().map(usize::to_string).collect::<Vec<_>>().join(","),
+        supported.iter().map(usize::to_string).collect::<Vec<_>>().join(","),
+        !peaks.is_empty() && peaks.len() == supported.len() && max_error < 1e-10)
+}
+
 const KERNEL_CLOSURE_SRC: &str = r#"
 __device__ __forceinline__ unsigned long long cl_inv(unsigned long long a, unsigned long long mask) {
     unsigned long long x = 1ULL;
@@ -2233,6 +3337,394 @@ pub fn select_relation(n_text:&str,m:u32,_capacity:u32,nest_depth:u32,_device:us
 #[cfg(test)]
 mod temporal_phase_relation_tests {
     use super::*;
+
+    #[test]
+    fn recycled_cuda_feedback_and_measurement_match_the_cpu_control() {
+        use crate::phase_unbraid::{FixedComplex, FixedPointFormat, RecycledPhaseState, measure_recycled_phase, recycled_phase_mix_cpu};
+        let qft = CudaQft::new(0).unwrap();
+        for bits in [127u64, 255, 511] {
+            let format = FixedPointFormat::for_modulus_bits(bits).unwrap();
+            let feedback = FixedComplex::qft_twiddle(&BigUint::from(5u8), 3, false, &format).unwrap();
+            let mut low = vec![FixedComplex { re: format.scale() / 3u8, im: -format.scale() / 5u8 }; 7];
+            let mut high = vec![FixedComplex { re: -format.scale() / 7u8, im: format.scale() / 11u8 }; 7];
+            let mut expected_low = low.clone();
+            let mut expected_high = high.clone();
+            recycled_phase_mix_cpu(&mut expected_low, &mut expected_high, &feedback, &format).unwrap();
+            qft.recycled_phase_mix(&mut low, &mut high, &feedback, &format).unwrap();
+            assert_eq!(low, expected_low);
+            assert_eq!(high, expected_high);
+        }
+        for n in [BigUint::from(18_446_744_073_709_551_557u64) * BigUint::from(18_446_744_073_709_551_533u64)] {
+            let base = &n - BigUint::one();
+            let qubits = n.bits() * 2 + 8;
+            let format = FixedPointFormat::for_modulus(&n).unwrap();
+            let mut cpu = RecycledPhaseState::new(&n, &base, qubits, &format).unwrap();
+            let mut gpu = RecycledPhaseState::new(&n, &base, qubits, &format).unwrap();
+            let mut cpu_rng = 12345;
+            let mut gpu_rng = cpu_rng;
+            let cpu_trace = measure_recycled_phase(&mut cpu, 7, &mut cpu_rng, recycled_phase_mix_cpu).unwrap();
+            let gpu_trace = measure_recycled_phase(&mut gpu, 7, &mut gpu_rng,
+                |low, high, feedback, format| qft.recycled_phase_mix(low, high, feedback, format)).unwrap();
+            assert_eq!(gpu.readout, cpu.readout);
+            assert_eq!(gpu_trace, cpu_trace);
+        }
+    }
+
+    #[test]
+    fn recycled_cuda_unstructured_semiprime_prefix_matches_cpu() {
+        use crate::phase_unbraid::{FixedPointFormat, RecycledPhaseState, fixed_born_mass, recycled_phase_mix_cpu};
+        let qft = CudaQft::new(0).unwrap();
+        // Read only N from fixtures whose persisted prime proofs are verified
+        // by qpe_semiprime_cases. No factor or certificate enters execution.
+        for record in include_str!("../measurements/unstructured-wide-controls.tsv").lines().skip(1) {
+            let fields: Vec<_> = record.split('\t').collect();
+            let bits: u64 = fields[1].parse().unwrap();
+            let n: BigUint = fields[2].parse().unwrap();
+            assert_eq!(n.bits(), bits);
+            assert!(bits >= 128);
+            let base = BigUint::from(2u8);
+            let qubits = n.bits() * 2 + 8;
+            let format = FixedPointFormat::for_modulus(&n).unwrap();
+            let mut cpu = RecycledPhaseState::new(&n, &base, qubits, &format).unwrap();
+            let mut gpu = RecycledPhaseState::new(&n, &base, qubits, &format).unwrap();
+            // This verifies eight actual circuit steps, not factor extraction.
+            for output_bit in 0..8 {
+                let (keys, low, high) = cpu.branches(31, &mut recycled_phase_mix_cpu).unwrap();
+                let (gpu_keys, gpu_low, gpu_high) = gpu.branches(31,
+                    &mut |low, high, feedback, format| qft.recycled_phase_mix(low, high, feedback, format)).unwrap();
+                assert_eq!(gpu_keys, keys);
+                assert_eq!(gpu_low, low);
+                assert_eq!(gpu_high, high);
+                let bit = output_bit % 3 == 0;
+                let selected = if bit { high } else { low };
+                let gpu_selected = if bit { gpu_high } else { gpu_low };
+                assert!(!fixed_born_mass(&selected).is_zero());
+                cpu.commit(keys, selected, bit).unwrap();
+                gpu.commit(gpu_keys, gpu_selected, bit).unwrap();
+                assert_eq!(gpu.readout, cpu.readout);
+            }
+        }
+    }
+
+    #[test]
+    fn arbitrary_precision_branch_tiles_accept_global_indices_above_u64() {
+        let n = BigUint::from(15u8);
+        let base = BigUint::from(2u8);
+        let start = BigUint::from(1u8) << 100usize;
+        let mut tile = alloc::vec![crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }; 8];
+        CudaQft::prepare_branch_big_inputs_cpu(&n, &base, &start, 128, &mut tile).unwrap();
+        let amplitude = 1.0;
+        for (index, cell) in tile.iter().enumerate() {
+            let expected = if index % 4 == 0 { amplitude } else { 0.0 };
+            assert_eq!(cell.re, expected);
+            assert_eq!(cell.im, 0.0);
+        }
+    }
+
+    #[test]
+    fn qft_launch_grid_keeps_amplitude_counts_above_u32_wide() {
+        let amplitudes = u64::from(u32::MAX) + 1;
+        assert_eq!(qft_launch_grid(amplitudes, 256), 16_777_216);
+        assert_eq!(qft_launch_grid(u64::MAX, 256), 0x7fff_ffff);
+    }
+
+    #[test]
+    fn tiled_gpu_dif_matches_basis_state_spectrum_across_tile_boundaries() {
+        let root = std::env::temp_dir().join(format!("qft-dif-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let tape = crate::phase_unbraid::DenseRegisterTape::create(root.to_string_lossy().into_owned(), crate::phase_unbraid::DenseRegisterLayout::new(3, 2).unwrap()).unwrap();
+        tape.write_tile(&BigUint::from(0u8), &[crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }, crate::phase_unbraid::Cx { re: 1.0, im: 0.0 }]).unwrap();
+        let qft = CudaQft::new(0).unwrap();
+        qft.transform_dense_tape(&tape, false).unwrap();
+        let scale = 1.0 / 8.0;
+        for frequency in 0..8usize {
+            let observed = tape.read_qft_bin(&BigUint::from(frequency)).unwrap();
+            let angle = -2.0 * core::f64::consts::PI * frequency as f64 / 8.0;
+            assert!((observed.re - scale * angle.cos()).abs() < 1e-11, "frequency {frequency}: re={}", observed.re);
+            assert!((observed.im - scale * angle.sin()).abs() < 1e-11, "frequency {frequency}: im={}", observed.im);
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn tiled_gpu_register_runs_biguint_branch_and_spectral_readout() {
+        let root = std::env::temp_dir().join(format!("qft-branch-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let tape = crate::phase_unbraid::DenseRegisterTape::create(root.to_string_lossy().into_owned(), crate::phase_unbraid::DenseRegisterLayout::new(3, 2).unwrap()).unwrap();
+        let qft = CudaQft::new(0).unwrap();
+        qft.run_dense_tape_qft(&BigUint::from(3u8), &BigUint::from(2u8), &tape).unwrap();
+        for frequency in 0..8usize {
+            let amplitude = tape.read_qft_bin(&BigUint::from(frequency)).unwrap();
+            let probability = amplitude.re.powi(2) + amplitude.im.powi(2);
+            assert!((probability - if frequency == 0 || frequency == 4 { 0.25 } else { 0.0 }).abs() < 1e-11,
+                "frequency {frequency}: probability={probability}");
+        }
+        let (first, mass) = tape.measure_qft_bin(0.1).unwrap();
+        let second = tape.measure_qft_bin(0.8).unwrap().0;
+        assert_eq!(first, BigUint::from(0u8));
+        assert_eq!(second, BigUint::from(4u8));
+        assert!((mass - 0.5).abs() < 1e-11);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn gpu_cross_tile_butterfly_addresses_amplitudes_above_u32() {
+        let root = std::env::temp_dir().join(format!("qft-wide-index-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let tape = crate::phase_unbraid::DenseRegisterTape::create(root.to_string_lossy().into_owned(), crate::phase_unbraid::DenseRegisterLayout::new(40, 2).unwrap()).unwrap();
+        let lower = BigUint::one() << 32usize;
+        let upper = &lower ^ (BigUint::one() << 31usize);
+        tape.write_tile(&lower, &[crate::phase_unbraid::Cx { re: 1.0, im: 0.0 }, crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }]).unwrap();
+        tape.write_tile(&upper, &[crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }, crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }]).unwrap();
+        CudaQft::new(0).unwrap().transform_dense_tape_cross_pair(&tape, &lower, 32, false).unwrap();
+        let lower_out = tape.read_tile(&lower).unwrap();
+        let upper_out = tape.read_tile(&upper).unwrap();
+        assert!((lower_out[0].re - 0.5).abs() < 1e-12);
+        assert!((upper_out[0].re - 0.5).abs() < 1e-12);
+        assert!(lower_out[0].im.abs() < 1e-12 && upper_out[0].im.abs() < 1e-12);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn sparse_cross_stage_updates_only_written_tile_pairs() {
+        use std::collections::BTreeMap;
+        let root = std::env::temp_dir().join(format!("qft-sparse-cross-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let tape = crate::phase_unbraid::DenseRegisterTape::create(root.to_string_lossy().into_owned(), crate::phase_unbraid::DenseRegisterLayout::new(4, 2).unwrap()).unwrap();
+        let initial: BTreeMap<BigUint, Vec<_>> = [
+            (BigUint::from(0u8), vec![crate::phase_unbraid::Cx { re: 0.5, im: 0.25 }, crate::phase_unbraid::Cx { re: -0.25, im: 0.125 }]),
+            (BigUint::from(2u8), vec![crate::phase_unbraid::Cx { re: 0.125, im: -0.25 }, crate::phase_unbraid::Cx { re: 0.375, im: 0.5 }]),
+            (BigUint::from(5u8), vec![crate::phase_unbraid::Cx { re: -0.5, im: 0.125 }, crate::phase_unbraid::Cx { re: 0.25, im: -0.375 }]),
+        ].into_iter().collect();
+        for (index, values) in &initial { tape.write_tile(index, values).unwrap(); }
+        let mut expected = BTreeMap::new();
+        for lower_index in [BigUint::from(0u8), BigUint::from(2u8), BigUint::from(4u8)] {
+            let partner = &lower_index + BigUint::one();
+            let start = &lower_index * 2u8;
+            let low = initial.get(&lower_index).cloned().unwrap_or_else(|| vec![crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }; 2]);
+            let high = initial.get(&partner).cloned().unwrap_or_else(|| vec![crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }; 2]);
+            let mut out_low = Vec::new();
+            let mut out_high = Vec::new();
+            for lane in 0..2u64 {
+                let position = (&start + lane) & BigUint::one();
+                let fraction = position.to_u64_digits().first().copied().unwrap_or(0) as f64 / 4.0;
+                let angle = -2.0 * core::f64::consts::PI * fraction;
+                let twiddle = crate::phase_unbraid::Cx { re: libm::cos(angle), im: libm::sin(angle) };
+                let difference = low[lane as usize] - high[lane as usize];
+                let sum = low[lane as usize] + high[lane as usize];
+                let rotated = difference * twiddle;
+                out_low.push(crate::phase_unbraid::Cx { re: sum.re * 0.5, im: sum.im * 0.5 });
+                out_high.push(crate::phase_unbraid::Cx { re: rotated.re * 0.5, im: rotated.im * 0.5 });
+            }
+            expected.insert(lower_index.clone(), out_low);
+            expected.insert(partner, out_high);
+        }
+        let qft = CudaQft::new(0).unwrap();
+        for lower_index in [BigUint::from(0u8), BigUint::from(2u8), BigUint::from(4u8)] {
+            qft.transform_dense_tape_cross_pair(&tape, &lower_index, 1, false).unwrap();
+        }
+        assert_eq!(tape.written_tiles().unwrap().len(), 6);
+        for (index, expected_tile) in expected {
+            let actual = tape.read_tile(&index).unwrap();
+            for (a, b) in actual.iter().zip(expected_tile) {
+                assert!((a.re - b.re).abs() < 1e-12 && (a.im - b.im).abs() < 1e-12);
+            }
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn gpu_fixed_cross_stage_matches_cpu_at_biguint_tile_address() {
+        let root = std::env::temp_dir().join(format!("qft-fixed-wide-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let format = crate::phase_unbraid::FixedPointFormat::for_modulus(&BigUint::from(15u8)).unwrap();
+        let tape = crate::phase_unbraid::DenseRegisterTapeFixed::create(root.to_string_lossy().into_owned(), crate::phase_unbraid::DenseRegisterLayout::new(40, 2).unwrap(), format.clone()).unwrap();
+        let lower = BigUint::one() << 32usize;
+        let upper = &lower ^ (BigUint::one() << 31usize);
+        let low_cells = [
+            crate::phase_unbraid::FixedComplex::from_f64(0.75, -0.25, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(-0.5, 0.125, &format).unwrap(),
+        ];
+        let high_cells = [
+            crate::phase_unbraid::FixedComplex::from_f64(-0.25, 0.5, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(0.125, -0.375, &format).unwrap(),
+        ];
+        let expected_low: Vec<_> = low_cells.iter().zip(high_cells.iter()).map(|(a, b)| crate::phase_unbraid::FixedComplex { re: &a.re + &b.re, im: &a.im + &b.im }.half()).collect();
+        let expected_high: Vec<_> = low_cells.iter().zip(high_cells.iter()).map(|(a, b)| crate::phase_unbraid::FixedComplex { re: &a.re - &b.re, im: &a.im - &b.im }.half()).collect();
+        tape.write_tile(&lower, &low_cells).unwrap();
+        tape.write_tile(&upper, &high_cells).unwrap();
+        CudaQft::new(0).unwrap().transform_dense_tape_cross_pair_fixed(&tape, &lower, 32, false, &format).unwrap();
+        let actual_low = tape.read_tile(&lower).unwrap();
+        let actual_high = tape.read_tile(&upper).unwrap();
+        assert_eq!(actual_low.as_slice(), expected_low.as_slice());
+        assert_eq!(actual_high.as_slice(), expected_high.as_slice());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn fixed_tape_qft_at_fifteen_matches_float_spectrum_and_factors() {
+        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        let fixed_root = std::env::temp_dir().join(format!("qft-fixed-fifteen-{stamp}"));
+        let float_root = std::env::temp_dir().join(format!("qft-float-fifteen-{stamp}"));
+        let n = BigUint::from(15u8);
+        let base = BigUint::from(2u8);
+        let format = crate::phase_unbraid::FixedPointFormat::for_modulus(&n).unwrap();
+        let layout_fixed = crate::phase_unbraid::DenseRegisterLayout::new(16, 4096).unwrap();
+        let layout_float = crate::phase_unbraid::DenseRegisterLayout::new(16, 4096).unwrap();
+        let fixed = crate::phase_unbraid::DenseRegisterTapeFixed::create(fixed_root.to_string_lossy().into_owned(), layout_fixed, format.clone()).unwrap();
+        let float = crate::phase_unbraid::DenseRegisterTape::create(float_root.to_string_lossy().into_owned(), layout_float).unwrap();
+        let qft = CudaQft::new(0).unwrap();
+        qft.run_dense_tape_qft_fixed(&n, &base, &fixed, &format).unwrap();
+        qft.run_dense_tape_qft(&n, &base, &float).unwrap();
+        let error_bound = 2.0f64.powi(-i32::try_from(format.w_bits).unwrap());
+        let fixed_tiles: Vec<_> = (0..16u32).map(|index| fixed.read_tile(&BigUint::from(index)).unwrap()).collect();
+        let float_tiles: Vec<_> = (0..16u32).map(|index| float.read_tile(&BigUint::from(index)).unwrap()).collect();
+        for frequency in 0..(1u32 << 16) {
+            let physical = (0..16u32).fold(0usize, |reversed, bit| reversed | (((frequency as usize >> bit) & 1) << (15 - bit)));
+            let tile = physical / 4096;
+            let lane = physical % 4096;
+            let fixed_amp = fixed_tiles[tile][lane].decode(&format);
+            let float_amp = float_tiles[tile][lane];
+            assert!((fixed_amp.re - float_amp.re).abs() <= error_bound, "real spectrum mismatch at {frequency}");
+            assert!((fixed_amp.im - float_amp.im).abs() <= error_bound, "imaginary spectrum mismatch at {frequency}");
+        }
+        let result = crate::phase_unbraid::run_phase_unbraid_big(n, base, 8, 1 << 16, None).unwrap();
+        assert_eq!(result.factors, Some((BigUint::from(3u8), BigUint::from(5u8))));
+        std::fs::remove_dir_all(fixed_root).unwrap();
+        std::fs::remove_dir_all(float_root).unwrap();
+    }
+
+    #[test]
+    fn fixed_cross_stage_nontrivial_twiddle_matches_cpu_reference() {
+        let root = std::env::temp_dir().join(format!("qft-fixed-twiddle-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let format = crate::phase_unbraid::FixedPointFormat::for_modulus(&BigUint::from(15u8)).unwrap();
+        let tape = crate::phase_unbraid::DenseRegisterTapeFixed::create(root.to_string_lossy().into_owned(), crate::phase_unbraid::DenseRegisterLayout::new(8, 2).unwrap(), format.clone()).unwrap();
+        let lower = BigUint::from(0u8);
+        let upper = BigUint::from(2u8);
+        let low_cells = [
+            crate::phase_unbraid::FixedComplex::from_f64(0.5, 0.125, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(-0.25, 0.375, &format).unwrap(),
+        ];
+        let high_cells = [
+            crate::phase_unbraid::FixedComplex::from_f64(-0.125, 0.25, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(0.375, -0.5, &format).unwrap(),
+        ];
+        let expected: Vec<_> = low_cells.iter().zip(high_cells.iter()).enumerate().map(|(lane, (low, high))| {
+            let phase = core::f64::consts::FRAC_PI_4 * lane as f64;
+            let twiddle = crate::phase_unbraid::FixedComplex::from_f64(libm::cos(-phase), libm::sin(-phase), &format).unwrap();
+            let difference = crate::phase_unbraid::FixedComplex { re: &low.re - &high.re, im: &low.im - &high.im };
+            (crate::phase_unbraid::FixedComplex { re: &low.re + &high.re, im: &low.im + &high.im }.half(), difference.mul(&twiddle, &format).half())
+        }).collect();
+        tape.write_tile(&lower, &low_cells).unwrap();
+        tape.write_tile(&upper, &high_cells).unwrap();
+        CudaQft::new(0).unwrap().transform_dense_tape_cross_pair_fixed(&tape, &lower, 2, false, &format).unwrap();
+        let actual_low = tape.read_tile(&lower).unwrap();
+        let actual_high = tape.read_tile(&upper).unwrap();
+        for lane in 0..2 {
+            assert_eq!(actual_low[lane], expected[lane].0);
+            assert_eq!(actual_high[lane], expected[lane].1);
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn limb_fixed_cross_stage_w176_matches_bigint_reference() {
+        let root = std::env::temp_dir().join(format!("qft-fixed-limb-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let modulus = (BigUint::one() << 80usize) + BigUint::one();
+        let format = crate::phase_unbraid::FixedPointFormat::for_modulus(&modulus).unwrap();
+        assert_eq!(format.w_bits, 176);
+        let tape = crate::phase_unbraid::DenseRegisterTapeFixed::create(root.to_string_lossy().into_owned(), crate::phase_unbraid::DenseRegisterLayout::new(8, 2).unwrap(), format.clone()).unwrap();
+        let lower = BigUint::zero();
+        let upper = BigUint::from(2u8);
+        let low_cells = [
+            crate::phase_unbraid::FixedComplex::from_f64(0.625, -0.375, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(-0.25, 0.5, &format).unwrap(),
+        ];
+        let high_cells = [
+            crate::phase_unbraid::FixedComplex::from_f64(-0.125, 0.25, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(0.375, -0.125, &format).unwrap(),
+        ];
+        let expected: Vec<_> = low_cells.iter().zip(high_cells.iter()).enumerate().map(|(lane, (low, high))| {
+            let twiddle = crate::phase_unbraid::FixedComplex::qft_twiddle(&BigUint::from(lane), 2, false, &format).unwrap();
+            let sum = crate::phase_unbraid::FixedComplex { re: &low.re + &high.re, im: &low.im + &high.im }.half();
+            let difference = crate::phase_unbraid::FixedComplex { re: &low.re - &high.re, im: &low.im - &high.im };
+            (sum, difference.mul(&twiddle, &format).half())
+        }).collect();
+        tape.write_tile(&lower, &low_cells).unwrap();
+        tape.write_tile(&upper, &high_cells).unwrap();
+        CudaQft::new(0).unwrap().transform_dense_tape_cross_pair_fixed(&tape, &lower, 2, false, &format).unwrap();
+        let actual_low = tape.read_tile(&lower).unwrap();
+        let actual_high = tape.read_tile(&upper).unwrap();
+        for lane in 0..2 {
+            assert_eq!(actual_low[lane], expected[lane].0);
+            assert_eq!(actual_high[lane], expected[lane].1);
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn limb_fixed_w136_local_and_cross_stages_match_bigint_reference() {
+        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        let root = std::env::temp_dir().join(format!("qft-fixed-limb136-{stamp}"));
+        let modulus = (BigUint::one() << 60usize) + BigUint::one();
+        let format = crate::phase_unbraid::FixedPointFormat::for_modulus(&modulus).unwrap();
+        assert_eq!(format.w_bits, 136);
+        let tape = crate::phase_unbraid::DenseRegisterTapeFixed::create(root.to_string_lossy().into_owned(), crate::phase_unbraid::DenseRegisterLayout::new(8, 2).unwrap(), format.clone()).unwrap();
+        let lower_index = BigUint::zero();
+        let upper_index = BigUint::from(2u8);
+        let low = [
+            crate::phase_unbraid::FixedComplex::from_f64(0.625, -0.375, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(-0.25, 0.5, &format).unwrap(),
+        ];
+        let high = [
+            crate::phase_unbraid::FixedComplex::from_f64(-0.125, 0.25, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(0.375, -0.125, &format).unwrap(),
+        ];
+        let expected: Vec<_> = low.iter().zip(high.iter()).enumerate().map(|(lane, (a, b))| {
+            let twiddle = crate::phase_unbraid::FixedComplex::qft_twiddle(&BigUint::from(lane), 2, false, &format).unwrap();
+            let sum = crate::phase_unbraid::FixedComplex { re: &a.re + &b.re, im: &a.im + &b.im }.half();
+            let difference = crate::phase_unbraid::FixedComplex { re: &a.re - &b.re, im: &a.im - &b.im };
+            (sum, difference.mul(&twiddle, &format).half())
+        }).collect();
+        tape.write_tile(&lower_index, &low).unwrap();
+        tape.write_tile(&upper_index, &high).unwrap();
+        let qft = CudaQft::new(0).unwrap();
+        qft.transform_dense_tape_cross_pair_fixed(&tape, &lower_index, 2, false, &format).unwrap();
+        assert_eq!(tape.read_tile(&lower_index).unwrap(), vec![expected[0].0.clone(), expected[1].0.clone()]);
+        assert_eq!(tape.read_tile(&upper_index).unwrap(), vec![expected[0].1.clone(), expected[1].1.clone()]);
+
+        let mut local = vec![
+            crate::phase_unbraid::FixedComplex::from_f64(0.5, 0.125, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(-0.25, 0.375, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(0.125, -0.25, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(0.375, 0.5, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(-0.5, 0.25, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(0.25, -0.125, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(-0.125, -0.5, &format).unwrap(),
+            crate::phase_unbraid::FixedComplex::from_f64(0.5, -0.375, &format).unwrap(),
+        ];
+        let mut expected_local = local.clone();
+        for base in [0usize, 4] {
+            for lane in 0..2 {
+                let a = &local[base + lane];
+                let b = &local[base + lane + 2];
+                let twiddle = crate::phase_unbraid::FixedComplex::qft_twiddle(&BigUint::from(lane), 1, false, &format).unwrap();
+                expected_local[base + lane] = crate::phase_unbraid::FixedComplex { re: &a.re + &b.re, im: &a.im + &b.im }.half();
+                let difference = crate::phase_unbraid::FixedComplex { re: &a.re - &b.re, im: &a.im - &b.im };
+                expected_local[base + lane + 2] = difference.mul(&twiddle, &format).half();
+            }
+        }
+        qft.limb_dif_local_stage(&mut local, 2, false, &format).unwrap();
+        assert_eq!(local, expected_local);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn gpu_branch_preparation_handles_a_tiny_tile_in_a_ten_thousand_qubit_register() {
+        let qft = CudaQft::new(0).unwrap();
+        let start = BigUint::one() << 9_000usize;
+        let mut tile = alloc::vec![crate::phase_unbraid::Cx { re: 0.0, im: 0.0 }; 2];
+        qft.prepare_branch_big(15, 2, &start, 10_000, &mut tile).unwrap();
+        assert_eq!(tile[0].re, 1.0);
+        assert_eq!(tile[1].re, 0.0);
+        assert_eq!(tile[0].im, 0.0);
+        assert_eq!(tile[1].im, 0.0);
+    }
 
     #[test]
     fn every_zoom_emits_the_same_nested_morphism_fixed_point() {

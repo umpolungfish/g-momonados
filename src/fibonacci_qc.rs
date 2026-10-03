@@ -2364,8 +2364,10 @@ pub fn repl_readout(a: u64, n_val: u64) {
     kv!("|V|", "{:.6}", v.norm());
     kv!("phase, ONE SHOT", "{}{}/{}{} winding", crate::style::accent(), vw.num, vw.den, crate::style::reset());
     kv!("distance to tenths", "{:.2e}", resid);
-    kv!("period r", "{}{}{}", crate::style::accent(),
-        braid.params.period.map(|r| r as i64).unwrap_or(-1), crate::style::reset());
+    match braid.params.period {
+        Some(r) => kv!("period r", "{}{}{}", crate::style::accent(), r, crate::style::reset()),
+        None => kv!("period r", "not yet read from the carrier"),
+    }
     divider!();
     if resid < LATTICE_EPS {
         verdict_line!('T');
@@ -2435,16 +2437,19 @@ pub fn repl_alkahest(a_str: &str, n_str: &str) {
         }
         let v = jones_polynomial(strands, word);
         let vw = winding_of(v);
-        let r = braid.params.period.unwrap_or(0);
-        let fp = if r > 0 { alkahest_mod_pow(a, r, n_val) == 1 } else { false };
+        let period = braid.params.period;
+        let fp = period.map(|r| r > 0 && alkahest_mod_pow(a, r, n_val) == 1).unwrap_or(false);
         head!("the four names of the readout");
         kv!("N, a", "{}, {}", n_val, a);
         divider!();
         kv!("precondition", "Jones root t = {}/{} winding", WIND_JONES_ROOT.num, WIND_JONES_ROOT.den);
-        kv!("unmoved mover", "r = {}{}{},  a^r ≡ 1 mod {}  {}{}{}",
-            crate::style::accent(), r, crate::style::reset(), n_val,
-            if fp { crate::style::verdict_t() } else { crate::style::verdict_n() },
-            if fp { "VERIFIED" } else { "OPEN" }, crate::style::reset());
+        match period {
+            Some(r) => kv!("unmoved mover", "r = {}{}{},  a^r ≡ 1 mod {}  {}{}{}",
+                crate::style::accent(), r, crate::style::reset(), n_val,
+                if fp { crate::style::verdict_t() } else { crate::style::verdict_n() },
+                if fp { "VERIFIED" } else { "OPEN" }, crate::style::reset()),
+            None => kv!("unmoved mover", "OPEN: period not yet read from the carrier"),
+        }
         kv!("One Thing", "ONE evaluation, phase {}{}/{}{} ({}⊞=𐑙{})",
             crate::style::accent(), vw.num, vw.den, crate::style::reset(),
             crate::style::glyph(), crate::style::reset());
