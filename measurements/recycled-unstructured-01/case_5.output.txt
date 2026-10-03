@@ -1,0 +1,28 @@
+CUDA phase execution on device 0
+Recycled control QPE with fixed complex amplitudes
+N = 16969
+phase bits = 38
+W = 44
+CUDA batch amplitudes = 4096
+tape = /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/recycled-unstructured-01/case_5
+shot 1: base=2, k=4619796755, measured bits=38, peak residue support=595
+shot 2: base=2, k=254088821545, measured bits=38, peak residue support=595
+shot 3: base=2, k=269796130513, measured bits=38, peak residue support=595
+readout closure: CF: s/595 -> period r=595 is odd — a^(r/2) has no half-step; advancing the coprime base
+shot 4: base=3, k=16169288644, measured bits=38, peak residue support=595
+shot 5: base=3, k=13397410590, measured bits=38, peak residue support=595
+readout closure: CF: s/595 -> period r=595 is odd — a^(r/2) has no half-step; advancing the coprime base
+shot 6: base=4, k=56361520415, measured bits=38, peak residue support=595
+readout closure: CF: s/595 -> period r=595 is odd — a^(r/2) has no half-step; advancing the coprime base
+shot 7: base=5, k=61905276522, measured bits=38, peak residue support=595
+readout closure: CF: s/595 -> period r=595 is odd — a^(r/2) has no half-step; advancing the coprime base
+shot 8: base=6, k=225908061337, measured bits=38, peak residue support=595
+readout closure: CF: s/595 -> period r=595 is odd — a^(r/2) has no half-step; advancing the coprime base
+shot 9: base=7, k=230296868256, measured bits=38, peak residue support=1190
+readout closure: CF: s/1190 -> r=1190 but a^(r/2) == -1 (mod N) — no split this base; advancing
+shot 10: base=8, k=161692886438, measured bits=38, peak residue support=595
+shot 11: base=8, k=162616845788, measured bits=38, peak residue support=595
+readout closure: CF: s/595 -> period r=595 is odd — a^(r/2) has no half-step; advancing the coprime base
+shot 12: base=9, k=110875122128, measured bits=38, peak residue support=595
+shot budget completed
+

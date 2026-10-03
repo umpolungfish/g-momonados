@@ -1,0 +1,244 @@
+[
+  {
+    "n": 2623,
+    "expected_primes": [
+      43,
+      61
+    ],
+    "factor_widths": "6x6",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 420,
+    "phase_bins": [
+      "521531743",
+      "4080218931",
+      "3026929333"
+    ],
+    "elapsed_seconds": 1.5747086540004602
+  },
+  {
+    "n": 9089,
+    "expected_primes": [
+      61,
+      149
+    ],
+    "factor_widths": "6x8",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 2220,
+    "phase_bins": [
+      "11174653649",
+      "48351271469",
+      "14858265240",
+      "19315744812",
+      "48475090346",
+      "61011751643"
+    ],
+    "elapsed_seconds": 2.1911659799998233
+  },
+  {
+    "n": 12827,
+    "expected_primes": [
+      101,
+      127
+    ],
+    "factor_widths": "7x7",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 700,
+    "phase_bins": [
+      "16296333055",
+      "4515851328",
+      "16590845097"
+    ],
+    "elapsed_seconds": 1.7228996339999867
+  },
+  {
+    "n": 37157,
+    "expected_primes": [
+      73,
+      509
+    ],
+    "factor_widths": "7x9",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 4572,
+    "phase_bins": [
+      "430473712537",
+      "156076781808"
+    ],
+    "elapsed_seconds": 2.8380349859999114
+  },
+  {
+    "n": 32231,
+    "expected_primes": [
+      167,
+      193
+    ],
+    "factor_widths": "8x8",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 7968,
+    "phase_bins": [
+      "230996795293",
+      "37637022648"
+    ],
+    "elapsed_seconds": 2.1622968460005723
+  },
+  {
+    "n": 34277,
+    "expected_primes": [
+      151,
+      227
+    ],
+    "factor_widths": "8x8",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 3390,
+    "phase_bins": [
+      "640246593873",
+      "733332091564"
+    ],
+    "elapsed_seconds": 3.28996282099979
+  },
+  {
+    "n": 97639,
+    "expected_primes": [
+      251,
+      389
+    ],
+    "factor_widths": "8x9",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 9700,
+    "phase_bins": [
+      "405345729993",
+      "229877276405"
+    ],
+    "elapsed_seconds": 4.129330330999437
+  },
+  {
+    "n": 121519,
+    "expected_primes": [
+      137,
+      887
+    ],
+    "factor_widths": "8x10",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 30124,
+    "phase_bins": [
+      "1637368597199"
+    ],
+    "elapsed_seconds": 6.888980132999677
+  },
+  {
+    "n": 127417,
+    "expected_primes": [
+      47,
+      2711
+    ],
+    "factor_widths": "6x12",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 62330,
+    "phase_bins": [
+      "3177488055319",
+      "2884096792795",
+      "600682976882"
+    ],
+    "elapsed_seconds": 44.49462821399993
+  },
+  {
+    "n": 126479,
+    "expected_primes": [
+      79,
+      1601
+    ],
+    "factor_widths": "7x11",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 15600,
+    "phase_bins": [
+      "1690428646191",
+      "1739201854295"
+    ],
+    "elapsed_seconds": 3.0335626249998313
+  },
+  {
+    "n": 121103,
+    "expected_primes": [
+      347,
+      349
+    ],
+    "factor_widths": "9x9",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 60204,
+    "phase_bins": [
+      "2836916786463",
+      "547746872972",
+      "3063233112478",
+      "3852710367237"
+    ],
+    "elapsed_seconds": 26.38454890399953
+  },
+  {
+    "n": 141343,
+    "expected_primes": [
+      281,
+      503
+    ],
+    "factor_widths": "9x9",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 17570,
+    "phase_bins": [
+      "10720519975957"
+    ],
+    "elapsed_seconds": 4.750587753000218
+  },
+  {
+    "n": 772883,
+    "expected_primes": [
+      811,
+      953
+    ],
+    "factor_widths": "10x10",
+    "initial_base": 2,
+    "verified": true,
+    "returncode": 0,
+    "peak_residue_support": 9180,
+    "phase_bins": [
+      "194088954529243",
+      "193445057523696",
+      "224996010795511",
+      "166094765669022"
+    ],
+    "elapsed_seconds": 7.143364242000644
+  },
+  {
+    "n": 581717,
+    "expected_primes": [
+      587,
+      991
+    ],
+    "factor_widths": "10x10",
+    "initial_base": 2,
+    "verified": false,
+    "timeout_seconds": 180,
+    "elapsed_seconds": 180.1473129619999
+  }
+]

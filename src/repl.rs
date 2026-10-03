@@ -1228,6 +1228,17 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             "gpu_kernel" => {
                 let sub = parts.next().unwrap_or("help");
                 match sub {
+                    "qft_probe" => {
+                        let tail = parts.collect::<Vec<_>>().join(" ");
+                        let args: Vec<&str> = tail.split_whitespace().collect();
+                        match (args.first().and_then(|s| s.parse::<u32>().ok()), args.get(1).and_then(|s| s.parse::<usize>().ok())) {
+                            (Some(qubits), Some(period)) => {
+                                let offset = args.get(2).and_then(|s| s.parse::<usize>().ok()).unwrap_or(0);
+                                sprintln!("{}", crate::gpu_kernel::qft_periodic_probe(qubits, period, offset, 0));
+                            }
+                            _ => sprintln!("gpu_kernel qft_probe <qubits> <period-dividing-2^qubits> [offset]  -- CUDA QFT/IQFT spectral support and round-trip check on device 0"),
+                        }
+                    }
                     "flow" => {
                         let tail=parts.collect::<Vec<_>>().join(" ");
                         let mut parts=tail.split_whitespace();
@@ -1916,27 +1927,8 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 }
             }
             "phase_unbraid" | "phase-unbraid" => {
-                let mut tape_dir: Option<String> = None;
-                let mut pos: Vec<String> = Vec::new();
-                while let Some(p) = parts.next() {
-                    if p == "--tape" {
-                        if let Some(td) = parts.next() { tape_dir = Some(td.to_string()); }
-                    } else {
-                        pos.push(p.to_string());
-                    }
-                }
-                let n_str = pos.get(0).cloned().unwrap_or_default();
-                let aa: u64 = pos.get(1).and_then(|t| t.parse().ok()).unwrap_or(2);
-                let shots: u32 = pos.get(2).and_then(|t| t.parse().ok()).unwrap_or(12);
-                let mem_cap: usize = pos.get(3).and_then(|t| t.parse().ok()).unwrap_or(1usize << 22);
-                if n_str.is_empty() {
-                    sprintln!("phase_unbraid: usage: phase_unbraid <N|word> [a] [shots] [mem_cap] [--tape <dir>]");
-                } else {
-                    match crate::phase_unbraid::phase_unbraid_report_big(&n_str, aa, shots, mem_cap, tape_dir) {
-                        Ok(r) => sprintln!("{}", r),
-                        Err(e) => sprintln!("phase_unbraid: {}", e),
-                    }
-                }
+                let args: Vec<&str> = parts.collect();
+                sprintln!("{}", crate::dispatch_phase_unbraid(&args));
             }
             "native_numeral" | "numeral" => {
                 use crate::native_numeral as nn;
@@ -3146,6 +3138,12 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 let psm_rest: alloc::string::String = parts.collect::<alloc::vec::Vec<&str>>().join(" ");
                 let psm_full = if psm_rest.is_empty() { alloc::string::String::from(psm_arg) } else { alloc::format!("{} {}", psm_arg, psm_rest) };
                 print_psm(&psm_full);
+            }
+            "factor_phase" => {
+                match crate::factor_phase::execute_baked() {
+                    Ok(output) => sprint!("{}", output),
+                    Err(error) => sprintln!("factor_phase: {}", error),
+                }
             }
             "shor" => {
                 let sub = parts.next().unwrap_or("");

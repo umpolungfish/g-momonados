@@ -66,7 +66,7 @@ pub struct ShorCircuitParams {
     pub n_total_qubits: usize,  // Total qubits
     pub a: u64,                 // Base for exponentiation
     pub n_val: u64,             // Number to factor
-    pub period: Option<u64>,    // Classical period (for verification)
+    pub period: Option<u64>,    // Unset during construction; requires readout
     pub estimated_braid_len: usize,
     pub strands: usize,
     pub fusion_dim: usize,      // Fusion space dimension
@@ -83,11 +83,10 @@ impl ShorCircuitParams {
         let strands = strands_for_qubits(n_total);
         let fusion_dim = fibonacci_dim(strands);
         let braid_len = estimate_braid_length(n_qubits);
-        let period = classic_period(a, n_val);
 
         ShorCircuitParams {
             n_qubits, n_work_qubits: n_work, n_total_qubits: n_total,
-            a, n_val, period,
+            a, n_val, period: None,
             estimated_braid_len: braid_len,
             strands,
             fusion_dim,
@@ -107,16 +106,6 @@ fn fibonacci_dim(strands: usize) -> usize {
         b = t;
     }
     b
-}
-
-fn classic_period(a: u64, n: u64) -> Option<u64> {
-    if n <= 1 || a % n == 0 { return None; }
-    let mut val: u64 = 1;
-    for r in 1..=n {
-        val = (val * a) % n;
-        if val == 1 { return Some(r); }
-    }
-    None
 }
 
 // ── Fibonacci anyon braid words for Shor gates ────────────────────────
@@ -330,7 +319,7 @@ mod tests {
         let p = ShorCircuitParams::new(4, 7, 15);
         assert_eq!(p.n_qubits, 4);
         assert_eq!(p.n_work_qubits, 4);
-        assert_eq!(p.period, Some(4));
+        assert_eq!(p.period, None);
         assert_eq!(p.strands, 25); // 3*8+1
     }
 
@@ -339,7 +328,7 @@ mod tests {
         let b = assemble_shor_braid(4, 7, 15);
         assert!(b.total_length > 0);
         assert!(b.total_length < 100_000); // should be computationally feasible
-        assert_eq!(b.params.period, Some(4));
+        assert_eq!(b.params.period, None);
     }
 
     #[test]

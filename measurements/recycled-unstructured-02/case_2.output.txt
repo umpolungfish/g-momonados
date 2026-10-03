@@ -1,0 +1,17 @@
+CUDA phase execution on device 0
+Recycled control QPE with fixed complex amplitudes
+N = 12827
+phase bits = 36
+W = 42
+CUDA batch amplitudes = 4096
+tape = /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/recycled-unstructured-02/case_2
+shot 1: base=2, k=16296333055, measured bits=36, peak residue support=700
+shot 2: base=2, k=4515851328, measured bits=36, peak residue support=700
+shot 3: base=2, k=16590845097, measured bits=36, peak residue support=700
+period = 700
+factors = 127 × 101
+verified word product = true
+D(p) = ⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+D(q) = ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+Γ(D(p),D(q)) = ⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣  (decode: 15735)
+
