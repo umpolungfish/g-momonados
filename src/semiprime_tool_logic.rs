@@ -1,6 +1,6 @@
 //! Semiprime Factor Pair - Gödel-Encoding Relationship Tool
 //!
-//! Protocol: ⊢∋∈⊤⊥⊞∋≻⋈≺⊡⊣
+//! Protocol: ⊢⊙∈⊤⊥⊞∋≻⋈≺⊡⊣
 //! Focus: Conjunctive reconstruction of N = p * q via SHIAB/Residual frames.
 
 use crate::godel_analyzer::{
@@ -9,7 +9,7 @@ use crate::godel_analyzer::{
 };
 use crate::godel_calculus::{check, decode, encode_cell_binary, Family, Nat, Operator, Structure};
 
-const SEMIPRIME_PROTOCOL_WORD: &str = "⊢∋∈⊤⊥⊞∋≻⋈≺⊡⊣";
+const SEMIPRIME_PROTOCOL_WORD: &str = "⊢⊙∈⊤⊥⊞∋≻⋈≺⊡⊣";
 
 pub struct SemiprimeReport {
     pub source: Nat,
