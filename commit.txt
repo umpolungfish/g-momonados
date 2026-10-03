@@ -1,1 +1,17 @@
-I extend the nested extraction battery to depth 1024 on the 14-digit semiprime and depth 256 on the 682-digit semiprime. I verify both factor-word pairs against the earlier depths and retain the compiled membranes and VOX run logs.
+I connect prepared coherent factor-pair measurement to the canonical Vox register and oracle.
+
+I expose the baked factor_phase interface through the kernel, its quantum menu and a silent prepared example.
+I make every emitted compiler warning a hard error through Cargo lint policy.
+I describe the prepared quantum menu path as coherent CPU execution.
+
+I add fixed-point dense tape storage, sparse tile discovery and W<=62 CUDA butterflies.
+I route the GPU phase command through fixed-point storage and verify its spectrum against the f64 control.
+I compute fixed-point QFT twiddles from W+32-bit Machin pi and integer Taylor series, with no f64 phase truncation.
+I carry a closed factor pair together with its source, base, and phase order so reversal cannot separate the two factor arms.
+I compile the corrected controlled Fibonacci exchange into a six-strand braid word and verify that word after recoupling at 128 and 192 bits.
+I apply sparse braid generators without evaluating zero matrix products.
+I verify streamed controlled modular multiplication by sparse and dense constants through 1024-bit unstructured semiprimes with linear qubit workspace and a quadratic gate bound.
+I document that the baked factor-pair entry still runs through the shared-branch factor oracle, while the measured QFT phase executor has no emitted-anyon path yet.
+I compile one-qubit H, X, T and dyadic feedback requests into offset Fibonacci braid words, and reject a nontrivial phase when synthesis reduces it to the identity.
+I verify dyadic feedback braid accuracy with an exact fixed-point projective inequality before admitting its word.
+I document the precision-scaled Fibonacci synthesis route through cyclotomic rounding, relative norm completion and exact braid synthesis.

@@ -1,0 +1,6 @@
+N=16969
+initial_base=2
+phase_bits=38
+W=44
+batch_amplitudes=4096
+shots=12

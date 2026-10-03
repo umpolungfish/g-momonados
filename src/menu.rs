@@ -98,7 +98,7 @@ pub static TOOLS_MENU: &[MenuItem] = &[
     MenuItem { name: "trilattice_factor",          cmd: "trilattice_factor",         desc: "Trilattice factoring toolkit — read/sieve/factor/dialect-probe/gpu-verify, with the number's own crystal address (alias: tfactor)", example: "trilattice_factor read 8051", submenu: None },
     MenuItem { name: "factor_operator",            cmd: "factor_operator",           desc: "Monotone factor-state constructor F_N over 𝟒={N,T,F,B}: cert certifies a pair, ambient states the moat (free-bit paradox), resolve strips the small part and crosses the moat to return factors (any width)", example: "factor_operator resolve 8051", submenu: None },
     MenuItem { name: "native_numeral",             cmd: "native_numeral",            desc: "The word-native numeral toolkit itself: encode/decode/factor/decompose/redstep/cycle and the rest (alias: numeral)", example: "native_numeral factor 8051", submenu: None },
-    MenuItem { name: "phase_unbraid", cmd: "phase_unbraid", desc: "Phase-based unbraider: the factors come out of a QFT phase readout (winding k/M -> period -> one gcd closure), no search", example: "phase_unbraid 8051", submenu: None },
+    MenuItem { name: "phase_unbraid", cmd: "phase_unbraid", desc: "CUDA recycled control QPE: complete phase measurement, retained complex residues and verified factor words", example: "phase_unbraid help", submenu: None },
     MenuItem { name: "dyn_nest",                   cmd: "dyn_nest",                  desc: "Optimal oneshot nesting depth: the least depth at which the Brent cycle closes on a factor (aliases: dyn, dynamic_nest)", example: "dyn_nest 91", submenu: None },
     MenuItem { name: "yz",                         cmd: "yz",                        desc: "Yamakawa-Zhandry verifiable-quantum-advantage retranslation (r/c/Inc) run as real code, not read as a document", example: "yz report", submenu: None },
     MenuItem { name: "yz_list",                    cmd: "yz_list",                   desc: "Theorem 11.1's L-list mechanism from the YZ-retranslation, run for real rather than left open", example: "yz_list help", submenu: None },
@@ -233,6 +233,7 @@ pub static KERNEL_MENU: &[MenuItem] = &[
 ];
 
 pub static QUANTUM_MENU: &[MenuItem] = &[
+    MenuItem { name: "factor_phase", cmd: "factor_phase", desc: "Exact folded coherent CPU execution and pair measurement over baked IMASM source and quantile", example: "factor_phase", submenu: None },
     MenuItem { name: "fibqc",      cmd: "fibqc",      desc: "Fibonacci anyon QC: verify | compile | jones | knot | winding (see also qc, jp)", example: "fibqc verify", submenu: None },
     MenuItem { name: "qc", cmd: "qc", desc: "Compile a circuit over H T S X to a braid word; spaces optional; draw|svg|loop before the gates renders it, and two depths size the net and the recursion (aliases quantum_compile, fibqc compile)", example: "qc loop HTSX 10 3", submenu: None },
     MenuItem { name: "bi", cmd: "bi", desc: "Draw a braid word — strand diagram in the terminal, SVG with `svg`, the closed braid as a ring with `loop`; window with start:count, column height with /N (alias braid_image)", example: "bi loop 1 2 -1 -2 1 2", submenu: None },
