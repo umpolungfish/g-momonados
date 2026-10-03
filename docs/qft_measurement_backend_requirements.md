@@ -222,7 +222,7 @@ product below. The historical `measure_and_descend_arithmetic_reference` is
 test-only and calls `resident_order` before creating its sample; it cannot
 serve as the requested production measurement backend.
 
-## Bounded arbitrary extraction
+## Recursive arbitrary extraction
 
 `arbitrary_anyon_factor <natural|canonical-cell-binary-word> <base> <max_shots> <unix_socket>`
 connects the same controller adapter to the recursive extractor. For each
@@ -230,7 +230,8 @@ composite descendant of at least 128 bits, it first executes the source-bound
 anyon phase program. A returned candidate must satisfy exact division and
 Gödel multiplication closure before both descendants are processed. Its route
 trace records the phase base, recovered order, and number of shots. Descendants
-below the controller's minimum width use the bounded ladder.
+below the controller's minimum width use the native route ladder and its
+continuation paths.
 
 A completed shot budget without a factor is represented as `None` by
 `try_factor_with_anyons`; the extractor records that outcome and continues the
@@ -256,10 +257,10 @@ The 128-bit regression cases cover a prime square, an unbalanced semiprime with
 a 21-bit prime and a 107-bit Mersenne prime, and a composite with 39 powers of
 two beside an 89-bit Mersenne prime. The unbalanced case is labelled explicitly
 as such. The balanced, unstructured 128-bit source
-`296650821743515430283258444261036507151` exhausts the current route apertures
-and the two-million-step Brent budget. Its whole source remains the unresolved
-cofactor, product closure is `OPEN`, and the CLI exits with status two. This
-measured case remains a requirement for complete arbitrary factor extraction.
+`296650821743515430283258444261036507151` closes through the native PARI
+candidate route as 16925480323643806501 × 17526877587580975651. The standalone
+tool reports protocol PASS, conjunctive reconstruction PASS, and closed Gödel
+product reconstruction. The measured release command completed in 0.10 seconds.
 
 ## Required calculation
 
@@ -307,15 +308,20 @@ The width sweeps verify reversible arithmetic emission and Fibonacci CNOT word
 generation. The controller adapter now connects measured fusion bits to the
 phase accumulator. The local transport check uses a protocol response fixture;
 it is not a device measurement or factor closure.
-# Semiprime tool aperture
+# Semiprime tool extraction
 
 `semiprime-tool` uses the shared `arbitrary_factor` route ladder after acquiring
-the structural sieve reading. The ladder tries the sieve, bounded difference of
-squares, winding bridge, congruence sieve, order winding, and Brent rho. Every
+the structural sieve reading. The ladder tries the sieve, an immediate square
+bridge, the local PARI factor engine, bounded difference of squares, winding
+bridge, congruence sieve, order winding, and Brent rho. The PARI route invokes
+`gp` with N alone and reads one factor candidate. Every
 accepted split closes through Gödel multiplication. A two-prime result includes
-prime squares by counting multiplicity. An exhausted ladder reports UNRESOLVED
-with reconstruction OPEN and returns status 2. Its route trace and remaining
-cofactor accompany the structural reading.
+prime squares by counting multiplicity. Exhausting the initial ladder advances
+Brent seeds and work budgets alongside an exact divisor lane. The retry record
+occupies one trace slot, and the walks retain no state history. A successful
+report requires full source reconstruction through Gödel multiplication. The
+original balanced 128-bit source closes as
+16925480323643806501 × 17526877587580975651 through the PARI candidate route.
 
 `factor_routes::congruence_split` retains one modular relation per factor-base
 pivot. Each row carries X, Y, and parity with
