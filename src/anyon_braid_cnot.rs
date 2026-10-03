@@ -193,7 +193,8 @@ pub fn compile_single_qubit(
     if max_gates == 0 {
         return Err("net capacity must be positive".into());
     }
-    let qubit = match target {
+    let reduced_target = target.reduced_feedback();
+    let qubit = match &reduced_target {
         BraidTarget::X(qubit)
         | BraidTarget::H(qubit)
         | BraidTarget::T { qubit, .. }
@@ -202,7 +203,7 @@ pub fn compile_single_qubit(
     };
     let algebra = FibonacciLocal::new(source)?;
     let scale = algebra.format().scale();
-    let local_target = algebra.target(target)?;
+    let local_target = algebra.target(&reduced_target)?;
     if local_target.0 == LocalMatrix::identity(algebra.format()).0 {
         return Ok((Vec::new(), 0.0));
     }
@@ -213,7 +214,7 @@ pub fn compile_single_qubit(
     });
     let generators = [generators[0].clone()?, generators[1].clone()?];
     let net = build_local_net(generators, net_depth, max_gates);
-    compile_single_qubit_with_net(&algebra, target, qubit, &local_target, &net, sk_depth)
+    compile_single_qubit_with_net(&algebra, &reduced_target, qubit, &local_target, &net, sk_depth)
 }
 
 fn compile_single_qubit_with_net(
@@ -724,13 +725,12 @@ impl FibonacciBraidCompiler {
             ),
             BraidTarget::Feedback { qubit, numerator, denominator_bits } => (
                 *qubit,
-                BraidTarget::Feedback {
-                    qubit: 0,
-                    numerator: numerator.clone(),
-                    denominator_bits: *denominator_bits,
-                },
+                BraidTarget::Feedback { qubit: 0, numerator: numerator.clone(), denominator_bits: *denominator_bits }.reduced_feedback(),
                 None,
-                minimum_accuracy_bits.max(*denominator_bits),
+                minimum_accuracy_bits.max(match &target.reduced_feedback() {
+                    BraidTarget::Feedback { denominator_bits, .. } => *denominator_bits,
+                    _ => unreachable!(),
+                }),
             ),
             BraidTarget::Cnot { .. } => unreachable!(),
         };
@@ -770,8 +770,9 @@ impl FibonacciBraidCompiler {
         target: &BraidTarget,
         accuracy_bits: usize,
     ) -> Result<Vec<i32>, String> {
+        let reduced_target = target.reduced_feedback();
         let local = FibonacciLocal::new(&self.source)?;
-        let target_matrix = local.target(target)?;
+        let target_matrix = local.target(&reduced_target)?;
         if target_matrix.0 == LocalMatrix::identity(local.format()).0 {
             return Ok(Vec::new());
         }
@@ -794,7 +795,7 @@ impl FibonacciBraidCompiler {
         loop {
             let candidate = compile_single_qubit_with_net(
                 &local,
-                target,
+                &reduced_target,
                 0,
                 &target_matrix,
                 net,

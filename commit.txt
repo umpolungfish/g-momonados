@@ -1,1 +1,1 @@
-I retain the Fibonacci gate net across feedback gates in a recycled phase shot.
+I reduce dyadic feedback phases before Fibonacci braid synthesis.
