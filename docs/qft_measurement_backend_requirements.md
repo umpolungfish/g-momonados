@@ -70,18 +70,22 @@ number-theoretic conjecture. The emitted braid still needs the fixed-point
 projective check above before entering the phase circuit.
 Primary source: [Asymptotically Optimal Topological Quantum Compiling](https://arxiv.org/abs/1310.4150).
 
-`anyon_cnot_word N [sk_depth] [net_depth] [net_capacity] [exchange_refinement]`
-now emits the local target corrections around two refined controlled exchanges
-as one six-strand braid word. The local net is built from the generators
+`anyon_cnot_word N [sk_depth] [net_depth] [net_capacity] [exchange_refinement] [minimum_accuracy_bits]`
+emits the local target corrections around two refined controlled exchanges as
+one six-strand braid word. The optional accuracy floor rejects a word when its
+source-width CNOT residual does not reach the requested number of bits. The
+local net is built from the generators
 recoupled into the pair basis used by the CNOT target. The complete emitted word
 is reevaluated in source-width fixed point after recoupling before its residual
 is reported. `anyon_cnot_verify N <report>` reevaluates a saved word at another
 source width.
 
-The 128-bit compile fixture produced a 1,425,830-generator word with a maximum
-residual of approximately 2^-24. Reevaluating that same word against a separate
-192-bit semiprime yielded 25 residual accuracy bits. Synthesis depth eight did
-not return within the run window; the accepted measurements use depth seven.
+For the 128-bit semiprime `296650821743515430283258444261036507151`, SK depth
+seven with a depth-seven net and a 20-bit accuracy floor produced a
+1,425,830-generator word. The compile pass measured 24 residual accuracy bits;
+`anyon_cnot_verify` independently reevaluated the saved word and measured 25.
+The same settings at SK depth two fail the 20-bit floor. Synthesis depth eight
+did not return within the run window; the accepted measurements use depth seven.
 This gives a width-independent generated braid with measured finite precision,
 while the feedback-controlled arithmetic carrier and full factor extraction
 remain the downstream execution path.
