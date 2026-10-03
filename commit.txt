@@ -1,9 +1,7 @@
-I share verified factor extraction and bound congruence relation storage.
+I continue factor extraction through verified native candidates.
 
-I connect measured anyon candidates to recursive Gödel extraction, preserve shot-budget exhaustion as a fallback outcome, and propagate controller errors. I wire arbitrary_anyon_factor into the CLI, REPL, and menu.
+I add the local PARI factor engine as a candidate route receiving N alone, and verify its split through Gödel multiplication before recursively processing both descendants. The original balanced 128-bit source now returns its prime pair with protocol and product closure PASS in the measured release command.
 
-I move the factor routes into the shared library and use the same ladder in semiprime-tool. I handle prime-square multiplicity, report unresolved extraction with its remaining cofactor, and rebuild the standalone tools with the current protocol.
+I replace terminal ladder exhaustion with advancing Brent seeds and budgets alongside an exact divisor lane. The continuing route retains one trace record and no state history. I require complete Gödel source reconstruction before returning a successful extraction report.
 
-I replace growing smooth-relation histories with one modular relation per factor-base pivot. I verify a nontrivial 130-bit square dependency and bounded storage under repeated relations. I verify candidate-interface extraction and Gödel closure on independently certified unstructured semiprimes at 128, 256, 512, 1024, and 2048 bits.
-
-I retain the rebuilt release ELFs and their verified checksums with the measurements.
+I verify the original balanced source, preserve the required 128 through 2048-bit candidate-interface tests, refresh the measurements and archived release ELFs, and normalize the report endings.
