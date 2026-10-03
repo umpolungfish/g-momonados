@@ -1122,9 +1122,9 @@ impl FibonacciBraidCompiler {
 }
 
 pub fn verify_file(args: &[&str]) -> Result<String, String> {
-    if args.len() < 2 || args.len() > 3 {
+    if args.len() < 2 || args.len() > 5 {
         return Err(
-            "usage: anyon_cnot_verify N <compiled-word-report> [minimum_accuracy_bits=0]".into(),
+            "usage: anyon_cnot_verify N <compiled-word-report> [minimum_accuracy_bits=0] [eps=1e-6] [reject=1e-2]".into(),
         );
     }
     let source = BigUint::parse_bytes(args[0].as_bytes(), 10).ok_or("invalid source integer")?;
@@ -1136,6 +1136,14 @@ pub fn verify_file(args: &[&str]) -> Result<String, String> {
     let minimum_accuracy_bits = args.get(2).map_or(Ok(0usize), |raw| {
         raw.parse().map_err(|_| "invalid minimum accuracy")
     })?;
+    let thresholds = g_momonados::belnap_residual::Thresholds {
+        eps: args.get(3).map_or(Ok(1e-6f64), |raw| {
+            raw.parse().map_err(|_| "invalid Belnap clean threshold")
+        })?,
+        reject: args.get(4).map_or(Ok(1e-2f64), |raw| {
+            raw.parse().map_err(|_| "invalid Belnap reject threshold")
+        })?,
+    };
     let encoded = report
         .lines()
         .find_map(|line| line.strip_prefix("word="))
@@ -1165,10 +1173,16 @@ pub fn verify_file(args: &[&str]) -> Result<String, String> {
             "saved CNOT braid reaches {bits} residual accuracy bits, below the requested {minimum_accuracy_bits}"
         ));
     }
+    let scale = algebra.format().scale().to_biguint()
+        .ok_or("fixed-point scale is not positive")?;
+    let (belnap, tier) = g_momonados::belnap_integration::classify_residual(
+        &residual, &scale, thresholds,
+    )?;
     Ok(format!(
-        "source_bits={} physical_word_length={} minimum_accuracy_bits={} residual_accuracy_bits={} computational={} leakage={} unitarity={}",
+        "source_bits={} physical_word_length={} minimum_accuracy_bits={} residual_accuracy_bits={} computational={} leakage={} unitarity={} belnap_comp={:?} belnap_leak={:?} belnap_tier={:?} belnap_eps={} belnap_reject={}",
         source.bits(), word.len(), minimum_accuracy_bits, bits,
         residual.computational, residual.leakage, residual.unitarity,
+        belnap.comp, belnap.leak, tier, thresholds.eps, thresholds.reject,
     ))
 }
 
