@@ -57,6 +57,40 @@ Controllers must implement the v2 contract; untagged v1 replies are rejected.
 `measurements/anyon_tagged_readout_checks.log` records the transport fixture
 checks. The fixture replies do not establish physical phase measurements.
 
+## Local fusion execution components
+
+`anyon_fusion_kernel::FusionKernel` supplies source-width fixed-point exchange
+weights on running-charge fusion paths. A signed adjacent exchange changes one
+intermediate charge, with at most two output charges. The kernel includes the
+vacuum boundary sectors and does not enumerate a global fusion basis. Its
+signed local weights agree with every entry of the existing six-anyon pair
+operators on the five certified source widths.
+
+`sample_fusion_channel` draws from integer Born masses by rejection sampling,
+without converting the masses to floating point. It handles deterministic
+channels without consuming entropy and rejects zero total mass. The execution
+backend must contract its conditional global state to obtain those masses and
+apply the selected projector afterward. This global contraction and conditional
+state update are unfinished; the local kernel and sampler alone do not supply
+the complete phase readout. Component readings are retained in
+`measurements/anyon_fusion_kernel_checks.log`.
+
+The measurement component also implements the quadratic pole projection from
+the supplied Sections 6.2 and 6.3. `PoleProjection` keeps separate T, F, and
+unread masses. Probabilities use the full carrier trace, so the two truth-pole
+probabilities can sum to less than one. An unread outcome has no phase bit.
+The entangled-pair projection traces the other member for its first reading,
+then retains the selected joint amplitudes for subsequent conditional readings.
+It rejects zero-mass projectors before changing the state.
+
+`SicProjection` retains all four tetrahedral weights exactly as
+`(visible_trace + radical[i]/sqrt(3))/(4*carrier_trace)`. The square-root term
+is symbolic, avoiding a floating-point frame conversion. Its coefficients
+reconstruct all three unnormalized Bloch components, including the coherence
+phase. The tests cover the true pole, the balanced ray, unread carrier weight,
+conditional singlet anticorrelation, and SIC reconstruction at every required
+source width. These are measurement-component checks, not full phase shots.
+
 The controller protocol is an execution contract, not a local source of
 measurement values. The transport test checks the 128-bit semiprime-bound
 request, exchange streaming, and readout decoding; a live controller run is
