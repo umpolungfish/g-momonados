@@ -18,5 +18,15 @@
       "radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
       "terminal_closure": "nested_factor_words_with_godel_product"
     }
+  ],
+  "nested_work_executions": [
+    {
+      "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_nested_work_radix_rsa100_20261004/octal",
+      "session_id": 26456,
+      "state": "running_no_terminal_report",
+      "radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+      "modular_work": "nested_reversible_arithmetic",
+      "terminal_closure": "nested_factor_words_with_godel_product"
+    }
   ]
 }

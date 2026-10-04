@@ -36,7 +36,11 @@ Prepared membranes retain a readout verifier whose digest is bound in the manife
 
 The terminal factor report now emits numeric values only as canonical IMASM words, including source, base, shot count, phase numerator/denominator, order, and both factors. The verifier rejects unapproved decimal-valued fields and checks the echoed input words against the prepared words. Preparation validates every numeric JSON leaf by decoding it as a canonical cell-binary word before compilation. The nested terminal closure calls Vox’s existing factor_2adic library through the kernel. The executable runs directly.
 
-The per-gate decision-arena reclamation was also removed. The arena now folds after the complete controlled modular operation, reducing reclamation overhead without a support or capacity ceiling.
+The source-dependent modular producer executes whole reversible additions and comparisons as shared dyadic split/fuse transducers. A subtraction-borrow coordinate selects each addition input; a low-to-high comparison state controls the high flag. Changed and unchanged arms fuse on the original control literals. The same modular-add shell, controlled swap and inverse rail supply both these nested boundaries and the elementary gate lowering. Arena reclamation occurs after each complete nested operation, with no node, support or retry ceiling.
+
+The coordinate control checks every complex amplitude on a complete finite basis with mixed positive and negative controls and nonadjacent register wires. The modular control checks independent complex residue arms on all computational channels at the smaller control precision and at RSA100 precision. Exact amplitudes at clean-work output addresses account for the complete retained mass. The elementary multiplier and existing four-channel gate correlation regressions pass.
+
+The prepared nested-work family is `membranes/ququart_nested_work_radix_rsa100_20261004`. Its digit radix selects the terminal product/prefix nesting; its phase acquisition remains the source-bound ququart circuit. The octal family member runs directly with a live handle recorded in `active_execution.json`.
 
 ## Implementation Sequence
 

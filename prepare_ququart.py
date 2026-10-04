@@ -139,7 +139,7 @@ def main():
                         execution_limits=None, extraction="native_ququart_factor_executor",
                         fourier_operator="contracted_physical_fibonacci_braid",
                         fourier_contraction="preparation_time",
-                        modular_work_operator="reversible_gates_on_shared_complex_decision_branches",
+                        modular_work_operator="nested_reversible_arithmetic_on_shared_complex_decision_branches",
                         feedback_operator="fixed_point_winding",
                         closure_arithmetic="radix_four_paired_numeral_cells",
                         terminal_factors="direct_godel_closure_words",
