@@ -1,0 +1,920 @@
+                 w _ITM_deregisterTMCloneTable
+                 w _ITM_registerTMCloneTable
+                 U _Unwind_Backtrace
+                 U _Unwind_GetDataRelBase
+                 U _Unwind_GetIP
+                 U _Unwind_GetIPInfo
+                 U _Unwind_GetLanguageSpecificData
+                 U _Unwind_GetRegionStart
+                 U _Unwind_GetTextRelBase
+                 U _Unwind_Resume
+                 U _Unwind_SetGR
+                 U _Unwind_SetIP
+                 w __cxa_finalize
+                 U __errno_location
+                 w __gmon_start__
+                 U __libc_start_main
+                 U __xpg_strerror_r
+                 U abort
+                 U bcmp
+                 U calloc
+                 U close
+                 U dl_iterate_phdr
+                 U dup
+                 U exit
+                 U fcntl
+                 U free
+                 U fstat64
+                 U getauxval
+                 U getcwd
+                 U getenv
+                 w gettid
+                 U hypot
+                 U lseek64
+                 U malloc
+                 U memcmp
+                 U memcpy
+                 U memmove
+                 U memset
+                 U mmap64
+                 U mprotect
+                 U munmap
+                 U open64
+                 U pause
+                 U poll
+                 U posix_memalign
+                 U pthread_attr_destroy
+                 U pthread_attr_getstack
+                 U pthread_getattr_np
+                 U pthread_self
+                 U read
+                 U readlink
+                 U realloc
+                 U realpath
+                 U sigaction
+                 U sigaltstack
+                 U signal
+                 U sincos
+                 U stat64
+                 w statx
+                 U strlen
+                 U syscall
+                 U sysconf
+                 U write
+0000000000000000 b std::panicking::panic_count::LOCAL_PANIC_COUNT::{K#0}::{closure#1}::__RUST_STD_INTERNAL_VAL
+0000000000000010 b std::thread::current::id::ID
+00000000000002fc r __abi_tag
+0000000000004188 r GCC_except_table18
+00000000000041c0 r GCC_except_table39
+00000000000041e4 r GCC_except_table49
+0000000000004200 r GCC_except_table51
+0000000000004220 r GCC_except_table103
+0000000000004230 r GCC_except_table228
+0000000000004244 r GCC_except_table231
+0000000000004264 r GCC_except_table236
+00000000000042a4 r GCC_except_table414
+00000000000042bc r GCC_except_table415
+000000000000435c r GCC_except_table418
+0000000000004384 r GCC_except_table426
+00000000000043ac r GCC_except_table427
+00000000000043c0 r GCC_except_table430
+00000000000043d4 r GCC_except_table431
+00000000000045dc r GCC_except_table437
+0000000000004618 r GCC_except_table438
+000000000000463c r GCC_except_table439
+0000000000004658 r GCC_except_table442
+000000000000467c r GCC_except_table443
+0000000000004710 r GCC_except_table445
+0000000000004720 r GCC_except_table449
+0000000000004734 r GCC_except_table450
+0000000000004748 r GCC_except_table452
+00000000000047ac r GCC_except_table453
+00000000000048b8 r GCC_except_table454
+00000000000048dc r GCC_except_table456
+0000000000004910 r GCC_except_table457
+000000000000492c r GCC_except_table458
+0000000000004948 r GCC_except_table462
+00000000000049d4 r GCC_except_table463
+00000000000049e0 r GCC_except_table464
+00000000000049ec r GCC_except_table468
+0000000000004a70 r GCC_except_table473
+0000000000004a84 r GCC_except_table477
+0000000000004aac r GCC_except_table485
+0000000000004ac0 r GCC_except_table487
+0000000000004b00 r GCC_except_table488
+0000000000004b2c r GCC_except_table491
+0000000000004b40 r GCC_except_table500
+0000000000004b54 r GCC_except_table508
+0000000000004b68 r GCC_except_table516
+0000000000004b7c r GCC_except_table518
+0000000000004b9c r GCC_except_table519
+0000000000004bb0 r GCC_except_table521
+0000000000004bc0 r GCC_except_table529
+0000000000004bd4 r GCC_except_table532
+0000000000004bf8 r GCC_except_table533
+0000000000004c0c r GCC_except_table538
+0000000000004c28 r GCC_except_table539
+0000000000004c44 r GCC_except_table540
+0000000000004c50 r GCC_except_table541
+0000000000004c70 r GCC_except_table545
+0000000000004c84 r GCC_except_table546
+0000000000004c98 r GCC_except_table548
+0000000000004cb4 r GCC_except_table549
+0000000000004cd0 r GCC_except_table552
+0000000000004cf0 r GCC_except_table554
+0000000000004d04 r GCC_except_table557
+0000000000004d18 r GCC_except_table571
+0000000000004d28 r GCC_except_table574
+0000000000004d3c r GCC_except_table575
+0000000000004d60 r GCC_except_table581
+0000000000004d6c r GCC_except_table583
+0000000000004d88 r GCC_except_table590
+0000000000004da8 r GCC_except_table595
+0000000000004db4 r GCC_except_table599
+0000000000004dc8 r GCC_except_table600
+0000000000004ddc r GCC_except_table605
+0000000000004df0 r GCC_except_table606
+0000000000004e04 r GCC_except_table621
+0000000000004e10 r GCC_except_table623
+0000000000004e24 r GCC_except_table624
+0000000000004e30 r GCC_except_table638
+0000000000004e44 r GCC_except_table640
+0000000000004e68 r GCC_except_table642
+0000000000004e8c r GCC_except_table646
+0000000000004efc r GCC_except_table647
+0000000000004f10 r GCC_except_table649
+0000000000004f24 r GCC_except_table650
+0000000000004f4c r GCC_except_table651
+0000000000004f64 r GCC_except_table657
+0000000000004fa8 r GCC_except_table660
+0000000000004fbc r GCC_except_table661
+0000000000004fe0 r GCC_except_table666
+00000000000b181d r core::unicode::unicode_data::grapheme_extend::OFFSETS
+00000000000b2494 r core::unicode::unicode_data::grapheme_extend::SHORT_OFFSET_RUNS
+00000000000b2518 r core::num::flt2dec::strategy::grisu::CACHED_POW10
+00000000000b2aa8 r core::num::flt2dec::strategy::dragon::POW10
+00000000000b2ad0 r core::num::flt2dec::strategy::dragon::POW5TO16
+00000000000b2ad8 r core::num::flt2dec::strategy::dragon::POW5TO32
+00000000000b2ae4 r core::num::flt2dec::strategy::dragon::POW5TO64
+00000000000b2af8 r core::num::flt2dec::strategy::dragon::POW5TO128
+00000000000b2b20 r core::num::flt2dec::strategy::dragon::POW5TO256
+00000000000b2e08 r <serde_json::value::Value as core::ops::index::Index<_>>::index::NULL
+00000000000b37f8 r serde_json::de::POW10
+00000000000b41a0 r serde_json::read::HEX0
+00000000000b43a0 r serde_json::read::HEX1
+00000000000b57b0 r core::unicode::unicode_data::white_space::WHITESPACE_MAP
+00000000000b7250 r __FRAME_END__
+00000000000c07f0 T _start
+00000000000c0820 t deregister_tm_clones
+00000000000c0850 t register_tm_clones
+00000000000c0890 t __do_global_dtors_aux
+00000000000c08d0 t frame_dummy
+00000000000c08d9 t <core::result::Result<[g_momonados::phase_unbraid::FixedComplex; 25], alloc::vec::Vec<g_momonados::phase_unbraid::FixedComplex>>>::map_err::<&str, ququart_factor_baked::support::contract::{closure#1}>
+00000000000c0957 t <core::result::Result<g_momonados::godel_calculus::EquationCheck, g_momonados::godel_calculus::DecodeError>>::map_err::<alloc::string::String, <g_momonados::ququart_factor::QuquartFactorExecutor<g_momonados::ququart_work::QuquartWorkDevice>>::shot::{closure#0}::{closure#1}>
+00000000000c09e5 t core::ptr::drop_in_place::<core::result::Result<(), std::io::error::Error>>
+00000000000c09ea t core::ptr::drop_in_place::<g_momonados::ququart_factor::QuquartFactorExecutor<g_momonados::ququart_work::QuquartWorkDevice>>
+00000000000c0ab5 t core::ptr::drop_in_place::<g_momonados::anyon_pair::FibonacciPair>
+00000000000c0b0f t core::ptr::drop_in_place::<g_momonados::godel_calculus::EquationCheck>
+00000000000c0b47 t core::ptr::drop_in_place::<g_momonados::godel_calculus::Reading>
+00000000000c0b6c t core::ptr::drop_in_place::<alloc::string::String>
+00000000000c0b7b t core::ptr::drop_in_place::<std::io::error::Error>
+00000000000c0bc9 t core::ptr::drop_in_place::<std::io::stdio::StdoutLock>
+00000000000c0bfe t std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+00000000000c0c03 t <core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::Iter<g_momonados::phase_unbraid::FixedComplex>, core::slice::iter::Iter<g_momonados::phase_unbraid::FixedComplex>>, ququart_factor_baked::support::contract::{closure#7}> as core::iter::traits::iterator::Iterator>::fold::<f64, <f64>::max>
+00000000000c0f2f t <core::iter::adapters::map::Map<core::iter::adapters::rev::Rev<core::slice::iter::Iter<i32>>, ququart_factor_baked::support::contract::{closure#6}> as core::iter::traits::iterator::Iterator>::collect::<alloc::vec::Vec<i32>>
+00000000000c0ff2 t <g_momonados::ququart_factor::QuquartFactorExecutor<g_momonados::ququart_work::QuquartWorkDevice>>::shot::{closure#0}::{closure#0}
+00000000000c107f t ququart_factor_baked::execute::{closure#1}
+00000000000c120f t ququart_factor_baked::support::contract::{closure#0}
+00000000000c140c t ququart_factor_baked::support::contract::{closure#2}
+00000000000c14b6 t ququart_factor_baked::support::contract::{closure#3}
+00000000000c16cb t ququart_factor_baked::main
+00000000000c1bd8 t ququart_factor_baked::execute
+00000000000c91d3 t <num_bigint::bigint::BigInt>::from_biguint
+00000000000c935f t ququart_factor_baked::support::ratio
+00000000000c9811 t ququart_factor_baked::support::numeral
+00000000000c9b6c t alloc::fmt::format
+00000000000c9bf4 t <num_bigint::biguint::BigUint as core::clone::Clone>::clone
+00000000000c9cc4 t <&num_bigint::bigint::BigInt as core::ops::arith::Sub>::sub
+00000000000ca392 t <core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Iter<serde_json::value::Value>, ququart_factor_baked::support::contract::{closure#4}>, core::result::Result<core::convert::Infallible, alloc::string::String>> as core::iter::traits::iterator::Iterator>::next
+00000000000ca478 t <&str as core::convert::Into<alloc::string::String>>::into
+00000000000ca4d1 t <num_bigint::biguint::BigUint as core::ops::arith::AddAssign<u32>>::add_assign
+00000000000ca5ed t <num_bigint::bigint::BigInt as core::convert::From<num_bigint::biguint::BigUint>>::from
+00000000000ca659 t <&num_bigint::biguint::BigUint as core::ops::arith::Mul>::mul
+00000000000ca8a1 t <core::fmt::Error as core::fmt::Debug>::fmt
+00000000000ca8ba t <alloc::string::String as core::fmt::Write>::write_char
+00000000000ca9bc t <alloc::string::String as core::fmt::Write>::write_str
+00000000000ca9c9 t <num_bigint::bigint::BigInt as num_traits::sign::Signed>::abs
+00000000000cab6e t <alloc::string::String as core::fmt::Display>::fmt
+00000000000cab81 t <core::result::Result<alloc::string::String, alloc::string::String> as core::ops::try_trait::FromResidual<core::result::Result<core::convert::Infallible, &str>>>::from_residual
+00000000000cabe2 t <core::result::Result<(num_bigint::biguint::BigUint, g_momonados::anyon_pair::PairMatrix, ququart_factor_baked::support::Metrics), alloc::string::String> as core::ops::try_trait::FromResidual<core::result::Result<core::convert::Infallible, &str>>>::from_residual
+00000000000cac6a t <num_bigint::biguint::BigUint as core::cmp::PartialOrd>::le
+00000000000cad00 T main
+00000000000cb287 t <alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>
+00000000000cb2ac t addr2line::line::path_push
+00000000000cb418 t addr2line::line::has_backward_slash_root
+00000000000cb44b t <alloc::vec::Vec<u8> as alloc::vec::spec_extend::SpecExtend<&u8, core::slice::iter::Iter<u8>>>::spec_extend
+00000000000cb4b3 t alloc::raw_vec::handle_error
+00000000000cb4d0 t <alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>
+00000000000cb540 t <alloc::raw_vec::RawVecInner>::finish_grow
+00000000000cb5be t alloc::alloc::handle_alloc_error
+00000000000cb5d0 t alloc::raw_vec::capacity_overflow
+00000000000cb5f0 t <alloc::string::String>::from_utf8_lossy
+00000000000cb820 t <alloc::raw_vec::RawVec<u8>>::grow_one
+00000000000cb880 t alloc::fmt::format::format_inner
+00000000000cba00 t _RNvXsK_NtCsnruyAgQs18_4core3fmtNtB5_5ErrorNtB5_5Debug3fmt.5
+00000000000cba20 t core::ptr::drop_in_place::<alloc::string::String>
+00000000000cba40 t _RNvXsW_NtCskLLYNqycIrM_5alloc6stringNtB5_6StringNtNtCsnruyAgQs18_4core3fmt5Write9write_str.6
+00000000000cbaa0 t _RNvXsW_NtCskLLYNqycIrM_5alloc6stringNtB5_6StringNtNtCsnruyAgQs18_4core3fmt5Write10write_char.7
+00000000000cbbb0 t <alloc::string::String as core::fmt::Write>::write_fmt
+00000000000cbbd0 t <<alloc::boxed::Box<dyn core::error::Error + core::marker::Sync + core::marker::Send> as core::convert::From<alloc::string::String>>::from::StringError as core::fmt::Debug>::fmt
+00000000000cbbf0 t <&[u8] as <alloc::ffi::c_str::CString>::new::SpecNewImpl>::spec_new_impl
+00000000000cbc90 t <<alloc::boxed::Box<dyn core::error::Error + core::marker::Sync + core::marker::Send> as core::convert::From<alloc::string::String>>::from::StringError as core::fmt::Display>::fmt
+00000000000cbca3 t core::panicking::assert_failed_inner
+00000000000cbd80 t <&str as core::fmt::Display>::fmt
+00000000000cbda0 t <core::fmt::Arguments as core::fmt::Display>::fmt
+00000000000cbdc0 t <&dyn core::fmt::Debug as core::fmt::Debug>::fmt
+00000000000cbdd0 t core::panicking::panic_fmt
+00000000000cbe00 t core::fmt::write
+00000000000cbfd0 t <core::fmt::Formatter>::pad
+00000000000cc1f0 t core::str::count::do_count_chars
+00000000000cc420 t <core::fmt::builders::PadAdapter as core::fmt::Write>::write_str
+00000000000cc6b0 t <core::fmt::builders::PadAdapter as core::fmt::Write>::write_char
+00000000000cc710 t <core::fmt::builders::PadAdapter as core::fmt::Write>::write_fmt
+00000000000cc730 t <core::fmt::Formatter>::pad_integral
+00000000000cc9bd t core::panicking::panic_bounds_check
+00000000000cca00 t <core::fmt::Formatter>::pad_integral::write_prefix
+00000000000cca54 t core::panicking::assert_failed::<u64, u64>
+00000000000cca90 t <&u64 as core::fmt::Debug>::fmt
+00000000000ccb90 t <u64>::_fmt_inner
+00000000000cccb0 t <char>::escape_debug_ext
+00000000000ccee0 t core::unicode::printable::is_printable
+00000000000cd1a0 t core::unicode::unicode_data::grapheme_extend::lookup_slow
+00000000000cd290 t core::option::unwrap_failed
+00000000000cd2b0 t core::slice::index::slice_index_fail
+00000000000cd2f0 t core::slice::index::slice_index_fail::do_panic::runtime
+00000000000cd330 t core::slice::index::slice_index_fail::do_panic::runtime
+00000000000cd370 t core::slice::index::slice_index_fail::do_panic::runtime
+00000000000cd3b0 t core::panicking::panic
+00000000000cd3d0 t core::str::converts::from_utf8
+00000000000cd5d0 t <core::num::bignum::Big32x40>::mul_digits
+00000000000cd820 t <core::num::bignum::Big32x40>::mul_pow2
+00000000000cd980 t <core::ffi::c_str::CStr>::from_bytes_with_nul
+00000000000cda90 t <u32>::_fmt_inner
+00000000000cdba0 t <core::str::pattern::StrSearcher>::new
+00000000000cdfc0 t <u32 as core::fmt::Display>::fmt
+00000000000ce010 t core::str::slice_error_fail
+00000000000ce020 t core::str::slice_error_fail_rt
+00000000000ce2c0 t <char as core::fmt::Debug>::fmt
+00000000000ce360 t <core::ops::range::Range<usize> as core::fmt::Debug>::fmt
+00000000000ce580 t core::cell::panic_already_borrowed
+00000000000ce590 t core::cell::panic_already_borrowed::do_panic::runtime
+00000000000ce5c0 t <core::cell::BorrowMutError as core::fmt::Display>::fmt
+00000000000ce5e0 t core::option::expect_failed
+00000000000ce620 t core::result::unwrap_failed
+00000000000ce680 t core::panicking::panic_nounwind
+00000000000ce6a0 t core::panicking::panic_nounwind_fmt
+00000000000ce6d3 t core::panicking::panic_cannot_unwind
+00000000000ce6e3 t core::panicking::panic_in_cleanup
+00000000000ce6f0 t core::panicking::panic_nounwind_nobacktrace
+00000000000ce720 t core::slice::memchr::memchr_aligned
+00000000000ce7f0 t core::panicking::panic_const::panic_const_div_by_zero
+00000000000ce810 t core::panicking::panic_const::panic_const_rem_by_zero
+00000000000ce830 t core::num::flt2dec::strategy::dragon::mul_pow10
+00000000000ceab0 t core::num::flt2dec::strategy::grisu::format_exact_opt::possibly_round
+00000000000cec30 t core::slice::sort::shared::smallsort::panic_on_ord_violation
+00000000000cec50 t core::slice::copy_from_slice_impl::len_mismatch_fail
+00000000000cec70 t core::slice::copy_from_slice_impl::len_mismatch_fail::do_panic::runtime
+00000000000cecb0 t <core::fmt::Formatter>::pad_formatted_parts
+00000000000ceef0 t <core::fmt::Formatter>::write_formatted_parts
+00000000000cf0d0 t core::fmt::float::float_to_exponential_common_shortest::<f64>
+00000000000d0640 t <core::str::lossy::Utf8Chunks as core::iter::traits::iterator::Iterator>::next
+00000000000d07d0 t <u8 as core::fmt::UpperHex>::fmt
+00000000000d0850 t <char as core::fmt::Display>::fmt
+00000000000d0910 t <str as core::fmt::Debug>::fmt
+00000000000d0c80 t <f64 as core::fmt::LowerExp>::fmt
+00000000000d0cc0 t core::fmt::float::float_to_exponential_common_exact::<f64>
+00000000000d1fd0 t <i32 as core::fmt::Display>::fmt
+00000000000d2030 t <u64 as core::fmt::LowerHex>::fmt
+00000000000d20b0 t <u64 as core::fmt::Display>::fmt
+00000000000d20f4 t <alloc::raw_vec::RawVecInner>::try_reserve_exact
+00000000000d2160 t __rustc::__rust_alloc
+00000000000d219d t __rustc::__rust_realloc
+00000000000d2240 t __rustc::__rust_alloc_zeroed
+00000000000d22ac t g_momonados::native_numeral::to_bits_low_first
+00000000000d2558 t <g_momonados::reversible_modular::ModularMultiply>::new
+00000000000d26d8 t <alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::LeafOrInternal>>::choose_parent_kv
+00000000000d2783 t <alloc::collections::btree::node::BalancingContext<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::bulk_steal_left
+00000000000d2ad2 t <alloc::collections::btree::node::BalancingContext<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::do_merge::<<alloc::collections::btree::node::BalancingContext<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::merge_tracking_parent<alloc::alloc::Global>::{closure#0}, alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::Internal>, alloc::alloc::Global>
+00000000000d2da5 t <alloc::collections::btree::node::BalancingContext<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::bulk_steal_right
+00000000000d30e3 t <alloc::boxed::Box<alloc::collections::btree::node::LeafNode<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>>::new_uninit_in
+00000000000d3105 t core::ptr::drop_in_place::<core::option::Option<core::option::Option<(num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5])>>>
+00000000000d314a t <alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Owned, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::Internal>>::new_internal::<alloc::alloc::Global>
+00000000000d31a1 t <alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::Internal>>::push
+00000000000d3252 t <alloc::boxed::Box<alloc::collections::btree::node::InternalNode<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>>::new_uninit_in
+00000000000d3274 t core::ptr::drop_in_place::<[g_momonados::phase_unbraid::FixedComplex; 5]>
+00000000000d32da t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::Leaf>, alloc::collections::btree::node::marker::KV>>::remove_leaf_kv::<<alloc::collections::btree::map::ExtractIfInner<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], core::ops::range::RangeFull>>::next<<alloc::collections::btree::map::BTreeMap<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::retain<<g_momonados::ququart_work::QuquartWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::measure_phase_digit::{closure#3}>::{closure#0}, alloc::alloc::Global>::{closure#0}, alloc::alloc::Global>
+00000000000d35e4 t <alloc::collections::btree::node::BalancingContext<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::merge_tracking_child_edge::<alloc::alloc::Global>
+00000000000d3656 t <alloc::collections::btree::node::BalancingContext<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::do_merge::<<alloc::collections::btree::node::BalancingContext<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::merge_tracking_child<alloc::alloc::Global>::{closure#0}, alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::LeafOrInternal>, alloc::alloc::Global>
+00000000000d392e t <alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::LeafOrInternal>>::find_key_index::<num_bigint::biguint::BigUint>
+00000000000d3a34 t <alloc::collections::btree::map::entry::VacantEntry<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::insert_entry
+00000000000d3f95 t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::Internal>, alloc::collections::btree::node::marker::Edge>>::insert_fit
+00000000000d412d t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::Internal>, alloc::collections::btree::node::marker::KV>>::split::<alloc::alloc::Global>
+00000000000d435a t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5], alloc::collections::btree::node::marker::Leaf>, alloc::collections::btree::node::marker::Edge>>::insert_fit
+00000000000d44b8 t <g_momonados::phase_unbraid::FixedComplex as core::clone::Clone>::clone
+00000000000d4689 t <&mut <g_momonados::anyon_pair::FibonacciPair>::evaluate::{closure#1}::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut
+00000000000d46f0 t <g_momonados::anyon_pair::PairMatrix>::adjoint
+00000000000d49e0 t <g_momonados::phase_unbraid::FixedComplex>::mul
+00000000000d4c92 t <num_bigint::bigint::BigInt as core::ops::arith::Sub>::sub
+00000000000d5012 t <g_momonados::phase_unbraid::FixedComplex>::mul::{closure#0}
+00000000000d526a t <num_bigint::bigint::BigInt as core::ops::arith::Add>::add
+00000000000d55d2 t <num_bigint::bigint::BigInt as core::ops::arith::Add<&num_bigint::bigint::BigInt>>::add
+00000000000d5884 t num_bigint::bigint::shift::shr_round_down::<usize>
+00000000000d58c3 t <g_momonados::phase_unbraid::FixedComplex>::winding_twiddle
+00000000000d6cea t <&num_bigint::bigint::BigInt as core::ops::arith::Rem>::rem
+00000000000d7187 t <num_bigint::bigint::BigInt as core::ops::arith::Sub<&num_bigint::bigint::BigInt>>::sub
+00000000000d7440 t g_momonados::phase_unbraid::fixed_round_div
+00000000000d77d0 t <g_momonados::phase_unbraid::FixedComplex>::winding_twiddle::{closure#1}
+00000000000d7a10 t g_momonados::phase_unbraid::fixed_arctan_reciprocal
+00000000000d7fcf t <num_bigint::biguint::BigUint as core::ops::arith::Mul<&num_bigint::biguint::BigUint>>::mul
+00000000000d81a8 t g_momonados::phase_unbraid::gcd_big
+00000000000d84a6 t <num_bigint::biguint::BigUint as core::ops::arith::AddAssign<&num_bigint::biguint::BigUint>>::add_assign
+00000000000d8636 t <&num_bigint::biguint::BigUint as core::ops::arith::Div>::div
+00000000000d86ae t g_momonados::phase_unbraid::convergents_big
+00000000000d8f1e t <alloc::vec::into_iter::IntoIter<(num_bigint::biguint::BigUint, num_bigint::biguint::BigUint)> as core::ops::drop::Drop>::drop
+00000000000d8fbf t g_momonados::phase_unbraid::powm_big
+00000000000d9811 t <&num_bigint::biguint::BigUint as core::ops::arith::Add>::add
+00000000000d99c5 t <&num_bigint::biguint::BigUint as core::cmp::PartialOrd>::lt
+00000000000d9a54 t <&num_bigint::biguint::BigUint as core::ops::bit::BitAnd>::bitand
+00000000000d9c14 t <num_bigint::biguint::BigUint as core::ops::bit::BitAndAssign<&num_bigint::biguint::BigUint>>::bitand_assign
+00000000000d9db9 t <alloc::raw_vec::RawVec<(num_bigint::biguint::BigUint, num_bigint::biguint::BigUint)>>::grow_one
+00000000000d9dee t <&str as core::convert::Into<alloc::string::String>>::into
+00000000000d9e46 t g_momonados::godel_calculus::check
+00000000000da4c5 t g_momonados::godel_calculus::decode
+00000000000dac79 t <alloc::vec::Vec<bool>>::with_capacity
+00000000000dacb9 t <g_momonados::godel_calculus::Nat>::from_u64
+00000000000dad34 t g_momonados::godel_calculus::encode_cell_binary
+00000000000daedb t g_momonados::godel_calculus::push_cell
+00000000000db068 t core::ptr::drop_in_place::<core::array::iter::IntoIter<num_bigint::biguint::BigUint, 2>>
+00000000000db0b3 t <g_momonados::godel_calculus::DecodeError as core::fmt::Display>::fmt
+00000000000db137 t <g_momonados::phase_unbraid::FixedPointFormat>::scale
+00000000000db1ad t <g_momonados::anyon_local::LocalMatrix>::multiply
+00000000000db342 t <g_momonados::ququart_work::QuquartWorkDevice>::new
+00000000000db461 t <g_momonados::phase_unbraid::FixedPointFormat>::for_modulus
+00000000000db55c t core::ptr::drop_in_place::<g_momonados::anyon_pair::PairMatrix>
+00000000000db5c2 t <g_momonados::anyon_pair::FibonacciPair>::evaluate
+00000000000dc12f t <g_momonados::anyon_pair::FibonacciPair>::in_pair_channels
+00000000000dc1b3 t <g_momonados::anyon_pair::PairMatrix>::multiply
+00000000000dc4a5 t <g_momonados::anyon_pair::PairMatrix>::identity
+00000000000dc5b9 t <g_momonados::anyon_pair::PairMatrix>::leakage
+00000000000dcac9 t core::ptr::drop_in_place::<[g_momonados::phase_unbraid::FixedComplex; 4]>
+00000000000dcb2c t <&num_bigint::biguint::BigUint as core::ops::bit::Shr<usize>>::shr
+00000000000dcb79 t core::ptr::drop_in_place::<g_momonados::anyon_local::FibonacciLocal>
+00000000000dcbb2 t <g_momonados::anyon_local::FibonacciLocal>::with_format
+00000000000dd7ac t <g_momonados::anyon_pair::FibonacciPair>::new
+00000000000deab7 t <alloc::raw_vec::RawVec<g_momonados::phase_unbraid::FixedComplex>>::grow_one
+00000000000deaec t <g_momonados::phase_unbraid::PhaseReadoutAccumulator>::close_fraction
+00000000000e1f95 t <num_bigint::biguint::BigUint as core::cmp::PartialEq>::eq
+00000000000e2018 t <num_bigint::biguint::BigUint as core::cmp::PartialOrd>::gt
+00000000000e20a0 t <&num_bigint::biguint::BigUint as core::ops::arith::Div<num_bigint::biguint::BigUint>>::div
+00000000000e213f t <g_momonados::anyon_ququart::QuquartPhaseReadout>::denominator
+00000000000e21d7 t <g_momonados::anyon_ququart::QuquartPhaseReadout>::close
+00000000000e2358 t <alloc::collections::btree::map::BTreeMap<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]> as core::ops::drop::Drop>::drop
+00000000000e250f t <alloc::collections::btree::map::BTreeMap<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]>>::entry
+00000000000e25dd t core::ptr::drop_in_place::<vox::factor_extract::FactorCarrier>
+00000000000e263d t g_momonados::ququart_factor::extract_certified_winding
+00000000000e4a25 t <alloc::vec::Vec<char> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<char, core::iter::adapters::map::Map<alloc::vec::into_iter::IntoIter<bool>, g_momonados::ququart_factor::extract_certified_winding::{closure#0}::{closure#0}>>>::from_iter
+00000000000e4b3f t g_momonados::ququart_factor::extract_certified_winding::{closure#1}
+00000000000e4dc6 t core::ptr::drop_in_place::<vox::factor_extract::FactorReadout>
+00000000000e4e26 t <alloc::collections::btree::map::Iter<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]> as core::iter::traits::iterator::Iterator>::next
+00000000000e4f2c t <alloc::collections::btree::map::ValuesMut<num_bigint::biguint::BigUint, [g_momonados::phase_unbraid::FixedComplex; 5]> as core::iter::traits::iterator::Iterator>::next
+00000000000e5024 t <g_momonados::ququart_work::QuquartWorkDevice>::require_active
+00000000000e509d t g_momonados::ququart_work::add
+00000000000e51c1 t g_momonados::ququart_work::mass
+00000000000e538a t <g_momonados::ququart_work::QuquartWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::begin
+00000000000e6366 t <g_momonados::ququart_work::QuquartWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::finish
+00000000000e6432 t <g_momonados::ququart_work::QuquartWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::fourier
+00000000000e6772 t <alloc::vec::Vec<g_momonados::phase_unbraid::FixedComplex> as core::ops::drop::Drop>::drop
+00000000000e67d6 t <alloc::boxed::Box<alloc::collections::btree::node::LeafNode<u64, gimli::read::abbrev::Abbreviation>>>::new_uninit_in
+00000000000e67fb t <alloc::boxed::Box<alloc::collections::btree::node::InternalNode<u64, gimli::read::abbrev::Abbreviation>>>::new_uninit_in
+00000000000e6820 t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, u64, gimli::read::abbrev::Abbreviation, alloc::collections::btree::node::marker::Leaf>, alloc::collections::btree::node::marker::Edge>>::insert_fit
+00000000000e692a t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, u64, gimli::read::abbrev::Abbreviation, alloc::collections::btree::node::marker::Leaf>, alloc::collections::btree::node::marker::KV>>::split::<alloc::alloc::Global>
+00000000000e6ad1 t <alloc::raw_vec::RawVecInner>::deallocate
+00000000000e6b0a t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, u64, gimli::read::abbrev::Abbreviation, alloc::collections::btree::node::marker::Internal>, alloc::collections::btree::node::marker::Edge>>::insert_fit
+00000000000e6c57 t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, u64, gimli::read::abbrev::Abbreviation, alloc::collections::btree::node::marker::Internal>, alloc::collections::btree::node::marker::KV>>::split::<alloc::alloc::Global>
+00000000000e6ebb t <alloc::raw_vec::RawVec<gimli::read::abbrev::Abbreviation>>::grow_one
+00000000000e6ef3 t <alloc::raw_vec::RawVecInner>::grow_amortized
+00000000000e6f7d t <alloc::raw_vec::RawVecInner>::finish_grow
+00000000000e7060 t <alloc::raw_vec::RawVec<gimli::read::abbrev::AttributeSpecification>>::grow_one
+00000000000e7098 t <gimli::read::abbrev::Abbreviations>::insert
+00000000000e76af t <alloc::raw_vec::RawVec<u8> as core::ops::drop::Drop>::drop
+00000000000e76e8 t <gimli::read::abbrev::Attributes as core::ops::deref::Deref>::deref
+00000000000e7723 t <alloc::raw_vec::RawVecInner>::deallocate
+00000000000e775c t <alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>
+00000000000e777e t <alloc::raw_vec::RawVecInner>::grow_amortized
+00000000000e7815 t <alloc::raw_vec::RawVecInner>::finish_grow
+00000000000e78f8 t <alloc::raw_vec::RawVec<char>>::grow_one
+00000000000e792d t <alloc::vec::Vec<u8> as alloc::vec::spec_extend::SpecExtend<&u8, core::slice::iter::Iter<u8>>>::spec_extend
+00000000000e7995 t core::ptr::drop_in_place::<alloc::string::String>
+00000000000e79d2 t _RNvXsW_NtCskLLYNqycIrM_5alloc6stringNtB5_6StringNtNtCsnruyAgQs18_4core3fmt5Write10write_char.229
+00000000000e7ad4 t <alloc::string::String as core::fmt::Write>::write_fmt
+00000000000e7ae6 t <&char as core::fmt::Display>::fmt
+00000000000e7aee t <alloc::raw_vec::RawVec<bool> as core::ops::drop::Drop>::drop
+00000000000e7b30 t memchr::arch::x86_64::memchr::memchr_raw::detect
+00000000000e7cd0 t memchr::arch::x86_64::memchr::memchr_raw::find_sse2
+00000000000e7e58 t memchr::arch::x86_64::memchr::memrchr_raw::detect
+00000000000e7ea3 t memchr::arch::x86_64::memchr::memrchr_raw::find_sse2
+00000000000e8005 t memchr::arch::x86_64::memchr::memrchr_raw::find_avx2
+00000000000e8041 t <memchr::arch::x86_64::avx2::memchr::One>::rfind_raw
+00000000000e80fd t <memchr::arch::x86_64::avx2::memchr::One>::rfind_raw_avx2
+00000000000e820c t memchr::arch::x86_64::memchr::count_raw::detect
+00000000000e8257 t memchr::arch::x86_64::memchr::count_raw::find_sse2
+00000000000e848b t memchr::arch::x86_64::memchr::count_raw::find_avx2
+00000000000e873c t miniz_oxide::inflate::core::decompress
+00000000000ea31d t miniz_oxide::inflate::core::init_tree
+00000000000ea76d t miniz_oxide::inflate::core::apply_match
+00000000000ea8b4 t miniz_oxide::inflate::core::transfer
+00000000000eac60 t <num_bigint::big_digit::BigDigits>::extend::<core::iter::adapters::map::Map<core::slice::iter::Chunks<u32>, num_bigint::biguint::u32_chunk_to_u64>>
+00000000000eae00 t <alloc::vec::Vec<u64>>::extend_trusted::<core::iter::adapters::map::Map<core::slice::iter::Chunks<u32>, num_bigint::biguint::u32_chunk_to_u64>>
+00000000000eaec3 t <num_bigint::big_digit::BigDigits>::extend::<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<u64>>>
+00000000000eb011 t <alloc::vec::Vec<u64>>::extend_trusted::<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<u64>>>
+00000000000eb089 t alloc::vec::from_elem::<u64>
+00000000000eb187 t <alloc::vec::Vec<u64>>::extend_with
+00000000000eb1ff t num_bigint::bigint::shift::shr_round_down::<i32>
+00000000000eb233 t <num_bigint::biguint::BigUint>::trailing_zeros
+00000000000eb28f t <alloc::vec::Vec<u64> as alloc::vec::spec_extend::SpecExtend<&u64, core::slice::iter::Iter<u64>>>::spec_extend
+00000000000eb302 t <num_bigint::big_digit::BigDigits>::extend_from_slice
+00000000000eb452 t <alloc::raw_vec::RawVec<num_bigint::biguint::BigUint>>::grow_one
+00000000000eb487 t <alloc::raw_vec::RawVec<u64>>::grow_one
+00000000000eb4bc t <num_bigint::biguint::BigUint as alloc::borrow::ToOwned>::to_owned
+00000000000eb58c t <alloc::vec::Vec<u64>>::shrink_to
+00000000000eb603 t num_bigint::biguint::convert::from_bitwise_digits_le
+00000000000eb811 t num_bigint::biguint::addition::add2
+00000000000eb871 t num_bigint::biguint::multiplication::scalar_mul
+00000000000eba6b t num_bigint::biguint::multiplication::mul3
+00000000000ebc0d t num_bigint::biguint::multiplication::mac3
+00000000000ed9d3 t num_bigint::biguint::multiplication::bigint_from_slice
+00000000000edbe0 t _RNvXNtNtCsj3tWkqr9aMa_10num_bigint6bigint8additionRNtB4_6BigIntNtNtNtCsnruyAgQs18_4core3ops5arith3Add3add.360
+00000000000ee0cd t _RNvXNtNtCsj3tWkqr9aMa_10num_bigint6bigint11subtractionRNtB4_6BigIntNtNtNtCsnruyAgQs18_4core3ops5arith3Sub3sub.361
+00000000000ee5d2 t _RNvMso_NtCsj3tWkqr9aMa_10num_bigint6bigintNtB5_6BigInt12from_biguint.362
+00000000000ee75e t _RNvXs1_NtNtCsj3tWkqr9aMa_10num_bigint6bigint8additionNtB7_6BigIntNtNtNtCsnruyAgQs18_4core3ops5arith3Add3add.363
+00000000000eeac7 t _RNvXs5_NtNtCsj3tWkqr9aMa_10num_bigint7biguint14multiplicationNtB7_7BigUintNtNtNtCsnruyAgQs18_4core3ops5arith3Mul3mul.364
+00000000000eec43 t _RNvXs1_NtNtCsj3tWkqr9aMa_10num_bigint6bigint11subtractionNtB7_6BigIntNtNtNtCsnruyAgQs18_4core3ops5arith3Sub3sub.365
+00000000000eefc4 t _RNvXs0_NtNtCsj3tWkqr9aMa_10num_bigint6bigint11subtractionNtB7_6BigIntINtNtNtCsnruyAgQs18_4core3ops5arith3SubRBT_E3sub.366
+00000000000ef27d t num_bigint::biguint::division::div_rem_digit
+00000000000ef42e t num_bigint::biguint::shift::biguint_shr2
+00000000000ef82b t _RNvXs1_NtNtCsj3tWkqr9aMa_10num_bigint7biguint8additionNtB7_7BigUintINtNtNtCsnruyAgQs18_4core3ops5arith9AddAssignmE10add_assign.369
+00000000000ef947 t num_bigint::biguint::shift::biguint_shl2
+00000000000efc81 t <num_bigint::big_digit::BigDigits>::resize
+00000000000efd8f t num_bigint::biguint::multiplication::sub_sign
+00000000000f01f0 t num_bigint::biguint::subtraction::sub2
+00000000000f0279 t _RNvXs_NtNtCsj3tWkqr9aMa_10num_bigint7biguint8additionNtB6_7BigUintINtNtNtCsnruyAgQs18_4core3ops5arith9AddAssignRBP_E10add_assign.374
+00000000000f0409 t <&num_bigint::biguint::BigUint as core::ops::arith::Sub<num_bigint::biguint::BigUint>>::sub
+00000000000f0737 t <num_bigint::biguint::BigUint as core::ops::arith::SubAssign<&num_bigint::biguint::BigUint>>::sub_assign
+00000000000f0896 t _RNvXs9_NtNtCsj3tWkqr9aMa_10num_bigint7biguint8additionRNtB7_7BigUintNtNtNtCsnruyAgQs18_4core3ops5arith3Add3add.377
+00000000000f0a4a t num_bigint::biguint::convert::high_bits_to_u64
+00000000000f0b95 t num_bigint::biguint::division::div_rem_cow
+00000000000f11af t num_bigint::biguint::division::div_rem_core
+00000000000f1c4b t num_bigint::biguint::division::div_rem_burnikel_ziegler::divide_biguint
+00000000000f1f98 t num_bigint::biguint::division::div_rem_burnikel_ziegler::div_two_digit_by_one
+00000000000f233b t num_bigint::biguint::division::div_rem_burnikel_ziegler::concat_biguint
+00000000000f259c t num_bigint::biguint::division::div_rem_burnikel_ziegler::div_two_digit_by_one_normalized
+00000000000f29d7 t num_bigint::biguint::division::div_rem_burnikel_ziegler::div_three_halves_by_two
+00000000000f307e t <num_bigint::biguint::BigUint as core::ops::arith::SubAssign<u32>>::sub_assign
+00000000000f31c6 t <num_bigint::biguint::BigUint as num_integer::roots::Roots>::sqrt
+00000000000f3a09 t <num_bigint::biguint::BigUint as num_integer::roots::Roots>::sqrt::{closure#0}
+00000000000f3b2a t <&num_bigint::biguint::BigUint as core::ops::arith::Rem>::rem
+00000000000f3c5e t <num_bigint::biguint::BigUint>::modpow
+00000000000f549d t num_bigint::biguint::power::plain_modpow::{closure#1}
+00000000000f58df t num_bigint::biguint::monty::montgomery
+00000000000f5ddb t <alloc::vec::Vec<num_bigint::biguint::BigUint> as core::ops::drop::Drop>::drop
+00000000000f5e1d t <&num_bigint::biguint::BigUint as core::fmt::Debug>::fmt
+00000000000f5e25 t <num_bigint::biguint::BigUint as core::fmt::Display>::fmt
+00000000000f654c t num_bigint::biguint::convert::to_radix_digits_le_divide_and_conquer
+00000000000f6a8c t <num_bigint::biguint::BigUint as core::ops::bit::BitOr<&num_bigint::biguint::BigUint>>::bitor
+00000000000f6be0 t __rustc::__rust_start_panic
+00000000000f6bf0 t __rustc::__rust_panic_cleanup
+00000000000f6c0c t <core::str::pattern::StrSearcher as core::str::pattern::Searcher>::next
+00000000000f6f9d t <&u8 as core::fmt::Debug>::fmt
+00000000000f70ac t core::escape::escape_unicode::<10>
+00000000000f7165 t rustc_demangle::try_demangle
+00000000000f7bc2 t <rustc_demangle::v0::Printer>::print_path
+00000000000f8264 t _RNvXsK_NtCsnruyAgQs18_4core3fmtNtB5_5ErrorNtB5_5Debug3fmt.433
+00000000000f827d t <rustc_demangle::v0::Printer>::print_backref::<<rustc_demangle::v0::Printer>::print_path::{closure#1}>
+00000000000f8369 t <rustc_demangle::v0::Parser>::opt_integer_62
+00000000000f83da t <rustc_demangle::v0::Parser>::ident
+00000000000f8591 t <rustc_demangle::v0::Ident as core::fmt::Display>::fmt
+00000000000f89a6 t <rustc_demangle::v0::Parser>::namespace
+00000000000f89f5 t <rustc_demangle::v0::Printer>::skipping_printing::<<rustc_demangle::v0::Printer>::print_path::{closure#0}>
+00000000000f8a4a t <rustc_demangle::v0::Printer>::print_type
+00000000000f8ff2 t <rustc_demangle::v0::Printer>::print_sep_list::<<rustc_demangle::v0::Printer>::print_generic_arg>
+00000000000f913c t <rustc_demangle::v0::Parser>::integer_62
+00000000000f91db t <rustc_demangle::v0::Printer>::print_const
+00000000000f9820 t <rustc_demangle::v0::Printer>::print_lifetime_from_index
+00000000000f9930 t <rustc_demangle::v0::Printer>::print_const_uint
+00000000000f9aaf t <rustc_demangle::v0::Printer>::print_backref::<<rustc_demangle::v0::Printer>::print_const::{closure#6}>
+00000000000f9b9b t <rustc_demangle::v0::Parser>::hex_nibbles
+00000000000f9c26 t <rustc_demangle::v0::HexNibbles>::try_parse_uint
+00000000000f9d6c t <rustc_demangle::v0::Printer>::print_quoted_escaped_chars::<core::iter::sources::once::Once<char>>
+00000000000f9f1e t <rustc_demangle::v0::Printer>::print_const_str_literal
+00000000000fa236 t <rustc_demangle::v0::Printer>::print_sep_list::<<rustc_demangle::v0::Printer>::print_const::{closure#2}>
+00000000000fa2bf t <rustc_demangle::v0::Printer>::print_sep_list::<<rustc_demangle::v0::Printer>::print_const::{closure#3}>
+00000000000fa353 t <rustc_demangle::v0::Printer>::print_sep_list::<<rustc_demangle::v0::Printer>::print_const::{closure#5}>
+00000000000fa52c t <core::iter::sources::from_fn::FromFn<<rustc_demangle::v0::HexNibbles>::try_parse_str_chars::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+00000000000fa80e t <() as core::fmt::Debug>::fmt
+00000000000fa822 t _RNvXNtNtCsnruyAgQs18_4core3str4iterNtB2_5CharsNtNtNtNtB6_4iter6traits8iterator8Iterator5count.434
+00000000000fa853 t <&mut [u8] as core::fmt::Debug>::fmt
+00000000000fa995 t <&str as core::fmt::Debug>::fmt
+00000000000fa9ae t <rustc_demangle::v0::Parser>::backref
+00000000000faa29 t rustc_demangle::v0::basic_type
+00000000000faa54 t <rustc_demangle::v0::Printer>::in_binder::<<rustc_demangle::v0::Printer>::print_type::{closure#0}>
+00000000000fabd1 t <rustc_demangle::v0::Printer>::print_backref::<<rustc_demangle::v0::Printer>::print_type>
+00000000000facb0 t <rustc_demangle::v0::Printer>::print_sep_list::<<rustc_demangle::v0::Printer>::print_type>
+00000000000fad3f t <rustc_demangle::v0::Printer>::in_binder::<<rustc_demangle::v0::Printer>::print_type::{closure#1}>
+00000000000faeb3 t <rustc_demangle::v0::Printer>::print_pat
+00000000000fb08e t <rustc_demangle::v0::Printer>::print_sep_list::<<rustc_demangle::v0::Printer>::print_dyn_trait>
+00000000000fb2c6 t <rustc_demangle::v0::Printer>::print_path_maybe_open_generics
+00000000000fb40f t <rustc_demangle::v0::Printer>::print_type::{closure#0}
+00000000000fb779 t <core::str::iter::SplitInternal<char>>::next
+00000000000fb8d7 t <core::num::error::ParseIntError as core::fmt::Debug>::fmt
+00000000000fba7d t <rustc_demangle::SizeLimitedFmtAdapter<&mut core::fmt::Formatter> as core::fmt::Write>::write_str
+00000000000fbaa9 t <&rustc_demangle::DemangleStyle as core::fmt::Display>::fmt
+00000000000fc5a5 t <rustc_demangle::SizeLimitExhausted as core::fmt::Debug>::fmt
+00000000000fc5be t <rustc_demangle::SizeLimitedFmtAdapter<&mut core::fmt::Formatter> as core::fmt::Write>::write_char
+00000000000fc67b t <rustc_demangle::SizeLimitedFmtAdapter<&mut core::fmt::Formatter> as core::fmt::Write>::write_fmt
+00000000000fc68d t <&str as core::fmt::Display>::fmt
+00000000000fc69f t <alloc::boxed::Box<alloc::collections::btree::node::LeafNode<alloc::string::String, serde_json::value::Value>>>::new_uninit_in
+00000000000fc6c1 t <serde_json::error::Error>::fix_position::<<serde_json::de::Deserializer<serde_json::read::StrRead>>::fix_position::{closure#0}>
+00000000000fc6f6 t <serde_json::de::Deserializer<serde_json::read::StrRead>>::error
+00000000000fc71a t <serde_json::read::SliceRead>::position_of_index
+00000000000fc789 t <serde_json::error::Error>::syntax
+00000000000fc7d3 t <serde_json::de::ParserNumber>::visit::<<serde_json::value::Value as serde_core::de::Deserialize>::deserialize::ValueVisitor>
+00000000000fc863 t core::ptr::drop_in_place::<serde_json::value::Value>
+00000000000fc8fa t <alloc::collections::btree::map::BTreeMap<alloc::string::String, serde_json::value::Value> as core::ops::drop::Drop>::drop
+00000000000fca89 t core::ptr::drop_in_place::<serde_json::error::Error>
+00000000000fcb07 t <serde_json::error::ErrorCode as core::fmt::Display>::fmt
+00000000000fcd57 t <alloc::boxed::Box<alloc::collections::btree::node::InternalNode<alloc::string::String, serde_json::value::Value>>>::new_uninit_in
+00000000000fcd79 t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, alloc::string::String, serde_json::value::Value, alloc::collections::btree::node::marker::Leaf>, alloc::collections::btree::node::marker::Edge>>::insert_fit
+00000000000fcea7 t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, alloc::string::String, serde_json::value::Value, alloc::collections::btree::node::marker::Internal>, alloc::collections::btree::node::marker::Edge>>::insert_fit
+00000000000fd02d t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, alloc::string::String, serde_json::value::Value, alloc::collections::btree::node::marker::Internal>, alloc::collections::btree::node::marker::KV>>::split::<alloc::alloc::Global>
+00000000000fd252 t <serde_json::de::Deserializer<serde_json::read::StrRead>>::peek_error
+00000000000fd280 t <serde_json::de::MapAccess<serde_json::read::StrRead> as serde_core::de::MapAccess>::next_value_seed::<core::marker::PhantomData<serde_json::value::Value>>
+00000000000fd30f t <alloc::collections::btree::map::BTreeMap<alloc::string::String, serde_json::value::Value>>::insert
+00000000000fda64 t <&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_any::<<serde_json::value::Value as serde_core::de::Deserialize>::deserialize::ValueVisitor>
+00000000000fe6b3 t <serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_ident
+00000000000fe707 t <serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_integer
+00000000000fe860 t <serde_json::read::StrRead as serde_json::read::Read>::parse_str
+00000000000fed06 t <serde_json::de::MapAccess<_> as serde_core::de::MapAccess>::next_key_seed::has_next_key::<serde_json::read::StrRead>
+00000000000fee2d t serde_json::read::error::<serde_json::read::SliceRead, serde_json::read::Reference<str>>
+00000000000fee65 t serde_json::read::error::<serde_json::read::SliceRead, ()>
+00000000000fee88 t serde_json::read::parse_unicode_escape::<serde_json::read::SliceRead>
+00000000000ff288 t serde_json::read::error::<serde_json::read::SliceRead, u16>
+00000000000ff2bf t serde_json::read::peek_or_eof::<serde_json::read::SliceRead>
+00000000000ff2ee t serde_json::read::error::<serde_json::read::SliceRead, u8>
+00000000000ff323 t <serde_json::read::SliceRead>::skip_to_escape_slow
+00000000000ff363 t <serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_number
+00000000000ff42e t <serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_long_integer
+00000000000ff4a1 t <serde_json::de::Deserializer<serde_json::read::StrRead>>::f64_from_parts
+00000000000ff57f t <serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_decimal
+00000000000ff6f3 t <serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_exponent
+00000000000ff856 t <serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_exponent_overflow
+00000000000ff8e6 t <serde_json::de::Deserializer<serde_json::read::StrRead>>::parse_decimal_overflow
+00000000000ff93f t <str as serde_json::value::index::Index>::index_into
+00000000000ffa40 T rust_eh_personality
+00000000000fffe3 t std::panicking::panic_with_hook
+0000000000100950 t <std::sys::sync::rwlock::futex::RwLock>::read_contended
+0000000000100af0 t <&core::panic::location::Location as core::fmt::Display>::fmt
+0000000000100b60 t <std::sys::stdio::unix::Stderr as std::io::Write>::write_fmt
+0000000000100c50 t core::ptr::drop_in_place::<core::result::Result<(), std::io::error::Error>>
+0000000000100c60 t std::process::abort
+0000000000100c70 t core::ptr::drop_in_place::<std::sync::nonpoison::rwlock::RwLockReadGuard<std::panicking::Hook>>
+0000000000100ca0 t __rustc::rust_panic
+0000000000100cb0 t <std::sys::stdio::unix::Stderr as std::io::Write>::write_all
+0000000000100d60 t std::panicking::panic_count::is_zero_slow_path
+0000000000100d70 t core::ptr::drop_in_place::<std::sys::backtrace::BacktraceLock>
+0000000000100dd0 t <<std::sys::backtrace::BacktraceLock>::print::DisplayBacktrace as core::fmt::Display>::fmt
+0000000000101130 t std::backtrace_rs::backtrace::libunwind::trace::trace_fn
+0000000000101170 t core::ptr::drop_in_place::<std::backtrace_rs::backtrace::libunwind::Bomb>
+0000000000101190 t <std::sys::backtrace::_print_fmt::{closure#1} as core::ops::function::FnOnce<(&std::backtrace_rs::backtrace::Frame,)>>::call_once::{shim:vtable#0}
+00000000001011a0 t std::sys::backtrace::_print_fmt::{closure#1}
+00000000001012e5 t <std::backtrace_rs::symbolize::gimli::Cache>::with_global::<std::backtrace_rs::symbolize::gimli::resolve::{closure#1}>
+0000000000106220 t <std::backtrace_rs::print::BacktraceFrameFmt>::print_raw_with_column
+0000000000106600 t <*mut core::ffi::c_void as core::fmt::Debug>::fmt
+00000000001066c0 t <std::backtrace_rs::symbolize::SymbolName as core::fmt::Display>::fmt
+00000000001068b0 t <std::sys::fs::unix::File>::open_c
+0000000000106a50 t <core::str::pattern::CharSearcher as core::str::pattern::Searcher>::next_match
+0000000000106c60 t std::backtrace_rs::symbolize::gimli::libs_dl_iterate_phdr::callback
+0000000000106fe0 t std::backtrace_rs::symbolize::gimli::mmap
+0000000000107290 t <std::backtrace_rs::symbolize::gimli::elf::Object>::parse
+00000000001079d0 t core::ptr::drop_in_place::<std::backtrace_rs::symbolize::gimli::stash::Stash>
+0000000000107aa0 t <std::backtrace_rs::symbolize::gimli::elf::Object>::build_id
+0000000000107c30 t std::backtrace_rs::symbolize::gimli::elf::locate_build_id
+0000000000107fa0 t <std::backtrace_rs::symbolize::gimli::Mapping>::new_debug
+0000000000108b40 t std::sys::fs::unix::canonicalize
+0000000000108bf0 t std::sys::pal::common::small_c_string::run_with_cstr_allocating::<std::path::PathBuf>
+0000000000108c90 t <std::path::Components as core::iter::traits::double_ended::DoubleEndedIterator>::next_back
+0000000000109030 t <std::path::Components>::as_path
+00000000001092a0 t <alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>
+0000000000109320 t <std::path::Path>::is_file
+00000000001093e0 t <std::path::Path>::is_dir
+00000000001094b0 t <std::path::Path>::_strip_prefix
+00000000001097a0 t <std::backtrace_rs::symbolize::gimli::Mapping>::load_dwarf_package
+0000000000109d81 t <std::backtrace_rs::symbolize::gimli::Context>::new
+000000000010cbf0 t core::ptr::drop_in_place::<(usize, std::backtrace_rs::symbolize::gimli::Mapping)>
+000000000010cce0 t <addr2line::unit::ResUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::find_function_or_location
+000000000010d180 t <addr2line::lookup::LoopingLookup<core::result::Result<addr2line::frame::FrameIter<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>, addr2line::lookup::MappedLookup<core::result::Result<(core::option::Option<&addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>, core::option::Option<addr2line::frame::Location>), gimli::read::Error>, addr2line::lookup::SimpleLookup<core::result::Result<(addr2line::DebugFile, gimli::read::dwarf::UnitRef<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>), gimli::read::Error>, gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, <addr2line::unit::ResUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::dwarf_and_unit::{closure#6}>, <addr2line::unit::ResUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::find_function_or_location::{closure#0}>, <addr2line::Context<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::find_frames::{closure#0}>>::new_lookup
+000000000010d6d0 t <alloc::sync::Arc<gimli::read::dwarf::Dwarf<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>::drop_slow
+000000000010d760 t core::ptr::drop_in_place::<alloc::sync::ArcInner<gimli::read::dwarf::Dwarf<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>
+000000000010d7c0 t <alloc::raw_vec::RawVec<std::backtrace_rs::symbolize::gimli::mmap::Mmap>>::grow_one
+000000000010d830 t <std::backtrace_rs::symbolize::gimli::elf::Object>::section
+000000000010dc40 t <gimli::read::unit::DebugInfoUnitHeadersIter<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::next
+000000000010e280 t <gimli::read::dwarf::Unit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>>::new
+00000000001106e0 t core::ptr::drop_in_place::<gimli::read::dwarf::Unit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>>
+0000000000110730 t <alloc::sync::Arc<gimli::read::abbrev::Abbreviations>>::drop_slow
+0000000000110790 t core::ptr::drop_in_place::<core::option::Option<gimli::read::line::IncompleteLineProgram<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>>>
+0000000000110800 t core::ptr::drop_in_place::<core::result::Result<&core::result::Result<core::option::Option<alloc::boxed::Box<addr2line::unit::DwoUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>, gimli::read::Error>, (&core::result::Result<core::option::Option<alloc::boxed::Box<addr2line::unit::DwoUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>, gimli::read::Error>, core::result::Result<core::option::Option<alloc::boxed::Box<addr2line::unit::DwoUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>, gimli::read::Error>)>>
+0000000000110810 t <addr2line::unit::ResUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::find_function_or_location::{closure#0}
+0000000000110c10 t <core::cell::once::OnceCell<core::result::Result<addr2line::line::Lines, gimli::read::Error>>>::try_init::<<core::cell::once::OnceCell<core::result::Result<addr2line::line::Lines, gimli::read::Error>>>::get_or_init<<addr2line::line::LazyLines>::borrow<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>::{closure#0}>::{closure#0}, !>
+0000000000112d60 t <std::backtrace_rs::symbolize::gimli::elf::Object>::search_symtab
+0000000000112e50 t <gimli::read::line::FileEntry<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize> as core::clone::Clone>::clone
+0000000000113000 t <alloc::raw_vec::RawVec<gimli::read::line::FileEntry<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>>>::grow_one
+0000000000113070 t core::ptr::drop_in_place::<gimli::read::line::LineRows<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, gimli::read::line::IncompleteLineProgram<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>, usize>>
+00000000001130e0 t core::slice::sort::stable::driftsort_main::<addr2line::line::LineSequence, <[addr2line::line::LineSequence]>::sort_by_key<u64, <addr2line::line::Lines>::parse<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>::{closure#1}>::{closure#0}, alloc::vec::Vec<addr2line::line::LineSequence>>
+0000000000113220 t core::slice::sort::shared::smallsort::insertion_sort_shift_left::<addr2line::line::LineSequence, <[addr2line::line::LineSequence]>::sort_by_key<u64, <addr2line::line::Lines>::parse<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>::{closure#1}>::{closure#0}>
+00000000001132d0 t <alloc::raw_vec::RawVec<addr2line::line::LineSequence>>::grow_one
+0000000000113340 t core::ptr::drop_in_place::<alloc::vec::Vec<alloc::string::String>>
+00000000001133c0 t addr2line::line::render_file::<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>
+0000000000113cf0 t core::ptr::drop_in_place::<alloc::vec::Vec<addr2line::line::LineSequence>>
+0000000000113d70 t core::ptr::drop_in_place::<alloc::boxed::Box<[alloc::string::String]>>
+0000000000113de0 t core::ptr::drop_in_place::<core::result::Result<&core::result::Result<addr2line::line::Lines, gimli::read::Error>, (&core::result::Result<addr2line::line::Lines, gimli::read::Error>, core::result::Result<addr2line::line::Lines, gimli::read::Error>)>>
+0000000000113df0 t core::ptr::drop_in_place::<core::result::Result<addr2line::line::Lines, gimli::read::Error>>
+0000000000113ea0 t <alloc::raw_vec::RawVecInner>::finish_grow
+0000000000113f60 t <gimli::read::dwarf::Dwarf<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::attr_string
+0000000000114140 t core::slice::sort::stable::drift::sort::<addr2line::line::LineSequence, <[addr2line::line::LineSequence]>::sort_by_key<u64, <addr2line::line::Lines>::parse<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>::{closure#1}>::{closure#0}>
+0000000000114790 t core::slice::sort::stable::quicksort::quicksort::<addr2line::line::LineSequence, <[addr2line::line::LineSequence]>::sort_by_key<u64, <addr2line::line::Lines>::parse<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>::{closure#1}>::{closure#0}>
+00000000001150a0 t core::slice::sort::shared::pivot::median3_rec::<addr2line::line::LineSequence, <[addr2line::line::LineSequence]>::sort_by_key<u64, <addr2line::line::Lines>::parse<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>::{closure#1}>::{closure#0}>
+0000000000115160 t <core::cell::once::OnceCell<core::result::Result<addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>>>::try_init::<<core::cell::once::OnceCell<core::result::Result<addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>>>::get_or_init<<addr2line::function::LazyFunctions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::borrow::{closure#0}>::{closure#0}, !>
+0000000000115f80 t <core::cell::once::OnceCell<core::result::Result<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>>>::try_init::<<core::cell::once::OnceCell<core::result::Result<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>>>::get_or_init<<addr2line::function::LazyFunction<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::borrow::{closure#0}>::{closure#0}, !>
+0000000000116770 t gimli::read::unit::parse_attribute::<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>
+00000000001179d0 t <addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse_children
+0000000000118a60 t core::slice::sort::stable::driftsort_main::<addr2line::function::InlinedFunctionAddress, <[addr2line::function::InlinedFunctionAddress]>::sort_by<<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}, alloc::vec::Vec<addr2line::function::InlinedFunctionAddress>>
+0000000000118b80 t core::slice::sort::shared::smallsort::insertion_sort_shift_left::<addr2line::function::InlinedFunctionAddress, <[addr2line::function::InlinedFunctionAddress]>::sort_by<<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}>
+0000000000118c40 t <gimli::read::unit::Attribute<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::value
+00000000001194a0 t addr2line::function::name_attr::<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>
+0000000000119780 t core::ptr::drop_in_place::<core::result::Result<&core::result::Result<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>, (&core::result::Result<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>, core::result::Result<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>)>>
+00000000001197d0 t addr2line::function::name_entry::<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>
+0000000000119bd0 t <gimli::read::unit::AttributeValue<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>>::u8_value
+0000000000119c20 t <gimli::read::unit::AttributeValue<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>>::u16_value
+0000000000119c70 t core::slice::sort::stable::drift::sort::<addr2line::function::InlinedFunctionAddress, <[addr2line::function::InlinedFunctionAddress]>::sort_by<<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}>
+000000000011a330 t core::slice::sort::stable::quicksort::quicksort::<addr2line::function::InlinedFunctionAddress, <[addr2line::function::InlinedFunctionAddress]>::sort_by<<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}>
+000000000011abb0 t core::slice::sort::shared::smallsort::sort4_stable::<addr2line::function::InlinedFunctionAddress, <[addr2line::function::InlinedFunctionAddress]>::sort_by<<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}>
+000000000011ad10 t core::slice::sort::shared::pivot::median3_rec::<addr2line::function::InlinedFunctionAddress, <[addr2line::function::InlinedFunctionAddress]>::sort_by<<addr2line::function::Function<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}>
+000000000011ae20 t gimli::read::unit::skip_attributes::<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>
+000000000011b3c0 t <alloc::raw_vec::RawVec<addr2line::function::InlinedFunction<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>::grow_one
+000000000011b430 t <gimli::read::rnglists::RngListIter<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::next
+000000000011c5c0 t <gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian> as gimli::read::reader::Reader>::read_sized_offset
+000000000011c6b0 t <gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian> as gimli::read::reader::Reader>::read_offset
+000000000011c760 t core::slice::sort::stable::driftsort_main::<addr2line::function::FunctionAddress, <[addr2line::function::FunctionAddress]>::sort_by_key<u64, <addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#1}>::{closure#0}, alloc::vec::Vec<addr2line::function::FunctionAddress>>
+000000000011c880 t <alloc::raw_vec::RawVec<addr2line::function::LazyFunction<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>::grow_one
+000000000011c8f0 t core::ptr::drop_in_place::<addr2line::function::LazyFunction<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>
+000000000011c940 t core::ptr::drop_in_place::<alloc::vec::Vec<addr2line::function::LazyFunction<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>
+000000000011c9e0 t core::ptr::drop_in_place::<alloc::boxed::Box<[addr2line::function::LazyFunction<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>]>>
+000000000011ca70 t core::ptr::drop_in_place::<core::result::Result<&core::result::Result<addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>, (&core::result::Result<addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>, core::result::Result<addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>)>>
+000000000011ca80 t core::ptr::drop_in_place::<core::result::Result<addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>, gimli::read::Error>>
+000000000011cb20 t core::slice::sort::stable::drift::sort::<addr2line::function::FunctionAddress, <[addr2line::function::FunctionAddress]>::sort_by_key<u64, <addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#1}>::{closure#0}>
+000000000011d170 t core::slice::sort::stable::quicksort::quicksort::<addr2line::function::FunctionAddress, <[addr2line::function::FunctionAddress]>::sort_by_key<u64, <addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#1}>::{closure#0}>
+000000000011da00 t core::slice::sort::shared::pivot::median3_rec::<addr2line::function::FunctionAddress, <[addr2line::function::FunctionAddress]>::sort_by_key<u64, <addr2line::function::Functions<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#1}>::{closure#0}>
+000000000011dac0 t core::ptr::drop_in_place::<core::result::Result<core::option::Option<alloc::boxed::Box<addr2line::unit::DwoUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>, gimli::read::Error>>
+000000000011db60 t core::ptr::drop_in_place::<gimli::read::abbrev::Abbreviations>
+000000000011ddc0 t <gimli::read::unit::EntriesCursor<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::next_entry
+000000000011e0d0 t <gimli::read::line::FileEntryFormat>::parse::<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>
+000000000011e400 t <gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian> as gimli::read::reader::Reader>::read_uleb128
+000000000011e4a0 t gimli::read::line::parse_directory_v5::<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>
+000000000011e580 t <alloc::raw_vec::RawVec<gimli::read::unit::AttributeValue<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>>>::grow_one
+000000000011e5f0 t gimli::read::line::parse_file_v5::<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>
+000000000011e8e0 t <gimli::read::line::FileEntry<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>>::parse
+000000000011eb40 t gimli::read::line::parse_attribute::<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>
+000000000011f540 t <alloc::raw_vec::RawVec<gimli::read::line::FileEntryFormat>>::grow_one
+000000000011f5b0 t <std::backtrace_rs::symbolize::gimli::stash::Stash>::allocate
+000000000011f690 t std::backtrace_rs::symbolize::gimli::elf::decompress_zlib
+000000000011f730 t <alloc::raw_vec::RawVec<alloc::vec::Vec<u8>>>::grow_one
+000000000011f7a0 t core::ptr::drop_in_place::<gimli::read::abbrev::AbbreviationsCache>
+000000000011f860 t <alloc::collections::btree::map::IntoIter<u64, core::result::Result<alloc::sync::Arc<gimli::read::abbrev::Abbreviations>, gimli::read::Error>>>::dying_next
+000000000011fa40 t core::ptr::drop_in_place::<<alloc::collections::btree::map::IntoIter<_, _, _> as core::ops::drop::Drop>::drop::DropGuard<u64, core::result::Result<alloc::sync::Arc<gimli::read::abbrev::Abbreviations>, gimli::read::Error>, alloc::alloc::Global>>
+000000000011fab0 t <alloc::raw_vec::RawVec<&addr2line::function::InlinedFunction<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>::grow_one
+000000000011fb20 t <core::cell::once::OnceCell<core::result::Result<core::option::Option<alloc::boxed::Box<addr2line::unit::DwoUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>, gimli::read::Error>>>::try_init::<<core::cell::once::OnceCell<core::result::Result<core::option::Option<alloc::boxed::Box<addr2line::unit::DwoUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>, gimli::read::Error>>>::get_or_init<<addr2line::unit::ResUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::dwarf_and_unit::{closure#2}>::{closure#0}, !>
+000000000011fb60 t <core::cell::once::OnceCell<core::result::Result<core::option::Option<alloc::boxed::Box<addr2line::unit::DwoUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>, gimli::read::Error>>>::try_init::<<core::cell::once::OnceCell<core::result::Result<core::option::Option<alloc::boxed::Box<addr2line::unit::DwoUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>, gimli::read::Error>>>::get_or_init<<addr2line::unit::ResUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::dwarf_and_unit::{closure#4}>::{closure#0}, !>
+000000000011fbc0 t core::ptr::drop_in_place::<addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>
+000000000011fc70 t core::ptr::drop_in_place::<addr2line::unit::SupUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>
+000000000011fd40 t core::ptr::drop_in_place::<addr2line::unit::SupUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>
+000000000011fd90 t core::ptr::drop_in_place::<addr2line::unit::ResUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>
+000000000011fe70 t core::ptr::drop_in_place::<std::backtrace_rs::symbolize::gimli::elf::Object>
+000000000011fe80 t <gimli::read::aranges::ArangeHeader<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>, usize>>::parse
+0000000000120120 t <alloc::raw_vec::RawVec<(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset)>>::grow_one
+0000000000120190 t core::slice::sort::stable::driftsort_main::<(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset), <[(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset)]>::sort_by_key<gimli::common::DebugInfoOffset, <addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}, alloc::vec::Vec<(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset)>>
+00000000001202b0 t core::slice::sort::stable::driftsort_main::<addr2line::unit::UnitRange, <[addr2line::unit::UnitRange]>::sort_by_key<u64, <addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#4}>::{closure#0}, alloc::vec::Vec<addr2line::unit::UnitRange>>
+00000000001203d0 t <alloc::raw_vec::RawVec<addr2line::unit::ResUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>::grow_one
+0000000000120440 t core::ptr::drop_in_place::<alloc::vec::Vec<addr2line::unit::ResUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>
+00000000001204f0 t core::ptr::drop_in_place::<alloc::vec::Vec<addr2line::unit::SupUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>
+00000000001205d0 t <alloc::raw_vec::RawVec<addr2line::unit::SupUnit<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>>::grow_one
+0000000000120640 t <gimli::read::index::UnitIndex<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse
+0000000000120910 t core::ptr::drop_in_place::<addr2line::Context<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>
+0000000000120970 t core::slice::sort::stable::drift::sort::<addr2line::unit::UnitRange, <[addr2line::unit::UnitRange]>::sort_by_key<u64, <addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#4}>::{closure#0}>
+0000000000120fc0 t core::slice::sort::stable::quicksort::quicksort::<addr2line::unit::UnitRange, <[addr2line::unit::UnitRange]>::sort_by_key<u64, <addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#4}>::{closure#0}>
+00000000001218d0 t core::slice::sort::shared::pivot::median3_rec::<addr2line::unit::UnitRange, <[addr2line::unit::UnitRange]>::sort_by_key<u64, <addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#4}>::{closure#0}>
+0000000000121990 t core::slice::sort::stable::drift::sort::<(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset), <[(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset)]>::sort_by_key<gimli::common::DebugInfoOffset, <addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}>
+0000000000121f70 t core::slice::sort::stable::quicksort::quicksort::<(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset), <[(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset)]>::sort_by_key<gimli::common::DebugInfoOffset, <addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}>
+0000000000122920 t core::slice::sort::shared::smallsort::sort8_stable::<(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset), <[(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset)]>::sort_by_key<gimli::common::DebugInfoOffset, <addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}>
+0000000000122ca0 t core::slice::sort::shared::pivot::median3_rec::<(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset), <[(gimli::common::DebugInfoOffset, gimli::common::DebugArangesOffset)]>::sort_by_key<gimli::common::DebugInfoOffset, <addr2line::unit::ResUnits<gimli::read::endian_slice::EndianSlice<gimli::endianity::LittleEndian>>>::parse::{closure#0}>::{closure#0}>
+0000000000122d50 t <&std::ffi::os_str::OsStr as core::fmt::Debug>::fmt
+0000000000123120 t <std::sys::os_str::bytes::Slice>::check_public_boundary::slow_path
+0000000000123240 t <std::path::StripPrefixError as core::fmt::Debug>::fmt
+0000000000123360 t <std::path::Components as core::iter::traits::iterator::Iterator>::next
+0000000000123660 t <std::path::Component as core::cmp::PartialEq>::eq
+0000000000123720 t std::sys::fs::metadata
+0000000000123870 t std::sys::fs::unix::try_statx
+0000000000123b40 t std::sys::pal::common::small_c_string::run_with_cstr_allocating::<std::sys::fs::unix::FileAttr>
+0000000000123c80 t <std::path::Components>::parse_next_component_back
+0000000000123db0 t core::slice::sort::unstable::ipnsort::<std::backtrace_rs::symbolize::gimli::elf::ParsedSym, <[std::backtrace_rs::symbolize::gimli::elf::ParsedSym]>::sort_unstable_by_key<u64, <std::backtrace_rs::symbolize::gimli::elf::Object>::parse::{closure#3}>::{closure#0}>
+0000000000123ea0 t core::slice::sort::unstable::quicksort::quicksort::<std::backtrace_rs::symbolize::gimli::elf::ParsedSym, <[std::backtrace_rs::symbolize::gimli::elf::ParsedSym]>::sort_unstable_by_key<u64, <std::backtrace_rs::symbolize::gimli::elf::Object>::parse::{closure#3}>::{closure#0}>
+00000000001242d0 t core::slice::sort::shared::smallsort::small_sort_general::<std::backtrace_rs::symbolize::gimli::elf::ParsedSym, <[std::backtrace_rs::symbolize::gimli::elf::ParsedSym]>::sort_unstable_by_key<u64, <std::backtrace_rs::symbolize::gimli::elf::Object>::parse::{closure#3}>::{closure#0}>
+0000000000124820 t core::slice::sort::unstable::heapsort::heapsort::<std::backtrace_rs::symbolize::gimli::elf::ParsedSym, <[std::backtrace_rs::symbolize::gimli::elf::ParsedSym]>::sort_unstable_by_key<u64, <std::backtrace_rs::symbolize::gimli::elf::Object>::parse::{closure#3}>::{closure#0}>
+0000000000124930 t core::slice::sort::shared::pivot::median3_rec::<std::backtrace_rs::symbolize::gimli::elf::ParsedSym, <[std::backtrace_rs::symbolize::gimli::elf::ParsedSym]>::sort_unstable_by_key<u64, <std::backtrace_rs::symbolize::gimli::elf::Object>::parse::{closure#3}>::{closure#0}>
+00000000001249f0 t std::sys::pal::common::small_c_string::run_with_cstr_allocating::<std::sys::fs::unix::File>
+0000000000124a90 t std::env::current_exe
+0000000000124d30 t <alloc::raw_vec::RawVec<std::backtrace_rs::symbolize::gimli::Library>>::grow_one
+0000000000124da0 t core::ptr::drop_in_place::<std::backtrace_rs::symbolize::gimli::Library>
+0000000000124de0 t <str>::trim_start_matches::<<char>::is_whitespace>
+0000000000124f50 t <std::backtrace_rs::symbolize::gimli::parse_running_mmaps::MapsEntry as core::str::traits::FromStr>::from_str::{closure#2}
+0000000000124ff0 t <usize>::from_ascii_radix
+00000000001250e0 t core::ptr::drop_in_place::<std::io::error::Error>
+0000000000125160 t std::io::default_read_to_end::small_probe_read::<&std::fs::File>
+0000000000125260 t <std::io::error::Error>::new::<&str>
+0000000000125340 t core::ptr::drop_in_place::<std::io::error::Custom>
+0000000000125370 t core::ptr::drop_in_place::<<alloc::boxed::Box<dyn core::error::Error + core::marker::Sync + core::marker::Send> as core::convert::From<alloc::string::String>>::from::StringError>
+0000000000125390 t <<alloc::boxed::Box<dyn core::error::Error + core::marker::Sync + core::marker::Send> as core::convert::From<alloc::string::String>>::from::StringError as core::error::Error>::type_id
+00000000001253a0 t <<alloc::boxed::Box<dyn core::error::Error + core::marker::Sync + core::marker::Send> as core::convert::From<alloc::string::String>>::from::StringError as core::error::Error>::description
+00000000001253b0 t <<alloc::boxed::Box<dyn core::error::Error + core::marker::Sync + core::marker::Send> as core::convert::From<alloc::string::String>>::from::StringError as core::error::Error>::cause
+00000000001253c0 t <<alloc::boxed::Box<dyn core::error::Error + core::marker::Sync + core::marker::Send> as core::convert::From<alloc::string::String>>::from::StringError as core::error::Error>::provide
+00000000001253d0 t std::sys::backtrace::_print_fmt::{closure#1}::{closure#0}
+0000000000125630 t <std::backtrace_rs::symbolize::Symbol>::name
+0000000000125700 t <&str as core::str::pattern::Pattern>::is_contained_in
+0000000000125ed0 t core::str::pattern::simd_contains::{closure#2}
+0000000000125f80 t core::ptr::drop_in_place::<std::sys::backtrace::_print_fmt::{closure#0}>
+0000000000125fa0 t <std::sys::backtrace::_print_fmt::{closure#0} as core::ops::function::FnOnce<(&mut core::fmt::Formatter, std::backtrace_rs::types::BytesOrWideString)>>::call_once::{shim:vtable#0}
+0000000000126030 t std::sys::backtrace::_print_fmt::{closure#0}
+0000000000126050 t std::sys::backtrace::output_filename
+00000000001261d0 t core::ptr::drop_in_place::<std::io::default_write_fmt::Adapter<std::io::cursor::Cursor<&mut [u8]>>>
+00000000001261e0 t <std::io::default_write_fmt::Adapter<std::io::cursor::Cursor<&mut [u8]>> as core::fmt::Write>::write_str
+0000000000126280 t <std::io::default_write_fmt::Adapter<std::io::cursor::Cursor<&mut [u8]>> as core::fmt::Write>::write_char
+00000000001263a0 t <std::io::default_write_fmt::Adapter<std::io::cursor::Cursor<&mut [u8]>> as core::fmt::Write>::write_fmt
+00000000001263c0 t <std::sys::sync::mutex::futex::Mutex>::lock_contended
+00000000001264b0 t <std::sys::sync::rwlock::futex::RwLock>::wake_writer_or_readers
+0000000000126590 t std::sys::pal::unix::abort_internal
+00000000001265a0 t <std::io::default_write_fmt::Adapter<std::sys::stdio::unix::Stderr> as core::fmt::Write>::write_str
+0000000000126670 t <std::io::default_write_fmt::Adapter<std::sys::stdio::unix::Stderr> as core::fmt::Write>::write_char
+00000000001267c0 t <std::io::default_write_fmt::Adapter<std::sys::stdio::unix::Stderr> as core::fmt::Write>::write_fmt
+00000000001267e0 t <std::panicking::begin_panic::Payload<&str> as core::panic::PanicPayload>::as_str
+00000000001267f0 t <&str as core::any::Any>::type_id
+0000000000126800 t <std::sys::personality::gcc::find_eh_action::{closure#0} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+0000000000126810 t std::sys::personality::gcc::find_eh_action::{closure#0}
+0000000000126820 t <std::sys::personality::gcc::find_eh_action::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+0000000000126830 t std::sys::personality::gcc::find_eh_action::{closure#1}
+0000000000126840 t std::sys::args::unix::imp::ARGV_INIT_ARRAY::init_wrapper
+0000000000126848 t core::panicking::assert_failed::<i32, i32>
+0000000000126880 t <&i32 as core::fmt::Debug>::fmt
+0000000000126960 t std::sys::backtrace::__rust_end_short_backtrace::<std::panicking::panic_handler::{closure#0}, !>
+0000000000126970 t std::panicking::panic_handler::{closure#0}
+0000000000126a20 t <std::panicking::panic_handler::FormatStringPayload as core::fmt::Display>::fmt
+0000000000126a60 t <std::panicking::panic_handler::FormatStringPayload as core::panic::PanicPayload>::take_box
+0000000000126b60 t <std::panicking::panic_handler::FormatStringPayload as core::panic::PanicPayload>::get
+0000000000126bf0 t core::ptr::drop_in_place::<alloc::string::String>
+0000000000126c10 t <alloc::string::String as core::any::Any>::type_id
+0000000000126c20 t _RNvXsW_NtCskLLYNqycIrM_5alloc6stringNtB5_6StringNtNtCsnruyAgQs18_4core3fmt5Write9write_str.491
+0000000000126c90 t _RNvXsW_NtCskLLYNqycIrM_5alloc6stringNtB5_6StringNtNtCsnruyAgQs18_4core3fmt5Write10write_char.492
+0000000000126da0 t <alloc::string::String as core::fmt::Write>::write_fmt
+0000000000126dc0 t <std::panicking::panic_handler::StaticStrPayload as core::fmt::Display>::fmt
+0000000000126de0 t <std::panicking::panic_handler::StaticStrPayload as core::panic::PanicPayload>::take_box
+0000000000126e20 t <std::panicking::panic_handler::StaticStrPayload as core::panic::PanicPayload>::get
+0000000000126e30 t <std::panicking::panic_handler::StaticStrPayload as core::panic::PanicPayload>::as_str
+0000000000126e40 t __rustc::__rust_abort
+0000000000126e50 t __rustc::rust_begin_unwind
+0000000000126e70 t __rustc::__rust_alloc_error_handler
+0000000000126e90 t std::alloc::rust_oom
+0000000000126ea0 t std::alloc::default_alloc_error_hook
+0000000000126f50 t <std::thread::ThreadId>::new::exhausted
+0000000000126f70 t std::sys::pal::unix::stack_overflow::imp::make_handler
+00000000001270f0 t core::ptr::drop_in_place::<core::result::Result<std::sync::poison::mutex::MutexGuard<()>, std::sync::poison::PoisonError<std::sync::poison::mutex::MutexGuard<()>>>>
+0000000000127160 t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, usize, std::sys::pal::unix::stack_overflow::thread_info::ThreadInfo, alloc::collections::btree::node::marker::Leaf>, alloc::collections::btree::node::marker::KV>>::remove_leaf_kv::<<alloc::collections::btree::map::entry::OccupiedEntry<usize, std::sys::pal::unix::stack_overflow::thread_info::ThreadInfo>>::remove_kv::{closure#0}, alloc::alloc::Global>
+0000000000127810 t <alloc::collections::btree::node::BalancingContext<usize, std::sys::pal::unix::stack_overflow::thread_info::ThreadInfo>>::bulk_steal_left
+0000000000127aa0 t <alloc::collections::btree::node::BalancingContext<usize, std::sys::pal::unix::stack_overflow::thread_info::ThreadInfo>>::do_merge::<<alloc::collections::btree::node::BalancingContext<usize, std::sys::pal::unix::stack_overflow::thread_info::ThreadInfo>>::merge_tracking_child<alloc::alloc::Global>::{closure#0}, alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, usize, std::sys::pal::unix::stack_overflow::thread_info::ThreadInfo, alloc::collections::btree::node::marker::LeafOrInternal>, alloc::alloc::Global>
+0000000000127d20 t <alloc::collections::btree::node::BalancingContext<usize, std::sys::pal::unix::stack_overflow::thread_info::ThreadInfo>>::bulk_steal_right
+0000000000127fa0 t std::sys::pal::unix::stack_overflow::thread_info::set_current_info
+0000000000128be0 t <std::io::error::Error as core::fmt::Display>::fmt
+0000000000128e50 t _RNvXsn_NtCskLLYNqycIrM_5alloc6stringNtB5_6StringNtNtCsnruyAgQs18_4core3fmt7Display3fmt.529
+0000000000128e70 t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, usize, std::sys::pal::unix::stack_overflow::thread_info::ThreadInfo, alloc::collections::btree::node::marker::Leaf>, alloc::collections::btree::node::marker::KV>>::split::<alloc::alloc::Global>
+0000000000129010 t <alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut, usize, std::sys::pal::unix::stack_overflow::thread_info::ThreadInfo, alloc::collections::btree::node::marker::Internal>, alloc::collections::btree::node::marker::KV>>::split::<alloc::alloc::Global>
+0000000000129260 t <std::sys::sync::once::futex::Once>::call
+0000000000129480 t std::process::exit
+0000000000129490 t std::rt::cleanup
+00000000001294e0 t std::sys::pal::unix::os::exit
+0000000000129500 t std::sys::exit_guard::unique_thread_exit
+0000000000129540 t <<std::sync::once::Once>::call_once<std::rt::cleanup::{closure#0}>::{closure#0} as core::ops::function::FnOnce<(&std::sync::once::OnceState,)>>::call_once::{shim:vtable#0}
+0000000000129560 t <std::sync::once::Once>::call_once::<std::rt::cleanup::{closure#0}>::{closure#0}
+0000000000129b62 t <std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::initialize::<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::get_or_init<std::io::stdio::cleanup::{closure#0}>::{closure#0}, !>
+0000000000129bc0 t core::ptr::drop_in_place::<std::sync::reentrant_lock::ReentrantLockGuard<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>
+0000000000129c00 t core::ptr::drop_in_place::<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>
+0000000000129cd0 t <std::io::buffered::bufwriter::BufWriter<std::io::stdio::StdoutRaw>>::flush_buf
+0000000000129ed0 t core::ptr::drop_in_place::<<std::io::buffered::bufwriter::BufWriter<_>>::flush_buf::BufGuard>
+0000000000129f20 t <<std::sync::once::Once>::call_once_force<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::initialize<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::get_or_init<std::io::stdio::cleanup::{closure#0}>::{closure#0}, !>::{closure#0}>::{closure#0} as core::ops::function::FnOnce<(&std::sync::once::OnceState,)>>::call_once::{shim:vtable#0}
+0000000000129f70 t <std::sync::once::Once>::call_once_force::<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::initialize<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::get_or_init<std::io::stdio::cleanup::{closure#0}>::{closure#0}, !>::{closure#0}>::{closure#0}
+0000000000129fc0 t <std::io::buffered::bufwriter::BufWriter<std::io::stdio::StdoutRaw>>::write_all_cold
+000000000012a0e0 t std::sys::pal::unix::stack_overflow::imp::signal_handler
+000000000012a400 t std::thread::current::current_os_id
+000000000012a427 t <std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::initialize::<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::get_or_init<std::io::stdio::stdout::{closure#0}>::{closure#0}, !>
+000000000012a480 t <<std::sync::once::Once>::call_once_force<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::initialize<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::get_or_init<std::io::stdio::stdout::{closure#0}>::{closure#0}, !>::{closure#0}>::{closure#0} as core::ops::function::FnOnce<(&std::sync::once::OnceState,)>>::call_once::{shim:vtable#0}
+000000000012a4f0 t <std::sync::once::Once>::call_once_force::<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::initialize<<std::sync::once_lock::OnceLock<std::sync::reentrant_lock::ReentrantLock<core::cell::RefCell<std::io::buffered::linewriter::LineWriter<std::io::stdio::StdoutRaw>>>>>::get_or_init<std::io::stdio::stdout::{closure#0}>::{closure#0}, !>::{closure#0}>::{closure#0}
+000000000012a560 t std_detect::detect::cache::detect_and_initialize
+000000000012abc0 t _RNvNtNtNtCsnruyAgQs18_4core9core_arch3x865xsave7__xgetbv.644
+000000000012abcd t <alloc::vec::Vec<char> as core::clone::Clone>::clone
+000000000012ac60 t vox::morphism_factor::trim
+000000000012ace4 t vox::morphism_factor::zero
+000000000012ad97 t <alloc::raw_vec::RawVec<char>>::grow_one
+000000000012adcc t vox::morphism_factor::cmp
+000000000012ae88 t vox::trace_algebra::witness_valid
+000000000012af99 t vox::morphism_factor::mul
+000000000012b159 t vox::morphism_factor::fold
+000000000012b2b5 t vox::morphism_factor::unfold
+000000000012b3b9 t vox::morphism_factor::l_trim
+000000000012b448 t vox::morphism_factor::add
+000000000012b5f0 t vox::morphism_factor::sub
+000000000012b76d t vox::morphism_factor::modulo
+000000000012b84a t vox::morphism_factor::one
+000000000012b885 t vox::morphism_factor::l_divmod
+000000000012c288 t vox::morphism_factor::gcd
+000000000012c454 t <alloc::vec::Vec<char> as alloc::vec::spec_extend::SpecExtend<&char, core::slice::iter::Iter<char>>>::spec_extend
+000000000012c4c7 t <alloc::vec::Vec<char> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<char, core::str::iter::Chars>>::from_iter
+000000000012c70d t <alloc::raw_vec::RawVec<bool>>::grow_one
+000000000012c742 t <alloc::vec::Vec<bool> as core::clone::Clone>::clone
+000000000012c7b2 t vox::trace_word::read_payload
+000000000012c84a t <vox::hadamard_gate::HadamardCarrier>::descend_involution
+000000000012d0d0 t <vox::hadamard_gate::HadamardCarrier>::imscribe_source
+000000000012d225 t <vox::hadamard_gate::HadamardCarrier>::descend_involution::{closure#0}
+000000000012d2a8 t <vox::factor_extract::FactorCarrier>::from_trace
+000000000012d69e t core::ptr::drop_in_place::<core::result::Result<vox::factor_extract::FactorCarrier, alloc::string::String>>
+000000000012d6ba t core::ptr::drop_in_place::<vox::hadamard_gate::HadamardCarrier>
+000000000012d6ec t core::ptr::drop_in_place::<vox::factor_extract::FactorCarrier>
+000000000012d74c t <vox::factor_extract::FactorCarrier>::validate
+000000000012daa5 t vox::trace_word::judge_trace
+000000000012dc14 t vox::trace_word::decode_trace
+000000000012defb t _RNvXsH_NtCskLLYNqycIrM_5alloc6stringNtB5_6StringINtNtCsnruyAgQs18_4core7convert4FromReE4from.693
+000000000012df54 t core::ptr::drop_in_place::<alloc::vec::Vec<vox::router_marks::GStep>>
+000000000012dfb1 t vox::trace_algebra::replay_state
+000000000012e0f0 t <alloc::raw_vec::RawVec<vox::router_marks::GStep>>::grow_one
+000000000012e125 t vox::hadamard_gate::modular_phase_power
+000000000012e3d6 t <alloc::raw_vec::RawVec<vox::factor_extract::ReentryGeneration>>::grow_one
+000000000012e40b t <alloc::vec::Vec<u8>>::resize
+000000000012e48b t vox::trace_algebra::relaxed_equivalent_with_witness
+000000000012e69e t <vox::factor_extract::ReentryStore>::record_count
+000000000012e730 t __udivti3
+000000000012e800 t trunc
+000000000012e860 t ceil
+000000000012e8e0 t __powidf2
+000000000012e93c t _init
+000000000012e958 t _fini
+000000000012f9a0 d __do_global_dtors_aux_fini_array_entry
+000000000012f9a8 D std::sys::args::unix::imp::ARGV_INIT_ARRAY
+000000000012f9b0 d __frame_dummy_init_array_entry
+00000000001321f8 d _DYNAMIC
+00000000001325d8 d _GLOBAL_OFFSET_TABLE_
+0000000000133600 d __TMC_END__
+0000000000133600 d __TMC_LIST__
+0000000000133600 d __dso_handle
+0000000000133608 d memchr::arch::x86_64::memchr::memchr_raw::FN
+0000000000133610 d memchr::arch::x86_64::memchr::memrchr_raw::FN
+0000000000133618 d memchr::arch::x86_64::memchr::count_raw::FN
+0000000000133620 d std::panicking::default_hook::{closure#0}::FIRST_PANIC
+0000000000133628 d std::io::stdio::STDOUT
+0000000000133668 d <std::backtrace_rs::symbolize::gimli::Cache>::with_global::MAPPINGS_CACHE
+0000000000133fa8 d std::rt::cleanup::CLEANUP
+0000000000133fb0 d DW.ref.rust_eh_personality
+0000000000133fb8 b completed.0
+0000000000133fb9 b std::panic::SHOULD_CAPTURE
+0000000000133fc0 b std::panicking::HOOK
+0000000000133fd8 b _RNvNtNtCsHhKrCRAwTZ_3std6thread11main_thread4MAIN.0
+0000000000133fe0 b std::panicking::panic_count::GLOBAL_PANIC_COUNT
+0000000000133fe8 b std::sys::env::unix::ENV_LOCK
+0000000000133ff8 b _RNvNtNtNtNtCsHhKrCRAwTZ_3std3sys4args4unix3imp4ARGV.0
+0000000000134000 b _RNvNtNtNtNtNtCsHhKrCRAwTZ_3std3sys3pal4unix14stack_overflow11thread_info11THREAD_INFO.0
+0000000000134008 b _RNvNtNtNtNtNtCsHhKrCRAwTZ_3std3sys3pal4unix14stack_overflow11thread_info11THREAD_INFO.1
+0000000000134010 b _RNvNtNtNtNtNtCsHhKrCRAwTZ_3std3sys3pal4unix14stack_overflow11thread_info11THREAD_INFO.2
+0000000000134018 b std::sys::pal::unix::stack_overflow::thread_info::LOCK
+0000000000134020 b std::sys::pal::unix::stack_overflow::thread_info::SPIN_LOCK
+0000000000134028 b _RNvNtNtNtNtNtCsHhKrCRAwTZ_3std3sys3pal4unix14stack_overflow3imp13MAIN_ALTSTACK.0
+0000000000134030 b _RNvNtNtNtNtNtCsHhKrCRAwTZ_3std3sys3pal4unix14stack_overflow3imp13NEED_ALTSTACK.0
+0000000000134038 b _RNvNtNtNtNtNtCsHhKrCRAwTZ_3std3sys3pal4unix14stack_overflow3imp9PAGE_SIZE.0
+0000000000134040 b <std::thread::ThreadId>::new::COUNTER
+0000000000134048 b std::sys::exit_guard::unique_thread_exit::EXITING_THREAD_ID
+0000000000134050 b std::sys::backtrace::lock::LOCK
+0000000000134058 b _RNvNvNtNtNtCsHhKrCRAwTZ_3std3sys2fs4unix9try_statx17STATX_SAVED_STATE.0
+0000000000134059 b _RNvNvNtNtNtNtCsHhKrCRAwTZ_3std12backtrace_rs9symbolize5gimli3elf17debug_path_exists17DEBUG_PATH_EXISTS.0
+0000000000134060 b _RNvNtNtCs83Wt8ihVava_10std_detect6detect5cache5CACHE.0

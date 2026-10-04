@@ -1,0 +1,1 @@
+write(1, "completed ququart Fourier membra"..., 142) = 142

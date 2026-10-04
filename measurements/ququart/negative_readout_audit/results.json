@@ -1,0 +1,28 @@
+{
+  "scope": "negative verifier checks only, not membrane factor-extraction evidence",
+  "source": "RSA-100",
+  "source_bits": 330,
+  "checks": [
+    {
+      "name": "empty_ledger",
+      "synthetic_readout": true,
+      "rejected": true,
+      "exit_code": 1,
+      "reason": "readout verification failed: recorded measurements do not close factor extraction"
+    },
+    {
+      "name": "zero_phase",
+      "synthetic_readout": true,
+      "rejected": true,
+      "exit_code": 1,
+      "reason": "readout verification failed: recorded measurements do not close factor extraction"
+    },
+    {
+      "name": "wrong_resolution",
+      "synthetic_readout": true,
+      "rejected": true,
+      "exit_code": 1,
+      "reason": "readout verification failed: measured phase resolution differs from compiled schedule"
+    }
+  ]
+}

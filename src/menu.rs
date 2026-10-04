@@ -239,6 +239,7 @@ pub static KERNEL_MENU: &[MenuItem] = &[
 
 pub static QUANTUM_MENU: &[MenuItem] = &[
     MenuItem { name: "factor_phase", cmd: "factor_phase", desc: "Exact folded coherent CPU execution and pair measurement over baked IMASM source and quantile", example: "factor_phase", submenu: None },
+    MenuItem { name: "anyon_ququart_word", cmd: "anyon_ququart_word", desc: "Compile full Z4 Fourier to a Fibonacci braid and measure computational, leakage, and unitarity residuals", example: "anyon_ququart_word 296650821743515430283258444261036507151", submenu: None },
     MenuItem { name: "fibqc",      cmd: "fibqc",      desc: "Fibonacci anyon QC: verify | compile | jones | knot | winding (see also qc, jp)", example: "fibqc verify", submenu: None },
     MenuItem { name: "qc", cmd: "qc", desc: "Compile a circuit over H T S X to a braid word; spaces optional; draw|svg|loop before the gates renders it, and two depths size the net and the recursion (aliases quantum_compile, fibqc compile)", example: "qc loop HTSX 10 3", submenu: None },
     MenuItem { name: "bi", cmd: "bi", desc: "Draw a braid word — strand diagram in the terminal, SVG with `svg`, the closed braid as a ring with `loop`; window with start:count, column height with /N (alias braid_image)", example: "bi loop 1 2 -1 -2 1 2", submenu: None },

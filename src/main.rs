@@ -232,7 +232,7 @@ mod constant_closure;
 mod repl;
 mod fibonacci_qc;
 #[cfg(feature = "hosted")]
-mod anyon_braid_cnot;
+pub mod anyon_braid_cnot;
 #[cfg(feature = "hosted")]
 mod anyon_device;
 mod winding_period;
@@ -639,6 +639,14 @@ fn main() {
         if matches!(head, "phase_unbraid" | "phase" | "unbraid") {
             let refs: Vec<&str> = argv[1..].iter().map(|x| x.as_str()).collect();
             println!("{}", dispatch_phase_unbraid(&refs));
+            return;
+        }
+        if head == "anyon_ququart_word" {
+            let refs: Vec<&str> = argv[1..].iter().map(|arg| arg.as_str()).collect();
+            match anyon_braid_cnot::compile_ququart_fourier(&refs) {
+                Ok(report) => println!("{report}"),
+                Err(error) => { eprintln!("{error}"); std::process::exit(2); }
+            }
             return;
         }
         if head == "anyon_cnot_word" {

@@ -1,0 +1,9 @@
+Command:
+target/release/g-momonados anyon_ququart_word 296650821743515430283258444261036507151 4 7 20000 2 4
+
+Exit status: 2
+Observed stderr:
+compiled Z4 word misses requested accuracy: computational=5.02678824e-1 leakage=9.70643570e-14 unitarity=4.84150441e-78
+
+This record preserves the completed command's tool output. Its redirected
+stdout file f4_braid_128.log is empty because the command rejected the word.

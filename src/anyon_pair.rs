@@ -118,6 +118,28 @@ impl PairMatrix {
 mod tests {
     use super::*;
 
+    #[test]
+    fn logical_triple_generators_use_the_pair_channel_basis() {
+        let n = BigUint::parse_bytes(b"296650821743515430283258444261036507151", 10).unwrap();
+        let pair = FibonacciPair::new(&n).unwrap();
+        let local = FibonacciLocal::new(&n).unwrap();
+        for (physical, local_index, lane) in [(1, 2, 0), (2, 1, 0), (4, 1, 1), (5, 2, 1)] {
+            let observed = pair.in_pair_channels(&pair.evaluate(&[physical]).unwrap());
+            let expected = local.evaluate(&[local_index]).unwrap();
+            for input in 0..4 {
+                for output in 0..4 {
+                    let actual = &observed.0[5 * COMPUTATIONAL_CHANNELS[output] + COMPUTATIONAL_CHANNELS[input]];
+                    let spectator = 1 - lane;
+                    let wanted = if (input >> spectator) & 1 == (output >> spectator) & 1 {
+                        expected.0[2 * ((output >> lane) & 1) + ((input >> lane) & 1)].clone()
+                    } else { FixedComplex { re: BigInt::zero(), im: BigInt::zero() } };
+                    assert!((&actual.re - wanted.re).abs() < BigInt::from(4096u16), "generator={physical} input={input} output={output}");
+                    assert!((&actual.im - wanted.im).abs() < BigInt::from(4096u16));
+                }
+            }
+        }
+    }
+
     fn close(a: &PairMatrix, b: &PairMatrix) {
         let tolerance = BigInt::from(4096u16);
         for (a, b) in a.0.iter().zip(&b.0) {

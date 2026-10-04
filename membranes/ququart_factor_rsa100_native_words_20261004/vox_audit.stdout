@@ -1,0 +1,7 @@
+membranes/ququart_factor_rsa100_native_words_20261004/membrane  elf  entry 0xc07f0  450978 byte(s) of code
+  993 function(s), 98446 instruction(s)
+  claimed 90% of the image (409832 of 450978 bytes)
+
+  993 function(s) by descent, 3448 more by fallback sweep
+  covered 100% of the image (450978 of 450978 bytes)
+  verdicts  T 131   B 891   N 3419   F 0  (F: 0 from descent, 0 from fallback sweep)

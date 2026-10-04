@@ -2125,6 +2125,14 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 }
             }
             #[cfg(feature = "hosted")]
+            "anyon_ququart_word" => {
+                let args: Vec<&str> = parts.collect();
+                match crate::anyon_braid_cnot::compile_ququart_fourier(&args) {
+                    Ok(report) => sprintln!("{report}"),
+                    Err(error) => sprintln!("anyon_ququart_word: {error}"),
+                }
+            }
+            #[cfg(feature = "hosted")]
             "arbitrary_anyon_factor" | "arbitrary-anyon-factor" => {
                 let args: alloc::vec::Vec<&str> = parts.collect();
                 match crate::arbitrary_anyon_factor(&args) {

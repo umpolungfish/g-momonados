@@ -1,0 +1,14 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+error[E0428]: the name `tests` is defined multiple times
+    --> src/anyon_braid_cnot.rs:1750:1
+     |
+1238 | mod tests {
+     | --------- previous definition of the module `tests` here
+...
+1750 | mod tests {}
+     | ^^^^^^^^^ `tests` redefined here
+     |
+     = note: `tests` must be defined only once in the type namespace of this module
+
+For more information about this error, try `rustc --explain E0428`.
+error: could not compile `g-momonados` (bin "g-momonados" test) due to 1 previous error

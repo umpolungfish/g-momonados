@@ -1,0 +1,20 @@
+{
+  "name": "RSA-100",
+  "source": "1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139",
+  "source_bits": 330,
+  "factor_bits": [
+    165,
+    165
+  ],
+  "product_checked": true,
+  "factor_primality_screening_passed": true,
+  "provenance": "measurements/rsa_numbers_extracted.json, solved/100",
+  "baked_inputs": [
+    "source",
+    "base=2",
+    "physical Fourier braid",
+    "measurement seed"
+  ],
+  "known_factors_baked": false,
+  "qualifying_input_requirement": "RSA-style unstructured semiprime over 200 bits"
+}
