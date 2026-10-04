@@ -5,7 +5,12 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use num_bigint::{BigInt, BigUint};
 use num_traits::Zero;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg(feature = "hosted")]
+type NodeIndex = std::collections::HashMap<Node, usize>;
+#[cfg(not(feature = "hosted"))]
+type NodeIndex = BTreeMap<Node, usize>;
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Node {
     Leaf(BigInt, BigInt),
     Branch {
@@ -122,7 +127,7 @@ pub struct DecisionArena {
     free: Vec<usize>,
     created: Vec<usize>,
     pinned: Option<[usize; 5]>,
-    unique: BTreeMap<Node, usize>,
+    unique: NodeIndex,
     pub cells: usize,
 }
 impl DecisionArena {
@@ -134,7 +139,7 @@ impl DecisionArena {
             free: Vec::new(),
             created: Vec::new(),
             pinned: None,
-            unique: BTreeMap::new(),
+            unique: NodeIndex::new(),
             cells,
         }
     }
