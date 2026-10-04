@@ -41,6 +41,7 @@ pub mod anyon_pair;
 pub mod anyon_fusion_kernel;
 pub mod anyon_qutrit;
 pub mod anyon_ququart;
+pub mod ququart_factor;
 #[cfg(feature = "hosted")]
 pub mod sic;
 #[cfg(feature = "hosted")]

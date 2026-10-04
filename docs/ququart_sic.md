@@ -39,3 +39,30 @@ accumulator. A SIC mask is a sixteen-outcome reading and is not automatically
 a base-four phase digit. The carrier exposes both measurement operations.
 Tests exercise all sixteen SIC intervals and all four phase digits using
 the semiprime source-width controls at 128, 256, 512, 1024, and 2048 bits.
+
+The radix-four executor replaces binary H operations with the Z4 Fourier
+transform `F4[k,l] = exp(2 pi i k l/4)/2`. Feedback is the complete diagonal
+`exp(-2 pi i k n/4^m)` for k=0,1,2,3. At stage j the work register receives
+`base^(k*4^j)`. The streamed reversible implementation applies
+`base^(4^j)` controlled by the low lane and its square controlled by the high
+lane. Both lanes act on the same work register, with clean arithmetic scratch.
+
+`QuquartFactorExecutor` schedules these operations against a
+`QuquartPhaseDevice`, accumulates its measured digits, and verifies any closed
+factor arms using the Gödel multiplication engine. Its scheduling test uses
+a recording backend, so it establishes circuit wiring rather than factor
+extraction. A native fixed-point implementation of Fourier and feedback
+targets exists on `QuquartCarrier`; physical braid synthesis for the complete
+four-channel Fourier target and the shared-work device remain required.
+
+The executable accepts native targets `f4`, `f4-inverse`, and
+`feedback:<numerator>:<denominator_digits>` alongside exchange indices.
+These target operations are reported explicitly as native numerical targets.
+
+`fourier_braid_targets` supplies the entire F4 Clifford+T target sequence,
+including controlled-S and the output swap. The inverse reverses the sequence
+and conjugates its T phases. `feedback_braid_targets` supplies the two lane
+phases with weights one and two. Their matrix tests compare every column with
+the full Z4 Fourier operator and all four feedback phases. These targets use
+the existing calibrated braid compiler vocabulary; the tests validate the
+target decomposition, rather than a newly synthesized physical braid word.
