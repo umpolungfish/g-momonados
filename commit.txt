@@ -1,3 +1,1 @@
-I prepare uniform mixed-register ensemble members in the arithmetic wire layout.
-
-I use unbiased integer rejection sampling for residues and Born draws, initialize the control and scratch clean, and retain linear preparation storage. I verify rejection boundaries, wire placement, entropy errors, and existing fusion projections at every required source width.
+I implement sixteen-outcome ququart SIC weights over SIXTEEN_3, fixed Fibonacci carrier readout, and base-four phase closure.

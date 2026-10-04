@@ -188,7 +188,7 @@ where
     Ok(sample_born_masses(masses, &mut entropy)? == 1)
 }
 
-fn sample_born_masses<F>(masses: &[BigUint], mut entropy: F) -> Result<usize, String>
+pub(crate) fn sample_born_masses<F>(masses: &[BigUint], mut entropy: F) -> Result<usize, String>
 where
     F: FnMut(&mut [u8]) -> Result<(), String>,
 {

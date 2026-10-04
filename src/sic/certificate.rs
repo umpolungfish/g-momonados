@@ -91,7 +91,7 @@ impl SicCertificate {
 }
 
 // Hermitian spectrum via the real symmetric embedding [Re -Im; Im Re].
-fn negative_eigenvalue_residual(x: &Operator) -> f64 {
+pub(crate) fn negative_eigenvalue_residual(x: &Operator) -> f64 {
     let d = x.dimension();
     let n = 2 * d;
     let mut a = vec![0.0; n * n];

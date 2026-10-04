@@ -683,7 +683,15 @@ fn attempt_big_wide(k_big: BigUint, m_big: BigUint, a: &BigUint, n: &BigUint) ->
 pub fn close_wide_phase_readout(k: &BigUint, qubits: u64, a: &BigUint, n: &BigUint) -> Result<Option<(BigUint, BigUint, BigUint)>, String> {
     if n < &BigUint::from(2u8) || a.is_zero() || k.bits() > qubits { return Err("phase closure requires valid N, base and register bin".into()); }
     let shift = usize::try_from(qubits).map_err(|_| "phase-register denominator exceeds BigUint shift indexing")?;
-    match attempt_big_wide(k.clone(), BigUint::one() << shift, a, n) {
+    close_phase_fraction(k, &(BigUint::one() << shift), a, n)
+}
+
+/// Close an explicitly measured rational phase, independent of register radix.
+pub fn close_phase_fraction(k: &BigUint, denominator: &BigUint, a: &BigUint, n: &BigUint) -> Result<Option<(BigUint, BigUint, BigUint)>, String> {
+    if n < &BigUint::from(2u8) || a.is_zero() || denominator.is_zero() || k >= denominator {
+        return Err("phase closure requires valid N, base, denominator and register bin".into());
+    }
+    match attempt_big_wide(k.clone(), denominator.clone(), a, n) {
         Attempt::Factors { r, p, q, .. } => Ok(Some((r, p, q))),
         Attempt::Degenerate(message) => Err(message),
         Attempt::NoReadout => Ok(None),
@@ -1014,6 +1022,14 @@ impl Default for PhaseReadoutAccumulator {
 impl PhaseReadoutAccumulator {
     pub fn close(&mut self, k: &BigUint, qubits: u64, base: &BigUint, n: &BigUint) -> Result<Option<(BigUint, BigUint, BigUint)>, String> {
         if n < &BigUint::from(2u8) || base.is_zero() || k.bits() > qubits { return Err("phase closure requires valid N, base and register bin".into()); }
+        let m = BigUint::one() << usize::try_from(qubits).map_err(|_| "phase denominator exceeds host indexing")?;
+        self.close_fraction(k, &m, base, n)
+    }
+
+    pub fn close_fraction(&mut self, k: &BigUint, m: &BigUint, base: &BigUint, n: &BigUint) -> Result<Option<(BigUint, BigUint, BigUint)>, String> {
+        if n < &BigUint::from(2u8) || base.is_zero() || m.is_zero() || k >= m {
+            return Err("phase closure requires valid N, base, denominator and register bin".into());
+        }
         // Denominators are evidence about one modular orbit. Reusing this
         // object for another source or base must begin a fresh accumulation.
         if self.source_base.as_ref().map(|(source, orbit_base)| source != n || orbit_base != base).unwrap_or(true) {
@@ -1021,12 +1037,11 @@ impl PhaseReadoutAccumulator {
             self.source_base = Some((n.clone(), base.clone()));
         }
         if k.is_zero() { return Ok(None); }
-        if let Some(result) = close_wide_phase_readout(k, qubits, base, n)? { return Ok(Some(result)); }
-        let m = BigUint::one() << usize::try_from(qubits).map_err(|_| "phase denominator exceeds host indexing")?;
+        if let Some(result) = close_phase_fraction(k, m, base, n)? { return Ok(Some(result)); }
         for (s, r) in convergents_big(k.clone(), m.clone()) {
             if r <= BigUint::one() || &r > n { continue; }
             let left = k * &r;
-            let right = s * &m;
+            let right = s * m;
             let error = if left >= right { left - right } else { right - left };
             // Only a denominator whose rational phase lies within one bin
             // contributes. Early, coarse convergents carry no such evidence.
