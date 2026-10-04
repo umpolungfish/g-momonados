@@ -91,13 +91,123 @@ impl QuquartPhaseReadout {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QuquartSicOutcome {
     Carrier(crate::sic::SixteenOutcome),
     OutsideCarrier,
 }
 
+#[derive(Clone)]
+pub struct SicPhaseEvidence {
+    sic: FixedQuquartSic,
+    hypotheses: alloc::vec::Vec<(BigUint, BigUint, BigUint)>,
+    observations: usize,
+}
+
+impl SicPhaseEvidence {
+    pub fn new(format: &FixedPointFormat) -> Result<Self, String> {
+        Ok(Self {
+            sic: FixedQuquartSic::new(format)?,
+            hypotheses: alloc::vec::Vec::new(),
+            observations: 0,
+        })
+    }
+
+    pub fn add_hypothesis(
+        &mut self,
+        numerator: BigUint,
+        denominator: BigUint,
+    ) -> Result<(), String> {
+        if denominator.is_zero() {
+            return Err("SIC phase hypothesis denominator is zero".into());
+        }
+        let mut numerator = numerator % &denominator;
+        let mut a = numerator.clone();
+        let mut b = denominator.clone();
+        while !b.is_zero() {
+            let remainder = &a % &b;
+            a = b;
+            b = remainder;
+        }
+        if !a.is_zero() {
+            numerator /= &a;
+            let denominator = denominator / a;
+            return self.insert_hypothesis(numerator, denominator);
+        }
+        self.insert_hypothesis(BigUint::zero(), BigUint::one())
+    }
+
+    pub fn validate_source(&self, source: &BigUint) -> Result<(), String> {
+        if self.sic.format != FixedPointFormat::for_modulus(source)? {
+            return Err("SIC phase evidence precision differs from its source".into());
+        }
+        Ok(())
+    }
+
+    fn insert_hypothesis(
+        &mut self,
+        numerator: BigUint,
+        denominator: BigUint,
+    ) -> Result<(), String> {
+        if self.hypotheses.iter().any(|(known, known_denominator, _)| {
+            known == &numerator && known_denominator == &denominator
+        }) {
+            return Err("duplicate SIC phase hypothesis".into());
+        }
+        self.hypotheses
+            .push((numerator, denominator, BigUint::one()));
+        Ok(())
+    }
+
+    pub fn observe(
+        &mut self,
+        outcome: QuquartSicOutcome,
+        power: &BigUint,
+        feedback_numerator: &BigUint,
+        feedback_denominator: &BigUint,
+    ) -> Result<(), String> {
+        if self.hypotheses.is_empty() {
+            return Err("SIC phase evidence has no candidate hypotheses".into());
+        }
+        let next_observation_count = self
+            .observations
+            .checked_add(1)
+            .ok_or("SIC observation count overflow")?;
+        let mask = match outcome {
+            QuquartSicOutcome::Carrier(outcome) => outcome.mask() as usize,
+            QuquartSicOutcome::OutsideCarrier => {
+                return Err("outside-carrier event is incompatible with phase hypotheses".into())
+            }
+        };
+        for (numerator, denominator, weight) in &mut self.hypotheses {
+            let likelihood = self.sic.phase_outcome_masses(
+                numerator,
+                denominator,
+                power,
+                feedback_numerator,
+                feedback_denominator,
+            )?[mask]
+                .clone();
+            *weight *= likelihood;
+        }
+        self.observations = next_observation_count;
+        Ok(())
+    }
+
+    pub fn scores(&self) -> impl Iterator<Item = (&BigUint, &BigUint, &BigUint)> {
+        self.hypotheses
+            .iter()
+            .map(|(numerator, denominator, weight)| (numerator, denominator, weight))
+    }
+
+    pub fn observation_count(&self) -> usize {
+        self.observations
+    }
+}
+
 /// Dimension-four analytic fiducial evaluated through integer square roots.
 /// No floating-point amplitudes enter the fixed-point measurement path.
+#[derive(Clone)]
 pub struct FixedQuquartSic {
     format: FixedPointFormat,
     rays: [[FixedComplex; 4]; 16],
@@ -155,6 +265,60 @@ impl FixedQuquartSic {
     }
     pub fn rays(&self) -> &[[FixedComplex; 4]; 16] {
         &self.rays
+    }
+
+    pub fn phase_outcome_masses(
+        &self,
+        phase_numerator: &BigUint,
+        phase_denominator: &BigUint,
+        power: &BigUint,
+        feedback_numerator: &BigUint,
+        feedback_denominator: &BigUint,
+    ) -> Result<[BigUint; 16], String> {
+        if phase_denominator.is_zero() || feedback_denominator.is_zero() {
+            return Err("SIC phase likelihood requires nonzero denominators".into());
+        }
+        let mut control: [FixedComplex; 4] = core::array::from_fn(|_| zero());
+        for (basis, amplitude) in control.iter_mut().enumerate() {
+            let mut sum = zero();
+            for input in 0..4 {
+                let powered_phase = FixedComplex::winding_twiddle(
+                    &BigInt::from(phase_numerator * power * input),
+                    phase_denominator,
+                    &self.format,
+                )?;
+                let feedback_phase = FixedComplex::winding_twiddle(
+                    &-BigInt::from(feedback_numerator * input),
+                    feedback_denominator,
+                    &self.format,
+                )?;
+                let fourier_phase = FixedComplex::winding_twiddle(
+                    &-BigInt::from(basis * input),
+                    &BigUint::from(4u8),
+                    &self.format,
+                )?;
+                let term = powered_phase
+                    .mul(&feedback_phase, &self.format)
+                    .mul(&fourier_phase, &self.format);
+                sum.re += term.re;
+                sum.im += term.im;
+            }
+            amplitude.re = sum.re / 4u8;
+            amplitude.im = sum.im / 4u8;
+        }
+        Ok(core::array::from_fn(|outcome| {
+            let mut overlap = zero();
+            for (component, amplitude) in control.iter().enumerate() {
+                let conjugate = FixedComplex {
+                    re: self.rays[outcome][component].re.clone(),
+                    im: -&self.rays[outcome][component].im,
+                };
+                let term = conjugate.mul(amplitude, &self.format);
+                overlap.re += term.re;
+                overlap.im += term.im;
+            }
+            mass(&overlap)
+        }))
     }
 }
 
@@ -337,6 +501,75 @@ mod tests {
         assert_eq!(readout.denominator().unwrap(), BigUint::from(256u16));
     }
     #[test]
+    fn sic_phase_likelihoods_match_the_four_ideal_phase_poles() {
+        let source = BigUint::from(1u8) << 128usize;
+        let algebra = FibonacciPair::new(&source).unwrap();
+        let sic = FixedQuquartSic::new(algebra.format()).unwrap();
+        for pole in 0..4usize {
+            let masses = sic
+                .phase_outcome_masses(
+                    &BigUint::from(pole),
+                    &BigUint::from(4u8),
+                    &BigUint::one(),
+                    &BigUint::zero(),
+                    &BigUint::one(),
+                )
+                .unwrap();
+            let total: BigUint = masses.iter().cloned().sum();
+            let expected_total = algebra.format().scale().to_biguint().unwrap().pow(2) * 4u8;
+            assert!(
+                (BigInt::from(total) - BigInt::from(expected_total)).abs()
+                    < algebra.format().scale() * 4096u16
+            );
+            let channel = pole;
+            for (outcome, ray) in sic.rays().iter().enumerate() {
+                let expected = mass(&ray[channel]);
+                assert_eq!(masses[outcome], expected);
+            }
+        }
+        let mut evidence = SicPhaseEvidence::new(algebra.format()).unwrap();
+        let wider_source = BigUint::one() << 256usize;
+        assert!(evidence.validate_source(&wider_source).is_err());
+        evidence.validate_source(&source).unwrap();
+        for pole in 0..4usize {
+            evidence
+                .add_hypothesis(BigUint::from(pole), BigUint::from(4u8))
+                .unwrap();
+        }
+        assert!(evidence
+            .add_hypothesis(BigUint::from(2u8), BigUint::from(8u8))
+            .is_err());
+        let outcome = crate::sic::SixteenOutcome::new(5).unwrap();
+        assert!(evidence
+            .observe(
+                QuquartSicOutcome::OutsideCarrier,
+                &BigUint::one(),
+                &BigUint::zero(),
+                &BigUint::one(),
+            )
+            .is_err());
+        evidence
+            .observe(
+                QuquartSicOutcome::Carrier(outcome),
+                &BigUint::one(),
+                &BigUint::zero(),
+                &BigUint::one(),
+            )
+            .unwrap();
+        for (numerator, denominator, score) in evidence.scores() {
+            let likelihoods = sic
+                .phase_outcome_masses(
+                    numerator,
+                    denominator,
+                    &BigUint::one(),
+                    &BigUint::zero(),
+                    &BigUint::one(),
+                )
+                .unwrap();
+            assert_eq!(*score, likelihoods[outcome.mask() as usize]);
+        }
+    }
+    #[test]
     fn ququart_fixed_sic_and_exchange_at_all_required_source_widths() {
         for line in include_str!("../measurements/anyon-extractor-width-controls.tsv")
             .lines()
@@ -348,6 +581,20 @@ mod tests {
             let sic = FixedQuquartSic::new(algebra.format()).unwrap();
             let scale = algebra.format().scale();
             let square = (&scale * &scale).to_biguint().unwrap();
+            for pole in 0..4usize {
+                let likelihoods = sic
+                    .phase_outcome_masses(
+                        &BigUint::from(pole),
+                        &BigUint::from(4u8),
+                        &BigUint::one(),
+                        &BigUint::zero(),
+                        &BigUint::one(),
+                    )
+                    .unwrap();
+                for (outcome, ray) in sic.rays().iter().enumerate() {
+                    assert_eq!(likelihoods[outcome], mass(&ray[pole]));
+                }
+            }
             for digit in [
                 QuquartDigit::T,
                 QuquartDigit::F,

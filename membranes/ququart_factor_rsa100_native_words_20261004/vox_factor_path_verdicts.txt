@@ -1,0 +1,3 @@
+ququart_factor_baked::execute	B	5466
+g_momonados::ququart_factor::extract_certified_winding	B	1983
+verdicted 2 words: B 2
