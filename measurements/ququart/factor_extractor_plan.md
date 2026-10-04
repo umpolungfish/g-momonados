@@ -6,6 +6,8 @@ Produce a prepared, compiled G-mOMonadOS membrane that executes an arbitrary bak
 
 ## Current Finding
 
+The terminal report emits the source and factor words held by the Gödel closure directly. The saved-output verifier preserves those words and invokes the native closure verifier without decimal conversion. Gödel multiplication, division, and modular powering read adjacent binary cells as radix-four digits. The certified winding path uses these native numeral operations for modular certification, half-winding reduction, factor-arm division, and the final product check.
+
 The standalone SIC representation has the intended sixteen outcomes. `FixedQuquartSic::rays[i]` uses `p = i / 4`, `q = i % 4`, and `SixteenOutcome::new(i)` preserves mask `i`.
 
 The factor path does not use that representation. `QuquartPhaseDevice::measure_phase_digit` returns one of four `QuquartDigit` values. `QuquartFoldedWorkDevice::measure_phase_digit` samples the four computational channels plus the outside-carrier channel. Its measurement therefore bypasses the sixteen-outcome SIC POVM. The sixteen-state map is locally present and correctly indexed, but it is not integrated into factor extraction.
@@ -28,6 +30,8 @@ The SIC shot now validates that its evidence calculator uses the source-derived 
 
 Prepared artifacts must continue to encode every baked source/base/operator value as native IMASM words. The phase hypotheses and candidate orders are runtime-derived from SIC evidence; they must never be inserted into the prepared artifact.
 
+The terminal factor report now emits numeric values only as canonical IMASM words, including source, base, shot count, phase numerator/denominator, order, and both factors. The verifier rejects unapproved decimal-valued fields and checks the echoed input words against the prepared words. Preparation now validates every numeric JSON leaf by decoding it as a canonical cell-binary word before compilation and no longer invokes Vox for extraction or execution.
+
 The per-gate decision-arena reclamation was also removed. The arena now folds after the complete controlled modular operation, reducing reclamation overhead without a support or capacity ceiling.
 
 ## Implementation Sequence
@@ -40,7 +44,7 @@ The per-gate decision-arena reclamation was also removed. The arena now folds af
 
 4. **Replace digit accumulation with SIC evidence accumulation.** Update the phase readout accumulator to consume the full SIC outcome likelihoods. It must retain competing phase/order candidates until evidence distinguishes them. Accept an order only when modular exponentiation certifies `base^r mod N = 1`; derive nontrivial factors from the certified half-winding and reject trivial splits. There is no fixed shot ceiling.
 
-5. **Close factors in the terminal Gödel path.** Encode `N`, `p`, and `q` as canonical cell-binary words. Require `godel_calculus::check(p_word, Mul, q_word, source_word).valid` before constructing the terminal result. The completed result contains numeric `p`, numeric `q`, their words, the source word, and the explicit successful product-verification verdict. No factor, order, or phase readout is embedded in the prepared program.
+5. **Close factors in the terminal Gödel path.** Hold `N`, `p`, and `q` as canonical cell-binary words. Require `godel_calculus::check(p_word, Mul, q_word, source_word).valid` before constructing the terminal result. The completed result contains the factor words, the source word, and the explicit successful product-verification verdict. No factor, order, or phase readout is embedded in the prepared program.
 
 6. **Prepare one qualifying membrane.** Bake a single balanced, unstructured RSA-style source above 200 bits and its coprime base into native G-mOMonadOS IMASM words. Prepare the Fibonacci Fourier operator and controlled-power schedule in G-mOMonadOS. Compile that prepared JSON into the standalone factor executable. Do not use Vox preparation or execution paths.
 

@@ -6,6 +6,28 @@ use alloc::vec::Vec;
 use core::cmp::Ordering;
 
 impl Nat {
+    /// Modular powering reads exponent cells in pairs and reduces every product.
+    pub fn pow_mod(&self, exponent: &Self, modulus: &Self) -> Option<Self> {
+        if modulus.is_zero() { return None; }
+        let reduce = |value: Self| value.div_rem(modulus).map(|(_, remainder)| remainder);
+        let base = reduce(self.clone())?;
+        let square = reduce(base.mul(&base))?;
+        let cube = reduce(square.mul(&base))?;
+        let mut result = reduce(Self::one())?;
+        for pair in exponent.bits_le().chunks(2).rev() {
+            result = reduce(result.mul(&result))?;
+            result = reduce(result.mul(&result))?;
+            let factor = match (pair[0], pair.get(1).copied().unwrap_or(false)) {
+                (false, false) => None,
+                (true, false) => Some(&base),
+                (false, true) => Some(&square),
+                (true, true) => Some(&cube),
+            };
+            if let Some(factor) = factor { result = reduce(result.mul(factor))?; }
+        }
+        Some(result)
+    }
+
     fn bit(&self, position: usize) -> bool {
         self.bits_le().get(position).copied().unwrap_or(false)
     }
@@ -33,23 +55,35 @@ impl Nat {
         self.div_rem(modulus).expect("nonzero sieve divisor").1
     }
 
-    /// Exact binary division; zero divisors have no quotient.
+    /// Exact radix-four division over paired numeral cells.
+    /// Each incoming pair leaves a quotient pair and a reduced remainder.
     pub fn div_rem(&self, divisor: &Self) -> Option<(Self, Self)> {
         if divisor.is_zero() {
             return None;
         }
         let mut quotient = alloc::vec![false; self.bits_le().len()];
         let mut remainder = Self::zero();
-        for position in (0..self.bits_le().len()).rev() {
-            remainder = remainder.shl(1);
-            if self.bit(position) {
-                remainder = remainder.add(&Self::one());
+        let twice = divisor.shl(1);
+        let thrice = divisor.add(&twice);
+        for pair in (0..self.bits_le().len().div_ceil(2)).rev() {
+            let position = pair * 2;
+            remainder = remainder.shl(2).add(&Self::from_bits_le(
+                alloc::vec![self.bit(position), self.bit(position + 1)]));
+            let (multiple, low, high) = if remainder.cmp_nat(&thrice) != Ordering::Less {
+                (Some(&thrice), true, true)
+            } else if remainder.cmp_nat(&twice) != Ordering::Less {
+                (Some(&twice), false, true)
+            } else if remainder.cmp_nat(divisor) != Ordering::Less {
+                (Some(divisor), true, false)
+            } else {
+                (None, false, false)
+            };
+            if let Some(multiple) = multiple {
+                remainder = remainder.sub(multiple).expect("ordered remainder subtraction");
             }
-            if remainder.cmp_nat(divisor) != Ordering::Less {
-                remainder = remainder
-                    .sub(divisor)
-                    .expect("ordered remainder subtraction");
-                quotient[position] = true;
+            quotient[position] = low;
+            if position + 1 < quotient.len() {
+                quotient[position + 1] = high;
             }
         }
         Some((Self::from_bits_le(quotient), remainder))

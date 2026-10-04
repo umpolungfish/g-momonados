@@ -138,6 +138,8 @@ pub struct QuquartFactorClosure {
 }
 impl QuquartFactorClosure {
     pub fn factors(&self) -> (&BigUint, &BigUint) { (&self.p, &self.q) }
+    pub fn source_word(&self) -> &str { &self.source_word }
+    pub fn factor_words(&self) -> (&str, &str) { (&self.p_word, &self.q_word) }
     pub fn order(&self) -> &BigUint { &self.order }
     pub fn word(&self) -> String { alloc::format!("{}|{}|{}", self.source_word, self.p_word, self.q_word) }
 }
@@ -160,38 +162,57 @@ fn extract_certified_winding(
     order: &BigUint,
 ) -> Result<QuquartFactorClosure, String> {
     use crate::godel_calculus::{check, encode_cell_binary, Nat, Operator};
-    let one = BigUint::one();
-    if order.is_zero() || (order & &one) == one || base.modpow(order, source) != one {
+    let numeral = |value: &BigUint| Nat::from_bits_le(
+        crate::native_numeral::to_bits_low_first(value));
+    let source_numeral = numeral(source);
+    let base_numeral = numeral(base);
+    let order_numeral = numeral(order);
+    let one = Nat::one();
+    if source_numeral.is_zero() || order_numeral.is_zero()
+        || order_numeral.bits_le()[0]
+        || base_numeral.pow_mod(&order_numeral, &source_numeral) != Some(one.clone()) {
         return Err("measured phase did not close an even modular winding".into());
     }
-    let half_power = base.modpow(&(order >> 1usize), source);
-    if half_power == one || &half_power + &one == *source {
+    let half_order = Nat::from_bits_le(order_numeral.bits_le()[1..].to_vec());
+    let half_power = base_numeral.pow_mod(&half_order, &source_numeral)
+        .ok_or("measured winding has a zero source")?;
+    if half_power == one || half_power.add(&one) == source_numeral {
         return Err("measured winding has a trivial half-winding".into());
     }
-    let mut p = BigUint::zero();
-    let mut a = &half_power - &one;
-    let mut b = source.clone();
-    while !b.is_zero() { let remainder = &a % &b; a = b; b = remainder; }
-    if a > one && &a < source { p = a; }
-    if p.is_zero() {
-        let mut a = &half_power + &one;
-        let mut b = source.clone();
-        while !b.is_zero() { let remainder = &a % &b; a = b; b = remainder; }
-        if a > one && &a < source { p = a; }
+    let gcd = |mut left: Nat, mut right: Nat| {
+        while !right.is_zero() {
+            let remainder = left.div_rem(&right).expect("nonzero winding divisor").1;
+            left = right;
+            right = remainder;
+        }
+        left
+    };
+    if gcd(base_numeral, source_numeral.clone()) != one {
+        return Err("measured phase base is not coprime to its source".into());
     }
-    if p.is_zero() { return Err("measured winding did not yield a nontrivial factor".into()); }
-    let q = source / &p;
-    let native_word = |value: &BigUint| encode_cell_binary(&Nat::from_bits_le(
-        crate::native_numeral::to_bits_low_first(value)));
-    let source_word = native_word(source);
-    let p_word = native_word(&p);
-    let q_word = native_word(&q);
-    if q <= one || !check(&p_word, Operator::Mul, &q_word, &source_word)
-        .map_err(|error| error.to_string())?.valid {
+    let mut p_numeral = gcd(half_power.sub(&one).ok_or("zero half-winding")?, source_numeral.clone());
+    if p_numeral == one || p_numeral == source_numeral {
+        p_numeral = gcd(half_power.add(&one), source_numeral.clone());
+    }
+    if p_numeral == one || p_numeral == source_numeral || p_numeral.is_zero() {
+        return Err("measured winding did not yield a nontrivial factor".into());
+    }
+    let (q_numeral, remainder) = source_numeral.div_rem(&p_numeral)
+        .ok_or("zero measured factor arm")?;
+    let source_word = encode_cell_binary(&source_numeral);
+    let p_word = encode_cell_binary(&p_numeral);
+    let q_word = encode_cell_binary(&q_numeral);
+    if q_numeral == one || !remainder.is_zero()
+        || !check(&p_word, Operator::Mul, &q_word, &source_word)
+            .map_err(|error| error.to_string())?.valid {
         return Err("measured factor arms did not close through the Gödel product".into());
     }
-    let base_gcd = crate::factor_routes::big_gcd(base.clone(), source.clone());
-    if base_gcd != one { return Err("measured phase base is not coprime to its source".into()); }
+    let host_value = |value: &Nat| value.bits_le().iter().enumerate().fold(
+        BigUint::zero(), |result, (bit, set)| {
+            if *set { result | (BigUint::one() << bit) } else { result }
+        });
+    let p = host_value(&p_numeral);
+    let q = host_value(&q_numeral);
     Ok(QuquartFactorClosure { source_word, p_word, q_word, order: order.clone(), p, q })
 }
 
