@@ -3,7 +3,7 @@
 mod support;
 use std::io::Write;
 use num_bigint::{BigInt, BigUint};
-use num_traits::Signed;
+use num_traits::{Signed, ToPrimitive};
 pub fn word(value: &BigUint) -> String {
     g_momonados::godel_calculus::encode_cell_binary(
         &g_momonados::godel_calculus::Nat::from_bits_le(
@@ -16,11 +16,50 @@ pub fn signed_word(value: &BigInt) -> String {
 
 fn prepare() -> Result<String, String> {
     let path = std::env::args().nth(1).ok_or("missing preparation file")?;
+    if path == "--radix-words" {
+        let extent = std::env::args().nth(2).ok_or("missing radix-ladder extent word")?;
+        let extent = support::numeral(&extent)?.to_usize().ok_or("radix ladder exceeds host indexing")?;
+        if extent == 0 { return Err("radix ladder requires a nonzero extent word".into()); }
+        let words: Vec<_> = (1..=extent).map(|width| word(&(BigUint::from(1u8) << width))).collect();
+        return Ok(serde_json::json!({"radix_words": words}).to_string());
+    }
+    if path == "--defaults" {
+        let scalar = |value: u64| word(&BigUint::from(value));
+        return Ok(serde_json::json!({
+            "seed_word": scalar(1729), "accuracy_word": scalar(4), "radix_word": scalar(4),
+            "sk_word": scalar(5), "net_word": scalar(7),
+            "capacity_word": scalar(0), "refinement_word": scalar(4),
+        }).to_string());
+    }
+    if path == "--validate-inputs" {
+        let path = std::env::args().nth(2).ok_or("missing input word file")?;
+        let inputs: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(path).map_err(|error| error.to_string())?)
+            .map_err(|error| error.to_string())?;
+        let n = support::numeral(inputs["source_word"].as_str().ok_or("missing source word")?)?;
+        if n.bits() <= 200 { return Err("source word is below the qualifying source precision".into()); }
+        for field in ["sk_word", "net_word", "capacity_word", "refinement_word", "accuracy_word"] {
+            support::numeral(inputs[field].as_str().ok_or("missing compiler option word")?)?
+                .to_usize().ok_or("compiler option exceeds host indexing")?;
+        }
+        support::numeral(inputs["seed_word"].as_str().ok_or("missing measurement seed word")?)?
+            .to_u64().ok_or("measurement seed exceeds the prepared entropy register")?;
+        if let Some(base) = inputs["base_word"].as_str() {
+            g_momonados::ququart_factor::power_of_two_radix_word(
+                inputs["radix_word"].as_str().ok_or("missing nested radix word")?)?;
+            let base = support::numeral(base)?;
+            g_momonados::ququart_factor::QuquartPowerSchedule::prepare(&n, &base)?;
+        }
+        return Ok("validated source and compiler input words".into());
+    }
     let mut prepared: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(path).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
     // A supplied operator never bypasses physical contraction in preparation.
     prepared.as_object_mut().ok_or("preparation must be an object")?.remove("prepared_operator");
     let (n, matrix, metrics) = support::contract(&prepared)?;
+    if n.bits() <= 200 {
+        return Err("qualifying preparations require sources above the minimum source precision".into());
+    }
     let format = g_momonados::phase_unbraid::FixedPointFormat::for_modulus(&n)?;
     let entries: Vec<_> = matrix.0.iter().map(|value|
         serde_json::json!({"re_word": signed_word(&value.re), "im_word": signed_word(&value.im)})).collect();
@@ -31,7 +70,11 @@ fn prepare() -> Result<String, String> {
         "closure_word": scalar(metrics.closure.to_bits()),
         "exchanges_word": word(&num_bigint::BigUint::from(metrics.exchanges))});
     if let Some(base_word) = prepared["base_word"].as_str() {
+        g_momonados::ququart_factor::power_of_two_radix_word(
+            prepared["radix_word"].as_str().ok_or("missing baked nested radix word")?)?;
         let base = support::numeral(base_word)?;
+        support::numeral(prepared["seed_word"].as_str().ok_or("missing measurement seed word")?)?
+            .to_u64().ok_or("measurement seed word exceeds the prepared entropy register")?;
         let schedule = g_momonados::ququart_factor::QuquartPowerSchedule::prepare(&n, &base)?;
         operator["controlled_power_words"] = serde_json::json!(schedule.powers().iter().map(word).collect::<Vec<_>>());
         operator["phase_digits_word"] = serde_json::Value::String(word(&BigUint::from(schedule.powers().len())));
