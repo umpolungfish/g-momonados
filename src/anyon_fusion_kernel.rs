@@ -8,6 +8,61 @@ use alloc::vec::Vec;
 use num_bigint::{BigInt, BigUint};
 use num_traits::Zero;
 
+/// One ensemble member of the uniform mixed work register. Sampling a fresh
+/// residue per shot represents the mixture without allocating N amplitudes.
+pub struct PreparedRegister {
+    residue: BigUint,
+    bits: Vec<bool>,
+}
+impl PreparedRegister {
+    pub fn uniform<F>(source: &BigUint, entropy: F) -> Result<Self, String>
+    where
+        F: FnMut(&mut [u8]) -> Result<(), String>,
+    {
+        let layout = crate::reversible_modular::ModularMultiply::new(source)?;
+        let residue = uniform_below(source, entropy)?;
+        let mut bits = vec![false; layout.elementary_qubits()];
+        for bit in 0..layout.width() {
+            bits[bit + 1] = residue.bit(bit as u64);
+        }
+        Ok(Self { residue, bits })
+    }
+    pub fn residue(&self) -> &BigUint {
+        &self.residue
+    }
+    pub fn logical_bits(&self) -> &[bool] {
+        &self.bits
+    }
+}
+
+fn uniform_below<F>(bound: &BigUint, mut entropy: F) -> Result<BigUint, String>
+where
+    F: FnMut(&mut [u8]) -> Result<(), String>,
+{
+    if bound.is_zero() {
+        return Err("uniform draw requires a positive bound".into());
+    }
+    let bits = bound.bits();
+    let bytes =
+        usize::try_from(bits.div_ceil(8)).map_err(|_| "entropy width exceeds host indexing")?;
+    let mut buffer = Vec::new();
+    buffer
+        .try_reserve_exact(bytes)
+        .map_err(|_| "entropy allocation failed")?;
+    buffer.resize(bytes, 0);
+    loop {
+        entropy(&mut buffer)?;
+        let unused = (8 - bits % 8) % 8;
+        if unused != 0 {
+            buffer[bytes - 1] &= 0xff >> unused;
+        }
+        let draw = BigUint::from_bytes_le(&buffer);
+        if draw < *bound {
+            return Ok(draw);
+        }
+    }
+}
+
 /// Coherent running-charge carrier. Identical paths are combined before any
 /// Born projection. The limit bounds stored paths, never truncates amplitudes.
 pub struct FusionState {
@@ -144,32 +199,15 @@ where
     if let Some((index, _)) = masses.iter().enumerate().find(|(_, mass)| **mass == total) {
         return Ok(index);
     }
-    let bits = total.bits();
-    let bytes =
-        usize::try_from(bits.div_ceil(8)).map_err(|_| "fusion mass width exceeds host indexing")?;
-    let mut buffer = Vec::new();
-    buffer
-        .try_reserve_exact(bytes)
-        .map_err(|_| "fusion entropy allocation failed")?;
-    buffer.resize(bytes, 0);
-    loop {
-        entropy(&mut buffer)?;
-        let unused = (8 - bits % 8) % 8;
-        if unused != 0 {
-            buffer[bytes - 1] &= 0xff >> unused;
-        }
-        let draw = BigUint::from_bytes_le(&buffer);
-        if draw < total {
-            let mut boundary = BigUint::zero();
-            for (index, mass) in masses.iter().enumerate() {
-                boundary += mass;
-                if draw < boundary {
-                    return Ok(index);
-                }
-            }
-            return Err("fusion mass partition failed to cover the draw".into());
+    let draw = uniform_below(&total, &mut entropy)?;
+    let mut boundary = BigUint::zero();
+    for (index, mass) in masses.iter().enumerate() {
+        boundary += mass;
+        if draw < boundary {
+            return Ok(index);
         }
     }
+    return Err("fusion mass partition failed to cover the draw".into());
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -433,6 +471,29 @@ mod tests {
         {
             let fields: Vec<_> = line.split('\t').collect();
             let source = BigUint::parse_bytes(fields[2].as_bytes(), 10).unwrap();
+            let wanted = &source - BigUint::from(1u8);
+            let mut draws = 0;
+            let prepared = PreparedRegister::uniform(&source, |bytes| {
+                draws += 1;
+                let candidate = if draws == 1 { &source } else { &wanted };
+                let encoded = candidate.to_bytes_le();
+                bytes.fill(0);
+                bytes[..encoded.len()].copy_from_slice(&encoded);
+                Ok(())
+            })
+            .unwrap();
+            assert_eq!(draws, 2);
+            assert_eq!(prepared.residue(), &wanted);
+            let width = source.bits() as usize;
+            assert_eq!(prepared.logical_bits().len(), 3 * width + 4);
+            assert!(!prepared.logical_bits()[0]);
+            for bit in 0..width {
+                assert_eq!(prepared.logical_bits()[1 + bit], wanted.bit(bit as u64));
+            }
+            assert!(prepared.logical_bits()[width + 1..].iter().all(|bit| !bit));
+            assert!(
+                PreparedRegister::uniform(&source, |_| Err("entropy unavailable".into())).is_err()
+            );
             let kernel = FusionKernel::new(&source).unwrap();
             for (path, expected) in [
                 (vec![1, 0, 1, 0, 1, 0], PoleOutcome::Truth),

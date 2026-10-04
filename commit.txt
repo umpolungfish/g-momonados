@@ -1,3 +1,3 @@
-I map the encoded control triple to conditional fusion readout.
+I prepare uniform mixed-register ensemble members in the arithmetic wire layout.
 
-I distinguish both computational pair charges from the vacuum triple leakage sector and preserve the selected conditional state. I verify all three outcomes with source fixtures at 128, 256, 512, 1024, and 2048 bits.
+I use unbiased integer rejection sampling for residues and Born draws, initialize the control and scratch clean, and retain linear preparation storage. I verify rejection boundaries, wire placement, entropy errors, and existing fusion projections at every required source width.
