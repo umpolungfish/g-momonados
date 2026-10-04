@@ -4,6 +4,13 @@ use super::frame::{Complex, Operator, Sic};
 use super::{error, SicError};
 use std::f64::consts::PI;
 
+pub(crate) fn turn_phase(numerator: u128, denominator: u128) -> Complex {
+    Complex::phase(2.0 * PI * ((numerator % denominator) as f64) / (denominator as f64))
+}
+pub(crate) fn chirp(k: usize, n: usize) -> Complex {
+    turn_phase((k as u128) * (k as u128), 2 * n as u128)
+}
+
 fn radix_fft(a: &mut [Complex], inverse: bool) {
     let n = a.len();
     let mut j = 0;
@@ -65,9 +72,9 @@ pub fn fft_positive(input: &[Complex]) -> Result<Vec<Complex>, SicError> {
     let mut a = vec![Complex::default(); length];
     let mut b = a.clone();
     for k in 0..n {
-        let phase = PI * (k as f64) * (k as f64) / n as f64;
-        a[k] = input[k] * Complex::phase(phase);
-        b[k] = Complex::phase(-phase);
+        let phase = chirp(k, n);
+        a[k] = input[k] * phase;
+        b[k] = phase.conj();
         if k != 0 {
             b[length - k] = b[k];
         }
@@ -78,9 +85,7 @@ pub fn fft_positive(input: &[Complex]) -> Result<Vec<Complex>, SicError> {
         a[k] = a[k] * b[k];
     }
     radix_fft(&mut a, true);
-    Ok((0..n)
-        .map(|k| a[k] * Complex::phase(PI * (k as f64) * (k as f64) / n as f64))
-        .collect())
+    Ok((0..n).map(|k| a[k] * chirp(k, n)).collect())
 }
 
 pub struct WhSic {
@@ -93,7 +98,10 @@ pub struct OverlapField {
 }
 impl WhSic {
     pub fn new(fiducial: Vec<Complex>) -> Result<Self, SicError> {
-        if fiducial.len() < 2 || fiducial.iter().any(|z| !z.finite()) {
+        if fiducial.len() < 2
+            || fiducial.len().checked_mul(fiducial.len()).is_none()
+            || fiducial.iter().any(|z| !z.finite())
+        {
             return Err(error("invalid WH fiducial"));
         }
         Ok(Self {
@@ -104,8 +112,11 @@ impl WhSic {
     pub fn fiducial(&self) -> &[Complex] {
         &self.fiducial
     }
-    fn phase(&self, p: usize, q: usize) -> Complex {
-        Complex::phase((PI + PI / self.d as f64) * (p as f64) * (q as f64))
+    pub(crate) fn phase(&self, p: usize, q: usize) -> Complex {
+        turn_phase(
+            (self.d as u128 + 1) * (p as u128) * (q as u128),
+            2 * self.d as u128,
+        )
     }
     pub fn displaced(&self, p: usize, q: usize) -> Result<Vec<Complex>, SicError> {
         if p >= self.d || q >= self.d {
@@ -115,7 +126,7 @@ impl WhSic {
             .map(|n| {
                 let k = (n + self.d - p) % self.d;
                 self.phase(p, q)
-                    * Complex::phase(2.0 * PI * q as f64 * k as f64 / self.d as f64)
+                    * turn_phase((q as u128) * (k as u128), self.d as u128)
                     * self.fiducial[k]
             })
             .collect())

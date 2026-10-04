@@ -8,7 +8,7 @@ fn run(args: &[String]) -> Result<(), SicError> {
     match args.first().map(String::as_str).unwrap_or("qubit") {
         "qubit" => {
             let tetra = TetraSic::new();
-            let mut certificate = SicCertificate::measure(&tetra.frame)?;
+            let mut certificate = SicCertificate::measure(tetra.frame())?;
             certificate.exact = Some(g_momonados::sic::exact::certify_tetrahedron());
             print!("{}", certificate.report(policy));
             if args.len() > 1 {

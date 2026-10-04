@@ -1,3 +1,3 @@
-I normalize the retained tagged-build factor reading.
+I implement SIC numerical structures with immutable checked tetrahedral frames.
 
-I remove the trailing blank line from the successful production factor regression log.
+I derive operator caches from validated geometry and preserve frame geometry in SIC states. I test rotated-frame reconstruction, dephasing, invalid vertices, cached completeness, duality, equiangularity, and split/fuse closure. I keep numerical certificates and independent FOUR evidence separate.
