@@ -15,6 +15,16 @@ pub struct ControlledX {
     pub target: usize,
 }
 
+/// Reversible arithmetic boundaries before clean carry ancillas are lowered.
+/// A shared-branch backend can execute each complete split/fuse operation
+/// without materializing its elementary workspace history.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum NestedOperation {
+    Toggle(ControlledX),
+    Add { register: Vec<usize>, value: BigUint, controls: Vec<(usize, bool)> },
+    Compare { register: Vec<usize>, value: BigUint, controls: Vec<(usize, bool)>, flag: usize },
+}
+
 /// Elementary reversible gates with at most two controls.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ElementaryGate {
@@ -260,35 +270,31 @@ where
 }
 
 /// On y < N, add c modulo N. The extra high bit and flag both return to zero.
-fn add_mod<F, A, C>(
+fn add_mod<F>(
     register: &[usize],
     c: &BigUint,
     n: &BigUint,
     controls: &[(usize, bool)],
     flag: usize,
-    addition: &mut A,
-    comparison: &mut C,
     emit: &mut F,
 ) -> Result<(), String>
 where
-    F: FnMut(ControlledX) -> Result<(), String>,
-    A: FnMut(&[usize], &BigUint, &[(usize, bool)], &mut F) -> Result<(), String>,
-    C: FnMut(&[usize], &BigUint, &[(usize, bool)], usize, &mut F) -> Result<(), String>,
+    F: FnMut(NestedOperation) -> Result<(), String>,
 {
     if c.is_zero() {
         return Ok(());
     }
     let radix = BigUint::one() << register.len();
-    addition(register, c, controls, emit)?;
-    addition(register, &(&radix - n), controls, emit)?;
+    emit(NestedOperation::Add { register: register.to_vec(), value: c.clone(), controls: controls.to_vec() })?;
+    emit(NestedOperation::Add { register: register.to_vec(), value: &radix - n, controls: controls.to_vec() })?;
     let mut sign = controls.to_vec();
     sign.push((*register.last().ok_or("empty modular register")?, true));
-    gate(&sign, flag, emit)?;
-    addition(register, n, &[(flag, true)], emit)?;
+    emit(NestedOperation::Toggle(ControlledX { controls: sign, target: flag }))?;
+    emit(NestedOperation::Add { register: register.to_vec(), value: n.clone(), controls: alloc::vec![(flag,true)] })?;
     // Underflow means no wrap; the final result < c means wrap. These are
     // complementary on the valid input subspace, so erase the borrow flag.
-    gate(controls, flag, emit)?;
-    comparison(register, c, controls, flag, emit)
+    emit(NestedOperation::Toggle(ControlledX { controls: controls.to_vec(), target: flag }))?;
+    emit(NestedOperation::Compare { register: register.to_vec(), value: c.clone(), controls: controls.to_vec(), flag })
 }
 
 fn inverse(value: &BigUint, n: &BigUint) -> Result<BigUint, String> {
@@ -411,6 +417,33 @@ impl ModularMultiply {
         self.emit_with_ops(multiplier, emit, add, less_than)
     }
 
+    pub fn emit_ququart_nested<F>(
+        &self, multiplier: &BigUint, lane: usize, mut emit: F,
+    ) -> Result<(), String>
+    where F: FnMut(NestedOperation) -> Result<(), String> {
+        if lane > 1 { return Err("ququart control lane must be zero or one".into()); }
+        let wire = |q| if q == 0 { lane } else { q + 1 };
+        let output = |operation: NestedOperation| {
+            let controls = |items: Vec<(usize, bool)>| items.into_iter()
+                .map(|(q, value)| (wire(q), value)).collect();
+            let register = |items: Vec<usize>| items.into_iter().map(wire).collect();
+            emit(match operation {
+                NestedOperation::Toggle(gate) => NestedOperation::Toggle(ControlledX {
+                    target: wire(gate.target), controls: controls(gate.controls),
+                }),
+                NestedOperation::Add { register: r, value, controls: c } => NestedOperation::Add {
+                    register: register(r), value, controls: controls(c),
+                },
+                NestedOperation::Compare { register: r, value, controls: c, flag } => NestedOperation::Compare {
+                    register: register(r), value, controls: controls(c), flag: wire(flag),
+                },
+            })
+        };
+        // The same add_mod and inverse rail feed both elementary lowering and
+        // these nested boundaries. Only the execution representation differs.
+        self.emit_nested(multiplier, output)
+    }
+
     fn emit_with_ops<F, A, C>(
         &self,
         multiplier: &BigUint,
@@ -423,6 +456,17 @@ impl ModularMultiply {
         A: FnMut(&[usize], &BigUint, &[(usize, bool)], &mut F) -> Result<(), String>,
         C: FnMut(&[usize], &BigUint, &[(usize, bool)], usize, &mut F) -> Result<(), String>,
     {
+        self.emit_nested(multiplier, |operation| match operation {
+            NestedOperation::Toggle(gate) => emit(gate),
+            NestedOperation::Add { register, value, controls } =>
+                addition(&register, &value, &controls, &mut emit),
+            NestedOperation::Compare { register, value, controls, flag } =>
+                comparison(&register, &value, &controls, flag, &mut emit),
+        })
+    }
+
+    fn emit_nested<F>(&self, multiplier: &BigUint, mut emit: F) -> Result<(), String>
+    where F: FnMut(NestedOperation) -> Result<(), String> {
         let multiplier = multiplier % &self.n;
         if multiplier.is_one() {
             return Ok(());
@@ -439,16 +483,16 @@ impl ModularMultiply {
                 &self.n,
                 &[(0, true), (bit, true)],
                 flag,
-                &mut addition,
-                &mut comparison,
                 &mut emit,
             )?;
             power = (&power << 1usize) % &self.n;
         }
         for (&x, &y) in source.iter().zip(&workspace) {
-            gate(&[(0, true), (x, true)], y, &mut emit)?;
-            gate(&[(0, true), (y, true)], x, &mut emit)?;
-            gate(&[(0, true), (x, true)], y, &mut emit)?;
+            for (control, target) in [(x,y), (y,x), (x,y)] {
+                emit(NestedOperation::Toggle(ControlledX {
+                    controls: alloc::vec![(0,true),(control,true)], target,
+                }))?;
+            }
         }
         let mut power = inverse;
         for &bit in &source {
@@ -463,8 +507,6 @@ impl ModularMultiply {
                 &self.n,
                 &[(0, true), (bit, true)],
                 flag,
-                &mut addition,
-                &mut comparison,
                 &mut emit,
             )?;
             power = (&power << 1usize) % &self.n;
