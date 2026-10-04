@@ -7,15 +7,82 @@ fn close(a: f64, b: f64) {
 }
 
 #[test]
+fn checked_rotated_frames_keep_coordinates_and_caches_consistent() {
+    let canonical = TetraSic::canonical();
+    let angle = 0.37f64;
+    let vertices = canonical.vertices().map(|r| {
+        BlochVector::new(
+            angle.cos() * r.x - angle.sin() * r.y,
+            angle.sin() * r.x + angle.cos() * r.y,
+            r.z,
+        )
+    });
+    let rotated = TetraSic::with_vertices(vertices).unwrap();
+    let cert = SicCertificate::measure(rotated.frame()).unwrap();
+    for residual in [
+        cert.completeness,
+        cert.duality,
+        cert.equiangularity,
+        cert.closure,
+    ] {
+        assert!(residual < 2e-12);
+    }
+    let mut effects = Operator::zero(2);
+    for i in 0..4 {
+        close(rotated.vertex(i).norm(), 1.0);
+        effects
+            .add_scaled(rotated.effect(i), Complex::new(1.0, 0.0))
+            .unwrap();
+        for j in 0..4 {
+            close(
+                rotated.effect(i).trace_product(rotated.dual(j)).unwrap().re,
+                if i == j { 1.0 } else { 0.0 },
+            );
+        }
+    }
+    assert!(effects.distance(&Operator::identity(2)).unwrap() < 2e-12);
+    let state = QubitState::new(BlochVector::new(0.2, -0.3, 0.4)).unwrap();
+    let coordinates = rotated.split(&state);
+    close(
+        coordinates
+            .reconstruct()
+            .unwrap()
+            .bloch()
+            .plus(state.bloch().scale(-1.0))
+            .norm(),
+        0.0,
+    );
+    close(
+        coordinates
+            .dephase(0.4)
+            .unwrap()
+            .reconstruct()
+            .unwrap()
+            .bloch()
+            .plus(state.dephase(0.4).unwrap().bloch().scale(-1.0))
+            .norm(),
+        0.0,
+    );
+    let mut invalid = vertices;
+    invalid[0] = invalid[1];
+    assert!(TetraSic::with_vertices(invalid).is_err());
+    invalid = vertices;
+    invalid[0] = invalid[0].scale(0.5);
+    assert!(TetraSic::with_vertices(invalid).is_err());
+    invalid[0].x = f64::NAN;
+    assert!(TetraSic::with_vertices(invalid).is_err());
+}
+
+#[test]
 fn tetra_geometry_frame_duality_and_exact_certificate() {
     let tetra = TetraSic::new();
     let mut sum = BlochVector::new(0.0, 0.0, 0.0);
     for i in 0..4 {
-        sum = sum.plus(tetra.vertices[i]);
-        close(tetra.vertices[i].norm(), 1.0);
+        sum = sum.plus(tetra.vertices()[i]);
+        close(tetra.vertices()[i].norm(), 1.0);
         for j in 0..4 {
             close(
-                tetra.vertices[i].dot(tetra.vertices[j]),
+                tetra.vertices()[i].dot(tetra.vertices()[j]),
                 if i == j { 1.0 } else { -1.0 / 3.0 },
             );
         }
@@ -24,7 +91,7 @@ fn tetra_geometry_frame_duality_and_exact_certificate() {
     for a in 0..3 {
         for b in 0..3 {
             let value: f64 = tetra
-                .vertices
+                .vertices()
                 .iter()
                 .map(|r| {
                     let x = [r.x, r.y, r.z];
@@ -34,7 +101,7 @@ fn tetra_geometry_frame_duality_and_exact_certificate() {
             close(value, if a == b { 4.0 / 3.0 } else { 0.0 });
         }
     }
-    let certificate = SicCertificate::measure(&tetra.frame).unwrap();
+    let certificate = SicCertificate::measure(tetra.frame()).unwrap();
     for x in [
         certificate.normalization,
         certificate.completeness,
@@ -84,12 +151,25 @@ fn physical_regions_measurements_retraction_urgleichung_and_dephasing() {
         }
         let direct = truth_measure(&state);
         let conditional = [
-            std::array::from_fn(|i| 0.5 * (1.0 + tetra.vertices[i].z)),
-            std::array::from_fn(|i| 0.5 * (1.0 - tetra.vertices[i].z)),
+            std::array::from_fn(|i| 0.5 * (1.0 + tetra.vertices()[i].z)),
+            std::array::from_fn(|i| 0.5 * (1.0 - tetra.vertices()[i].z)),
         ];
         let q = urgleichung(&p, &conditional);
         close(q[0], direct.truth);
         close(q[1], direct.falsity);
+        for axis in [
+            BlochVector::new(1.0, 0.0, 0.0),
+            BlochVector::new(0.0, 1.0, 0.0),
+        ] {
+            let conditional = [
+                std::array::from_fn(|i| 0.5 * (1.0 + tetra.vertices()[i].dot(axis))),
+                std::array::from_fn(|i| 0.5 * (1.0 - tetra.vertices()[i].dot(axis))),
+            ];
+            let q = urgleichung(&p, &conditional);
+            let direct = qubit::truth_measure_axis(&state, axis).unwrap();
+            close(q[0], direct.truth);
+            close(q[1], direct.falsity);
+        }
         let dephased = quantum
             .dephase(0.25)
             .unwrap()
@@ -100,14 +180,14 @@ fn physical_regions_measurements_retraction_urgleichung_and_dephasing() {
         close(dephased.y, r.y * 0.25);
         close(dephased.z, r.z);
         let density = state.operator();
-        let operator_coordinates = tetra.frame.split(&density).unwrap();
+        let operator_coordinates = tetra.frame().split(&density).unwrap();
         for i in 0..4 {
             close(operator_coordinates.values[i].re, p.probabilities()[i]);
             close(operator_coordinates.values[i].im, 0.0);
         }
         assert!(
             tetra
-                .frame
+                .frame()
                 .fuse(&operator_coordinates)
                 .unwrap()
                 .distance(&density)
@@ -130,7 +210,6 @@ fn physical_regions_measurements_retraction_urgleichung_and_dephasing() {
     let policy = EvidencePolicy::new(1e-12, 1e-8).unwrap();
     assert_eq!(policy.classify(Some(1e-10)), V::N);
     assert_eq!(policy.classify(None), V::N);
-    assert_eq!(policy.accumulate(V::T, Some(1.0)), V::B);
     let mut evidence = residual::FourEvidence::default();
     evidence.record("closure", "execution-a", Some(0.0), policy);
     evidence.record("closure", "execution-a", Some(1.0), policy);

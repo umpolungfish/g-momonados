@@ -609,7 +609,7 @@ fn main() {
         }
         if head == "sic" {
             let frame = g_momonados::sic::TetraSic::new();
-            match g_momonados::sic::certificate::SicCertificate::measure(&frame.frame) {
+            match g_momonados::sic::certificate::SicCertificate::measure(frame.frame()) {
                 Ok(mut certificate) => {
                     certificate.exact = Some(g_momonados::sic::exact::certify_tetrahedron());
                     print!("{}", certificate.report(g_momonados::sic::certificate::EvidencePolicy::new(1e-12, 1e-8).unwrap()));
