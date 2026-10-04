@@ -142,6 +142,56 @@ impl QuquartFactorClosure {
     pub fn factor_words(&self) -> (&str, &str) { (&self.p_word, &self.q_word) }
     pub fn order(&self) -> &BigUint { &self.order }
     pub fn word(&self) -> String { alloc::format!("{}|{}|{}", self.source_word, self.p_word, self.q_word) }
+    /// Execute both Vox split/fuse nestings at the baked numeral radix.
+    /// The emitted arms come from their common terminal prefix, then close
+    /// through the same native Gödel multiplication as the source carrier.
+    pub fn nested_radix_words(&self, radix_word: &str) -> Result<(String, String), String> {
+        nested_radix_factor_words(self.source_word(), &self.p_word, &self.q_word, radix_word)
+    }
+}
+
+pub fn power_of_two_radix_word(word: &str) -> Result<crate::godel_calculus::Nat, String> {
+    use crate::godel_calculus::{decode, encode_cell_binary, Structure};
+    let reading = decode(word).map_err(|error| error.to_string())?;
+    if !matches!(reading.structure, Structure::CellBinary { .. })
+        || encode_cell_binary(&reading.value) != word {
+        return Err("radix must be a canonical IMASM cell-binary word".into());
+    }
+    if reading.value.bits_le().len() < 2
+        || reading.value.bits_le().iter().filter(|&&bit| bit).count() != 1 {
+        return Err("nested radix must be a power of two greater than one".into());
+    }
+    Ok(reading.value)
+}
+
+pub fn nested_radix_factor_words(
+    source_word: &str, p_word: &str, q_word: &str, radix_word: &str,
+) -> Result<(String, String), String> {
+    use crate::godel_calculus::{check, decode, encode_cell_binary, Nat, Operator, Structure};
+    let tape = |word: &str| -> Result<Vec<char>, String> {
+        let reading = decode(word).map_err(|error| error.to_string())?;
+        if !matches!(reading.structure, Structure::CellBinary { .. })
+            || encode_cell_binary(&reading.value) != word {
+            return Err("nested factor arm must be a canonical IMASM numeral word".into());
+        }
+        Ok(reading.value.bits_le().iter().map(|&bit|
+            if bit { vox_core::vox::EVALF } else { vox_core::vox::EVALT }).collect())
+    };
+    power_of_two_radix_word(radix_word)?;
+    let fixed = vox_core::factor_2adic::meet_factor_nestings(
+        &tape(source_word)?, &tape(p_word)?, &tape(q_word)?, &tape(radix_word)?,
+    ).ok_or("product/prefix and prefix/product nestings did not meet")?;
+    let fixed = vox_core::factor_2adic::terminal_pair_given_semiprime_promise(
+        &tape(source_word)?, fixed,
+    ).ok_or("nested terminal did not carry a proper factor pair")?;
+    let word = |bits: &[char]| encode_cell_binary(&Nat::from_bits_le(
+        bits.iter().map(|&bit| bit == vox_core::vox::EVALF).collect()));
+    let p = word(&fixed.p);
+    let q = word(&fixed.q);
+    if !check(&p, Operator::Mul, &q, source_word).map_err(|error| error.to_string())?.valid {
+        return Err("nested terminal factors did not close through Gödel multiplication".into());
+    }
+    Ok((p, q))
 }
 pub struct QuquartFactorShot {
     pub phase: QuquartPhaseReadout,
@@ -463,6 +513,20 @@ mod tests {
         assert_eq!(p * q, n);
         assert_eq!(*p, decimal(b"37975227936943673922808872755445627854565536638199"));
         assert_eq!(*q, decimal(b"40094690950920881030683735292761468389214899724061"));
+
+        for width in [1usize, 2, 3, 4, 8, 16, 64, 331] {
+            let radix = crate::godel_calculus::encode_cell_binary(
+                &crate::godel_calculus::Nat::one().shl(width));
+            let (nested_p, nested_q) = closure.nested_radix_words(&radix).unwrap();
+            assert_eq!((nested_p.as_str(), nested_q.as_str()), closure.factor_words());
+            let wrong = crate::godel_calculus::encode_cell_binary(&crate::godel_calculus::Nat::one());
+            assert!(nested_radix_factor_words(closure.source_word(), &wrong, &nested_q, &radix).is_err());
+        }
+        for radix in [0u64, 1, 3, 6, 12] {
+            let word = crate::godel_calculus::encode_cell_binary(&crate::godel_calculus::Nat::from_u64(radix));
+            assert!(closure.nested_radix_words(&word).is_err());
+        }
+        assert!(closure.nested_radix_words("4").is_err());
 
         let format = crate::phase_unbraid::FixedPointFormat::for_modulus(&n).unwrap();
         let mut sic_evidence = SicPhaseEvidence::new(&format).unwrap();
