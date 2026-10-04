@@ -1,3 +1,3 @@
-I bind the baked radix to live source digit translations
+I bypass fixed source digit branches before splitting
 
-I prepare four source-radix membranes, recover their compiled modular branch with Vox, and retain the bounded ququart execution without claiming factor closure.
+I retain complete Vox disassembly before and after the shortcut, prepare the octal source-radix membrane, and stop its execution at the user closure limit without claiming factors.

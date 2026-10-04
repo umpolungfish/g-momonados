@@ -541,12 +541,18 @@ impl DecisionArena {
             at: usize, accumulated: &BigUint, place: &BigUint, modulus: &BigUint) -> usize {
             if arena.fixed[root].empty { return root; }
             if at == digit.len() { return arena.modular_add(root,register,accumulated,modulus,&[]); }
+            let next_place = (place << 1usize) % modulus;
+            if arena.fixed[root].zero.bit(digit[at] as u64) {
+                return visit(arena,root,register,digit,at+1,accumulated,&next_place,modulus);
+            }
+            let next_accumulated = (accumulated + place) % modulus;
+            if arena.fixed[root].one.bit(digit[at] as u64) {
+                return visit(arena,root,register,digit,at+1,&next_accumulated,&next_place,modulus);
+            }
             let zero = arena.zero();
             let low = arena.conditional_literals(zero,root,&[(digit[at],false)]);
             let high = arena.conditional_literals(zero,root,&[(digit[at],true)]);
-            let next_place = (place << 1usize) % modulus;
             let low = visit(arena,low,register,digit,at+1,accumulated,&next_place,modulus);
-            let next_accumulated = (accumulated + place) % modulus;
             let high = visit(arena,high,register,digit,at+1,&next_accumulated,&next_place,modulus);
             arena.sum(low,high)
         }
