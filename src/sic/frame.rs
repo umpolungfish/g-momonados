@@ -200,11 +200,20 @@ pub trait Sic {
 
 pub struct SicFrame {
     d: usize,
-    pub projectors: Vec<Operator>,
-    pub effects: Vec<Operator>,
-    pub duals: Vec<Operator>,
+    projectors: Vec<Operator>,
+    effects: Vec<Operator>,
+    duals: Vec<Operator>,
 }
 impl SicFrame {
+    pub fn projectors(&self) -> &[Operator] {
+        &self.projectors
+    }
+    pub fn effects(&self) -> &[Operator] {
+        &self.effects
+    }
+    pub fn duals(&self) -> &[Operator] {
+        &self.duals
+    }
     pub fn new(projectors: Vec<Operator>) -> Result<Self, SicError> {
         let d = projectors
             .first()
