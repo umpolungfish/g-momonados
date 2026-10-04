@@ -1,3 +1,3 @@
-I use Vox samples to reduce shared carrier node lookup overhead
+I split disabled work arms before nested arithmetic
 
-I retain the native trace and coherent before/after controls, prepare a separate hash-index membrane, and record the older octal termination without claiming factor extraction.
+I preserve exact complex coherence through outer control splitting, compile and validate a separate source-bound membrane, and retain its execution handle without claiming produced factors.

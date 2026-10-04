@@ -1,0 +1,9 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+    Finished `release` profile [optimized] target(s) in 41.74s
+     Running unittests src/lib.rs (target/release/deps/g_momonados-018405b138bb1f3e)
+
+running 1 test
+test ququart_folded_work::tests::nested_modular_operator_preserves_complex_coherence_and_clean_workspace ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 10.34s
+

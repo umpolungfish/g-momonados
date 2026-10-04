@@ -1,0 +1,9 @@
+{
+  "manifest_digests_verified": true,
+  "compiled_preparation_embedded": true,
+  "numeric_words_validated": true,
+  "runtime_input_rejected": true,
+  "work_arm_order": "outer_controls_before_arithmetic_and_flip",
+  "phase_carrier": "ququart",
+  "radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣"
+}

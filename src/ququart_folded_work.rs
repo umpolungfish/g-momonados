@@ -154,7 +154,9 @@ impl QuquartFoldedWorkDevice {
                     let changed = if gate.target < 2 {
                         incoming
                     } else {
-                        self.arena.flip(old[channel],gate.target-2)
+                        let zero = self.arena.zero();
+                        let enabled = self.arena.conditional_literals(zero,old[channel],&work);
+                        self.arena.flip(enabled,gate.target-2)
                     };
                     self.arena.conditional_literals(old[channel],changed,&work)
                 }
