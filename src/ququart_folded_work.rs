@@ -4,8 +4,10 @@ use crate::anyon_pair::{PairMatrix, COMPUTATIONAL_CHANNELS, LEAKAGE_CHANNEL};
 use crate::anyon_ququart::{FixedQuquartSic, QuquartDigit, QuquartSicOutcome};
 use crate::phase_unbraid::{FixedComplex, FixedPointFormat};
 use crate::ququart_decision::DecisionArena;
-use crate::ququart_factor::{emit_controlled_ququart_power, QuquartPhaseDevice};
-use crate::reversible_modular::{ElementaryGate, ModularMultiply};
+use crate::ququart_factor::QuquartPhaseDevice;
+use crate::reversible_modular::{NestedOperation, ModularMultiply};
+#[cfg(test)]
+use crate::reversible_modular::ElementaryGate;
 use alloc::{string::String, vec::Vec};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
@@ -66,6 +68,7 @@ impl QuquartFoldedWorkDevice {
         self.arena.fold(&mut self.roots);
         self.peak_nodes = self.peak_nodes.max(self.arena.retained_nodes());
     }
+    #[cfg(test)]
     fn apply_gate(&mut self, gate: ElementaryGate) -> Result<(), String> {
         let (target, controls): (_, Vec<_>) = match gate {
             ElementaryGate::X(t) => (t, Vec::new()),
@@ -101,6 +104,67 @@ impl QuquartFoldedWorkDevice {
                 self.arena.controlled_flip(old[channel], target - 2, &work)
             };
         }
+        Ok(())
+    }
+
+    fn apply_nested(&mut self, operation: NestedOperation) -> Result<(), String> {
+        let (controls, targets): (&[(usize,bool)], Vec<usize>) = match &operation {
+            NestedOperation::Toggle(gate) => (&gate.controls, alloc::vec![gate.target]),
+            NestedOperation::Add { register, controls, .. } => (controls, register.clone()),
+            NestedOperation::Compare { register, controls, flag, .. } => {
+                if register.last().is_some_and(|wire| wire >= flag) {
+                    return Err("nested comparison flag must follow its register".into());
+                }
+                (controls, alloc::vec![*flag])
+            }
+        };
+        let extent = self.arena.cells + 2;
+        if controls.iter().any(|&(wire,_)| wire >= extent || targets.contains(&wire))
+            || targets.iter().any(|&wire| wire >= extent) {
+            return Err("nested arithmetic has invalid or overlapping wires".into());
+        }
+        if let NestedOperation::Add { register, .. } | NestedOperation::Compare { register, .. } = &operation {
+            if register.is_empty() || register[0] < 2
+                || register.windows(2).any(|pair| pair[0] >= pair[1])
+                || register.iter().any(|&wire| wire >= extent)
+                || controls.iter().any(|&(wire,_)| register.contains(&wire)) {
+                return Err("nested arithmetic requires ordered disjoint work wires".into());
+            }
+        }
+        let mut work: Vec<_> = controls.iter().filter(|&&(wire,_)| wire >= 2)
+            .map(|&(wire,value)| (wire-2,value)).collect();
+        work.sort_unstable();
+        if work.windows(2).any(|pair| pair[0].0 == pair[1].0) {
+            return Err("nested arithmetic controls must address distinct wires".into());
+        }
+        let old = self.roots;
+        for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+            let incoming = match &operation {
+                NestedOperation::Toggle(gate) if gate.target < 2 =>
+                    old[COMPUTATIONAL_CHANNELS[digit ^ (1 << gate.target)]],
+                _ => old[channel],
+            };
+            if controls.iter().any(|&(wire,value)| wire < 2 && (digit & (1 << wire) != 0) != value)
+                || (!self.arena.controls_possible(old[channel],&work)
+                    && !self.arena.controls_possible(incoming,&work)) {
+                continue;
+            }
+            self.roots[channel] = match &operation {
+                NestedOperation::Toggle(gate) => {
+                    let changed = if gate.target < 2 {
+                        incoming
+                    } else {
+                        self.arena.flip(old[channel],gate.target-2)
+                    };
+                    self.arena.conditional_literals(old[channel],changed,&work)
+                }
+                NestedOperation::Add { register,value,.. } => self.arena.add_constant(
+                    old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,&work),
+                NestedOperation::Compare { register,value,flag,.. } => self.arena.compare_constant(
+                    old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,&work,flag-2),
+            };
+        }
+        self.fold();
         Ok(())
     }
 
@@ -199,8 +263,10 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
     }
     fn controlled_multiply(&mut self, multiplier: &BigUint) -> Result<(), String> {
         self.require_active()?;
-        let source = self.source.clone();
-        emit_controlled_ququart_power(&source, multiplier, |gate| self.apply_gate(gate))?;
+        let arithmetic = ModularMultiply::new(&self.source)?;
+        arithmetic.emit_ququart_nested(multiplier,0,|operation| self.apply_nested(operation))?;
+        let square = multiplier * multiplier % &self.source;
+        arithmetic.emit_ququart_nested(&square,1,|operation| self.apply_nested(operation))?;
         self.fold();
         Ok(())
     }
@@ -287,6 +353,52 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn nested_modular_operator_preserves_complex_coherence_and_clean_workspace() {
+        for source_word in [
+            include_str!("../membranes/ququart_factor_semiprime_128_20261004/source.imasm"),
+            include_str!("../membranes/ququart_factor_rsa100_native_words_20261004/source.imasm"),
+        ] {
+        let reading = crate::godel_calculus::decode(source_word.trim()).unwrap();
+        assert_eq!(crate::godel_calculus::encode_cell_binary(&reading.value),source_word.trim());
+        let n = reading.value.bits_le().iter().rev().fold(BigUint::zero(),
+            |value,&bit| (value << 1usize) + u8::from(bit));
+        let format = FixedPointFormat::for_modulus(&n).unwrap();
+        let mut device = QuquartFoldedWorkDevice::new(n.clone(),PairMatrix::identity(&format),1729).unwrap();
+        device.begin(&n,&BigUint::from(2u8),1).unwrap();
+        device.arena = DecisionArena::new(device.arena.cells);
+        let z = device.arena.zero();
+        device.roots = [z;5];
+        let residues = [&n-1u8,&n-2u8];
+        for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+            for (index,residue) in residues.iter().enumerate() {
+                let basis = device.arena.basis(residue,format.scale());
+                let scalar = FixedComplex { re: BigInt::from(3+5*digit+index), im: BigInt::from(7+3*digit+2*index) };
+                let basis = device.arena.scale(basis,&scalar,&format);
+                device.roots[channel] = device.arena.sum(device.roots[channel],basis);
+            }
+        }
+        device.fold();
+        let masses: Vec<_> = COMPUTATIONAL_CHANNELS.iter().map(|&c| device.arena.mass(device.roots[c])).collect();
+        let schedule = crate::ququart_factor::QuquartPowerSchedule::prepare(&n,&BigUint::from(2u8)).unwrap();
+        let multiplier = &schedule.powers()[64];
+        device.controlled_multiply(multiplier).unwrap();
+        let mut power = BigUint::one();
+        for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+            for (index,residue) in residues.iter().enumerate() {
+                let image = residue*&power%&n;
+                assert_eq!(device.arena.amplitude(device.roots[channel],&image),
+                    (BigInt::from(3+5*digit+index),BigInt::from(7+3*digit+2*index)));
+            }
+            // Exact mass at the clean-work addresses exhausts the channel:
+            // no amplitude can remain in any arithmetic or carry ancilla.
+            assert_eq!(device.arena.mass(device.roots[channel]),masses[digit]);
+            power = power*multiplier%&n;
+        }
+        assert!(device.arena.mass(device.roots[LEAKAGE_CHANNEL]).is_zero());
+        }
+    }
+
     #[test]
     fn folded_work_sic_measurement_preserves_mask_and_work_closure() {
         let n = BigUint::parse_bytes(

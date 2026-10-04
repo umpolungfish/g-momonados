@@ -21,6 +21,47 @@ mod tests {
     use num_traits::One;
 
     #[test]
+    fn nested_arithmetic_preserves_every_complex_basis_coordinate() {
+        let mut arena = DecisionArena::new(7);
+        let z = arena.zero();
+        let mut original = z;
+        for value in 0u64..128 {
+            let basis = arena.basis(&BigUint::from(value),BigInt::from(value+1));
+            // Give every address a distinct non-real amplitude.
+            let mut imaginary = arena.intern(Node::Leaf(BigInt::zero(),BigInt::from(2*value+7)));
+            for wire in (0..7).rev() {
+                imaginary = if value & (1 << wire) != 0 { arena.branch(wire,z,imaginary) }
+                    else { arena.branch(wire,imaginary,z) };
+            }
+            let basis = arena.sum(basis,imaginary);
+            original = arena.sum(original,basis);
+        }
+        let mut roots = [original,z,z,z,z];
+        arena.fold(&mut roots);
+        let mass = arena.mass(original);
+        let register = [1usize,3,4];
+        let controls = [(0usize,false),(2usize,true)];
+        for constant in 0u64..8 {
+            roots[1] = arena.add_constant(original,&register,&BigUint::from(constant),&controls);
+            roots[2] = arena.compare_constant(original,&register,&BigUint::from(constant),&controls,6);
+            arena.fold(&mut roots);
+            for input in 0u64..128 {
+                let enabled = input & 1 == 0 && input & 4 != 0;
+                let digit = register.iter().enumerate().fold(0u64,|d,(bit,&wire)| d | (((input >> wire)&1)<<bit));
+                let next_digit = (digit+constant)&7;
+                let added = if enabled { register.iter().enumerate().fold(input,|v,(bit,&wire)|
+                    (v & !(1 << wire)) | (((next_digit >> bit)&1)<<wire)) } else { input };
+                let compared = if enabled && digit < constant { input ^ 64 } else { input };
+                let expected = (BigInt::from(input+1),BigInt::from(2*input+7));
+                assert_eq!(arena.amplitude(roots[1],&BigUint::from(added)),expected);
+                assert_eq!(arena.amplitude(roots[2],&BigUint::from(compared)),expected);
+            }
+            assert_eq!(arena.mass(roots[1]),mass);
+            assert_eq!(arena.mass(roots[2]),mass);
+        }
+    }
+
+    #[test]
     fn controlled_permutations_preserve_complex_support_through_slot_reuse() {
         let n = BigUint::parse_bytes(
             b"307795685303946736105416402281159953456744654179248447762559917", 10,
@@ -389,6 +430,97 @@ impl DecisionArena {
             r
         }
         visit(self, a, b, controls, 0, &mut BTreeMap::new())
+    }
+
+    pub fn controls_possible(&self, root: usize, controls: &[(usize, bool)]) -> bool {
+        let fixed = &self.fixed[root];
+        !fixed.empty && !controls.iter().any(|&(wire, positive)| {
+            if positive { fixed.zero.bit(wire as u64) } else { fixed.one.bit(wire as u64) }
+        })
+    }
+
+    /// Fuse changed and unchanged arms on the original literal controls.
+    pub fn conditional_literals(&mut self, a: usize, b: usize, controls: &[(usize, bool)]) -> usize {
+        fn visit(arena: &mut DecisionArena, a: usize, b: usize,
+            controls: &[(usize, bool)], at: usize,
+            memo: &mut BTreeMap<(usize, usize, usize), usize>) -> usize {
+            if a == b { return a; }
+            if at == controls.len() { return b; }
+            if let Some(&result) = memo.get(&(a,b,at)) { return result; }
+            let (control, positive) = controls[at];
+            let wire = arena.top(a).into_iter().chain(arena.top(b))
+                .chain(core::iter::once(control)).min().unwrap();
+            let (al,ah) = arena.split(a,wire);
+            let (bl,bh) = arena.split(b,wire);
+            let (low,high) = if wire == control {
+                if positive { (al,visit(arena,ah,bh,controls,at+1,memo)) }
+                else { (visit(arena,al,bl,controls,at+1,memo),ah) }
+            } else {
+                (visit(arena,al,bl,controls,at,memo),visit(arena,ah,bh,controls,at,memo))
+            };
+            let result = arena.branch(wire,low,high);
+            memo.insert((a,b,at),result);
+            result
+        }
+        visit(self,a,b,controls,0,&mut BTreeMap::new())
+    }
+
+    /// Reversible constant addition as a shared dyadic split/fuse transducer.
+    /// Output coordinates select the original input by the subtraction borrow.
+    /// The final borrow is discarded only at the register's modular boundary.
+    pub fn add_constant(&mut self, root: usize, register: &[usize], value: &BigUint,
+        controls: &[(usize, bool)]) -> usize {
+        if !self.controls_possible(root,controls) || value.is_zero() { return root; }
+        fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &BigUint,
+            at: usize, borrow: bool, memo: &mut BTreeMap<(usize,usize,bool),usize>) -> usize {
+            if at == register.len() || matches!(arena.node(id),Node::Leaf(..)) { return id; }
+            if let Some(&result) = memo.get(&(id,at,borrow)) { return result; }
+            let wire = arena.top(id).unwrap().min(register[at]);
+            let (low,high) = arena.split(id,wire);
+            let (low,high) = if wire == register[at] {
+                let constant = value.bit(at as u64);
+                let (for_zero,for_one) = if constant ^ borrow { (high,low) } else { (low,high) };
+                (visit(arena,for_zero,register,value,at+1,constant || borrow,memo),
+                 visit(arena,for_one,register,value,at+1,constant && borrow,memo))
+            } else {
+                (visit(arena,low,register,value,at,borrow,memo),
+                 visit(arena,high,register,value,at,borrow,memo))
+            };
+            let result = arena.branch(wire,low,high);
+            memo.insert((id,at,borrow),result);
+            result
+        }
+        let changed = visit(self,root,register,value,0,false,&mut BTreeMap::new());
+        self.conditional_literals(root,changed,controls)
+    }
+
+    /// XOR a high flag with the exact less-than predicate on a register.
+    /// Each more significant bit updates the comparison carried by its inner
+    /// dyad; the flag is transformed after the complete register has fused.
+    pub fn compare_constant(&mut self, root: usize, register: &[usize], value: &BigUint,
+        controls: &[(usize,bool)], flag: usize) -> usize {
+        if !self.controls_possible(root,controls) || value.is_zero() { return root; }
+        fn visit(arena: &mut DecisionArena,id: usize,register: &[usize],value: &BigUint,
+            at: usize,less: bool,flag: usize,memo: &mut BTreeMap<(usize,usize,bool),usize>) -> usize {
+            if at == register.len() { return if less { arena.flip(id,flag) } else { id }; }
+            if matches!(arena.node(id),Node::Leaf(..)) { return id; }
+            if let Some(&result) = memo.get(&(id,at,less)) { return result; }
+            let wire = arena.top(id).unwrap().min(register[at]);
+            let (low,high) = arena.split(id,wire);
+            let (low,high) = if wire == register[at] {
+                let constant = value.bit(at as u64);
+                (visit(arena,low,register,value,at+1,constant || less,flag,memo),
+                 visit(arena,high,register,value,at+1,constant && less,flag,memo))
+            } else {
+                (visit(arena,low,register,value,at,less,flag,memo),
+                 visit(arena,high,register,value,at,less,flag,memo))
+            };
+            let result = arena.branch(wire,low,high);
+            memo.insert((id,at,less),result);
+            result
+        }
+        let changed = visit(self,root,register,value,0,false,flag,&mut BTreeMap::new());
+        self.conditional_literals(root,changed,controls)
     }
     pub fn mass(&self, root: usize) -> BigUint {
         fn visit(
