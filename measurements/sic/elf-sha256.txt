@@ -1,2 +1,2 @@
-9c43dcdb0a6679e6f28ee39ded919217dfa603678a9ebb06bf6b481ede90335f  measurements/sic/sic-tool.elf
-4319ac4c117b6b56825751724f4b93ee8713b241d3b6ecf65b990c899aa425ee  measurements/sic/sic-checks.elf
+0e24b074e4c313d1bd9d00ecaab00e8fc1f25f577bd697a9d1f0654d7c2f8f8a  measurements/sic/sic-tool.elf
+204000c677555f2c5503b93b832cb7f8a33c7e69192077ea69f7144ae231c8cf  measurements/sic/sic-checks.elf
