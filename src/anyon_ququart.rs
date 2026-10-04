@@ -182,6 +182,65 @@ impl QuquartCarrier {
     pub fn amplitudes(&self) -> &[FixedComplex; 5] {
         &self.amplitudes
     }
+    /// Native Z4 Fourier target. A braid backend must synthesize this complete
+    /// four-channel operator; applying H to one lane does not implement it.
+    pub fn fourier_target(&mut self, inverse: bool) {
+        let old = &self.amplitudes;
+        let values: [FixedComplex; 4] = core::array::from_fn(|k| {
+            let mut sum = zero();
+            for (l, &channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+                let z = &old[channel];
+                let phase = if inverse {
+                    (4 - (k * l) % 4) % 4
+                } else {
+                    (k * l) % 4
+                };
+                let term = match phase {
+                    0 => z.clone(),
+                    1 => FixedComplex {
+                        re: -&z.im,
+                        im: z.re.clone(),
+                    },
+                    2 => FixedComplex {
+                        re: -&z.re,
+                        im: -&z.im,
+                    },
+                    _ => FixedComplex {
+                        re: z.im.clone(),
+                        im: -&z.re,
+                    },
+                };
+                sum.re += term.re;
+                sum.im += term.im;
+            }
+            FixedComplex {
+                re: sum.re / 2u8,
+                im: sum.im / 2u8,
+            }
+        });
+        for (k, &channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+            self.amplitudes[channel] = values[k].clone();
+        }
+    }
+    /// exp(-2 pi i k numerator/4^m), for all four computational channels.
+    pub fn feedback_target(&mut self, numerator: &BigUint, m: usize) -> Result<(), String> {
+        let bits = m
+            .checked_mul(2)
+            .ok_or("ququart feedback denominator overflow")?;
+        let denominator = BigUint::one() << bits;
+        let mut phases: [FixedComplex; 4] = core::array::from_fn(|_| zero());
+        for (k, z) in phases.iter_mut().enumerate() {
+            *z = FixedComplex::winding_twiddle(
+                &-BigInt::from(numerator * k),
+                &denominator,
+                &self.format,
+            )?;
+        }
+        for (k, &channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+            self.amplitudes[channel] = phases[k].mul(&self.amplitudes[channel], &self.format);
+        }
+        Ok(())
+    }
     pub fn exchange(&mut self, algebra: &FibonacciPair, index: i32) -> Result<(), String> {
         if self.format != *algebra.format() {
             return Err("ququart exchange format mismatch".into());
@@ -289,6 +348,37 @@ mod tests {
             let sic = FixedQuquartSic::new(algebra.format()).unwrap();
             let scale = algebra.format().scale();
             let square = (&scale * &scale).to_biguint().unwrap();
+            for digit in [
+                QuquartDigit::T,
+                QuquartDigit::F,
+                QuquartDigit::InfoT,
+                QuquartDigit::InfoF,
+            ] {
+                let mut state = QuquartCarrier::basis(&algebra, digit);
+                let before = state.amplitudes.clone();
+                state.fourier_target(false);
+                for &channel in &COMPUTATIONAL_CHANNELS {
+                    assert_eq!(mass(&state.amplitudes[channel]), &square / 4u8);
+                }
+                state.fourier_target(true);
+                for (a, b) in state.amplitudes.iter().zip(before.iter()) {
+                    assert_eq!(a.re, b.re);
+                    assert_eq!(a.im, b.im);
+                }
+            }
+            let mut rotated = QuquartCarrier::basis(&algebra, QuquartDigit::T);
+            rotated.fourier_target(false);
+            rotated.feedback_target(&BigUint::one(), 1).unwrap();
+            rotated.fourier_target(true);
+            let peak = COMPUTATIONAL_CHANNELS[3];
+            assert!(
+                (BigInt::from(mass(&rotated.amplitudes[peak])) - BigInt::from(square.clone()))
+                    .abs()
+                    < &scale * 256u16
+            );
+            for &channel in &COMPUTATIONAL_CHANNELS[..3] {
+                assert!(mass(&rotated.amplitudes[channel]) < BigUint::from(4096u16));
+            }
             for ray in sic.rays() {
                 let norm: BigUint = ray.iter().map(mass).sum();
                 assert!((BigInt::from(norm) - BigInt::from(square.clone())).abs() < &scale * 128u8);

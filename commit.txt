@@ -1,1 +1,1 @@
-I implement sixteen-outcome ququart SIC weights over SIXTEEN_3, fixed Fibonacci carrier readout, and base-four phase closure.
+I implement Z4 Fourier, complete ququart feedback, and radix-four controlled modular powers with source-bound factor closure.
