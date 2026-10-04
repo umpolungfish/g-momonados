@@ -1,3 +1,3 @@
-I implement SIC numerical structures with immutable checked tetrahedral frames.
+I connect coherent Fibonacci exchanges to conditional charge readout.
 
-I derive operator caches from validated geometry and preserve frame geometry in SIC states. I test rotated-frame reconstruction, dephasing, invalid vertices, cached completeness, duality, equiangularity, and split/fuse closure. I keep numerical certificates and independent FOUR evidence separate.
+I combine amplitudes by fusion path before Born projection, retain the measured conditional state, and reject storage exhaustion transactionally. I bind the carrier to its fixed-point format. I verify these components with 128, 256, 512, 1024, and 2048-bit source fixtures and document the remaining logical preparation and readout integration.
