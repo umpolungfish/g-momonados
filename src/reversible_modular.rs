@@ -352,6 +352,19 @@ impl ModularMultiply {
         3 * self.width + 4
     }
 
+    /// Reserve wires zero and one for the two components of one ququart.
+    /// Remaining wires share the same work register in both controlled powers.
+    pub fn emit_ququart_elementary<F>(&self, multiplier: &BigUint, lane: usize, mut emit: F) -> Result<(), String>
+    where F: FnMut(ElementaryGate) -> Result<(), String> {
+        if lane > 1 { return Err("ququart control lane must be zero or one".into()); }
+        let wire=|q| if q==0 {lane} else {q+1};
+        self.emit_elementary(multiplier, |gate| emit(match gate {
+            ElementaryGate::X(q)=>ElementaryGate::X(wire(q)),
+            ElementaryGate::Cnot { control,target }=>ElementaryGate::Cnot { control:wire(control),target:wire(target) },
+            ElementaryGate::Toffoli { first,second,target }=>ElementaryGate::Toffoli { first:wire(first),second:wire(second),target:wire(target) },
+        }))
+    }
+
     /// Stream X/CNOT/Toffoli gates. The extra ancillas return to zero after
     /// each logical operation, including operations with negative controls.
     /// Consumers must abort execution if emitting any gate returns an error.

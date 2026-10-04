@@ -25,6 +25,24 @@ fn run(args: &[String]) -> Result<(), SicError> {
             let sic = FixedQuquartSic::new(algebra.format()).map_err(SicError)?;
             let mut carrier = QuquartCarrier::basis(&algebra, QuquartDigit::T);
             for raw in &args[2..] {
+                if raw == "f4" || raw == "f4-inverse" {
+                    carrier.fourier_target(raw == "f4-inverse");
+                    println!("native Fourier target: {raw}");
+                    continue;
+                }
+                if let Some(value) = raw.strip_prefix("feedback:") {
+                    let (n, m) = value.split_once(':').ok_or_else(|| {
+                        SicError("feedback target requires numerator:digits".into())
+                    })?;
+                    let n = BigUint::parse_bytes(n.as_bytes(), 10)
+                        .ok_or_else(|| SicError("invalid feedback numerator".into()))?;
+                    let m = m
+                        .parse()
+                        .map_err(|_| SicError("invalid feedback denominator digits".into()))?;
+                    carrier.feedback_target(&n, m).map_err(SicError)?;
+                    println!("native phase target  : -2 pi k {n}/4^{m}");
+                    continue;
+                }
                 carrier
                     .exchange(
                         &algebra,
