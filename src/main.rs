@@ -607,6 +607,17 @@ fn main() {
             }
             return;
         }
+        if head == "sic" {
+            let frame = g_momonados::sic::TetraSic::new();
+            match g_momonados::sic::certificate::SicCertificate::measure(&frame.frame) {
+                Ok(mut certificate) => {
+                    certificate.exact = Some(g_momonados::sic::exact::certify_tetrahedron());
+                    print!("{}", certificate.report(g_momonados::sic::certificate::EvidencePolicy::new(1e-12, 1e-8).unwrap()));
+                }
+                Err(error) => { eprintln!("sic: {error}"); std::process::exit(2); }
+            }
+            return;
+        }
         if matches!(head, "arbitrary_factor" | "arbitrary-factor") {
             let input = argv.get(1).map(String::as_str).unwrap_or("");
             if input.is_empty() || input == "help" {

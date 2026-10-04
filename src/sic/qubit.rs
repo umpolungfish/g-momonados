@@ -108,9 +108,11 @@ impl Simplex4 {
         if self.p.iter().map(|x| x * x).sum::<f64>() > 1.0 / 3.0 + TOLERANCE {
             return Err(error("simplex point is outside the qubit SIC region"));
         }
-        Ok(QubitSicState {
+        let state=QubitSicState {
             distribution: SicDistribution { p: self.p },
-        })
+        };
+        state.reconstruct()?;
+        Ok(state)
     }
 }
 #[derive(Clone, Copy, Debug)]
@@ -143,6 +145,12 @@ pub fn truth_measure(state: &QubitState) -> BinaryDistribution {
 }
 pub fn sic_measure(state: &QubitState) -> SicDistribution {
     TetraSic::new().split(state).distribution
+}
+
+pub fn truth_measure_axis(state:&QubitState,axis:BlochVector)->Result<BinaryDistribution,SicError> {
+    if !axis.finite() || (axis.norm()-1.0).abs()>TOLERANCE {return Err(error("Boolean measurement axis must be a unit vector"));}
+    let overlap=state.r.dot(axis);
+    Ok(BinaryDistribution {truth:(1.0+overlap)/2.0,falsity:(1.0-overlap)/2.0})
 }
 pub struct TetraSic {
     pub vertices: [BlochVector; 4],
