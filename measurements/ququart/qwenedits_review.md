@@ -1,0 +1,21 @@
+Review of src/qwenedits against the requested factor-bearing membrane
+
+Reviewed the proposed Rust execution and certificate shims, build configuration, ignore-file replacement, and ququart build plan. These files are comparison exports with original/modified delimiters, not directly compilable Rust patches. The live Cargo dependency still points to ../Vox; the proposed vendor shims are not the current factor executable. No tests or factoring runs were launched for this review.
+
+1. Critical: vendor_vox_src_fixed_point_quantum_membrane_diff.rs:60 and :93 replace measurement with odd trial division. The routine increments a divisor until its square exceeds N. The rounds, quantile and denominator arguments are ignored, and the prepared base does not drive factor production. Tape arithmetic does not change this algorithm into source-produced ququart phase measurement. Do not integrate this shim as the factor producer.
+
+2. High: vendor_vox_src_fixed_point_quantum_phase_diff.rs:39 has incorrect limb indexing. position() counts leading zero limbs, not significant limbs. A nonzero highest limb gives position zero and is treated as a one-bit source. For other positions, limbs[len-position] selects a leading zero limb rather than the highest nonzero limb. Find the highest nonzero limb index directly and derive width from that limb; reject a zero source. This must retain the source-dependent precision schedule.
+
+3. High: vendor_vox_src_reentry_certificate_diff.rs:36 creates source from p*q rather than checking against the sealed requested N. Consequently arbitrary nontrivial p,q can certify their own product. Require the source and measured phase evidence as independently bound inputs, and compare their native product against the retained source. A product-only certificate cannot establish measurement provenance.
+
+4. High: vendor_vox_src_reentry_certificate_diff.rs:64 splits the wire on every CLINK glyph. The actual morphism_factor::emit_numeral at ../Vox/src/morphism_factor.rs:170 emits CLINK inside every numeral cell. Any ordinary multi-cell arm therefore creates extra fields. Parse complete nested numeral boundaries, or use an unambiguous structural framing codec. The same file :49 silently maps invalid decimal text to an empty tape instead of rejecting it.
+
+5. High: docs_ANYONIC_QUQUARTIC_MEMBRANE_diff.md:120 proposes the uniform vector as a SIC fiducial. It is invariant under the cyclic shift X, so its nonidentity X overlap has squared modulus one instead of the SIC target one fifth. Its displacement orbit repeats rays up to phase, preventing informational completeness. The newly supplied src/ququart4.rs:142 uses this same vector and its test only checks the number of emitted rays, not SIC conditions. Do not connect this frame to the measurement or closure path. Use the canonical certified SIC frame and its actual residuals.
+
+6. High for the requested interface: the proposed membrane builds constants from decimal strings, and the certificate stores and processes all numeric fields as decimal strings. This violates the requested word-only baked/input/output contract. Keep canonical numeral words at those boundaries and reject malformed words; an internal decimal round trip is unnecessary.
+
+The plan at docs_ANYONIC_QUQUARTIC_MEMBRANE_diff.md:195 and :213 uses small sources below the current minimum and proposes tests despite the current instruction to debug through Vox. Those plan gates do not qualify as task evidence. Same-seed equality of outcomes from different measurement schedules is also not generally implied by equality of their outcome distributions.
+
+The Cargo change vendors Vox, but should not overwrite the live manifest: its binary list predates the prepared membrane and Vox region decoder. The proposed .gitignore replacement drops existing project exclusions. Preserve the existing manifest and ignore entries when integrating any approved changes. The lockfile should follow the actual dependency choice rather than importing the comparison export.
+
+No positive factor evidence was found in these proposals. No shim or uncertified SIC frame was integrated. Current source precision changes in the worktree already lower the preparation and verifier threshold to the requested minimum; those externally supplied changes remain intact.
