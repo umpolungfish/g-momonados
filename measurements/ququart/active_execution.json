@@ -91,5 +91,13 @@
     "exit_code": 124,
     "closure_time_limit_seconds": 90,
     "factor_extraction_verified": false
+  },
+  "joint_partition_execution": {
+    "case": "membranes/ququart_joint_partition_rsa100_20261004",
+    "session_id": 4510,
+    "state": "stopped_at_user_time_limit",
+    "exit_code": 124,
+    "closure_time_limit_seconds": 90,
+    "factor_extraction_verified": false
   }
 }
