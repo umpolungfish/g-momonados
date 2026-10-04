@@ -117,6 +117,10 @@ def main():
             prepared["prepared_operator"] = json.loads(contraction.stdout)
             prepared.pop("exchange_words")
         prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
+        if args.base is not None:
+            work = run([str(ROOT / "target/release/ququart_prepare_operator"), "--prepare-work", str(prepared_path)])
+            prepared["prepared_work"] = json.loads(work.stdout)
+            prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
         build = run(["cargo", "build", "--release", "--bin", binary_name,
                      "--bin", "ququart_verify_readout"], env=env)
         (case / "build.log").write_text(build.stdout + build.stderr)
@@ -142,6 +146,7 @@ def main():
                         modular_work_operator="nested_reversible_arithmetic_on_shared_complex_decision_branches",
                         work_wire_layout="interleaved_source_workspace",
                         source_work_radix="baked_radix_word_live_digit_split_fuse",
+                        modular_work_preparation="source_bound_operations_baked_as_numeral_words",
                         feedback_operator="fixed_point_winding",
                         closure_arithmetic="radix_four_paired_numeral_cells",
                         terminal_factors="direct_godel_closure_words",
