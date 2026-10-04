@@ -1,0 +1,43 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGINT, Interrupt.
+0x000058df9e8b32da in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+terminal_or_cutoff_debug_stop
+	Using the running image of child Thread 0x79cc9e1acb80 (LWP 36201).
+Program stopped at 0x58df9e8b32da.
+It stopped with signal SIGINT, Interrupt.
+rip            0x58df9e8b32da      0x58df9e8b32da <<g_momonados::ququart_decision::DecisionArena>::partition_less::visit+60>
+#0  0x000058df9e8b32da in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#1  0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#2  0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#3  0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#4  0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#5  0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#6  0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#7  0x000058df9e8b358d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#8  0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#9  0x000058df9e8b358d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#10 0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#11 0x000058df9e8b358d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#12 0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#13 0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#14 0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#15 0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#16 0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#17 0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#18 0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#19 0x000058df9e8b358d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#20 0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#21 0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#22 0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#23 0x000058df9e8b358d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#24 0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#25 0x000058df9e8b358d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#26 0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#27 0x000058df9e8b358d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#28 0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#29 0x000058df9e8b35cc in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#30 0x000058df9e8b34f4 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#31 0x000058df9e8b358d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+[Inferior 1 (process 36201) killed]

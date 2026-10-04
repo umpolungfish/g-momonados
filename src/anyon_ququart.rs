@@ -5,7 +5,7 @@ use crate::anyon_pair::{FibonacciPair, COMPUTATIONAL_CHANNELS, LEAKAGE_CHANNEL};
 use crate::phase_unbraid::{FixedComplex, FixedPointFormat, PhaseReadoutAccumulator};
 use alloc::string::String;
 use num_bigint::{BigInt, BigUint};
-use num_traits::{One, Zero};
+use num_traits::{One, Signed, Zero};
 
 fn zero() -> FixedComplex {
     FixedComplex {
@@ -213,6 +213,49 @@ pub struct FixedQuquartSic {
     rays: [[FixedComplex; 4]; 16],
 }
 impl FixedQuquartSic {
+    /// All sixteen projector masses from a shared work Gram matrix. The POVM
+    /// effect masses are these values divided by four.
+    pub fn gram_masses(&self, gram: &[(BigInt,BigInt);16]) -> Result<[BigUint;16],String> {
+        let scale_squared = self.format.scale().pow(2);
+        let mut masses = core::array::from_fn(|_| BigUint::zero());
+        for (mass,ray) in masses.iter_mut().zip(&self.rays) {
+            let mut real = BigInt::zero();
+            for i in 0..4 {
+                for j in 0..4 {
+                    let coefficient_re = &ray[i].re*&ray[j].re + &ray[i].im*&ray[j].im;
+                    let coefficient_im = &ray[i].im*&ray[j].re - &ray[i].re*&ray[j].im;
+                    let (gr,gi) = &gram[4*i+j];
+                    real += coefficient_re*gr - coefficient_im*gi;
+                }
+            }
+            *mass = (real / &scale_squared).to_biguint().ok_or("negative SIC Gram mass")?;
+        }
+        Ok(masses)
+    }
+
+    /// SIC dual synthesis of computational populations on the same carrier.
+    pub fn validate_gram_frame(&self, gram: &[(BigInt,BigInt);16], masses: &[BigUint;16]) -> Result<(),String> {
+        let trace: BigInt = (0..4).map(|i| gram[5*i].0.clone()).sum();
+        if trace < BigInt::zero() { return Err("negative control Gram trace".into()); }
+        let scale_squared = self.format.scale().pow(2);
+        // The fixed analytic frame has finite integer rounding. Compare with
+        // a source-dependent tolerance far below a computational Born digit.
+        let tolerance = core::cmp::max(BigInt::from(1u8), &trace >> (self.format.w_bits/2) as usize);
+        for component in 0..4 {
+            let weighted: BigInt = self.rays.iter().zip(masses).map(|(ray,mass)| {
+                BigInt::from(mass.clone()) * (&ray[component].re*&ray[component].re + &ray[component].im*&ray[component].im)
+            }).sum();
+            let reconstructed = weighted*5u8 / (&scale_squared*4u8) - &trace;
+            if (&reconstructed - &gram[5*component].0).abs() > tolerance {
+                return Err("SIC dual reconstruction differs from computational Born mass".into());
+            }
+            if !gram[5*component].1.is_zero() || gram[5*component].0 < BigInt::zero() {
+                return Err("invalid control Gram diagonal".into());
+            }
+        }
+        Ok(())
+    }
+
     pub fn new(format: &FixedPointFormat) -> Result<Self, String> {
         let scale = format.scale();
         let sqrt =

@@ -16,6 +16,11 @@ pub struct PreparedModularWork {
     pub operations: Vec<NestedOperation>,
     pub stages: Vec<(BigUint,Vec<usize>)>,
 }
+pub struct SicControlWitness {
+    pub gram: [(BigInt,BigInt);16],
+    pub masses: [BigUint;16],
+    pub digit: QuquartDigit,
+}
 pub struct QuquartFoldedWorkDevice {
     source: BigUint,
     format: FixedPointFormat,
@@ -31,6 +36,7 @@ pub struct QuquartFoldedWorkDevice {
     interleaved_work: bool,
     digit_bits: usize,
     prepared_work: Option<PreparedModularWork>,
+    sic_witnesses: Vec<SicControlWitness>,
     pub peak_nodes: usize,
 }
 impl QuquartFoldedWorkDevice {
@@ -55,6 +61,7 @@ impl QuquartFoldedWorkDevice {
             interleaved_work: false,
             digit_bits: 1,
             prepared_work: None,
+            sic_witnesses: Vec::new(),
             peak_nodes: 0,
         })
     }
@@ -62,6 +69,7 @@ impl QuquartFoldedWorkDevice {
         self.prepared_work = Some(work);
         self
     }
+    pub fn sic_witnesses(&self) -> &[SicControlWitness] { &self.sic_witnesses }
     pub fn new_interleaved(source: BigUint, fourier: PairMatrix, seed: u64) -> Result<Self, String> {
         let mut device = Self::new(source, fourier, seed)?;
         device.interleaved_work = true;
@@ -398,6 +406,14 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
                 }],
             )
         });
+        let gram = self.arena.control_gram(&core::array::from_fn(|digit| self.roots[COMPUTATIONAL_CHANNELS[digit]]));
+        let sic_masses = self.sic.gram_masses(&gram)?;
+        self.sic.validate_gram_frame(&gram,&sic_masses)?;
+        for digit in 0..4 {
+            if gram[5*digit].0 != BigInt::from(masses[digit].clone()) {
+                return Err("shared control Gram differs from computational Born mass".into());
+            }
+        }
         let outcome = crate::anyon_fusion_kernel::sample_born_masses(&masses, |bytes| {
             Self::entropy(&mut self.random, bytes)
         })?;
@@ -416,6 +432,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         self.roots = [z; 5];
         self.roots[selected] = root;
         let digit = QuquartDigit::try_from(outcome as u8)?;
+        self.sic_witnesses.push(SicControlWitness { gram, masses:sic_masses, digit });
         self.measured = Some(digit);
         self.count += 1;
         self.fold();

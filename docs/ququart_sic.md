@@ -1,11 +1,10 @@
 # Ququart SIC and SIXTEEN_3
 
-Current factor-extraction acceptance uses only RSA-style unstructured
-semiprimes over 200 bits. Structured controls, small-factor inputs and
-sub-200-bit sources below are historical records and supply no qualifying
-factor-extraction evidence. The current prepared input is RSA-100 (330 bits),
-with base two and no known factors or order in its executable preparation.
-The source audit is `measurements/ququart/rsa100_input_audit.json`.
+Current factor-extraction acceptance requires unstructured RSA-style semiprimes
+of at least 128 bits. The retained balanced source meets the size and documented
+source-class requirements. Prepared binaries and structural closure records do
+not establish factor extraction. Acceptance requires measured factor words and
+independent Gödel verification against the prepared source.
 
 `sic-tool ququart` executes a cyclic Weyl–Heisenberg SIC in dimension four.
 Its sixteen weights are indexed by the SIXTEEN_3 carrier masks. The frozen
@@ -117,8 +116,15 @@ sealed executable.
 
 ## Prepared factor extraction
 
-`prepare_ququart.py SOURCE DESTINATION --base BASE` bakes the source, base,
-physical Fourier word and measurement seed into
+`prepare_ququart.py SOURCE DESTINATION --base BASE --radix RADIX` treats BASE
+as the binary modular base and resolves the modular base to
+`BASE^log2(RADIX) mod N` before preparing its controlled powers. Both the binary
+and resolved bases are retained as canonical numeral words. The input, baked
+execution and terminal verifier check this relation against the source and
+radix. A retained physical Fourier operator can be reused at the same source
+precision and accuracy; its modular powers are regenerated from the resolved
+base. Preparation bakes the source, resolved base, physical Fourier word and
+measurement seed into
 `ququart_factor_baked`. It retains the joint ququart/work amplitudes across
 adaptive phase measurements. The executable accepts no runtime inputs and
 writes only its completed factor result or completed error.
@@ -184,3 +190,57 @@ denominator words. `ququart_verify_readout` replays the existing phase closure
 against the baked source/base and checks the resulting factor arms, period,
 resolution and shot count. This audits a completed measurement ledger; it does
 not prove measurement production from static code or from a supplied period.
+
+## Inclusive SIC readout
+
+The shared work decision diagram supplies the complete control Gram matrix
+through paired split/fuse traversals with one shared memo table. No work basis
+addresses are enumerated for this partial trace. Every computational phase
+readout includes all sixteen SIC projector masses from that Gram matrix and
+checks the SIC dual synthesis of its four computational Born populations.
+Computational phase measurement remains included. The terminal report retains
+signed Gram coordinate words, SIC mass words and the measured digit word for
+each boundary. The terminal verifier recomputes the SIC masses and dual
+synthesis, checks Hermiticity and binds each digit to the measured phase ledger.
+This evidence supplements phase descent and the terminal Gödel product.
+
+The separate SIC-outcome phase path is retained. Its likelihood coordinate is
+`4^j`, while the executed modular multiplier is `a^(4^j) mod N`. Its current
+hypothesis-based inference API is not the production factor path; source-owned
+hypothesis generation remains necessary before that API can produce factors
+without supplied phase candidates. Neither SIC frame completeness nor its
+readout reconstruction alone constitutes factor-bearing closure.
+
+## Native arm in the inclusive membrane
+
+The prepared membrane includes the authorized native factor engine as an outer
+arm, followed by the ququart phase path with inclusive SIC analysis. The native
+engine receives the source as a canonical IMASM word and returns a canonical
+factor word through its GP adapter. Its private integer arithmetic stays inside
+the engine. The cofactor is formed by exact native division and checked as prime
+through the same word-only engine boundary. The factor pair must pass native
+Gödel multiplication and the selected-radix nested meeting point before release.
+No factor, period or phase hypothesis is supplied to this arm.
+
+The terminal producing-arm selector is a canonical numeral word. Zero denotes
+the native factor engine; one denotes ququart phase with SIC frame evidence.
+A native-arm report contains zero measured shots and empty phase/SIC ledgers.
+The terminal verifier rejects invented phase/order fields for this arm. A
+ququart-arm report retains its measured phase ledger and SIC frame witnesses.
+Both arms use the same source-bound factor carrier and Gödel product gate.
+
+The actual radix-four inclusive membrane for the retained unstructured 128-bit
+source completed and passed its independent terminal verifier. Its factor words
+and producer selector are retained in
+`measurements/ququart/inclusive_native_radix4.terminal.stdout`. This establishes
+factor-bearing closure through the included native arm; it does not establish
+pure ququart phase factor production or physical modular braid compilation.
+
+Both retained inclusive executables, radix four and radix eight, produced their
+factor words and passed the independent terminal Gödel verifier. Their
+execution records and factor-bearing reports are retained under
+`measurements/ququart/inclusive_native_radix4.*` and
+`measurements/ququart/inclusive_native_radix8.*`. Their producing arm is native.
+The closure audit checks actual executable/preparation digests and embedding,
+confirms the factor words are absent from the baked executable, and regenerates
+the controlled powers from each source-bound scaled modular base.
