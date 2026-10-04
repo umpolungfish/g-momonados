@@ -1,0 +1,1550 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+    Checking vox v0.1.0 (/home/mrnob0dy666/imsgct/Vox)
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `cudarc`
+  --> src/gpu_rho.rs:11:5
+   |
+11 | use cudarc::driver::{CudaContext, LaunchConfig, PushKernelArg};
+   |     ^^^^^^ use of unresolved module or unlinked crate `cudarc`
+   |
+   = help: if you wanted to use a crate named `cudarc`, use `cargo add cudarc` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `cudarc`
+  --> src/gpu_rho.rs:12:5
+   |
+12 | use cudarc::nvrtc::{compile_ptx_with_opts, CompileOptions};
+   |     ^^^^^^ use of unresolved module or unlinked crate `cudarc`
+   |
+   = help: if you wanted to use a crate named `cudarc`, use `cargo add cudarc` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `cudarc`
+  --> src/gpu_rho_ml.rs:18:5
+   |
+18 | use cudarc::driver::{CudaContext, LaunchConfig, PushKernelArg};
+   |     ^^^^^^ use of unresolved module or unlinked crate `cudarc`
+   |
+   = help: if you wanted to use a crate named `cudarc`, use `cargo add cudarc` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `cudarc`
+  --> src/gpu_rho_ml.rs:19:5
+   |
+19 | use cudarc::nvrtc::{compile_ptx_with_opts, CompileOptions};
+   |     ^^^^^^ use of unresolved module or unlinked crate `cudarc`
+   |
+   = help: if you wanted to use a crate named `cudarc`, use `cargo add cudarc` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1102:17
+     |
+1102 |             use std::io::Write;
+     |                 ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1280:29
+     |
+1280 |                         use std::io::Write;
+     |                             ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: could not find `nested_eprintln` in the crate root
+   --> src/gpu_rho_ml.rs:246:28
+    |
+246 |         Err(e) => { crate::nested_eprintln!("gpu_rho_ml: NVRTC compile failed: {e}"); return None; }
+    |                            ^^^^^^^^^^^^^^^ could not find `nested_eprintln` in the crate root
+
+error[E0433]: failed to resolve: could not find `nested_eprintln` in the crate root
+   --> src/gpu_rho_ml.rs:250:28
+    |
+250 |         Err(e) => { crate::nested_eprintln!("gpu_rho_ml: load_module failed: {e}"); return None; }
+    |                            ^^^^^^^^^^^^^^^ could not find `nested_eprintln` in the crate root
+
+error[E0433]: failed to resolve: could not find `nested_eprintln` in the crate root
+   --> src/gpu_rho_ml.rs:254:28
+    |
+254 |         Err(e) => { crate::nested_eprintln!("gpu_rho_ml: load_function failed: {e}"); return None; }
+    |                            ^^^^^^^^^^^^^^^ could not find `nested_eprintln` in the crate root
+
+error: cannot find macro `format` in this scope
+  --> src/prime_tool_logic.rs:31:28
+   |
+31 |             .ok_or_else(|| format!("Invalid natural number: {}", raw_input))?
+   |                            ^^^^^^
+   |
+help: consider importing this macro
+   |
+ 6 + use alloc::format;
+   |
+
+error: cannot find macro `format` in this scope
+  --> src/prime_tool_logic.rs:89:5
+   |
+89 |     format!(
+   |     ^^^^^^
+   |
+help: consider importing this macro
+   |
+ 6 + use alloc::format;
+   |
+
+error: cannot find macro `format` in this scope
+  --> src/semiprime_tool_logic.rs:81:28
+   |
+81 |             .ok_or_else(|| format!("Invalid natural number: {}", raw_input))?
+   |                            ^^^^^^
+   |
+help: consider importing this macro
+   |
+ 6 + use alloc::format;
+   |
+
+error: cannot find macro `format` in this scope
+   --> src/semiprime_tool_logic.rs:149:9
+    |
+149 |         format!("{} × {}", p, q)
+    |         ^^^^^^
+    |
+help: consider importing this macro
+    |
+  6 + use alloc::format;
+    |
+
+error: cannot find macro `format` in this scope
+   --> src/semiprime_tool_logic.rs:156:5
+    |
+156 |     format!(
+    |     ^^^^^^
+    |
+help: consider importing this macro
+    |
+  6 + use alloc::format;
+    |
+
+error: cannot find macro `vec` in this scope
+   --> src/word_tape.rs:186:19
+    |
+186 |     let mut acc = vec![false; a.len() + b.len()];
+    |                   ^^^
+    |
+help: consider importing this macro
+    |
+ 19 + use alloc::vec;
+    |
+
+error: cannot find macro `vec` in this scope
+   --> src/word_tape.rs:233:17
+    |
+233 |     let mut x = vec![false; bl / 2 + 2];
+    |                 ^^^
+    |
+help: consider importing this macro
+    |
+ 19 + use alloc::vec;
+    |
+
+error: cannot find macro `vec` in this scope
+   --> src/word_tape.rs:276:23
+    |
+276 |         let mut out = vec![false; bits];
+    |                       ^^^
+    |
+help: consider importing this macro
+    |
+ 19 + use alloc::vec;
+    |
+
+error: cannot find macro `vec` in this scope
+   --> src/word_tape.rs:288:21
+    |
+288 |         let mut v = vec![false; bit + 1];
+    |                     ^^^
+    |
+help: consider importing this macro
+    |
+ 19 + use alloc::vec;
+    |
+
+error: cannot find macro `vec` in this scope
+    --> src/native_numeral.rs:1971:70
+     |
+1971 |     if modulo_via_word(n, &two).unwrap() == zero { return Some((two, vec!['N'])); }
+     |                                                                      ^^^
+     |
+help: consider importing this macro
+     |
+  41 + use alloc::vec;
+     |
+
+error: cannot find macro `vec` in this scope
+  --> src/anyon_fusion_kernel.rs:24:24
+   |
+24 |         let mut bits = vec![false; layout.elementary_qubits()];
+   |                        ^^^
+   |
+help: consider importing this macro
+   |
+ 3 + use alloc::vec;
+   |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+  --> src/gpu_rho_ml.rs:52:5
+   |
+52 |     std::env::var("GNFS_GPU").ok().and_then(|s| s.parse().ok()).unwrap_or(0)
+   |     ^^^ use of unresolved module or unlinked crate `std`
+   |
+   = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/native_numeral.rs:2413:72
+     |
+2413 |             let (bottom_result, bottom_nodes, top_result, top_nodes) = std::thread::scope(|scope| {
+     |                                                                        ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:316:9
+    |
+316 |         std::fs::create_dir_all(&root).map_err(|error| format!("create fixed-point register tape: {error}"))?;
+    |         ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:345:55
+    |
+345 | ...   let temp = alloc::format!("{path}.tmp-{}-{}", std::process::id(), NEXT_TEMP.fetch_add(1, core::sync::atomic::Ordering::Relaxe...
+    |                                                     ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:346:9
+    |
+346 |         std::fs::write(&temp, bytes).map_err(|error| format!("write fixed-point tile: {error}"))?;
+    |         ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:347:9
+    |
+347 |         std::fs::rename(&temp, &path).map_err(|error| format!("commit fixed-point tile: {error}"))
+    |         ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:356:27
+    |
+356 |         let bytes = match std::fs::read(&path) {
+    |                           ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:358:43
+    |
+358 |             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+    |                                           ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:429:9
+    |
+429 |         std::fs::create_dir_all(&root).map_err(|error| format!("create dense-register tape: {error}"))?;
+    |         ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:458:55
+    |
+458 | ...   let temp = alloc::format!("{path}.tmp-{}-{}", std::process::id(), NEXT_TEMP.fetch_add(1, core::sync::atomic::Ordering::Relaxe...
+    |                                                     ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:459:9
+    |
+459 |         std::fs::write(&temp, bytes).map_err(|error| format!("write dense-register tile: {error}"))?;
+    |         ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:460:9
+    |
+460 |         std::fs::rename(&temp, &path).map_err(|error| format!("commit dense-register tile: {error}"))
+    |         ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:469:27
+    |
+469 |         let bytes = match std::fs::read(&path) {
+    |                           ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:471:43
+    |
+471 |             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(alloc::vec![Cx::zero(); count]),
+    |                                           ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/phase_unbraid.rs:525:19
+    |
+525 |     let entries = std::fs::read_dir(root).map_err(|error| format!("scan dense-register tape: {error}"))?;
+    |                   ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1079:16
+     |
+1079 |     let root = std::path::Path::new(tape_root);
+     |                ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1080:5
+     |
+1080 |     std::fs::create_dir_all(root).map_err(|error| format!("create QPE tape root: {error}"))?;
+     |     ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1084:5
+     |
+1084 |     std::fs::write(root.join("configuration.txt"), format!("N={n}\ninitial_base={base}\nphase_bits={qubits}\nW={}\nbatch_amplitude...
+     |     ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1100:13
+     |
+1100 |             std::fs::create_dir(&shot_root).map_err(|error| format!("create QPE shot tape {}: {error}", shot_root.display()))?;
+     |             ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1103:29
+     |
+1103 |             let mut trace = std::fs::OpenOptions::new().write(true).create_new(true)
+     |                             ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1125:13
+     |
+1125 |             std::fs::write(root.join("report.txt"), &report).map_err(|error| format!("write QPE closure report: {error}"))?;
+     |             ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1130:5
+     |
+1130 |     std::fs::write(root.join("report.txt"), &report).map_err(|error| format!("write QPE measurement report: {error}"))?;
+     |     ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1184:87
+     |
+1184 |     let _tape_dir_init_keepalive: Option<String> = tape_dir.clone().map(|s| { let _ = std::fs::create_dir_all(&s); s });
+     |                                                                                       ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1279:40
+     |
+1279 |                     if let Ok(mut f) = std::fs::File::create(&path) {
+     |                                        ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/phase_unbraid.rs:1309:36
+     |
+1309 |                 if let Ok(bytes) = std::fs::read(&path) {
+     |                                    ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: could not find `sic` in the crate root
+  --> src/anyon_ququart.rs:96:20
+   |
+96 |     Carrier(crate::sic::SixteenOutcome),
+   |                    ^^^ could not find `sic` in the crate root
+   |
+note: found an item that was configured out
+  --> src/lib.rs:47:9
+   |
+46 | #[cfg(feature = "hosted")]
+   |       ------------------ the item is gated behind the `hosted` feature
+47 | pub mod sic;
+   |         ^^^
+
+error[E0433]: failed to resolve: could not find `sic` in the crate root
+   --> src/anyon_ququart.rs:464:20
+    |
+464 |             crate::sic::SixteenOutcome::new(i as u8).map_err(|e| e.to_string())?,
+    |                    ^^^ could not find `sic` in the crate root
+    |
+note: found an item that was configured out
+   --> src/lib.rs:47:9
+    |
+ 46 | #[cfg(feature = "hosted")]
+    |       ------------------ the item is gated behind the `hosted` feature
+ 47 | pub mod sic;
+    |         ^^^
+
+error[E0433]: failed to resolve: could not find `sic` in the crate root
+   --> src/ququart_folded_work.rs:215:20
+    |
+215 |             crate::sic::SixteenOutcome::new(outcome as u8).map_err(|error| error.to_string())?,
+    |                    ^^^ could not find `sic` in the crate root
+    |
+note: found an item that was configured out
+   --> src/lib.rs:47:9
+    |
+ 46 | #[cfg(feature = "hosted")]
+    |       ------------------ the item is gated behind the `hosted` feature
+ 47 | pub mod sic;
+    |         ^^^
+
+error[E0412]: cannot find type `String` in this scope
+  --> src/prime_tool_logic.rs:16:15
+   |
+16 |     pub word: String,
+   |               ^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+ 6 + use alloc::string::String;
+   |
+
+error[E0412]: cannot find type `String` in this scope
+  --> src/prime_tool_logic.rs:18:19
+   |
+18 |     pub analysis: String,
+   |                   ^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+ 6 + use alloc::string::String;
+   |
+
+error[E0412]: cannot find type `String` in this scope
+  --> src/prime_tool_logic.rs:22:62
+   |
+22 | pub fn process_prime(raw_input: &str) -> Result<PrimeReport, String> {
+   |                                                              ^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+ 6 + use alloc::string::String;
+   |
+
+error[E0412]: cannot find type `String` in this scope
+  --> src/prime_tool_logic.rs:82:47
+   |
+82 | pub fn render_report(report: &PrimeReport) -> String {
+   |                                               ^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+ 6 + use alloc::string::String;
+   |
+
+error[E0412]: cannot find type `String` in this scope
+  --> src/semiprime_tool_logic.rs:16:15
+   |
+16 |     pub word: String,
+   |               ^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+ 6 + use alloc::string::String;
+   |
+
+error[E0412]: cannot find type `String` in this scope
+  --> src/semiprime_tool_logic.rs:18:19
+   |
+18 |     pub analysis: String,
+   |                   ^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+ 6 + use alloc::string::String;
+   |
+
+error[E0412]: cannot find type `String` in this scope
+  --> src/semiprime_tool_logic.rs:71:70
+   |
+71 | pub fn process_semiprime(raw_input: &str) -> Result<SemiprimeReport, String> {
+   |                                                                      ^^^^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+ 6 + use alloc::string::String;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Vec`
+  --> src/semiprime_tool_logic.rs:91:20
+   |
+91 |     let mut pair = Vec::new();
+   |                    ^^^ use of undeclared type `Vec`
+   |
+help: consider importing this struct
+   |
+ 6 + use alloc::vec::Vec;
+   |
+
+error[E0412]: cannot find type `String` in this scope
+   --> src/semiprime_tool_logic.rs:147:51
+    |
+147 | pub fn render_report(report: &SemiprimeReport) -> String {
+    |                                                   ^^^^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+  6 + use alloc::string::String;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/native_numeral.rs:2412:24
+     |
+2412 |             let stop = std::sync::Arc::new(core::sync::atomic::AtomicBool::new(false));
+     |                        ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this struct
+     |
+  41 + use alloc::sync::Arc;
+     |
+help: if you import `Arc`, refer to it directly
+     |
+2412 -             let stop = std::sync::Arc::new(core::sync::atomic::AtomicBool::new(false));
+2412 +             let stop = Arc::new(core::sync::atomic::AtomicBool::new(false));
+     |
+
+error[E0599]: no method named `to_string` found for enum `godel_calculus::DecodeError` in the current scope
+    --> src/prime_tool_logic.rs:24:68
+     |
+  24 |         let reading = decode(raw_input).map_err(|e: DecodeError| e.to_string())?;
+     |                                                                    ^^^^^^^^^ method not found in `godel_calculus::DecodeError`
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `godel_calculus::DecodeError` here
+     |
+    ::: src/godel_calculus.rs:318:1
+     |
+ 318 | pub enum DecodeError {
+     | -------------------- method `to_string` not found for this enum
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+   6 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for enum `godel_calculus::DecodeError` in the current scope
+    --> src/semiprime_tool_logic.rs:74:55
+     |
+  74 |         let reading = decode(raw_input).map_err(|e| e.to_string())?;
+     |                                                       ^^^^^^^^^ method not found in `godel_calculus::DecodeError`
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `godel_calculus::DecodeError` here
+     |
+    ::: src/godel_calculus.rs:318:1
+     |
+ 318 | pub enum DecodeError {
+     | -------------------- method `to_string` not found for this enum
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+   6 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+  --> src/semiprime_tool_logic.rs:99:83
+   |
+99 |                 Nat::from_decimal(prime).ok_or_else(|| "factor conversion failed".to_string())?;
+   |                                                                                   ^^^^^^^^^ method not found in `&'static str`
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+   |
+ 6 + use crate::alloc::string::ToString;
+   |
+
+error[E0599]: no method named `to_string` found for enum `godel_calculus::DecodeError` in the current scope
+    --> src/semiprime_tool_logic.rs:112:32
+     |
+ 112 |         .map_err(|error| error.to_string())?;
+     |                                ^^^^^^^^^ method not found in `godel_calculus::DecodeError`
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `godel_calculus::DecodeError` here
+     |
+    ::: src/godel_calculus.rs:318:1
+     |
+ 318 | pub enum DecodeError {
+     | -------------------- method `to_string` not found for this enum
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+   6 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> src/semiprime_tool_logic.rs:151:61
+    |
+151 |         "none (complete factorization is not a prime pair)".to_string()
+    |                                                             ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+  6 + use crate::alloc::string::ToString;
+    |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+   --> src/semiprime_tool_logic.rs:153:68
+    |
+153 |         "extraction budget exhausted (no candidate pair returned)".to_string()
+    |                                                                    ^^^^^^^^^ method not found in `&'static str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+  6 + use crate::alloc::string::ToString;
+    |
+
+error[E0282]: type annotations needed
+   --> src/gpu_rho.rs:263:9
+    |
+263 |     let ctx = match CudaContext::new(device) { Ok(c)=>c, Err(e)=>return format!("gpu_rho: no ctx: {e}") };
+    |         ^^^
+264 |     let stream = ctx.default_stream();
+    |                  --- type must be known at this point
+    |
+help: consider giving `ctx` an explicit type
+    |
+263 |     let ctx: /* Type */ = match CudaContext::new(device) { Ok(c)=>c, Err(e)=>return format!("gpu_rho: no ctx: {e}") };
+    |            ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/gpu_rho.rs:267:9
+    |
+267 |     let module = match ctx.load_module(ptx) { Ok(m)=>m, Err(e)=>return format!("gpu_rho: module: {e}") };
+    |         ^^^^^^
+268 |     let func = match module.load_function("prim_verify") { Ok(f)=>f, Err(e)=>return format!("gpu_rho: load: {e}") };
+    |                      ------ type must be known at this point
+    |
+help: consider giving `module` an explicit type
+    |
+267 |     let module: /* Type */ = match ctx.load_module(ptx) { Ok(m)=>m, Err(e)=>return format!("gpu_rho: module: {e}") };
+    |               ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/gpu_rho.rs:317:9
+    |
+317 |     let ctx = match CudaContext::new(device) { Ok(c)=>c, Err(e)=>return format!("gpu_rho: no CUDA context: {e}") };
+    |         ^^^
+318 |     let stream = ctx.default_stream();
+    |                  --- type must be known at this point
+    |
+help: consider giving `ctx` an explicit type
+    |
+317 |     let ctx: /* Type */ = match CudaContext::new(device) { Ok(c)=>c, Err(e)=>return format!("gpu_rho: no CUDA context: {e}") };
+    |            ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/gpu_rho.rs:321:9
+    |
+321 |     let module = match ctx.load_module(ptx) { Ok(m)=>m, Err(e)=>return format!("gpu_rho: module: {e}") };
+    |         ^^^^^^
+322 |     let func = match module.load_function("mont_verify") { Ok(f)=>f, Err(e)=>return format!("gpu_rho: load: {e}") };
+    |                      ------ type must be known at this point
+    |
+help: consider giving `module` an explicit type
+    |
+321 |     let module: /* Type */ = match ctx.load_module(ptx) { Ok(m)=>m, Err(e)=>return format!("gpu_rho: module: {e}") };
+    |               ++++++++++++
+
+error[E0282]: type annotations needed
+  --> src/gpu_rho_ml.rs:52:46
+   |
+52 |     std::env::var("GNFS_GPU").ok().and_then(|s| s.parse().ok()).unwrap_or(0)
+   |                                              ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+52 |     std::env::var("GNFS_GPU").ok().and_then(|s: /* Type */| s.parse().ok()).unwrap_or(0)
+   |                                               ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/gpu_rho_ml.rs:170:9
+    |
+170 |     let ctx = match CudaContext::new(device) { Ok(c) => c, Err(e) => return format!("gpu_rho_ml: no ctx: {e}") };
+    |         ^^^
+171 |     let stream = ctx.default_stream();
+    |                  --- type must be known at this point
+    |
+help: consider giving `ctx` an explicit type
+    |
+170 |     let ctx: /* Type */ = match CudaContext::new(device) { Ok(c) => c, Err(e) => return format!("gpu_rho_ml: no ctx: {e}") };
+    |            ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/gpu_rho_ml.rs:174:9
+    |
+174 |     let module = match ctx.load_module(ptx) { Ok(m) => m, Err(e) => return format!("gpu_rho_ml: module: {e}") };
+    |         ^^^^^^
+175 |     let func = match module.load_function("mont_verify_ml") { Ok(f) => f, Err(e) => return format!("gpu_rho_ml: load: {e}") };
+    |                      ------ type must be known at this point
+    |
+help: consider giving `module` an explicit type
+    |
+174 |     let module: /* Type */ = match ctx.load_module(ptx) { Ok(m) => m, Err(e) => return format!("gpu_rho_ml: module: {e}") };
+    |               ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/gpu_rho_ml.rs:248:9
+    |
+248 |     let module = match ctx.load_module(ptx) {
+    |         ^^^^^^
+...
+252 |     let func = match module.load_function("rho_ml") {
+    |                      ------ type must be known at this point
+    |
+help: consider giving `module` an explicit type
+    |
+248 |     let module: /* Type */ = match ctx.load_module(ptx) {
+    |               ++++++++++++
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:142:35
+     |
+ 142 |             let round = encode(&n.to_string());
+     |                                   ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+ 142 -             let round = encode(&n.to_string());
+ 142 +             let round = encode(&n.to_i8());
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:824:26
+     |
+ 824 |     let word = encode(&n.to_string());
+     |                          ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+ 824 -     let word = encode(&n.to_string());
+ 824 +     let word = encode(&n.to_i8());
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:940:26
+     |
+ 940 |     let word = encode(&n.to_string());
+     |                          ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+ 940 -     let word = encode(&n.to_string());
+ 940 +     let word = encode(&n.to_i8());
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1055:45
+     |
+1055 |         return "N = 0 has no leading run\n".to_string();
+     |                                             ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1110:72
+     |
+1110 |         return "native_numeral compose: p and q must both be positive".to_string();
+     |                                                                        ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:1113:19
+     |
+1113 |     let n_str = n.to_string();
+     |                   ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+1113 -     let n_str = n.to_string();
+1113 +     let n_str = n.to_i8();
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1119:117
+     |
+1119 |     let per_p = match period_of(p_str) { Some(v) => v, None => return "native_numeral compose: p produced no orbit".to_string() };
+     |                                                                                                                     ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1120:117
+     |
+1120 |     let per_q = match period_of(q_str) { Some(v) => v, None => return "native_numeral compose: q produced no orbit".to_string() };
+     |                                                                                                                     ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1121:118
+     |
+1121 |     let per_n = match period_of(&n_str) { Some(v) => v, None => return "native_numeral compose: N produced no orbit".to_string() };
+     |                                                                                                                      ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1153:61
+     |
+1153 |         return "native_numeral redstep: n must be positive".to_string();
+     |                                                             ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:1159:19
+     |
+1159 |     let r_str = r.to_string();
+     |                   ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+1159 -     let r_str = r.to_string();
+1159 +     let r_str = r.to_i8();
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1165:117
+     |
+1165 |     let per_a = match period_of(a_str) { Some(v) => v, None => return "native_numeral redstep: a produced no orbit".to_string() };
+     |                                                                                                                     ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1166:117
+     |
+1166 |     let per_n = match period_of(n_str) { Some(v) => v, None => return "native_numeral redstep: n produced no orbit".to_string() };
+     |                                                                                                                     ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1167:124
+     |
+1167 | ...eral redstep: a mod n produced no orbit".to_string() };
+     |                                             ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1276:63
+     |
+1276 |         return "native_numeral decompose: N must be positive".to_string();
+     |                                                               ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:1586:99
+     |
+1586 | ...   Ok(g) => o.push_str(&format!("Γ(D(p),D(q)) = {}  (decode: {})\n", g, decode(&g).map(|v| v.to_string()).unwrap_or_else(|| "—"...
+     |                                                                                                 ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+1586 -         Ok(g) => o.push_str(&format!("Γ(D(p),D(q)) = {}  (decode: {})\n", g, decode(&g).map(|v| v.to_string()).unwrap_or_else(|| "—".into()))),
+1586 +         Ok(g) => o.push_str(&format!("Γ(D(p),D(q)) = {}  (decode: {})\n", g, decode(&g).map(|v| v.to_i8()).unwrap_or_else(|| "—".into()))),
+     |
+
+error[E0599]: no method named `to_string` found for reference `&str` in the current scope
+    --> src/native_numeral.rs:1617:26
+     |
+1617 |             .map(|_| raw.to_string())
+     |                          ^^^^^^^^^ method not found in `&str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for type `char` in the current scope
+    --> src/native_numeral.rs:1685:20
+     |
+1685 |         .map(|c| c.to_string())
+     |                    ^^^^^^^^^ method not found in `char`
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `char` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:1686:24
+     |
+1686 |         .unwrap_or("?".to_string());
+     |                        ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:2028:83
+     |
+2028 |         None => return "native_numeral factor: internal canonical decode failure".to_string(),
+     |                                                                                   ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for reference `&'static str` in the current scope
+    --> src/native_numeral.rs:2032:64
+     |
+2032 |         return "N = 0\nD(0) = ⊢⊙⊡⊣\np = 0, q = 0\np × q = 0\n".to_string();
+     |                                                                ^^^^^^^^^ method not found in `&'static str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:2058:43
+     |
+2058 | ...   n, word, spb, encode(&spb.to_string()), q, encode(&q.to_string()), multiply_via_word(&spb, &q) == n, syzygy_line(&n, &spb, &q)
+     |                                 ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+2058 -                 n, word, spb, encode(&spb.to_string()), q, encode(&q.to_string()), multiply_via_word(&spb, &q) == n, syzygy_line(&n, &spb, &q)
+2058 +                 n, word, spb, encode(&spb.to_i8()), q, encode(&q.to_string()), multiply_via_word(&spb, &q) == n, syzygy_line(&n, &spb, &q)
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:2058:70
+     |
+2058 | ...   n, word, spb, encode(&spb.to_string()), q, encode(&q.to_string()), multiply_via_word(&spb, &q) == n, syzygy_line(&n, &spb, &q)
+     |                                                            ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+2058 -                 n, word, spb, encode(&spb.to_string()), q, encode(&q.to_string()), multiply_via_word(&spb, &q) == n, syzygy_line(&n, &spb, &q)
+2058 +                 n, word, spb, encode(&spb.to_string()), q, encode(&q.to_i8()), multiply_via_word(&spb, &q) == n, syzygy_line(&n, &spb, &q)
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:2073:39
+     |
+2073 | ...   n, word, p, encode(&p.to_string()), q, encode(&q.to_string()), multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q)
+     |                             ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+2073 -                 n, word, p, encode(&p.to_string()), q, encode(&q.to_string()), multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q)
+2073 +                 n, word, p, encode(&p.to_i8()), q, encode(&q.to_string()), multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q)
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:2073:66
+     |
+2073 | ...   n, word, p, encode(&p.to_string()), q, encode(&q.to_string()), multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q)
+     |                                                        ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+2073 -                 n, word, p, encode(&p.to_string()), q, encode(&q.to_string()), multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q)
+2073 +                 n, word, p, encode(&p.to_string()), q, encode(&q.to_i8()), multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q)
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:2088:63
+     |
+2088 |             report.push_str(&format!("D(p) = {}\n", encode(&p.to_string())));
+     |                                                               ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+2088 -             report.push_str(&format!("D(p) = {}\n", encode(&p.to_string())));
+2088 +             report.push_str(&format!("D(p) = {}\n", encode(&p.to_i8())));
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/native_numeral.rs:2090:63
+     |
+2090 |             report.push_str(&format!("D(q) = {}\n", encode(&q.to_string())));
+     |                                                               ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  41 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+2090 -             report.push_str(&format!("D(q) = {}\n", encode(&q.to_string())));
+2090 +             report.push_str(&format!("D(q) = {}\n", encode(&q.to_i8())));
+     |
+
+error[E0282]: type annotations needed
+    --> src/native_numeral.rs:2413:92
+     |
+2413 |             let (bottom_result, bottom_nodes, top_result, top_nodes) = std::thread::scope(|scope| {
+     |                                                                                            ^^^^^
+...
+2416 |                 let bottom = scope.spawn(move || {
+     |                              ----- type must be known at this point
+     |
+help: consider giving this closure parameter an explicit type
+     |
+2413 |             let (bottom_result, bottom_nodes, top_result, top_nodes) = std::thread::scope(|scope: /* Type */| {
+     |                                                                                                 ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/phase_unbraid.rs:358:27
+    |
+358 |             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+    |                           ^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/phase_unbraid.rs:356:13
+    |
+356 |         let bytes = match std::fs::read(&path) {
+    |             ^^^^^
+...
+366 |         if bytes.len() != count.checked_mul(cell_bytes).ok_or("fixed-point tile byte length overflow")? {
+    |            ----- type must be known at this point
+    |
+help: consider giving `bytes` an explicit type
+    |
+356 |         let bytes: /* Type */ = match std::fs::read(&path) {
+    |                  ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/phase_unbraid.rs:471:27
+    |
+471 |             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(alloc::vec![Cx::zero(); count]),
+    |                           ^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/phase_unbraid.rs:469:13
+    |
+469 |         let bytes = match std::fs::read(&path) {
+    |             ^^^^^
+...
+475 |         if bytes.len() != count.checked_mul(cell_bytes).ok_or("dense-register tile byte length overflow")? {
+    |            ----- type must be known at this point
+    |
+help: consider giving `bytes` an explicit type
+    |
+469 |         let bytes: /* Type */ = match std::fs::read(&path) {
+    |                  ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/phase_unbraid.rs:528:21
+    |
+528 |         let entry = entry.map_err(|error| format!("read dense-register tape entry: {error}"))?;
+    |                     ^^^^^ cannot infer type
+
+error[E0599]: no function or associated item named `to_owned` found for type `str` in the current scope
+   --> src/phase_unbraid.rs:529:62
+    |
+529 |         let Some(name) = entry.file_name().to_str().map(str::to_owned) else { continue };
+    |                                                              ^^^^^^^^ function or associated item not found in `str`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToOwned` which provides `to_owned` is implemented but not in scope; perhaps you want to import it
+    |
+ 24 + use crate::alloc::borrow::ToOwned;
+    |
+
+error[E0282]: type annotations needed
+   --> src/phase_unbraid.rs:530:26
+    |
+530 |         let Some(stem) = name.strip_prefix("tile_").and_then(|name| name.strip_suffix(".bin")) else { continue };
+    |                          ^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/phase_unbraid.rs:530:63
+    |
+530 |         let Some(stem) = name.strip_prefix("tile_").and_then(|name| name.strip_suffix(".bin")) else { continue };
+    |                                                               ^^^^  ---- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+530 |         let Some(stem) = name.strip_prefix("tile_").and_then(|name: /* Type */| name.strip_suffix(".bin")) else { continue };
+    |                                                                   ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src/phase_unbraid.rs:531:22
+    |
+531 |         let hex = if stem.starts_with('w') { stem.rsplit_once('_').map(|(_, hex)| hex).unwrap_or(stem) } else { stem };
+    |                      ^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+    --> src/phase_unbraid.rs:1287:33
+     |
+1287 |                         let _ = f.write_all(bytes);
+     |                                 ^ cannot infer type
+
+error[E0282]: type annotations needed
+    --> src/phase_unbraid.rs:1310:35
+     |
+1310 |                     let n_cells = bytes.len() / core::mem::size_of::<f64>();
+     |                                   ^^^^^ cannot infer type
+
+error[E0599]: no method named `to_string` found for reference `&str` in the current scope
+    --> src/phase_unbraid.rs:1464:69
+     |
+1464 |             if let Some(td) = args.get(i+1) { tape_dir = Some((*td).to_string()); i += 2; continue; }
+     |                                                                     ^^^^^^^^^ method not found in `&str`
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  24 + use crate::alloc::string::ToString;
+     |
+
+error[E0282]: type annotations needed
+   --> src/anyon_ququart.rs:464:63
+    |
+464 |             crate::sic::SixteenOutcome::new(i as u8).map_err(|e| e.to_string())?,
+    |                                                               ^  - type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+464 |             crate::sic::SixteenOutcome::new(i as u8).map_err(|e: /* Type */| e.to_string())?,
+    |                                                                ++++++++++++
+
+error[E0599]: no method named `to_string` found for enum `godel_calculus::DecodeError` in the current scope
+    --> src/ququart_factor.rs:155:54
+     |
+ 155 |     let reading = decode(word).map_err(|error| error.to_string())?;
+     |                                                      ^^^^^^^^^ method not found in `godel_calculus::DecodeError`
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `godel_calculus::DecodeError` here
+     |
+    ::: src/godel_calculus.rs:318:1
+     |
+ 318 | pub enum DecodeError {
+     | -------------------- method `to_string` not found for this enum
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+   2 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for enum `godel_calculus::DecodeError` in the current scope
+    --> src/ququart_factor.rs:172:58
+     |
+ 172 |         let reading = decode(word).map_err(|error| error.to_string())?;
+     |                                                          ^^^^^^^^^ method not found in `godel_calculus::DecodeError`
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `godel_calculus::DecodeError` here
+     |
+    ::: src/godel_calculus.rs:318:1
+     |
+ 318 | pub enum DecodeError {
+     | -------------------- method `to_string` not found for this enum
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+   2 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for enum `godel_calculus::DecodeError` in the current scope
+    --> src/ququart_factor.rs:191:73
+     |
+ 191 |     if !check(&p, Operator::Mul, &q, source_word).map_err(|error| error.to_string())?.valid {
+     |                                                                         ^^^^^^^^^ method not found in `godel_calculus::DecodeError`
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `godel_calculus::DecodeError` here
+     |
+    ::: src/godel_calculus.rs:318:1
+     |
+ 318 | pub enum DecodeError {
+     | -------------------- method `to_string` not found for this enum
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+   2 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for enum `godel_calculus::DecodeError` in the current scope
+    --> src/ququart_factor.rs:257:36
+     |
+ 257 |             .map_err(|error| error.to_string())?.valid {
+     |                                    ^^^^^^^^^ method not found in `godel_calculus::DecodeError`
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `godel_calculus::DecodeError` here
+     |
+    ::: src/godel_calculus.rs:318:1
+     |
+ 318 | pub enum DecodeError {
+     | -------------------- method `to_string` not found for this enum
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+   2 + use crate::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/factor_membrane.rs:206:43
+     |
+ 206 |         let canonical = numeral_encode(&n.to_string());
+     |                                           ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  16 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+ 206 -         let canonical = numeral_encode(&n.to_string());
+ 206 +         let canonical = numeral_encode(&n.to_i8());
+     |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/factor_membrane.rs:213:28
+     |
+ 213 |     Some(numeral_encode(&n.to_string()))
+     |                            ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  16 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+ 213 -     Some(numeral_encode(&n.to_string()))
+ 213 +     Some(numeral_encode(&n.to_i8()))
+     |
+
+error[E0599]: no method named `to_string` found for reference `&BigUint` in the current scope
+   --> src/factor_membrane.rs:222:32
+    |
+222 |     let pw = numeral_encode(&p.to_string());
+    |                                ^^^^^^^^^
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+ 16 + use crate::alloc::string::ToString;
+    |
+help: there is a method `to_i8` with a similar name
+    |
+222 -     let pw = numeral_encode(&p.to_string());
+222 +     let pw = numeral_encode(&p.to_i8());
+    |
+
+error[E0599]: no method named `to_string` found for reference `&BigUint` in the current scope
+   --> src/factor_membrane.rs:223:32
+    |
+223 |     let qw = numeral_encode(&q.to_string());
+    |                                ^^^^^^^^^
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+ 16 + use crate::alloc::string::ToString;
+    |
+help: there is a method `to_i8` with a similar name
+    |
+223 -     let qw = numeral_encode(&q.to_string());
+223 +     let qw = numeral_encode(&q.to_i8());
+    |
+
+error[E0599]: no method named `to_string` found for reference `&BigUint` in the current scope
+   --> src/factor_membrane.rs:243:35
+    |
+243 |     let w = numeral_encode(&value.to_string());
+    |                                   ^^^^^^^^^
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+    |
+ 16 + use crate::alloc::string::ToString;
+    |
+help: there is a method `to_i8` with a similar name
+    |
+243 -     let w = numeral_encode(&value.to_string());
+243 +     let w = numeral_encode(&value.to_i8());
+    |
+
+error[E0599]: no method named `to_string` found for struct `BigUint` in the current scope
+    --> src/factor_membrane.rs:309:42
+     |
+ 309 |             let back = numeral_encode(&n.to_string()) == w && numeral_decode(&w).map(|x| x == n).unwrap_or(false);
+     |                                          ^^^^^^^^^
+     |
+    ::: /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `BigUint` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+  16 + use crate::alloc::string::ToString;
+     |
+help: there is a method `to_i8` with a similar name
+     |
+ 309 -             let back = numeral_encode(&n.to_string()) == w && numeral_decode(&w).map(|x| x == n).unwrap_or(false);
+ 309 +             let back = numeral_encode(&n.to_i8()) == w && numeral_decode(&w).map(|x| x == n).unwrap_or(false);
+     |
+
+error[E0282]: type annotations needed
+   --> src/ququart_folded_work.rs:215:69
+    |
+215 |             crate::sic::SixteenOutcome::new(outcome as u8).map_err(|error| error.to_string())?,
+    |                                                                     ^^^^^  ----- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+215 |             crate::sic::SixteenOutcome::new(outcome as u8).map_err(|error: /* Type */| error.to_string())?,
+    |                                                                          ++++++++++++
+
+Some errors have detailed explanations: E0282, E0412, E0433, E0599.
+For more information about an error, try `rustc --explain E0282`.
+error: could not compile `g-momonados` (lib) due to 124 previous errors

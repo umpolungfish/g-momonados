@@ -14,9 +14,11 @@
     {
       "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_nested_radix_rsa100_20261004/octal",
       "session_id": 25554,
-      "state": "running_no_terminal_report",
+      "state": "terminated_without_terminal_report",
       "radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
-      "terminal_closure": "nested_factor_words_with_godel_product"
+      "terminal_closure": "nested_factor_words_with_godel_product",
+      "exit_code": 137,
+      "termination_cause": "unverified"
     }
   ],
   "nested_work_executions": [
@@ -28,5 +30,21 @@
       "modular_work": "nested_reversible_arithmetic",
       "terminal_closure": "nested_factor_words_with_godel_product"
     }
-  ]
+  ],
+  "debug_execution": {
+    "session_id": 77518,
+    "instrument": "Vox profile-native",
+    "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_nested_work_radix_rsa100_20261004/octal",
+    "report_prefix": "measurements/ququart/nested_work_vox_profile",
+    "state": "running_no_terminal_report",
+    "purpose": "sample source-dependent nested work; no supplied factors or winding"
+  },
+  "hash_nested_work_execution": {
+    "case": "membranes/ququart_nested_work_hash_rsa100_20261004",
+    "session_id": 75884,
+    "state": "running_no_terminal_report",
+    "node_index": "hosted_hash",
+    "phase_carrier": "ququart",
+    "terminal_closure": "nested_factor_words_with_godel_product"
+  }
 }
