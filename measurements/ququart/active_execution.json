@@ -15,7 +15,7 @@
       "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_nested_radix_rsa100_20261004/octal",
       "session_id": 25554,
       "state": "terminated_without_terminal_report",
-      "radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+      "radix_word": "\u22a2\u227b\u22c8\u2208\u22a4\u220b\u227b\u22c8\u2208\u22a4\u220b\u227b\u22c8\u2208\u22a4\u220b\u227b\u22c8\u2208\u22a5\u220b\u2299\u22a1\u22a3",
       "terminal_closure": "nested_factor_words_with_godel_product",
       "exit_code": 137,
       "termination_cause": "unverified"
@@ -26,7 +26,7 @@
       "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_nested_work_radix_rsa100_20261004/octal",
       "session_id": 26456,
       "state": "stopped_by_user_time_limit",
-      "radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+      "radix_word": "\u22a2\u227b\u22c8\u2208\u22a4\u220b\u227b\u22c8\u2208\u22a4\u220b\u227b\u22c8\u2208\u22a4\u220b\u227b\u22c8\u2208\u22a5\u220b\u2299\u22a1\u22a3",
       "modular_work": "nested_reversible_arithmetic",
       "terminal_closure": "nested_factor_words_with_godel_product",
       "exit_code": 143
@@ -180,5 +180,36 @@
     "session_id": 84912,
     "exit_code": 124,
     "closure_time_limit_seconds": 90
+  },
+  "inclusive_scaled_radix4_debug": {
+    "case": "membranes/ququart_scaled_base_sic_fold_radix4_128_20261004",
+    "state": "debug_boundary_observed_inferior_killed",
+    "debugger_session_id": 94955,
+    "debugger_exit": 0,
+    "factor_extraction_verified": false,
+    "instrument": "bounded debugger stop and complete Vox symbol disassembly"
+  },
+  "inclusive_native_radix4_execution": {
+    "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_inclusive_native_radix4_128_20261004",
+    "execution_exit": 0,
+    "elapsed_seconds": 0.28079933900153264,
+    "verification_exit": 0,
+    "factor_extraction_verified": true
+  },
+  "inclusive_native_radix8_execution": {
+    "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_inclusive_native_radix8_128_20261004",
+    "execution_exit": 0,
+    "elapsed_seconds": 0.2184219929986284,
+    "verification_exit": 0,
+    "factor_extraction_verified": true
+  },
+  "zero_identity_ququart_debug": {
+    "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_scaled_base_sic_zero_radix4_128_20261004",
+    "debugger_exit": 0,
+    "elapsed_seconds": 85.17170873299983,
+    "closure_time_limit_seconds": 90,
+    "factor_report_present": false,
+    "inferior_killed": true,
+    "factor_extraction_verified": false
   }
 }

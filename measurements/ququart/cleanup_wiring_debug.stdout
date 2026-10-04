@@ -1,0 +1,71 @@
+Breakpoint 1 at 0xab8a928
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+cleanup_boundary_entered
+cleanup_boundary_entered
+cleanup_boundary_entered
+
+Program received signal SIGINT, Interrupt.
+0x00005f802bff378f in <g_momonados::ququart_decision::DecisionArena>::node ()
+debug_stop
+rip            0x5f802bff378f      0x5f802bff378f <<g_momonados::ququart_decision::DecisionArena>::node+26>
+rdi            0x5f806a62b5e0      105005145306592
+rsi            0x2c8e0             182496
+process 33137
+Mapped address spaces:
+
+          Start Addr           End Addr       Size     Offset  Perms  objfile
+      0x5f802148b000     0x5f802bfd9000  0xab4e000        0x0  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cleanup_wiring_128_20261004/membrane
+      0x5f802bfd9000     0x5f802c062000    0x89000  0xab4d000  r-xp   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cleanup_wiring_128_20261004/membrane
+      0x5f802c062000     0x5f802c066000     0x4000  0xabd5000  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cleanup_wiring_128_20261004/membrane
+      0x5f802c066000     0x5f802c068000     0x2000  0xabd8000  rw-p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cleanup_wiring_128_20261004/membrane
+      0x5f805416c000     0x5f807ad81000 0x26c15000        0x0  rw-p   [heap]
+      0x73ffcc258000     0x73ffcd159000   0xf01000        0x0  rw-p   
+      0x73ffcde7c000     0x73ffce27d000   0x401000        0x0  rw-p   
+      0x73ffce600000     0x73ffce628000    0x28000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x73ffce628000     0x73ffce7bd000   0x195000    0x28000  r-xp   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x73ffce7bd000     0x73ffce815000    0x58000   0x1bd000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x73ffce815000     0x73ffce816000     0x1000   0x215000  ---p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x73ffce816000     0x73ffce81a000     0x4000   0x215000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x73ffce81a000     0x73ffce81c000     0x2000   0x219000  rw-p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x73ffce81c000     0x73ffce829000     0xd000        0x0  rw-p   
+      0x73ffce8de000     0x73ffce8e0000     0x2000        0x0  rw-p   
+      0x73ffce8e0000     0x73ffce8ee000     0xe000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x73ffce8ee000     0x73ffce96a000    0x7c000     0xe000  r-xp   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x73ffce96a000     0x73ffce9c5000    0x5b000    0x8a000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x73ffce9c5000     0x73ffce9c6000     0x1000    0xe4000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x73ffce9c6000     0x73ffce9c7000     0x1000    0xe5000  rw-p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x73ffce9c7000     0x73ffce9ca000     0x3000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x73ffce9ca000     0x73ffce9e1000    0x17000     0x3000  r-xp   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x73ffce9e1000     0x73ffce9e5000     0x4000    0x1a000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x73ffce9e5000     0x73ffce9e6000     0x1000    0x1d000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x73ffce9e6000     0x73ffce9e7000     0x1000    0x1e000  rw-p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x73ffce9fd000     0x73ffce9fe000     0x1000        0x0  ---p   
+      0x73ffce9fe000     0x73ffcea02000     0x4000        0x0  rw-p   
+      0x73ffcea02000     0x73ffcea04000     0x2000        0x0  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x73ffcea04000     0x73ffcea2e000    0x2a000     0x2000  r-xp   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x73ffcea2e000     0x73ffcea39000     0xb000    0x2c000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x73ffcea3a000     0x73ffcea3c000     0x2000    0x37000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x73ffcea3c000     0x73ffcea3e000     0x2000    0x39000  rw-p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7ffe8da18000     0x7ffe8da4d000    0x35000        0x0  rw-p   [stack]
+      0x7ffe8db68000     0x7ffe8db6c000     0x4000        0x0  r--p   [vvar]
+      0x7ffe8db6c000     0x7ffe8db6e000     0x2000        0x0  r-xp   [vdso]
+#0  0x00005f802bff378f in <g_momonados::ququart_decision::DecisionArena>::node ()
+#1  0x00005f802bff8e2c in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#2  0x00005f802bff8f86 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#3  0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#4  0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#5  0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#6  0x00005f802bff8f86 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#7  0x00005f802bff8f86 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#8  0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#9  0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#10 0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#11 0x00005f802bff8f86 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#12 0x00005f802bff8f86 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#13 0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#14 0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#15 0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#16 0x00005f802bff8f86 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#17 0x00005f802bff8fc7 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+[Inferior 1 (process 33137) killed]

@@ -1,0 +1,35 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGINT, Interrupt.
+0x00005a16b5d75748 in <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(usize, usize)> ()
+terminal_or_cutoff_debug_stop
+	Using the running image of child Thread 0x71afc5217b80 (LWP 35616).
+Program stopped at 0x5a16b5d75748.
+It stopped with signal SIGINT, Interrupt.
+rip            0x5a16b5d75748      0x5a16b5d75748 <<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(usize, usize)>+325>
+#0  0x00005a16b5d75748 in <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(usize, usize)> ()
+#1  0x00005a16b5d75218 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#2  0x00005a16b5d753cc in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#3  0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#4  0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#5  0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#6  0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#7  0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#8  0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#9  0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#10 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#11 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#12 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#13 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#14 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#15 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#16 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#17 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#18 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#19 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#20 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#21 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#22 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+#23 0x00005a16b5d753b8 in <g_momonados::ququart_decision::DecisionArena>::sum::visit ()
+[Inferior 1 (process 35616) killed]

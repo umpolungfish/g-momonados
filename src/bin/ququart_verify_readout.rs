@@ -72,6 +72,7 @@ fn validate_prepared(path: &str) -> Result<(), String> {
     )
     .map_err(|error| error.to_string())?;
     validate_prepared_values(&prepared, None)?;
+    support::validate_base_scaling(&prepared)?;
     if let Some(work) = prepared.get("prepared_work") {
         if support::work::compile(&prepared)? != *work {
             return Err("baked work boundaries differ from source and radix".into());
@@ -111,6 +112,8 @@ fn verify() -> Result<bool, String> {
         "fourier_computational_word", "fourier_leakage_word",
         "fourier_return_word", "fourier_exchanges_word",
         "radix_word", "nested_factor_word",
+        "sic_frame_samples",
+        "producing_arm_word",
     ];
     if fields.keys().any(|key| !allowed_fields.contains(key)) {
         return Err("terminal output contains an unapproved field or a non-word numeric value".into());
@@ -152,6 +155,21 @@ fn verify() -> Result<bool, String> {
     if !check(closure[1], Operator::Mul, closure[2], source_word).map_err(|e| e.to_string())?.valid {
         return Err("terminal factors do not close through Gödel multiplication".into());
     }
+    if let Some(arm) = fields.get("producing_arm_word") {
+        let arm = numeral(arm)?;
+        if arm.is_zero() {
+            if prepared.get("native_arm_word").and_then(|v|v.as_str()).map(numeral).transpose()? != Some(BigUint::one()) {
+                return Err("native factor arm was not included in the baked membrane".into());
+            }
+            if !numeral(field("shots_word")?)?.is_zero() || field("phase_samples")? != "[]"
+                || field("sic_frame_samples")? != "[]" || fields.contains_key("order_word")
+                || fields.contains_key("phase_numerator_word") || fields.contains_key("phase_denominator_word") {
+                return Err("native factor report claims phase measurements it did not produce".into());
+            }
+            return Ok(true);
+        }
+        if arm != BigUint::one() { return Err("unknown producing arm word".into()); }
+    }
     let samples: serde_json::Value = serde_json::from_str(field("phase_samples")?).map_err(|e| e.to_string())?;
     validate_prepared_values(&samples, None)?;
     let samples = samples.as_array().ok_or("phase samples must be an array")?;
@@ -161,6 +179,44 @@ fn verify() -> Result<bool, String> {
     let digits = numeral(prepared["prepared_operator"]["phase_digits_word"].as_str().ok_or("missing prepared phase resolution")?)?;
     if digits != BigUint::from(n.bits() + 4) { return Err("prepared phase resolution differs from source".into()); }
     let denominator = BigUint::one() << usize::try_from(2 * (n.bits() + 4)).map_err(|_| "phase resolution exceeds host indexing")?;
+    if let Some(raw) = fields.get("sic_frame_samples") {
+        let witnesses: serde_json::Value = serde_json::from_str(raw).map_err(|e|e.to_string())?;
+        validate_prepared_values(&witnesses,None)?;
+        let witnesses = witnesses.as_array().ok_or("SIC frame ledger must be an array")?;
+        let per_shot = usize::try_from(n.bits()+4).map_err(|_| "SIC ledger width exceeds host indexing")?;
+        if witnesses.len() != samples.len().checked_mul(per_shot).ok_or("SIC ledger length overflow")? {
+            return Err("SIC frame ledger differs from the measured phase stages".into());
+        }
+        let format = g_momonados::phase_unbraid::FixedPointFormat::for_modulus(&n)?;
+        let sic = g_momonados::anyon_ququart::FixedQuquartSic::new(&format)?;
+        for (index,witness) in witnesses.iter().enumerate() {
+            let entries = witness["gram"].as_array().ok_or("missing SIC control Gram")?;
+            let gram: [(num_bigint::BigInt,num_bigint::BigInt);16] = entries.iter().map(|entry| {
+                Ok((support::signed_numeral(entry["re_word"].as_str().ok_or("missing Gram real word")?)?,
+                    support::signed_numeral(entry["im_word"].as_str().ok_or("missing Gram imaginary word")?)?))
+            }).collect::<Result<Vec<_>,String>>()?.try_into().map_err(|_| "SIC Gram must contain every control pair")?;
+            for row in 0..4 {
+                for col in 0..4 {
+                    if gram[4*row+col].0 != gram[4*col+row].0 || gram[4*row+col].1 != -&gram[4*col+row].1 {
+                        return Err("SIC control Gram is not Hermitian".into());
+                    }
+                }
+            }
+            let masses: [BigUint;16] = witness["mass_words"].as_array().ok_or("missing SIC frame masses")?
+                .iter().map(|value| numeral(value.as_str().ok_or("SIC mass must be a word")?))
+                .collect::<Result<Vec<_>,String>>()?.try_into().map_err(|_| "SIC frame must retain every outcome")?;
+            if sic.gram_masses(&gram)? != masses { return Err("SIC masses differ from their measured control Gram".into()); }
+            sic.validate_gram_frame(&gram,&masses)?;
+            let sample = &samples[index/per_shot];
+            let phase = numeral(sample["numerator_word"].as_str().ok_or("missing measured phase numerator")?)?;
+            let expected = (phase >> (2*(index%per_shot))) & BigUint::from(3u8);
+            if numeral(witness["digit_word"].as_str().ok_or("missing SIC boundary digit word")?)? != expected {
+                return Err("SIC boundary digit differs from the measured phase ledger".into());
+            }
+        }
+    } else if prepared.get("binary_base_word").is_some() {
+        return Err("scaled-base membrane lacks its inclusive SIC frame ledger".into());
+    }
     let mut accumulator = PhaseReadoutAccumulator::default();
     let mut closed = None;
     for (index, sample) in samples.iter().enumerate() {
@@ -182,7 +238,7 @@ fn verify() -> Result<bool, String> {
 }
 fn main() {
     match verify() {
-        Ok(true) => println!("verified terminal measured-phase closure and native factor product"),
+        Ok(true) => println!("verified terminal producing arm and Gödel factor product"),
         Ok(false) => {},
         Err(error) => { eprintln!("readout verification failed: {error}"); std::process::exit(1); }
     }

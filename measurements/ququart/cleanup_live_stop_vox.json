@@ -1,0 +1,118 @@
+{
+  "elf": "membranes/ququart_cleanup_wiring_128_20261004/membrane",
+  "debugger_exit": 0,
+  "elapsed_seconds": 35.149,
+  "cleanup_boundaries_entered": 3,
+  "inferior_killed": true,
+  "stopped_stack": [
+    {
+      "frame": 0,
+      "elf_address": "0xab6878f",
+      "symbol": "_RNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB4_13DecisionArena4node",
+      "symbol_offset": 26
+    },
+    {
+      "frame": 1,
+      "elf_address": "0xab6de2c",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 331
+    },
+    {
+      "frame": 2,
+      "elf_address": "0xab6df86",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 677
+    },
+    {
+      "frame": 3,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    },
+    {
+      "frame": 4,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    },
+    {
+      "frame": 5,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    },
+    {
+      "frame": 6,
+      "elf_address": "0xab6df86",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 677
+    },
+    {
+      "frame": 7,
+      "elf_address": "0xab6df86",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 677
+    },
+    {
+      "frame": 8,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    },
+    {
+      "frame": 9,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    },
+    {
+      "frame": 10,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    },
+    {
+      "frame": 11,
+      "elf_address": "0xab6df86",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 677
+    },
+    {
+      "frame": 12,
+      "elf_address": "0xab6df86",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 677
+    },
+    {
+      "frame": 13,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    },
+    {
+      "frame": 14,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    },
+    {
+      "frame": 15,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    },
+    {
+      "frame": 16,
+      "elf_address": "0xab6df86",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 677
+    },
+    {
+      "frame": 17,
+      "elf_address": "0xab6dfc7",
+      "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit",
+      "symbol_offset": 742
+    }
+  ],
+  "factor_extraction_verified": false
+}

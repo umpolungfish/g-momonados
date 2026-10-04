@@ -1,0 +1,43 @@
+{
+  "component": "ququart_factor",
+  "binary": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_inclusive_native_radix8_128_20261004/membrane",
+  "sha256": "310dce00ab14b2e76a9eb6eb0b6d3389657dd66bbae8895c3350ec7d42f234f6",
+  "verifier_sha256": "1f923e5f2df1e25b5a44d884d978029d1a4275a71f89d460f6573eb0d84f252c",
+  "prepared_sha256": "57cf9c2939a51eaa0657586686fa6fd1cf641f4f2c5fb10cda18434f7dcbfb30",
+  "source_word": "⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣",
+  "accuracy_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+  "runtime_inputs": [],
+  "telemetry": "terminal_only",
+  "prepared_values": "canonical_cell_binary_imasm_words",
+  "base_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+  "seed_word": "⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣",
+  "binary_base_word": "⊢≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+  "modular_base_scaling": "binary_base_power_log2_radix_mod_source",
+  "radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+  "terminal_nesting": "vox_product_over_prefix_meets_prefix_over_product",
+  "execution_limits": null,
+  "extraction": "native_ququart_factor_executor",
+  "fourier_operator": "contracted_physical_fibonacci_braid",
+  "fourier_contraction": "preparation_time",
+  "modular_work_operator": "nested_reversible_arithmetic_on_shared_complex_decision_branches",
+  "work_wire_layout": "interleaved_source_workspace",
+  "source_work_radix": "baked_radix_word_live_digit_split_fuse",
+  "modular_work_preparation": "source_bound_operations_baked_as_numeral_words",
+  "feedback_operator": "fixed_point_winding",
+  "sic_inclusion": "shared_control_gram_full_frame_and_dual_synthesis_at_each_phase_readout",
+  "native_arm_word": "⊢≻⋈∈⊥∋⊙⊡⊣",
+  "nested_arms": [
+    "native_factor_engine",
+    "ququart_phase_with_sic_frame"
+  ],
+  "closure_arithmetic": "radix_four_paired_numeral_cells",
+  "terminal_factors": "direct_godel_closure_words",
+  "physical_modular_braids_compiled": false,
+  "retained_fourier_case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_scaled_base_sic_radix8_128_20261004",
+  "retained_fourier_sha256": "5d2f45b799fa63801ef8e521b28300604344384047f8f86414ea240398345cc2",
+  "native_factor_engine": "PARI_GP_canonical_IMASM_word_adapter",
+  "producing_arm_words": {
+    "native_factor_engine": "⊢≻⋈∈⊤∋⊙⊡⊣",
+    "ququart_phase_with_sic_frame": "⊢≻⋈∈⊥∋⊙⊡⊣"
+  }
+}

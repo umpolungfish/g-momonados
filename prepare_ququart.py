@@ -1,7 +1,8 @@
 """Compile a retained ququart membrane from canonical IMASM numeral words.
 
 Supply the source and numeric options as words, or use @path to read a word
-from a local file. With --base the executable retains joint work amplitudes
+from a local file. --base supplies the binary modular base; preparation scales
+it by log2(radix) compositions before baking the modular powers. The executable retains joint work amplitudes
 through phase measurements and emits factor words after Gödel closure.
 """
 import argparse
@@ -35,21 +36,24 @@ def retained_operator(case, inputs):
         raise RuntimeError("retained operator is not the preparation baked in the membrane")
     prepared = json.loads(raw)
     if any(prepared.get(field) != inputs.get(field)
-           for field in ("source_word", "base_word", "accuracy_word")):
-        raise RuntimeError("retained operator differs from requested source, modular base or accuracy")
+           for field in ("source_word", "accuracy_word")):
+        raise RuntimeError("retained Fourier operator differs from requested source or accuracy")
     run([str(ROOT / "target/release/ququart_verify_readout"), "--validate-prepared",
          str(case / "prepared.json")])
     operator = prepared["prepared_operator"]
     if "controlled_power_words" not in operator or "phase_digits_word" not in operator:
         raise RuntimeError("retained factor operator lacks a prepared controlled-power schedule")
-    return operator
+    # The physical Fourier operator depends on source precision and accuracy.
+    # Modular powers depend on the newly scaled base and must be regenerated.
+    return {key: value for key, value in operator.items()
+            if key not in ("controlled_power_words", "phase_digits_word")}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", help="canonical source word, or @word-file")
     parser.add_argument("destination", type=Path)
-    parser.add_argument("--base", help="canonical phase-estimation base word, or @word-file")
+    parser.add_argument("--base", help="canonical binary modular base word, scaled to --radix, or @word-file")
     for option in ("seed", "accuracy", "sk", "net", "refinement", "radix"):
         parser.add_argument(f"--{option}", help=f"canonical {option} word, or @word-file")
     reports = parser.add_mutually_exclusive_group()
@@ -72,6 +76,11 @@ def main():
         inputs["base_word"] = input_word(args.base)
     inputs_path = case / "inputs.json"
     inputs_path.write_text(json.dumps(inputs, ensure_ascii=False, indent=2) + "\n")
+    if args.base is not None:
+        scaling = run([str(ROOT / "target/release/ququart_prepare_operator"),
+                       "--scale-base", str(inputs_path)])
+        inputs.update(json.loads(scaling.stdout))
+        inputs_path.write_text(json.dumps(inputs, ensure_ascii=False, indent=2) + "\n")
     validation = run([str(ROOT / "target/release/ququart_verify_readout"),
                       "--validate-prepared", str(inputs_path)])
     (case / "input_validation.log").write_text(validation.stdout + validation.stderr)
@@ -102,6 +111,8 @@ def main():
     binary_name = "ququart_baked"
     if args.base is not None:
         prepared.update(component="ququart_factor", base_word=inputs["base_word"],
+                        binary_base_word=inputs["binary_base_word"],
+                        native_arm_word=inputs["native_arm_word"],
                         seed_word=inputs["seed_word"], radix_word=inputs["radix_word"])
         binary_name = "ququart_factor_baked"
     prepared_path = case / "prepared.json"
@@ -118,6 +129,10 @@ def main():
             prepared.pop("exchange_words")
         prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
         if args.base is not None:
+            powers = run([str(ROOT / "target/release/ququart_prepare_operator"),
+                          "--prepare-powers", str(prepared_path)])
+            prepared["prepared_operator"].update(json.loads(powers.stdout))
+            prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
             work = run([str(ROOT / "target/release/ququart_prepare_operator"), "--prepare-work", str(prepared_path)])
             prepared["prepared_work"] = json.loads(work.stdout)
             prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
@@ -138,6 +153,8 @@ def main():
                 "prepared_values": "canonical_cell_binary_imasm_words"}
     if args.base is not None:
         manifest.update(base_word=prepared["base_word"], seed_word=prepared["seed_word"],
+                        binary_base_word=prepared["binary_base_word"],
+                        modular_base_scaling="binary_base_power_log2_radix_mod_source",
                         radix_word=prepared["radix_word"],
                         terminal_nesting="vox_product_over_prefix_meets_prefix_over_product",
                         execution_limits=None, extraction="native_ququart_factor_executor",
@@ -148,6 +165,12 @@ def main():
                         source_work_radix="baked_radix_word_live_digit_split_fuse",
                         modular_work_preparation="source_bound_operations_baked_as_numeral_words",
                         feedback_operator="fixed_point_winding",
+                        sic_inclusion="shared_control_gram_full_frame_and_dual_synthesis_at_each_phase_readout",
+                        native_arm_word=prepared["native_arm_word"],
+                        nested_arms=["native_factor_engine", "ququart_phase_with_sic_frame"],
+                        native_factor_engine="PARI_GP_canonical_IMASM_word_adapter",
+                        producing_arm_words={"native_factor_engine":defaults["capacity_word"],
+                                             "ququart_phase_with_sic_frame":defaults["native_arm_word"]},
                         closure_arithmetic="radix_four_paired_numeral_cells",
                         terminal_factors="direct_godel_closure_words",
                         physical_modular_braids_compiled=False)

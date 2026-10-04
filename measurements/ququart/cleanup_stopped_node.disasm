@@ -1,0 +1,17 @@
+ab68775	push	r:rax
+ab68776	cmp	r:rdx r:rsi
+ab68779	jae	i:0xab687a3
+ab6877b	shl	r:rdx i:0x6
+ab6877f	movabs	r:rax i:-0x7ffffffffffffffe
+ab68789	cmp	m:rdi:rdx:1:0x0:8 r:rax
+ab6878d	je	i:0xab68797
+ab6878f	add	r:rdi r:rdx
+ab68792	mov	r:rax r:rdi
+ab68795	pop	r:rcx
+ab68796	ret	
+ab68797	lea	r:rdi m:rip::1:0x6f722:8
+ab6879e	call	i:0xab5f5e0
+ab687a3	lea	r:rax m:rip::1:0x6f6fe:8
+ab687aa	mov	r:rdi r:rdx
+ab687ad	mov	r:rdx r:rax
+ab687b0	call	i:0xab5ed0d

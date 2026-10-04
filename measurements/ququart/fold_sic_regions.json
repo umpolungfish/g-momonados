@@ -1,0 +1,22 @@
+{
+  "control_gram": {
+    "start": 101043065,
+    "end": 101047230,
+    "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena12control_gram5visit"
+  },
+  "controlled_multiply": {
+    "start": 101052778,
+    "end": 101066725,
+    "symbol": "_RNvXs_NtCsdpsOGJVkNCx_11g_momonados19ququart_folded_workNtB4_23QuquartFoldedWorkDeviceNtNtB6_14ququart_factor18QuquartPhaseDevice19controlled_multiply"
+  },
+  "require_clean_workspace": {
+    "start": 101066871,
+    "end": 101067680,
+    "symbol": "_RNvMNtCsdpsOGJVkNCx_11g_momonados19ququart_folded_workNtB2_23QuquartFoldedWorkDevice23require_clean_workspace"
+  },
+  "20conditional_literals5visit": {
+    "start": 100939825,
+    "end": 100941175,
+    "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit"
+  }
+}

@@ -14,11 +14,37 @@ fn execute() -> Result<String, String> {
         return Err("baked membrane requires a prepared operator in IMASM words".into());
     }
     let (n, fourier, metrics) = support::contract(&prepared)?;
+    support::validate_base_scaling(&prepared)?;
     let base = support::numeral(prepared["base_word"].as_str().ok_or("missing baked base word")?)?;
     let seed = support::numeral(prepared["seed_word"].as_str().ok_or("missing baked seed word")?)?
         .to_u64().ok_or("invalid seed word")?;
     let radix_word = prepared["radix_word"].as_str().ok_or("missing baked nested radix word")?;
     g_momonados::ququart_factor::power_of_two_radix_word(radix_word)?;
+    let native_enabled = match prepared.get("native_arm_word") {
+        Some(value) => {
+            let flag = support::numeral(value.as_str().ok_or("native arm selector must be a word")?)?;
+            if flag > num_bigint::BigUint::from(1u8) { return Err("invalid native arm selector word".into()); }
+            flag == num_bigint::BigUint::from(1u8)
+        },
+        None => false,
+    };
+    if native_enabled {
+        let source_word = prepared["source_word"].as_str().ok_or("missing source word")?;
+        if let Some((p,q)) = g_momonados::arbitrary_factor::native_factor_word_pair(source_word)? {
+            let (p,q) = g_momonados::ququart_factor::nested_radix_factor_words(source_word,&p,&q,radix_word)?;
+            let closure = format!("{source_word}|{p}|{q}");
+            let word = |value:u64| encode_cell_binary(&Nat::from_bits_le(
+                (0..64).map(|bit| value & (1u64 << bit) != 0).collect()));
+            return Ok(format!(concat!("completed ququart factor extraction\n",
+                "source_word={}\nbase_word={}\nproducing_arm_word={}\n",
+                "p_word={}\nq_word={}\ngodel_product_verified=true\nclosure_word={}\n",
+                "radix_word={}\nnested_factor_word={}\nshots_word={}\nphase_samples=[]\nsic_frame_samples=[]\n",
+                "fourier_computational_word={}\nfourier_leakage_word={}\nfourier_return_word={}\nfourier_exchanges_word={}\n"),
+                source_word, prepared["base_word"].as_str().ok_or("missing base word")?, word(0),p,q,closure,
+                radix_word,closure,word(0),word(metrics.computational.to_bits()),word(metrics.leakage.to_bits()),
+                word(metrics.closure.to_bits()),word(metrics.exchanges as u64)));
+        }
+    }
     let device = QuquartFoldedWorkDevice::new_interleaved_radix(n.clone(), fourier, seed, radix_word)?
         .with_prepared_work(support::work::decode(&prepared)?);
     let powers = prepared["prepared_operator"]["controlled_power_words"].as_array()
@@ -42,6 +68,15 @@ fn execute() -> Result<String, String> {
             let samples: Vec<_> = executor.measured_phases().iter().map(|(numerator, denominator)|
                 serde_json::json!({"numerator_word": word(numerator), "denominator_word": word(denominator)})).collect();
             let samples = serde_json::to_string(&samples).map_err(|e| e.to_string())?;
+            let signed = |value: &num_bigint::BigInt| format!("{}{}",
+                if value.sign() == num_bigint::Sign::Minus { "≺" } else { "≻" },word(value.magnitude()));
+            let sic_samples: Vec<_> = executor.device().sic_witnesses().iter().map(|witness|
+                serde_json::json!({
+                    "gram":witness.gram.iter().map(|(re,im)| serde_json::json!({"re_word":signed(re),"im_word":signed(im)})).collect::<Vec<_>>(),
+                    "mass_words":witness.masses.iter().map(&word).collect::<Vec<_>>(),
+                    "digit_word":word(&num_bigint::BigUint::from(witness.digit as u8))
+                })).collect();
+            let sic_samples = serde_json::to_string(&sic_samples).map_err(|e|e.to_string())?;
             let nesting_word = format!("{}|{}|{}", closure.source_word(), p_word, q_word);
             let report = format!(
                 "completed ququart factor extraction\nsource_word={}\nbase_word={}\nshots_word={}\nphase_numerator_word={}\nphase_denominator_word={}\norder_word={}\np_word={}\nq_word={}\ngodel_product_verified=true\nclosure_word={}\nfourier_computational_word={}\nfourier_leakage_word={}\nfourier_return_word={}\nfourier_exchanges_word={}\nphase_samples={samples}\n",
@@ -52,7 +87,8 @@ fn execute() -> Result<String, String> {
                 word(&num_bigint::BigUint::from(metrics.leakage.to_bits())),
                 word(&num_bigint::BigUint::from(metrics.closure.to_bits())),
                 word(&num_bigint::BigUint::from(metrics.exchanges)));
-            return Ok(format!("{report}radix_word={radix_word}\nnested_factor_word={nesting_word}\n"));
+            let phase_arm = word(&num_bigint::BigUint::from(1u8));
+            return Ok(format!("{report}producing_arm_word={phase_arm}\nradix_word={radix_word}\nnested_factor_word={nesting_word}\nsic_frame_samples={sic_samples}\n"));
         }
     }
 }
