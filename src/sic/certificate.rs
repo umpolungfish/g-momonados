@@ -71,16 +71,16 @@ impl SicCertificate {
                         if imaginary { 1.0 } else { 0.0 },
                     ),
                 );
-                let coordinates=frame.split(&x)?;
+                let coordinates = frame.split(&x)?;
                 c.closure = c.closure.max(frame.fuse(&coordinates)?.distance(&x)?);
-                let mut moment=Operator::zero(d);
-                for (i,z) in coordinates.values.iter().enumerate() {
-                    moment.add_scaled(&frame.projector(i)?,z.scale(d as f64))?;
+                let mut moment = Operator::zero(d);
+                for (i, z) in coordinates.values.iter().enumerate() {
+                    moment.add_scaled(&frame.projector(i)?, z.scale(d as f64))?;
                 }
-                let coefficient=d as f64/(d+1) as f64;
-                let mut expected=x.scale(coefficient);
-                expected.add_scaled(&Operator::identity(d),x.trace().scale(coefficient))?;
-                c.symmetry=c.symmetry.max(moment.distance(&expected)?);
+                let coefficient = d as f64 / (d + 1) as f64;
+                let mut expected = x.scale(coefficient);
+                expected.add_scaled(&Operator::identity(d), x.trace().scale(coefficient))?;
+                c.symmetry = c.symmetry.max(moment.distance(&expected)?);
             }
         }
         Ok(c)
@@ -165,8 +165,5 @@ impl EvidencePolicy {
             Some(x) if x.is_finite() && x >= self.refute => V::F,
             _ => V::N,
         }
-    }
-    pub fn accumulate(self, existing: V, residual: Option<f64>) -> V {
-        existing.join(self.classify(residual))
     }
 }
