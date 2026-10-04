@@ -1,1 +1,3 @@
-I inspect the executable Vox module and its omitted dispatch words
+I retain Vox disassembly of the compiled modular cleanup boundary
+
+I expose dirty workspace wires as canonical numeral words and retain baked error details. I rebuild the prepared membrane and record the actual compiled calls, complete symbol disassembly, and executable IMASM pipeline.

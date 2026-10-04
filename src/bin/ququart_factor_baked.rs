@@ -65,7 +65,7 @@ fn main() {
     };
     let (report, code) = match result {
         Ok(report) => (report, 0),
-        Err(_) => ("factor extraction failed\n".to_string(), 1),
+        Err(error) => (format!("factor extraction failed\nerror_detail={error}\n"), 1),
     };
     // This is the sole output operation and follows measurement and extraction.
     if std::io::stdout().lock().write_all(report.as_bytes()).is_err() { std::process::exit(1); }
