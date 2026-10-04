@@ -109,5 +109,13 @@
     "factor_extraction_verified": false,
     "phase_carrier": "ququart",
     "source_work_radix": "baked_radix_word"
+  },
+  "fixed_digit_octal_execution": {
+    "case": "membranes/ququart_fixed_digit_octal_rsa100_20261004",
+    "session_id": 7480,
+    "state": "stopped_at_user_time_limit",
+    "exit_code": 124,
+    "closure_time_limit_seconds": 90,
+    "factor_extraction_verified": false
   }
 }
