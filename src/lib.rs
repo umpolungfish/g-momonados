@@ -38,6 +38,9 @@ pub mod reversible_modular;
 pub mod recycled_carrier;
 pub mod anyon_local;
 pub mod anyon_pair;
+pub mod anyon_fusion_kernel;
+#[cfg(feature = "hosted")]
+pub mod sic;
 #[cfg(feature = "hosted")]
 pub mod belnap_residual;
 #[cfg(feature = "hosted")]
