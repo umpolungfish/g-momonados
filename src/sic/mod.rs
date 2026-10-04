@@ -6,6 +6,7 @@ pub mod fixed;
 pub mod frame;
 pub mod gpu;
 pub mod qubit;
+pub mod residual;
 pub mod wh;
 pub use frame::{Complex, Operator, Sic, SicCoordinates, SicFrame};
 pub use qubit::{

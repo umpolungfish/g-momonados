@@ -71,10 +71,18 @@ impl SicCertificate {
                         if imaginary { 1.0 } else { 0.0 },
                     ),
                 );
-                c.closure = c.closure.max(frame.fuse(&frame.split(&x)?)?.distance(&x)?);
+                let coordinates=frame.split(&x)?;
+                c.closure = c.closure.max(frame.fuse(&coordinates)?.distance(&x)?);
+                let mut moment=Operator::zero(d);
+                for (i,z) in coordinates.values.iter().enumerate() {
+                    moment.add_scaled(&frame.projector(i)?,z.scale(d as f64))?;
+                }
+                let coefficient=d as f64/(d+1) as f64;
+                let mut expected=x.scale(coefficient);
+                expected.add_scaled(&Operator::identity(d),x.trace().scale(coefficient))?;
+                c.symmetry=c.symmetry.max(moment.distance(&expected)?);
             }
         }
-        c.symmetry = c.equiangularity;
         Ok(c)
     }
     pub fn report(&self, policy: EvidencePolicy) -> String {
