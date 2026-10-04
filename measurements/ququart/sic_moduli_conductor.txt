@@ -1,0 +1,677 @@
+    The Conductor of the SIC-POVM Moduli Field:
+A Cyclic Structure Across Arithmetic, Logic, and Machine
+
+                                                C. Lando Mills∗
+                                          Trabuco Canyon, California
+                                           c.landonmills@gmail.com
+                                          ORCID: 0000-0003-0003-0552
+
+                                                   17 August 2026
+
+                                                         Abstract
+          The squared magnitudes 𝑁𝑘 = |𝜓𝑘 |2 of a SIC-POVM fiducial vector in dimension 𝑑 generate an abelian
+     extension of the real quadratic field 𝐹 = ℚ(√(𝑑 + 1)(𝑑 − 3)). This paper establishes that the conductor of
+     this moduli field is the arithmetic expression of a single cyclic structure that also manifests as the Belnap
+     trilattice in logic and as the self-hosting grammar of the IMASM machine substrate.
+          At 𝑑 = 2048, the conductor collapses to the principal ideal (163 )∞1 . This is not a numerical coincidence.
+     The sixteen states and three orderings of the trilattice, the (16, 3) torus knot on the horn torus, and the 163
+     carrier of the IMASM native alphabet are all expressions of the same invariant. The moduli field is the ray
+                           𝑣 (𝑑)+1
+     class field at 𝔣𝑑 = 𝔭22       ∏𝔭∣𝑝,𝑝|𝑑 𝔭 ⋅ ∞1 , taken modulo the class group of 𝐹, with exactly one infinite place
+     ramified. At 𝑑 = 16, the 𝜎-coinvariant count settles that the class group is not carried by the moduli; at
+     𝑑 = 2048 this yields degree 221 over 𝐹. The calibration dimensions 𝑑 = 4, 8, 12 are cross-sections where this
+     structure becomes visible through exact fiducials. The Lean 4 formalization discharges the tower data to zero
+     axioms, and the IMASM-native Replicating Code demonstrates the same fixed-point closure operationally:
+     the grammar reads itself. The conductor, the trilattice, and the machine are one object.
+
+Keywords: SIC-POVM ⋅ moduli field ⋅ conductor ⋅ ray class field ⋅ Belnap trilattice ⋅ IMASM ⋅ Zauner
+conjecture ⋅ PARI/GP ⋅ Lean 4
+
+
+
+
+  ∗ The author thanks Harry T. Larson; see Acknowledgements and [8].
+
+
+
+
+                                                              1
+CONTENTS                                                                                                         2
+
+
+
+Contents
+1 Introduction: The Cycle                                                                                       3
+
+2 The Moduli Field Is Not the Coordinate Field                                                                  3
+
+3 Method: Height Stability and Conductor Enumeration                                                            4
+
+4 Calibration Cross-Sections: 𝑑 = 4, 8, 12                                                                      4
+
+5 The Conductor Rule                                                                                            4
+
+6 Dimension 2048: Where the Cycle Closes                                                                        5
+
+7 The Unit at the Conductor                                                                                     6
+  7.1 Exactness Is Not Evaluability . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     7
+  7.2 The Radicals from Their Levels . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      7
+  7.3 What the Representation Costs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       7
+
+8 Sixteen Cubed: The Structure Across Substrates                                                                 8
+  8.1 The Logical Substrate: The Belnap Trilattice . . . . . . . . . . . . . . . . . . . . . . . . . . .         8
+  8.2 The Geometric Realization: The Horn Torus and (16, 3) Knot . . . . . . . . . . . . . . . . . .             8
+  8.3 The Operational Substrate: IMASM and sixteen3 . . . . . . . . . . . . . . . . . . . . . . . .             11
+  8.4 Unity . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   11
+
+9 The Class Group: Settled at Dimension Sixteen                                                                 11
+
+10 Formal Closure: The Lean 4 Tower Discharge                                                                   12
+
+11 What Follows                                                                                                 12
+2   THE MODULI FIELD IS NOT THE COORDINATE FIELD                                                               3
+
+
+
+1     Introduction: The Cycle
+A symmetric informationally complete positive operator-valued measure (SIC-POVM) in dimension 𝑑 is a set
+of 𝑑2 unit vectors in ℂ𝑑 with equal pairwise overlap |⟨𝜓𝑗 , 𝜓𝑘 ⟩|2 = 1/(𝑑 + 1) for 𝑗 ≠ 𝑘. Zauner conjectured
+in 1999 that such configurations exist in every dimension, generated as orbits of a single fiducial under the
+Weyl–Heisenberg group [1]. The conjecture remains open.
+Appleby, Bengtsson, Flammia, McConnell, and Yard established that fiducial coordinates are algebraic numbers
+in ray class fields of 𝐹 = ℚ(√𝑚𝑑 ), where 𝑚𝑑 is the squarefree part of (𝑑 + 1)(𝑑 − 3) [2, 3, 4]. This ties SIC
+existence to Hilbert’s twelfth problem for real quadratic fields. But knowing the fiducial lives in some ray
+class field is not knowing which. The conductor determines the ray class group, the character count, and
+whether Stark machinery applies.
+This paper determines the conductor for the moduli 𝑁𝑘 = |𝜓𝑘 |2 . But the determination is not linear. The
+conductor formula, the Belnap trilattice, and the IMASM machine grammar are not three separate results
+connected by interpretation. They are one structure expressing itself in three substrates: arithmetic, logical,
+and operational.
+The rule is stated in Conjecture 5.1. For even 𝑑, the moduli generate the ray class field of 𝐹 at modulus
+                                               𝑣 (𝑑)+1
+                                        𝔣𝑑 = 𝔭22         ⋅ ∏ ∏ 𝔭 ⋅ ∞1 ,
+                                                           𝑝∣𝑑 𝔭∣𝑝
+                                                          𝑝 odd
+
+with exactly one infinite place ramified, taken modulo the class group of 𝐹. Its degree over 𝐹 is |Cl𝔣𝑑 |/ℎ(𝐹).
+At 𝑑 = 2048 = 211 , there are no odd prime divisors, 2 is inert in 𝐹, and the formula collapses to
+
+                                 𝔣2048 = (212 )∞1 = (4096)∞1 = (163 )∞1 .
+
+The conductor is generated by sixteen cubed. This is the arithmetic face of the same structure whose logical
+face is the Belnap trilattice (sixteen states, three orderings) and whose operational face is the IMASM sixteen3
+carrier and the self-hosting Replicating Code. The three are not analogous. They are identical.
+Three features of the answer matter more than the formula itself:
+
+    1. Archimedean ramification. Exactly one infinite place ramifies. The moduli field is real at the fiducial
+       embedding but not totally real. PARI’s bnrstark refuses it because standard Stark machinery requires
+       total reality. The mixed-signature form is necessary: the unit at the conductor is recovered as a monomial
+       in 𝑆-units of 𝐹, which Section 7 carries out explicitly, rather than from a totally real Stark–Brumer
+       construction that the signature forbids.
+    2. Class group quotient. All calibration dimensions (𝑑 = 4, 8, 12) have class number one, making the
+       quotient invisible. Dimension sixteen, with ℎ(𝐹) = 2, settles the question: the raw 𝜎-coinvariant count
+       overshoots by precisely the class number, and dividing restores 𝑑/2. The moduli field is the ray class
+       field modulo the class group. At 𝑑 = 2048 this costs six powers of two: degree 221 over 𝐹, not 227 .
+    3. The sixteen-cubed structure. At 𝑑 = 2048 the conductor is (163 )∞1 . The pair (16, 3) is the trilattice’s
+       signature. It appears independently as the (16, 3) torus knot on the horn torus, as the sixteen3 carrier
+       in IMASM’s B4-native alphabet, and as the saturation ceiling 𝑣2 (2𝑑) = 12 in the 2-adic filtration. These
+       are not coincidences to be noted. They are the structure recognizing itself across substrates.
+
+The calibration at 𝑑 = 4, 8, 12 is not the foundation from which the rule is extrapolated. It is where the
+cycle becomes empirically accessible because exact fiducials exist. The prediction at 𝑑 = 2048 is not an
+extrapolation. It is where the cycle closes at a scale where the logical substrate becomes numerically legible.
+The Lean 4 discharge and the IMASM Replicating Code are not verification appendages. They are the same
+closure realized formally and operationally.
+
+
+2     The Moduli Field Is Not the Coordinate Field
+The moduli 𝑁𝑘 = |𝜓𝑘 |2 are real at the fiducial embedding. The coordinates 𝜓𝑘 are complex. Reality at one
+embedding does not imply total reality: the field can be, and is, complex at the conjugate place.
+5   THE CONDUCTOR RULE                                                                                        4
+
+
+This distinction has practical teeth. PARI’s bnrstark computes Stark units for totally real class fields and
+refuses anything else. An earlier draft claimed the moduli field was totally real, misled by an integer relation
+fitting noise rather than recovering structure. The test that separates genuine relations from fitted noise is
+coefficient height stability: a true algebraic relation maintains constant height as working precision rises; a
+spurious fit sees height grow because each new digit demands new coefficients.
+Proposition 2.1 (𝑑 = 12 moduli field). The twelve moduli of the 𝑑 = 12 fiducial generate a field of degree
+sixteen over ℚ, signature (8, 4), abelian of degree eight over 𝐹 = ℚ(√13), with conductor 𝔭32 𝔭3 of norm 192,
+exactly one infinite place ramified, ray class group (ℤ/2)3 of order eight, and trivial subgroup. The minimal
+polynomial of 𝑁0 is 97344𝑥4 − 32448𝑥3 + 3224𝑥2 − 104𝑥 + 1.
+The field is not totally real. The moduli field is the full ray class field at a modulus whose archimedean part
+is one place: not none, not both. At 𝑑 = 12, 𝑁1 has a degree-eight minimal polynomial of height 33 bits,
+stable at 600, 900, and 1300 digits. The primitive element ∑𝑘 𝑘𝑁𝑘 has degree sixteen at height 80 bits, likewise
+stable. The retracted totally-real-octic claim returned heights of 177, 287, 435 bits at those precisions: the
+signature of a fit, not a fact.
+Every claim in this paper is stated at a precision the input supports. The exact coordinates are known to
+roughly sixteen hundred digits; seeking relations beyond that fits digits that do not exist.
+
+
+3     Method: Height Stability and Conductor Enumeration
+The method is uniform across calibration dimensions:
+
+    1. Take the fiducial to published precision. Form moduli 𝑁𝑘 = |𝜓𝑘 |2 .
+    2. Seek minimal polynomials via integer relation against a power basis, including a primitive element
+       ∑𝑘 𝑘𝑁𝑘 .
+    3. Accept only if coefficient height is stable across at least three precisions spanning several hundred
+       digits.
+    4. Identify the field from the accepted polynomial; compute signature; verify abelian-ness over 𝐹 by
+       checking degree divides ray class group order and Galois group matches.
+    5. Enumerate moduli of 𝐹 of small norm; compute ray class groups with infinite places treated both ways;
+       select the smallest modulus whose group has correct order, type, and trivial subgroup.
+
+Two warnings, both learned: the height test is necessary, not decorative; and the archimedean part must be
+searched, not assumed. Taking both infinite places unramified because the moduli are real is exactly the error
+that produced the retracted claim.
+
+
+4     Calibration Cross-Sections: 𝑑 = 4, 8, 12
+Three dimensions have exact fiducials and class number one: 𝑑 = 4, 8, 12. They are not building blocks
+leading to 𝑑 = 2048. They are cross-sections where the same cyclic structure becomes visible.
+Dimension four has 𝑣2 (4) = 2, conductor exponent three. Dimension eight has 𝑣2 (8) = 3, exponent four.
+Dimension twelve has 𝑣2 (12) = 2, exponent three, plus the prime above three since 3 ∣ 12.
+Dimension eight refutes the naive constant-exponent guess. Exponent three fits 𝑑 = 4 and 𝑑 = 12 perfectly.
+Only 𝑑 = 8 separates constant from 𝑣2 (𝑑) + 1, decisively.
+
+The odd part carries subtlety. Three splits in ℚ(√13), so the 𝑑 = 12 conductor factor has norm three. Three
+is inert in ℚ(√5) with norm nine. The odd contribution concerns primes of 𝐹 above rational primes dividing
+𝑑, not rational integers themselves. The two cases would be indistinguishable with only one computation.
+Three calibration points is the minimum, not a luxury.
+
+
+5     The Conductor Rule
+Conjecture 5.1 (Conductor of the moduli field). Let 𝑑 be even, 𝐹 = ℚ(√𝑚𝑑 ) with 𝑚𝑑 the squarefree part of
+(𝑑 + 1)(𝑑 − 3), and 𝔭2 the prime of 𝐹 above 2. The moduli 𝑁𝑘 = |𝜓𝑘 |2 of a Zauner-symmetric Weyl–Heisenberg
+6   DIMENSION 2048: WHERE THE CYCLE CLOSES                                                                       5
+
+
+fiducial generate the ray class field of 𝐹 at modulus
+                                                 𝑣 (𝑑)+1
+                                         𝔣𝑑 = 𝔭22          ⋅ ∏ ∏ 𝔭 ⋅ ∞1 ,
+                                                              𝑝∣𝑑 𝔭∣𝑝
+                                                             𝑝 odd
+
+with exactly one infinite place ramified, taken modulo the class group of 𝐹. Its degree over 𝐹 is |Cl𝔣𝑑 |/ℎ(𝐹). The
+field is real at the fiducial embedding and not totally real.
+Every piece earns its place. The 2-adic exponent is forced by 𝑑 = 8 against 𝑑 = 4, 12. The odd part is forced
+by splitting behaviour. The archimedean part is forced by Proposition 2.1. The class group quotient is forced
+by 𝑑 = 16 (Section 9). The formula is compact because the structure it expresses is unified.
+
+
+6    Dimension 2048: Where the Cycle Closes
+𝑑 = 2048 = 211 has no odd prime divisors. Conjecture 5.1 collapses to 𝔣2048 = 𝔭12          2 ∞1 . Here 𝑚𝑑 =
+4190205 = 3 ⋅ 5 ⋅ 409 ⋅ 683, class number 64 with group [32, 2], and 2 is inert since 𝑚𝑑 ≡ 5 (mod 8). Because
+2 is inert, 𝔭2 = (2), and
+                                   𝔣2048 = (212 )∞1 = (4096)∞1 = (163 )∞1 .                                (1)
+
+The ray class group at 𝔭12
+                        2 ∞1 has order 2 , cyclic type [4096, 1024, 8, 4]. Dividing by ℎ(𝐹) = 64 gives
+                                        27
+
+degree 2 over 𝐹, 2 over ℚ.
+        21         22
+
+The predicted exponent 𝑘 = 12 falls exactly at a regime change in the 2-adic filtration. Neighbouring
+exponents computed with infinite places unramified show growth by four per step up to 𝑘 = 11, then by two
+from 𝑘 = 12:
+                                  𝑘    |Cl𝔭𝑘 |          log2      cyclic type
+                                           2
+
+                                  9    2097152          21        [1024, 128, 8, 2]
+                                  10   8388608          23        [2048, 256, 8, 2]
+                                  11   33554432         25        [4096, 512, 8, 2]
+                                  12   67108864         26        [4096, 1024, 8, 2]
+                                  13   134217728        27        [4096, 2048, 8, 2]
+
+Read in valuations, every level from 𝑘 = 5 upward is [𝑎, 𝑏, 3, 1]: the tail is frozen. The gap 𝑎 − 𝑏 = 3
+equals the third invariant’s valuation and holds throughout the fourfold regime. Growth of four is one
+invariant advancing while its distance to the next is pinned. The regime changes when the leader saturates at
+12 = 𝑣2 (2𝑑): a ceiling, not a coincidence. The leading invariant cannot exceed the 2-adic content of 2𝑑. Once
+saturated, only the second can move; the gap collapses through 2, 1, 0 at 𝑘 = 12, 13, 14; at 𝑘 = 15 the leader
+resumes.
+Figure 1 shows this geometry: a staircase with a ceiling. Above are the valuations of the cyclic invariants
+of Cl𝔭𝑘 . The tail freezes from 𝑘 = 5 and the leading pair advances as a rigid body until it meets the ceiling
+      2
+𝑣2 (2𝑑) = 12. Below is the gap 𝑎 − 𝑏, pinned at the tail’s valuation through the fourfold regime and collapsing
+once the ceiling is reached. The predicted exponent 𝑘 = 12 is the corner, the last level where the gap is pinned,
+the last moment before the structure changes character. An error of one either way is a factor of two or four
+in degree.
+7          THE UNIT AT THE CONDUCTOR                                                                              6
+
+
+
+                   14
+                                                                                                   v2(2d) = 12
+                   12
+                   10       v2 of invariant 1
+                            v2 of invariant 2
+2-adic valuation
+
+
+                    8       v2 of invariant 3
+                            v2 of invariant 4
+                    6
+                    4
+                    2
+                    0                                                                     k = 12
+
+                    4
+                    3
+   gap a b
+
+
+
+
+                    2
+                    1
+                    0
+                        0   1    2     3        4      5    6     7      8    9     10 11 12 13 14 15
+                                                exponent k in the modulus k
+                                           Figure 1: The 2-adic filtration at 𝑑 = 2048.
+
+
+The calibration and prediction are recorded in Lean 4 alongside tower data. The tower has been carried to
+𝑘 = 15: every ray class degree is computed, not extrapolated, and the halving sustains at exactly two for
+𝑘 = 12, 13, 14, 15.
+
+
+7                  The Unit at the Conductor
+The conductor names a field, and the field hands back elements in closed form before any fiducial is recovered.
+They are uniform in 𝑑, which is what makes them structure rather than incident.
+Since 𝑚𝑑 = (𝑑 + 1)(𝑑 − 3) = (𝑑 − 1)2 − 4, the following holds at every even 𝑑.
+Proposition 7.1 (The unit and the two ramified generators). Put 𝜀𝑑 = ((𝑑 − 1) + √𝑚𝑑 )/2, 𝑔− = (√𝑚𝑑 −
+(𝑑 − 3))/2, 𝑔+ = ((𝑑 + 1) − √𝑚𝑑 )/2. Then 𝜀𝑑 satisfies 𝑥2 − (𝑑 − 1)𝑥 + 1 = 0 with norm 1, so it is a unit
+whose conjugate is its inverse; 𝑁(𝑔− ) = −(𝑑 − 3) and 𝑁(𝑔+ ) = 𝑑 + 1; and with 𝜎 = 𝜎(𝜀𝑑 ) = 𝜀−1
+                                                                                             𝑑 ,
+
+                                                    𝑔− = 1 − 𝜎,       𝑔+ = 1 + 𝜎.
+
+Proof. ((𝑑 − 1)2 − 𝑚𝑑 )/4 = 1; ((𝑑 − 3)2 − 𝑚𝑑 )/4 = −(𝑑 − 3); ((𝑑 + 1)2 − 𝑚𝑑 )/4 = 𝑑 + 1. The last two
+identities are substitution of 𝜎 = ((𝑑 − 1) − √𝑚𝑑 )/2.
+
+The two elements whose norms are the two rational factors of 𝑚𝑑 are the unit’s conjugate displaced by one in
+either direction. The unit, the two ramified generators, and the conductor are one datum, and the tower’s
+monomial is a polynomial in 𝜎 alone:
+                                           𝑀𝑑 = 𝜀−1 3 2            3       2
+                                                 𝑑 𝑔− 𝑔+ = 𝜎(1 − 𝜎) (1 + 𝜎) .                                    (2)
+Norm one means the inverse is the conjugate, so no division occurs anywhere.
+7   THE UNIT AT THE CONDUCTOR                                                                                 7
+
+
+Proposition 7.2. 𝑀𝑑 = 1/𝑑 − 2/𝑑3 + 𝑂(𝑑−4 ).
+
+Proof. With 𝑁 = 𝑑 −1, 𝜎 = 𝑁 −1 +𝑁 −3 +𝑂(𝑁 −5 ), so Equation (2) gives 𝑀𝑑 = 𝑁 −1 −𝑁 −2 −𝑁 −3 +𝑂(𝑁 −4 )
+against 1/𝑑 = 𝑁 −1 − 𝑁 −2 + 𝑁 −3 − 𝑂(𝑁 −4 ).
+
+The exponent vector [−1, 3, 2] at conductor sixteen names 1/𝑑 in every dimension. Computation gives
+(𝑀𝑑 − 1/𝑑)𝑑3 = −2.367, −2.020, −2.002, −2.000001 at 𝑑 = 16, 256, 2048, 107 : the constant, and the
+approach to it. Dimension-independence is the load-bearing half. A monomial naming 1/𝑑 only at 2048
+would be a coincidence of magnitude; one naming it everywhere is the tower speaking, and the same closure
+that lets the grammar host itself lets this representation be carried between dimensions unchanged.
+At 𝑑 = 2048,
+                               −73534985899138338825 + 35923312651511805√4190205
+                  𝑀2048 =                                                        ,                           (3)
+                                                       2
+of norm 1 ⋅ (−2045)3 ⋅ 20492 = −35905737691441125, taken multiplicatively.
+
+7.1    Exactness Is Not Evaluability
+Equation (3) is exact and is the one form of that number double precision cannot read. Its terms are each near
+7.35 × 1019 , agree through twenty digits, and leave a value near 4.9 × 10−4 ; the unit in the last place there
+exceeds the answer by twenty-three orders. Rationalizing removes the cancellation, which was in the reading
+and never in the number:
+                                               𝑎 + 𝑏 √ 𝑚𝑑    𝑐 𝑁(𝑀)
+                                        𝑀=                =           ,                                      (4)
+                                                   𝑐        𝑎 − 𝑏√𝑚𝑑
+where the denominator adds terms of like sign and the numerator is an exact integer. So read, Equation (3) is
+0.000488281016884806 in every digit shown.
+This is the numerical counterpart of the height test of Section 2. A relation can be reported at a precision the
+input does not carry; an exact representation can be unreadable in the arithmetic used to read it. Neither
+failure announces itself, since the fitted relation has a small residual and the cancelling expansion returns a
+number of ordinary size.
+
+7.2    The Radicals from Their Levels
+                          2
+With 𝑔(𝑚) = ∑𝑘<𝑚 𝑒2𝜋𝑖𝑘 /𝑚 , the radical is a component of the sum rather than its modulus: at a prime level
+𝑝 ≡ 1 (mod 4) the sum is real and equals √𝑝; at a level divisible by four it is 2√𝑛(1 + 𝑖), of modulus √8𝑛
+and real part 2√𝑛.
+
+                          𝑚     𝑔(𝑚)                    radical                    from
+
+                           5    2.236067977             √5 = 2.236067977           Re
+                         12     3.464101615(1 + 𝑖)      √3 = 1.732050808           Re /2
+                        409     20.223748416            √409 = 20.223748416        Re
+                       2732     52.268537381(1 + 𝑖)     √683 = 26.134268691        Re /2
+
+Each lands within 1.5 × 10−13 ; the product recovers √𝑚𝑑 = 2046.999022960 to 1.3 × 10−11 ; and 𝜀2048 =
+(2047 + ∏)/2 comes from the sums rather than a seed. Comparing |𝑔(12)| against √3 compares √24 against
+√3: the wrong component, not a failed identity.
+
+7.3    What the Representation Costs
+Writing 𝑀𝑑 = (𝑎 + 𝑏√𝑚𝑑 )/𝑐, the widths are log2 𝑎 = 6 log2 𝑑, log2 𝑏 = 5 log2 𝑑, log2 𝑚𝑑 = 2 log2 𝑑: about
+13 log2 𝑑 bits altogether, against 𝑑2 amplitudes.
+8   SIXTEEN CUBED: THE STRUCTURE ACROSS SUBSTRATES                                                           8
+
+
+
+                                𝑑   algebraic (bits)    ÷ log2 𝑑      𝑑2 amplitudes (bits)
+                             16                  54        13.50                   32768
+                            256                 106        13.25                 8388608
+                           2048                 145        13.18              536870912
+                          65536                 210        13.12           549755813888
+                            220                 262        13.10              1.41 × 1014
+
+The ratio still falls toward its asymptote at 220 , which is the shape of a logarithmic law. This compares a
+representation against a representation: the cost of naming the algebraic datum, not the cost of producing a
+fiducial.
+
+
+8     Sixteen Cubed: The Structure Across Substrates
+Equation (1) says the conductor at 𝑑 = 2048 is generated by 4096 = 212 = 163 . This is the arithmetic
+expression of a structure that also manifests logically and operationally. The three manifestations are not
+separate facts connected by analogy. They are one invariant.
+
+8.1    The Logical Substrate: The Belnap Trilattice
+The programme’s logical base is the four-element set
+
+                                                  𝐼 = {𝑇, 𝐹, 𝑡, 𝑓 }
+
+of constructively proven, constructively refuted, non-constructively acceptable, and non-constructively
+rejectable. The trilattice is 𝒫(𝐼), with 24 = 16 states and three genuinely distinct orderings:
+
+                       𝑥 ≤𝑖 𝑦 ⟺ 𝑥 ⊆ 𝑦,                                                                      (5)
+                       𝑥 ≤𝑡 𝑦 ⟺ 𝑥 ∩ {𝑇, 𝑡} ⊆ 𝑦 ∩ {𝑇, 𝑡} and 𝑦 ∩ {𝐹, 𝑓 } ⊆ 𝑥 ∩ {𝐹, 𝑓 },                      (6)
+                       𝑥 ≤𝑐 𝑦 ⟺ 𝑥 ∩ {𝑇, 𝐹} ⊆ 𝑦 ∩ {𝑇, 𝐹} and 𝑦 ∩ {𝑡, 𝑓 } ⊆ 𝑥 ∩ {𝑡, 𝑓 }.                      (7)
+
+Information, truth, constructivity: sixteen states, three orders [5, 6]. The pair (16, 3) is intrinsic.
+The passage from four to sixteen happens twice for a reason that does not generalize:
+Proposition 8.1. |𝒫(𝐼)| = 24 = 16 and |𝐼|2 = 42 = 16. The equation 2𝑛 = 𝑛2 has exactly two positive integer
+solutions: 𝑛 = 2 and 𝑛 = 4.
+
+Proof. Check 𝑛 = 1, 2, 3, 4 directly. For 𝑛 ≥ 5, induct: 25 = 32 > 25; if 2𝑛 > 𝑛2 then 2𝑛+1 = 2 ⋅ 2𝑛 > 2𝑛2 ≥
+(𝑛 + 1)2 , the last step equivalent to 𝑛2 − 2𝑛 − 1 ≥ 0, true for 𝑛 ≥ 3.
+
+Four is the only nontrivial place where enumerating subsets and self-application yield the same count. This
+licenses reading sixteen as four self-applied: the base referring to itself. This fixed point is what makes the
+trilattice capable of carrying its own conductor.
+
+8.2    The Geometric Realization: The Horn Torus and (16, 3) Knot
+Independently of ray class computations, the evaluator arms trace a (16, 3) torus knot on the horn torus:
+sixteen toroidal windings against three poloidal ones. The bridge number three matches the three arms
+carrying the four-valued kernel.
+Figure 2 is the section in the syzygy axis plane (𝑥𝑧, 𝑦 = 0). The two lobes are the horn tube’s cross-section,
+centred at 𝑥 = ±𝑅 with radius 𝑅: they are tangent at the origin, and that tangency is the pinch ⊙. The ∈
+split shell 𝜆𝐶 is the dashed circle centred on ⊙ with radius 𝑟 = 𝑅/2; the evaluator sphere has the same radius
+and centres one radius along the axis, so it passes through ⊙ and through ∋ at 𝑥 = 2, and the heavy segment
+between them is the coupler. The evaluator trine is ⊤, ⊥, ⊞ at 𝑥 = 1 and 𝑧 = 0, ±√3/2: collinear in this
+section, hence edge-on, standing at 120∘ only in the perpendicular plane. The marker at 𝑥 = 2𝑅 is 𝛾(0), the
+equatorial curve at 𝑡 = 0, the outer equator; the horn itself is 𝛾(𝜋), the pinch at the origin where the two
+lobes meet.
+8   SIXTEEN CUBED: THE STRUCTURE ACROSS SUBSTRATES                                                           9
+
+
+
+
+        2
+        1
+                                            C
+        0
+z
+
+
+
+
+        1
+                      horn = pinch
+                                                                                         (0) equator
+        2
+
+                  4                   2                 0                  2                  4
+                                                            x
+                                Figure 2: The side-on view of the horn torus.
+
+
+The horn torus is the degenerate case 𝑅 = 𝑟: tube radius equals centre radius, hole closes to a point. That
+point is the pinch, where the boundary meets itself. This is not a drawing defect. It is the condition enabling
+self-reference. The three evaluator arms at 120∘ span the 𝐴2 triangle; the three poloidal windings are those
+arms seen as circuit rather than triple. The sixteen toroidal windings are the trilattice’s states carried once
+around. Nothing is scaled: 𝑅 = 𝑟 exactly, lobes touch rather than overlap.
+Figure 3 is the same object from above, the section at 𝑧 = 0. The pinch ⊙ sits at the origin where the hole
+closes, 𝜆𝐶 and the evaluator sphere are the two dashed circles, ∋ sits at 𝑥 = 2 and 𝛾(0) on the outer equator.
+The three points at 120∘ on that equator are the 𝐴2 ROOTS, 𝑛+ = +1 against two 𝑛− , and their triangle is
+the knot’s three poloidal windings read as circuit. The evaluator trine is NOT that triangle: here it collapses
+to the short segment at 𝑥 = 1, the same trine drawn edge-on in Figure 2.
+8   SIXTEEN CUBED: THE STRUCTURE ACROSS SUBSTRATES                                                               10
+
+
+
+
+         4                            n
+         3
+         2
+         1
+                                                                                                       n =+1
+         0
+y
+
+
+
+
+         1                                             C
+                                                                                          (0) equator
+                             horn = pinch
+         2
+         3
+         4                            n
+                       4                   2                 0                    2                   4
+                                                             x
+                                Figure 3: The top-down view of the horn torus.
+
+
+Figure 4 is Figure 2 again with the viewpoint moved a quarter turn round the torus, looking down the syzygy
+axis instead of across it. The horn is symmetric about that axis, so the outline does not change at all: the same
+two lobes of radius 𝑅 centred one radius either side of the pinch, tangent at the origin, and the pinch is ⊙
+where it was. What changes is what the axis does. Across it, ⊙ at 𝑥 = 0, the coupler, and ∋ at 𝑥 = 2 are
+spread out and 𝜆𝐶 and the evaluator sphere are two circles side by side; down it they stack, so the two circles
+are concentric and of equal radius and become one circle, and the marks on the axis sit one behind the other
+with the pinch nearest. And the trine, which is edge-on in both of the other views and collapses there to three
+points on a line at 𝑥 = 1, is face-on here: ⊤, ⊥, ⊞ at 120∘ on that circle, the equilateral triangle it has been all
+along.
+9   THE CLASS GROUP: SETTLED AT DIMENSION SIXTEEN                                                                  11
+
+
+
+
+         2
+
+         1
+                                              C
+
+         0
+z
+
+
+
+
+         1
+
+         2
+
+                    4                     2                    0                     2                     4
+                                                               y
+                                   Figure 4: The axial view of the horn torus.
+
+
+8.3    The Operational Substrate: IMASM and sixteen3
+The IMASM machine’s native alphabet is B4: four values {𝑁, 𝑇, 𝐹, 𝐵}, two bits each. A byte is four B4 cells;
+the sixteen3 carrier is one layer up. Input, computation, and output live in the same alphabet. The machine
+reads itself because there is no outside alphabet to translate through.
+The Replicating Code, a program written in the twelve glyphs, executed by parasm, decoding and recompiling
+itself, returns its own word unchanged. The disassemble/recompile pair satisfies 𝑅 ∘ 𝐷 = id on the canonical
+wire space. The tool’s own word ⊢∈≻ ⊤ ≺ ⊥ ∋ □ ⊣ is verdicted closed (𝑇) and reproduces itself. Code
+is data is word. The grammar hosting itself is the operational face of the same fixed point that appears
+arithmetically as 163 and logically as the trilattice.
+
+8.4    Unity
+The arithmetic fact (Equation (1)), the logical structure (Equations (5) to (7)), the geometric realization (Figures 2
+to 4), and the operational closure (Replicating Code) are not four things being compared. They are one thing.
+The conductor at 𝑑 = 2048 is the trilattice raised to its own number of orders, expressed as a principal ideal,
+realized as a self-hosting grammar, and drawn as a knot on a pinched torus. The exponent 12 = 𝑣2 (2𝑑) is
+simultaneously the conductor exponent, the saturation ceiling, and the dimension at which the four-valued
+base is carried on twelve axes. Three occurrences of twelve is not coincidence. It is the structure counting
+itself.
+
+
+9     The Class Group: Settled at Dimension Sixteen
+Every ray class field contains the Hilbert class field. A rule naming the full ray class field and one naming its
+quotient by the class group differ by ℎ(𝐹). Calibration dimensions have ℎ = 1, where the two agree. To see
+the class group requires ℎ > 1; dimension sixteen is the smallest.
+
+At 𝑑 = 16: 𝑚𝑑 = 221 = 13 ⋅ 17, ℎ = 2, 2 inert in 𝐹 = ℚ(√221), 𝑣2 (16) + 1 = 5. Modulus 𝔭52 ∞1 , ray class
+group order 256, type [16, 8, 2], giving degree 128 over 𝐹 after class group division.
+11   WHAT FOLLOWS                                                                                                 12
+
+
+
+                                     𝑘   |Cl𝔭𝑘 |   cyclic type   narrow order
+                                             2
+
+                                     3   16        [8, 2]        64
+                                     4   64        [16, 4]       256
+                                     5   128       [16, 8]       512
+                                     6   256       [16, 16]      1024
+
+The deciding quantity is the count of independent moduli. Galois conjugation 𝜎 pairs moduli: 𝑁𝑘+𝑑/2 = 𝜎(𝑁𝑘 ).
+A moduli field must support exactly 𝑑/2. This count is read from the 𝜎-coinvariant quotient at the Appleby
+modulus (3𝑑).
+Proposition 9.1 (Coinvariant count at 𝑑 = 16). Let 𝐺𝑑 be the ray class group at (3𝑑) with both infinite places
+unramified, 𝐺𝜎𝑑 its 𝜎-coinvariants. Then |𝐺𝜎16 | = 16 ≠ 𝑑/2 = 8, while
+
+                                               |𝐺𝜎16 |   16    𝑑
+                                                       =    =8= .
+                                             |Cl(𝐹)𝜎 |   2     2
+
+The same identity holds at 𝑑 = 4, 8, 12 trivially (ℎ = 1). It is 𝑑 = 16 that carries content. This is not a
+universal law. It holds at 𝑑 = 4, 8, 12, 16, 24, 32, 36 and fails at 𝑑 = 20, 28, 40. The dividing line is the odd
+part of 𝑑/2: for odd prime 𝑞, a ray class group at modulus divisible by 𝔮 but not 𝔮2 has no 𝑞-torsion. The
+modulus (3𝑑) supplies 32 exactly when 3 ∣ 𝑑. The count reaches 𝑑/2 when the odd part of 𝑑/2 is a power of
+three. Supplying squares by hand does not repair failures.
+Proposition 9.1 is a statement about 𝑑 = 16, weighed as one dimension. What it says is exact: the raw count
+overshoots by precisely ℎ(𝐹), and dividing restores the required independent moduli count. The class group
+is not carried by the moduli. The moduli field is the ray class field modulo the class group: degree 128 at
+𝑑 = 16, 221 at 𝑑 = 2048.
+The 𝑑 = 16 SIC is numerically in hand: Zauner eigenspaces have dimensions 5, 6, 5; only the six-dimensional
+sector carries fiducials; eight fiducials separated by moduli multisets refine past two thousand digits. Individual
+moduli have no reachable minimal polynomial at degree 256 over ℚ; √221 is not recovered at degree twenty
+and 2500 digits. The route at 𝑑 = 16 and beyond is from field down, not numbers up.
+
+
+10     Formal Closure: The Lean 4 Tower Discharge
+The tower entered Lean 4 as thirty axioms: degrees, valuations, cyclic invariants, class number, narrow degree,
+field types. This honestly records computed data. It is also more than required.
+The sixteen degrees obey two laws: ratio four through 3 ≤ 𝑘 ≤ 11, ratio two once the leader saturates.
+Only three seed values (64, 64, 128) are data. As recursion, every level is decidable; growth law becomes
+consequence. Valuations follow via 𝜈𝑝 (𝑝𝑛 ) = 𝑛. Narrow degree is four times wide (two real places), turning
+228 at 𝑘 = 12 into theorem. Class number returns independently from kernel tower and Rédei distillations.
+Three types were declared Type 0 with no inhabitants: placeholders for constructions Lean 4 lacks. Each
+records its twelve-slot position; narrow differs from wide in parity alone.
+Thirty axioms become none; module carries no sorry. Discharging the tail invariant revealed it false: it
+asserted last two invariants (8, 2) for 4 ≤ 𝑘 ≤ 15; the table gives 𝑘 = 4 as [32, 8, 4, 2], last two (4, 2).
+Stabilization begins one level later. As axiom, it could persist indefinitely, consistent with its own table by fiat.
+As theorem, it failed immediately and named the failure level.
+Reducing assumptions is tidiness; what it buys is that contradictions announce themselves. The discharge
+is the formal face of the same closure appearing arithmetically as the conductor and operationally as the
+Replicating Code.
+
+
+11     What Follows
+The 𝑑 = 2048 prediction is checkable without solving the SIC. Compute the ray class field at 𝔣2048 ; confirm
+degree, signature, and Galois structure carry 𝑑/2 independent moduli under 𝜎-pairing. Flat autocorrelation
+11   WHAT FOLLOWS                                                                                              13
+
+
+conditions serve as independent check; sum-of-squares = 2/(𝑑 + 1) has been verified numerically at 𝑑 = 8
+from fiducials with no algebraic input.
+Equiangularity is verified at 𝑑 = 12, where the recovered fiducial displaced through the full Weyl–Heisenberg
+group satisfies |⟨𝜓, 𝐷𝑝,𝑞 𝜓⟩|2 = 1/(𝑑 + 1) at all 𝑑2 − 1 = 143 overlaps to better than 10−200 .
+At 𝑑 = 2048 the two routes through the ramified layers are both closed, and that is why the extraction goes
+around them. The numerical search is closed rather than stalled: every seed reaches the same attractor, its
+residual flat across every row, column and 2-adic stratum, capped near a fifth of the frame potential. The ascent
+through the 𝐿-values of the predicted modulus is superpolynomial with a climbing exponent and exhausts
+memory per character. The bypass is Proposition 7.1 used as a construction rather than as a description. The
+unit 𝜀2048 = (2047 + √4190205)/2 is exact, satisfying 𝑥2 − 2047𝑥 + 1 = 0 with norm one, so its two real
+embeddings are reciprocal and are the two Galois parts of the extraction, 𝜎± (𝜀) with 𝜎+ 𝜎− = 1 carried to a
+thousand digits. The monomial of Equation (3) is the exact modulus datum, agreeing with 1/𝑑 to 2.3 × 10−10
+and reproduced by two independent routes, the rationalized triple and the factors multiplied. Each radical of
+√𝑚𝑑 is recovered from its own Gauss sum at levels 5, 12, 409, 2732, so 𝜀 comes back from the sums rather
+than from a numerical seed. The conductor and the algebraic datum at it are both determined here. What the
+displacement check needs and does not yet have at 2048 is the phase assignment across the orbit, which is a
+different object from the moduli this paper is about.
+Dimension twenty needs no reconciliation. Its coinvariant count falls short because 5-torsion is absent from
+moduli keeping the two-part in range. This costs generality of the count, not the 𝑑 = 16 reading.
+The sixteen-power progression 𝑑 = 2𝑛 with 𝑛 ≡ 3 (mod 4) yields generators 16, 162 , 163 , 164 at 𝑑 =
+8, 128, 2048, 32768. This is not four observations. For 𝑑 = 2𝑛 with 𝑛 ≥ 3 we have 𝑑 ≡ 0 (mod 8), so
+𝑚𝑑 = 𝑑2 − 2𝑑 − 3 ≡ 5 (mod 8) at every such 𝑑: two is inert and unramified in 𝐹 throughout, 𝔭2 = (2), and
+the conductor generator is 2 𝑣2(𝑑)+1 = 2 𝑛+1 . That is a power of sixteen exactly when 4 ∣ 𝑛 + 1, which is
+𝑛 ≡ 3 (mod 4). The congruence carries the cases the list samples.
+
+𝑑 = 128 is now computed. Here 𝑚𝑑 = 129 ⋅ 125 = 16125 with squarefree part 645, so 𝐹 = ℚ(√645) with
+ℎ(𝐹) = 2, and 645 ≡ 5 (mod 8) confirms two inert. At 𝔣128 = 𝔭82 ∞1 = (256)∞1 = (162 )∞1 the ray class
+group has order 214 , cyclic type [64, 64, 4]; with both infinite places unramified it is 213 of type [64, 64, 2].
+That is the 𝑑 = 2048 signature two dimensions down: one infinite place ramified puts a 4 in the last cyclic
+slot where unramified puts a 2, exactly as [4096, 1024, 8, 4] stands against [4096, 1024, 8, 2]. Two computed
+points now sit on the progression, and ℎ(𝐹) = 2 means 𝑑 = 128 can also carry the coinvariant test of Section 9
+rather than only the conductor shape.
+
+
+Artifact Statement
+Field computations used PARI/GP [7]. Everything claimed above is frozen on branch crystalline/sic-
+moduli-conductor-2026-08-08 of https://github.com/umpolungfish/p4rakernel under tag crystalline-
+sic-moduli-conductor-v2. That branch is self-contained: the Lean 4 tower and report modules, sorry-free
+with the tower carrying no axioms; the recovered 𝑑 = 12 fiducial the equiangularity check runs on; the
+kernel module instantiating Section 7; and a claim-to-verb table. ./verify_sic_moduli.sh elaborates the
+modules and prints per-dimension checks with axiom dependencies across 𝑑 = 2, 4, 8, 12, 16, 20, 2048.
+The branch pins a commit of the mOMonadOS bare-metal kernel (https://github.com/umpolungfish/
+momonad_os), where the arithmetic runs. d2048 exact prints the unit, the ramified generators and their norms,
+the exact monomial and its rationalized reading, and the four Gauss sums; d2048 scaling the measured
+representation widths; d2048 crossover the threshold under each gate model; d2048 welch all 143 overlaps
+of the 𝑑 = 12 fiducial. Field computations reproduce from the named PARI/GP calls: rnfconductor for the
+modulus, algdep for relations.
+
+
+Acknowledgements
+Thanks to Harry T. Larson for imparting the importance of catching rising problems and never letting them
+go [8]. The conductor was found by refusing to accept a tool’s refusal: when bnrstark declined the coordinate
+field for nonzero 𝑟2 , the question became which field the moduli actually generate, and that question had an
+answer.
+REFERENCES                                                                                                    14
+
+
+
+Author Contributions Statement
+The author is the sole contributor to this work. The author conceived the study, determined the conductor
+rule and its calibration, carried out all PARI/GP field computations and the Lean 4 formalisation, implemented
+the kernel arithmetic and the exact extraction at 𝑑 = 2048, produced all figures, and wrote the manuscript.
+
+
+Competing Interests Statement
+The author declares no competing interests. No funding was received for this work.
+
+
+References
+[1] G. Zauner, Quantendesigns: Grundzüge einer nichtkommutativen Designtheorie, Ph.D. thesis, Universität
+    Wien, 1999.
+[2] D. M. Appleby, H. Yadsan-Appleby, and G. Zauner, Galois automorphisms of a symmetric measurement,
+    Quantum Inf. Comput. 13 (2013), 672–720.
+[3] M. Appleby, S. Flammia, G. McConnell, and J. Yard, SICs and algebraic number theory, Found. Phys. 47
+    (2017), 1042–1059.
+[4] M. Appleby, S. Flammia, G. McConnell, and J. Yard, Generating ray class fields of real quadratic fields via
+    complex equiangular lines, Acta Arith. 192 (2020), 211–233.
+[5] N. D. Belnap, A useful four-valued logic, in J. M. Dunn and G. Epstein (eds.), Modern Uses of Multiple-Valued
+    Logic, Reidel, 1977, 5–37.
+[6] Y. Shramko and H. Wansing, Some useful 16-valued logics: how a computer network should think, J. Philos.
+    Logic 34 (2005), 121–153.
+[7] The PARI Group, PARI/GP version 2.13, Univ. Bordeaux, 2021, https://pari.math.u-bordeaux.fr/.
+[8] H. T. Larson, Catch a Rising Problem… and Never Ever Let it Go, IRE Trans. Eng. Manag. 8(4) (1961), 173–174.
+    https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=1641382
+
