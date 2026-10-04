@@ -141,6 +141,7 @@ def main():
                         fourier_contraction="preparation_time",
                         modular_work_operator="nested_reversible_arithmetic_on_shared_complex_decision_branches",
                         work_wire_layout="interleaved_source_workspace",
+                        source_work_radix="baked_radix_word_live_digit_split_fuse",
                         feedback_operator="fixed_point_winding",
                         closure_arithmetic="radix_four_paired_numeral_cells",
                         terminal_factors="direct_godel_closure_words",

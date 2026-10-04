@@ -99,5 +99,15 @@
     "exit_code": 124,
     "closure_time_limit_seconds": 90,
     "factor_extraction_verified": false
+  },
+  "source_radix_execution": {
+    "case": "membranes/ququart_source_radix_rsa100_20261004/ququart",
+    "session_id": 6185,
+    "state": "stopped_at_user_time_limit",
+    "exit_code": 124,
+    "closure_time_limit_seconds": 90,
+    "factor_extraction_verified": false,
+    "phase_carrier": "ququart",
+    "source_work_radix": "baked_radix_word"
   }
 }
