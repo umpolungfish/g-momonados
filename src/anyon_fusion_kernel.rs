@@ -82,6 +82,35 @@ impl FusionState {
         Ok(masses)
     }
 
+    /// The first encoded triple is the recycled control. Its pair charge
+    /// supplies the bit only while the triple's total charge remains tau.
+    /// Vacuum total charge belongs to the leakage sector.
+    pub fn control_projection(&self) -> Result<PoleProjection, String> {
+        let mut masses = [BigUint::zero(), BigUint::zero(), BigUint::zero()];
+        for (path, amplitude) in &self.paths {
+            if path.len() < 3 {
+                return Err("control readout requires a complete three-anyon encoding".into());
+            }
+            let channel = if path[2] == 1 { path[1] as usize } else { 2 };
+            let mass = &amplitude.re * &amplitude.re + &amplitude.im * &amplitude.im;
+            masses[channel] += mass.to_biguint().ok_or("negative Born mass")?;
+        }
+        Ok(PoleProjection { masses })
+    }
+
+    pub fn measure_control<F>(&mut self, entropy: F) -> Result<PoleOutcome, String>
+    where
+        F: FnMut(&mut [u8]) -> Result<(), String>,
+    {
+        let outcome = self.control_projection()?.sample(entropy)?;
+        self.paths.retain(|path, _| match outcome {
+            PoleOutcome::Truth => path[2] == 1 && path[1] == 0,
+            PoleOutcome::False => path[2] == 1 && path[1] == 1,
+            PoleOutcome::Unread => path[2] == 0,
+        });
+        Ok(outcome)
+    }
+
     /// Retains the conditional amplitudes. Their common normalization cancels
     /// in subsequent Born ratios, so projection needs no lossy division.
     pub fn measure_charge<F>(&mut self, site: usize, entropy: F) -> Result<bool, String>
@@ -405,6 +434,24 @@ mod tests {
             let fields: Vec<_> = line.split('\t').collect();
             let source = BigUint::parse_bytes(fields[2].as_bytes(), 10).unwrap();
             let kernel = FusionKernel::new(&source).unwrap();
+            for (path, expected) in [
+                (vec![1, 0, 1, 0, 1, 0], PoleOutcome::Truth),
+                (vec![1, 1, 1, 0, 1, 0], PoleOutcome::False),
+                (vec![1, 1, 0, 1, 1, 0], PoleOutcome::Unread),
+            ] {
+                let mut control = FusionState::basis(&kernel, path, 32).unwrap();
+                let outcome = control
+                    .measure_control(|bytes| {
+                        bytes.fill(0);
+                        Ok(())
+                    })
+                    .unwrap();
+                assert_eq!(outcome, expected);
+                assert_eq!(control.path_count(), 1);
+                if expected == PoleOutcome::Unread {
+                    assert_eq!(outcome.phase_bit(), None);
+                }
+            }
             let path = vec![1, 1, 1, 1, 1, 0];
             let mut bounded = FusionState::basis(&kernel, path.clone(), 1).unwrap();
             let before = bounded.charge_masses(1).unwrap();

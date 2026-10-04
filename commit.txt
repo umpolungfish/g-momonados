@@ -1,3 +1,3 @@
-I connect coherent Fibonacci exchanges to conditional charge readout.
+I map the encoded control triple to conditional fusion readout.
 
-I combine amplitudes by fusion path before Born projection, retain the measured conditional state, and reject storage exhaustion transactionally. I bind the carrier to its fixed-point format. I verify these components with 128, 256, 512, 1024, and 2048-bit source fixtures and document the remaining logical preparation and readout integration.
+I distinguish both computational pair charges from the vacuum triple leakage sector and preserve the selected conditional state. I verify all three outcomes with source fixtures at 128, 256, 512, 1024, and 2048 bits.
