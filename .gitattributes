@@ -12,3 +12,4 @@
 /membranes/ququart_fourier_128_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
 /membranes/ququart_fourier_447_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
 /membranes/ququart_nested_radix_rsa100_20261004/ququart/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_128_binary_20261004/compiler.json filter=lfs diff=lfs merge=lfs -text
