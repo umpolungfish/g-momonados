@@ -5,7 +5,67 @@ use g_momonados::sic::{BlochVector, QubitState, Sic, SicError, TetraSic};
 
 fn run(args: &[String]) -> Result<(), SicError> {
     let policy = EvidencePolicy::new(1e-12, 1e-8)?;
-    match args.first().map(String::as_str).unwrap_or("qubit") {
+    match args.first().map(String::as_str).unwrap_or("ququart") {
+        "anyon-ququart" => {
+            use g_momonados::anyon_pair::FibonacciPair;
+            use g_momonados::anyon_ququart::{
+                FixedQuquartSic, QuquartCarrier, QuquartDigit, QuquartSicOutcome,
+            };
+            use num_bigint::BigUint;
+            use std::io::Read;
+            let raw = args.get(1).ok_or_else(|| {
+                SicError("usage: sic-tool anyon-ququart <semiprime >=128 bits> [exchanges]".into())
+            })?;
+            let source = BigUint::parse_bytes(raw.as_bytes(), 10)
+                .ok_or_else(|| SicError("invalid natural".into()))?;
+            if source.bits() < 128 {
+                return Err(SicError("source must be at least 128 bits".into()));
+            }
+            let algebra = FibonacciPair::new(&source).map_err(SicError)?;
+            let sic = FixedQuquartSic::new(algebra.format()).map_err(SicError)?;
+            let mut carrier = QuquartCarrier::basis(&algebra, QuquartDigit::T);
+            for raw in &args[2..] {
+                carrier
+                    .exchange(
+                        &algebra,
+                        raw.parse()
+                            .map_err(|_| SicError("invalid exchange index".into()))?,
+                    )
+                    .map_err(SicError)?;
+            }
+            let masses = carrier.sic_masses(&sic).map_err(SicError)?;
+            println!("source width         : {}\nSIC dimension        : 4\nSIC outcomes         : 16\nfixed-point bits     : {}",source.bits(),algebra.format().w_bits);
+            for (i, mass) in masses[..16].iter().enumerate() {
+                println!("SIXTEEN_3 mass {i:04b} : {mass}");
+            }
+            println!("outside-carrier mass : {}", masses[16]);
+            let mut entropy =
+                std::fs::File::open("/dev/urandom").map_err(|e| SicError(e.to_string()))?;
+            let outcome = carrier
+                .measure_sic(&sic, |bytes| {
+                    entropy.read_exact(bytes).map_err(|e| e.to_string())
+                })
+                .map_err(SicError)?;
+            match outcome {
+                QuquartSicOutcome::Carrier(outcome) => {
+                    println!("SIXTEEN_3 readout    : {:04b}", outcome.mask())
+                }
+                QuquartSicOutcome::OutsideCarrier => {
+                    println!("fusion readout       : outside carrier")
+                }
+            }
+        }
+        "ququart" => {
+            let sic = g_momonados::sic::QuquartSic::canonical();
+            print!("{}", SicCertificate::measure(sic.frame())?.report(policy));
+            let state = g_momonados::sic::QuquartState::maximally_mixed();
+            let weights = sic.split(&state)?;
+            println!("SIXTEEN_3 SIC weights : {:?}", weights.weights());
+            println!(
+                "SIC split/fuse state : {:.6e}",
+                sic.fuse(&weights)?.operator().distance(state.operator())?
+            );
+        }
         "qubit" => {
             let tetra = TetraSic::new();
             let mut certificate = SicCertificate::measure(tetra.frame())?;
