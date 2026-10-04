@@ -1,0 +1,17 @@
+SIC dimension        : 3
+SIC outcomes         : 9
+WH normalization     : 2.220446e-16
+WH overlap max error : 3.885781e-16
+SIC dimension        : 3
+SIC outcomes         : 9
+SIC normalization    : 4.440892e-16
+SIC completeness     : 7.806179e-16
+SIC equiangularity   : 5.551115e-16
+SIC split/fuse: || μ_SIC δ_SIC(X) - X || = 1.378310e-15
+SIC positivity       : 3.469447e-17
+SIC projector purity : 4.227603e-16
+SIC duality          : 1.221245e-15
+SIC symmetry         : 1.412811e-15
+WH overlap max error : Some(3.885780586188048e-16)
+Exact certificate    : None
+FOUR assessment      : T

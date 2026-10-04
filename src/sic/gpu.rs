@@ -4,7 +4,6 @@ use super::wh::{OverlapField, WhSic};
 use super::{error, SicError};
 use cudarc::driver::{CudaContext, LaunchConfig, PushKernelArg};
 use cudarc::nvrtc::compile_ptx;
-use std::f64::consts::PI;
 const KERNEL: &str = r#"
 extern "C" __global__ void reverse_bits(const double* a,double* b,unsigned int n,unsigned int bits,unsigned int rows) {
  unsigned long long i=(unsigned long long)blockIdx.x*blockDim.x+threadIdx.x;
@@ -112,7 +111,7 @@ pub fn wh_overlaps(wh: &WhSic) -> Result<OverlapField, SicError> {
             if d == width {
                 a[p * width + n] = z;
             } else {
-                let chirp = Complex::phase(PI * (n as f64) * (n as f64) / d as f64);
+                let chirp = super::wh::chirp(n, d);
                 a[p * width + n] = z * chirp;
                 b[p * width + n] = chirp.conj();
                 if n != 0 {
@@ -136,9 +135,9 @@ pub fn wh_overlaps(wh: &WhSic) -> Result<OverlapField, SicError> {
         for q in 0..d {
             let mut z = output[p * width + q];
             if d != width {
-                z = z * Complex::phase(PI * (q as f64) * (q as f64) / d as f64);
+                z = z * super::wh::chirp(q, d);
             }
-            z = z * Complex::phase(-(PI + PI / d as f64) * (p as f64) * (q as f64));
+            z = z * wh.phase(p, q).conj();
             values.push(z);
         }
     }

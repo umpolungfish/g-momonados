@@ -79,6 +79,29 @@ pub enum SicVertex {
     F = 2,
     B = 3,
 }
+impl From<crate::belnap_residual::V> for SicVertex {
+    fn from(label: crate::belnap_residual::V) -> Self {
+        use crate::belnap_residual::V;
+        match label {
+            V::N => Self::N,
+            V::T => Self::T,
+            V::F => Self::F,
+            V::B => Self::B,
+        }
+    }
+}
+impl SicVertex {
+    /// A frame label only. No geometric calculation supplies a logical verdict.
+    pub fn label(self) -> crate::belnap_residual::V {
+        use crate::belnap_residual::V;
+        match self {
+            Self::N => V::N,
+            Self::T => V::T,
+            Self::F => V::F,
+            Self::B => V::B,
+        }
+    }
+}
 #[derive(Clone, Copy, Debug)]
 pub struct SicDistribution {
     p: [f64; 4],
@@ -108,8 +131,9 @@ impl Simplex4 {
         if self.p.iter().map(|x| x * x).sum::<f64>() > 1.0 / 3.0 + TOLERANCE {
             return Err(error("simplex point is outside the qubit SIC region"));
         }
-        let state=QubitSicState {
+        let state = QubitSicState {
             distribution: SicDistribution { p: self.p },
+            vertices: *TetraSic::canonical().vertices(),
         };
         state.reconstruct()?;
         Ok(state)
@@ -118,6 +142,7 @@ impl Simplex4 {
 #[derive(Clone, Copy, Debug)]
 pub struct QubitSicState {
     distribution: SicDistribution,
+    vertices: [BlochVector; 4],
 }
 impl QubitSicState {
     pub fn new(p: [f64; 4]) -> Result<Self, SicError> {
@@ -127,10 +152,10 @@ impl QubitSicState {
         &self.distribution
     }
     pub fn reconstruct(&self) -> Result<QubitState, SicError> {
-        TetraSic::new().fuse(&self.distribution)
+        TetraSic::with_vertices(self.vertices)?.fuse(&self.distribution)
     }
     pub fn dephase(&self, lambda: f64) -> Result<Self, SicError> {
-        Ok(TetraSic::new().split(&self.reconstruct()?.dephase(lambda)?))
+        Ok(TetraSic::with_vertices(self.vertices)?.split(&self.reconstruct()?.dephase(lambda)?))
     }
 }
 pub struct BinaryDistribution {
@@ -147,14 +172,22 @@ pub fn sic_measure(state: &QubitState) -> SicDistribution {
     TetraSic::new().split(state).distribution
 }
 
-pub fn truth_measure_axis(state:&QubitState,axis:BlochVector)->Result<BinaryDistribution,SicError> {
-    if !axis.finite() || (axis.norm()-1.0).abs()>TOLERANCE {return Err(error("Boolean measurement axis must be a unit vector"));}
-    let overlap=state.r.dot(axis);
-    Ok(BinaryDistribution {truth:(1.0+overlap)/2.0,falsity:(1.0-overlap)/2.0})
+pub fn truth_measure_axis(
+    state: &QubitState,
+    axis: BlochVector,
+) -> Result<BinaryDistribution, SicError> {
+    if !axis.finite() || (axis.norm() - 1.0).abs() > TOLERANCE {
+        return Err(error("Boolean measurement axis must be a unit vector"));
+    }
+    let overlap = state.r.dot(axis);
+    Ok(BinaryDistribution {
+        truth: (1.0 + overlap) / 2.0,
+        falsity: (1.0 - overlap) / 2.0,
+    })
 }
 pub struct TetraSic {
-    pub vertices: [BlochVector; 4],
-    pub frame: SicFrame,
+    vertices: [BlochVector; 4],
+    frame: SicFrame,
 }
 impl Default for TetraSic {
     fn default() -> Self {
@@ -162,7 +195,25 @@ impl Default for TetraSic {
     }
 }
 impl TetraSic {
+    pub fn vertices(&self) -> &[BlochVector; 4] {
+        &self.vertices
+    }
+    pub fn frame(&self) -> &SicFrame {
+        &self.frame
+    }
     pub fn new() -> Self {
+        Self::canonical()
+    }
+    pub fn vertex(&self, i: usize) -> &BlochVector {
+        &self.vertices[i]
+    }
+    pub fn effect(&self, i: usize) -> &Operator {
+        &self.frame.effects()[i]
+    }
+    pub fn dual(&self, i: usize) -> &Operator {
+        &self.frame.duals()[i]
+    }
+    pub fn canonical() -> Self {
         let c = 1.0 / 3.0f64.sqrt();
         let vertices = [
             BlochVector::new(c, c, c),
@@ -170,17 +221,38 @@ impl TetraSic {
             BlochVector::new(-c, c, -c),
             BlochVector::new(-c, -c, c),
         ];
+        Self::with_vertices(vertices).expect("canonical tetrahedron is valid")
+    }
+    /// Replaces the entire derived frame; cached presentations cannot be edited.
+    pub fn with_vertices(vertices: [BlochVector; 4]) -> Result<Self, SicError> {
+        for (i, vertex) in vertices.iter().enumerate() {
+            if !vertex.finite() || (vertex.norm() - 1.0).abs() > TOLERANCE {
+                return Err(error("SIC vertices must be finite unit vectors"));
+            }
+            for other in &vertices[..i] {
+                if (vertex.dot(*other) + 1.0 / 3.0).abs() > TOLERANCE {
+                    return Err(error("SIC vertices must form a regular tetrahedron"));
+                }
+            }
+        }
+        let sum = vertices
+            .iter()
+            .fold(BlochVector::new(0.0, 0.0, 0.0), |a, &b| a.plus(b));
+        if sum.norm() > TOLERANCE {
+            return Err(error("SIC vertices must sum to zero"));
+        }
         let projectors = vertices
             .iter()
             .map(|&r| QubitState::new(r).unwrap().operator())
             .collect();
-        Self {
+        Ok(Self {
             vertices,
-            frame: SicFrame::new(projectors).unwrap(),
-        }
+            frame: SicFrame::new(projectors)?,
+        })
     }
     pub fn split(&self, state: &QubitState) -> QubitSicState {
         QubitSicState {
+            vertices: self.vertices,
             distribution: SicDistribution {
                 p: std::array::from_fn(|i| 0.25 * (1.0 + state.r.dot(self.vertices[i]))),
             },
