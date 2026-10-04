@@ -68,12 +68,12 @@ fn validate_prepared(path: &str) -> Result<(), String> {
     .map_err(|error| error.to_string())?;
     validate_prepared_values(&prepared, None)
 }
-fn verify() -> Result<(), String> {
+fn verify() -> Result<bool, String> {
     let args: Vec<_> = std::env::args().collect();
     if args.len() == 3 && args[1] == "--validate-prepared" {
         validate_prepared(&args[2])?;
         println!("validated all baked numeric values as IMASM cell-binary words");
-        return Ok(());
+        return Ok(false);
     }
     if args.len() != 3 { return Err("usage: ququart_verify_readout prepared.json terminal.stdout".into()); }
     let prepared: serde_json::Value = serde_json::from_str(
@@ -91,11 +91,16 @@ fn verify() -> Result<(), String> {
         "source_word", "base_word", "shots_word", "phase_numerator_word",
         "phase_denominator_word", "order_word", "p_word", "q_word",
         "godel_product_verified", "closure_word", "phase_samples",
+        "fourier_computational_word", "fourier_leakage_word",
+        "fourier_return_word", "fourier_exchanges_word",
     ];
     if fields.keys().any(|key| !allowed_fields.contains(key)) {
         return Err("terminal output contains an unapproved field or a non-word numeric value".into());
     }
     let field = |key| fields.get(key).copied().ok_or_else(|| format!("missing readout {key}"));
+    for key in ["fourier_computational_word", "fourier_leakage_word", "fourier_return_word", "fourier_exchanges_word"] {
+        numeral(field(key)?)?;
+    }
     let prepared_word = |key: &str| prepared[key].as_str().ok_or_else(|| format!("missing prepared {key}"));
     let n = numeral(prepared_word("source_word")?)?;
     let base = numeral(prepared_word("base_word")?)?;
@@ -142,11 +147,12 @@ fn verify() -> Result<(), String> {
         || numeral(field("phase_denominator_word")?)? != numeral(last["denominator_word"].as_str().ok_or("missing final phase denominator word")?)? {
         return Err("terminal phase words differ from the final resident phase sample".into());
     }
-    Ok(())
+    Ok(true)
 }
 fn main() {
     match verify() {
-        Ok(()) => println!("verified terminal measured-phase closure and native factor product"),
+        Ok(true) => println!("verified terminal measured-phase closure and native factor product"),
+        Ok(false) => {},
         Err(error) => { eprintln!("readout verification failed: {error}"); std::process::exit(1); }
     }
 }
