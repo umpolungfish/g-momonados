@@ -10,6 +10,7 @@ support, heap-headroom, and retry limits are forbidden.
 |---|---|---|
 | Qualifying input | RSA-100 input audit, checked product, two 165-bit prime factors; only N and base 2 enter preparation | Qualifying fixture selected |
 | Prepared executable | RSA-100 membrane, executable checksum, retained preparation and Vox glyph round trip | Artifact exists, but its execution architecture fails other requirements |
+| Power-of-two nested terminal closure | Prepared binary, ququart, octal and hexadecimal variants retain the RSA100 source-bound physical Fourier operator. Native certified-winding controls return the factor arms at both Vox product/prefix nesting orders across odd/even radix widths and beyond the source extent. Invalid radices and unit arms are rejected. | Compiled terminal integration checked; radix currently controls factor-prefix closure, while winding acquisition remains ququart |
 | All numerical preparation values are IMASM words | Latest artifact embeds its native-word preparation exactly, including 25 complex matrix entries, precision, seed, diagnostics and 334 controlled powers | Verified for current artifact |
 | Prepared controlled-power schedule | All 334 decoded words independently match base^(4^j) modulo RSA-100 | Verified; contains no order or factors |
 | Binary audit | Vox directly audits the latest ELF: 461,700 of 461,714 code bytes covered; T=136, B=907, N=3414, F=0 | Static control-flow evidence, with 14 bytes uncovered |
@@ -75,3 +76,5 @@ It executes directly, without running through Vox. The source-only phase
 producer remains an expanding coherent residue representation, not an
 established fast physically compiled modular/feedback backend. A successful
 static binary audit or negative verifier test does not resolve that gap.
+
+The compiled nested radix family is retained under `membranes/ququart_nested_radix_rsa100_20261004`. Its preparation audit checks executable/verifier/preparation digests, exact embedded preparation bytes, numeral-word validation, and rejection of runtime inputs. Its negative readout controls reject an empty measurement ledger despite valid factor arms, a decimal output field, and a terminal radix different from the baked one. `nested_radix_winding_controls.log` records the certified-winding control. `nested_radix_release_build.log` records the complete release build. The octal nested variant executes with its live handle in `active_execution.json`; the retained original ququart run remains live. Neither run has emitted a terminal report at the latest handle polls.

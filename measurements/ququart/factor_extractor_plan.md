@@ -6,7 +6,7 @@ Produce a prepared, compiled G-mOMonadOS membrane that executes an arbitrary bak
 
 ## Current Finding
 
-The terminal report emits the source and factor words held by the Gödel closure directly. The saved-output verifier preserves those words and invokes the native closure verifier without decimal conversion. Gödel multiplication, division, and modular powering read adjacent binary cells as radix-four digits. The certified winding path uses these native numeral operations for modular certification, half-winding reduction, factor-arm division, and the final product check.
+The terminal report emits the factor arms at the common fixed point of Vox’s product-over-prefix and prefix-over-product nestings. The nested radix is a baked canonical IMASM numeral word and must be a power of two greater than one. The source-bound ququart winding producer supplies the candidate arms; both nesting directions consume those arms before the terminal Gödel multiplication check. The saved-output verifier preserves those words and invokes the native closure verifier without decimal conversion. Gödel multiplication, division, and modular powering read adjacent binary cells as radix-four digits. The certified winding path uses these native numeral operations for modular certification, half-winding reduction, factor-arm division, and the final product check.
 
 The standalone SIC representation has the intended sixteen outcomes. `FixedQuquartSic::rays[i]` uses `p = i / 4`, `q = i % 4`, and `SixteenOutcome::new(i)` preserves mask `i`.
 
@@ -28,9 +28,13 @@ The SIC shot now validates that its evidence calculator uses the source-derived 
 
 `close_sic_phase_evidence` now ranks observed rational hypotheses by likelihood, treats their reduced denominators as order candidates, and accepts a candidate only after `base^r mod N = 1` and the existing half-winding plus native Gödel product closure succeed. A test closes the existing RSA100 certified winding through this SIC evidence seam, and verifies that evidence with no observations cannot close. Candidate generation is still not implemented, so this does not supply a complete estimator or justify runtime execution yet.
 
+The certified RSA100 winding control checks the native nested meeting point at power-of-two radices with digit widths both below and above the source extent. Unit and composite radices, decimal radix text, and a unit factor arm are rejected. This control supplies its winding as a test fixture; source-dependent winding production runs in the baked membrane.
+
 Prepared artifacts must continue to encode every baked source/base/operator value as native IMASM words. The phase hypotheses and candidate orders are runtime-derived from SIC evidence; they must never be inserted into the prepared artifact.
 
-The terminal factor report now emits numeric values only as canonical IMASM words, including source, base, shot count, phase numerator/denominator, order, and both factors. The verifier rejects unapproved decimal-valued fields and checks the echoed input words against the prepared words. Preparation now validates every numeric JSON leaf by decoding it as a canonical cell-binary word before compilation and no longer invokes Vox for extraction or execution.
+Prepared membranes retain a readout verifier whose digest is bound in the manifest. The preparation digest and the exact prepared bytes embedded in the executable bind the replay to its baked words. Saved-output replay uses that retained verifier and validates the baked numeric leaves before checking phase evidence and Gödel multiplication.
+
+The terminal factor report now emits numeric values only as canonical IMASM words, including source, base, shot count, phase numerator/denominator, order, and both factors. The verifier rejects unapproved decimal-valued fields and checks the echoed input words against the prepared words. Preparation validates every numeric JSON leaf by decoding it as a canonical cell-binary word before compilation. The nested terminal closure calls Vox’s existing factor_2adic library through the kernel. The executable runs directly.
 
 The per-gate decision-arena reclamation was also removed. The arena now folds after the complete controlled modular operation, reducing reclamation overhead without a support or capacity ceiling.
 
@@ -46,7 +50,7 @@ The per-gate decision-arena reclamation was also removed. The arena now folds af
 
 5. **Close factors in the terminal Gödel path.** Hold `N`, `p`, and `q` as canonical cell-binary words. Require `godel_calculus::check(p_word, Mul, q_word, source_word).valid` before constructing the terminal result. The completed result contains the factor words, the source word, and the explicit successful product-verification verdict. No factor, order, or phase readout is embedded in the prepared program.
 
-6. **Prepare one qualifying membrane.** Bake a single balanced, unstructured RSA-style source above 200 bits and its coprime base into native G-mOMonadOS IMASM words. Prepare the Fibonacci Fourier operator and controlled-power schedule in G-mOMonadOS. Compile that prepared JSON into the standalone factor executable. Do not use Vox preparation or execution paths.
+6. **Prepare one qualifying membrane.** Bake a single balanced, unstructured RSA-style source above 200 bits and its coprime base into native G-mOMonadOS IMASM words. Prepare the Fibonacci Fourier operator and controlled-power schedule in G-mOMonadOS. Compile that prepared JSON into the standalone factor executable. Reuse the existing Vox nested product/prefix library for terminal closure. A retained Fourier preparation can be reused only when its executable checksum matches and its exact prepared bytes occur in that executable.
 
 7. **Execute and verify the artifact.** Run the baked executable directly with terminal-only output. The success evidence is its factor-bearing terminal closure, plus an independent invocation of the native Gödel verifier on the emitted `p_word`, `q_word`, and `source_word`. Confirm `cargo build --release` for the complete project after the integration.
 
