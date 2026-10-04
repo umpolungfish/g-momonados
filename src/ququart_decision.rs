@@ -507,6 +507,54 @@ impl DecisionArena {
         self.conditional_literals(root,changed,controls)
     }
 
+    fn filter_less(&mut self, root: usize, register: &[usize], value: &BigUint, wanted: bool) -> usize {
+        fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &BigUint,
+            at: usize, less: bool, wanted: bool, zero: usize,
+            memo: &mut OperationCache<(usize,usize,bool),usize>) -> usize {
+            if arena.fixed[id].empty { return zero; }
+            if at == register.len() { return if less == wanted { id } else { zero }; }
+            if let Some(&result) = memo.get(&(id,at,less)) { return result; }
+            let wire = arena.top(id).unwrap_or(register[at]).min(register[at]);
+            let (low,high) = arena.split(id,wire);
+            let (low,high) = if wire == register[at] {
+                let bit = value.bit(at as u64);
+                (visit(arena,low,register,value,at+1,bit || less,wanted,zero,memo),
+                 visit(arena,high,register,value,at+1,bit && less,wanted,zero,memo))
+            } else {
+                (visit(arena,low,register,value,at,less,wanted,zero,memo),
+                 visit(arena,high,register,value,at,less,wanted,zero,memo))
+            };
+            let result = arena.branch(wire,low,high);
+            memo.insert((id,at,less),result);
+            result
+        }
+        let zero = self.zero();
+        visit(self,root,register,value,0,false,wanted,zero,&mut OperationCache::new())
+    }
+
+    /// Fuse the two translated intervals of a complete modular addition.
+    /// Invalid register values and disabled control arms stay unchanged.
+    /// No borrow flag is materialized between the input and output boundary.
+    pub fn modular_add(&mut self, root: usize, register: &[usize], value: &BigUint,
+        modulus: &BigUint, controls: &[(usize,bool)]) -> usize {
+        if !self.controls_possible(root,controls) { return root; }
+        let value = value % modulus;
+        if value.is_zero() { return root; }
+        let zero = self.zero();
+        let enabled = self.conditional_literals(zero,root,controls);
+        let valid = self.filter_less(enabled,register,modulus,true);
+        let invalid = self.filter_less(enabled,register,modulus,false);
+        let threshold = modulus - &value;
+        let low = self.filter_less(valid,register,&threshold,true);
+        let high = self.filter_less(valid,register,&threshold,false);
+        let low = self.add_constant(low,register,&value,&[]);
+        let radix = BigUint::from(1u8) << register.len();
+        let high = self.add_constant(high,register,&(radix-threshold),&[]);
+        let changed = self.sum(low,high);
+        let changed = self.sum(changed,invalid);
+        self.conditional_literals(root,changed,controls)
+    }
+
     /// XOR a high flag with the exact less-than predicate on a register.
     /// Each more significant bit updates the comparison carried by its inner
     /// dyad; the flag is transformed after the complete register has fused.
