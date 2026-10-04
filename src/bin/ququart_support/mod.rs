@@ -9,6 +9,9 @@ pub fn numeral(word: &str) -> Result<BigUint, String> {
     if !matches!(decoded.structure, g_momonados::godel_calculus::Structure::CellBinary { .. }) {
         return Err("prepared value must be a cell-binary word".into());
     }
+    if g_momonados::godel_calculus::encode_cell_binary(&decoded.value) != word {
+        return Err("prepared value must be a canonical cell-binary word".into());
+    }
     Ok(decoded.value.bits_le().iter().enumerate().fold(BigUint::zero(), |n, (bit, set)| {
         if *set { n | (BigUint::one() << bit) } else { n }
     }))

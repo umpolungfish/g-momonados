@@ -164,10 +164,17 @@ impl Nat {
         if self.is_zero() || other.is_zero() {
             return Self::zero();
         }
+        let twice = self.shl(1);
+        let thrice = self.add(&twice);
         let mut out = Self::zero();
-        for (i, bit) in other.bits_le.iter().copied().enumerate() {
-            if bit {
-                out = out.add(&self.shl(i));
+        // Read adjacent bit cells as one ququart digit, most significant first.
+        for pair in other.bits_le.chunks(2).rev() {
+            out = out.shl(2);
+            match (pair[0], pair.get(1).copied().unwrap_or(false)) {
+                (false, false) => {}
+                (true, false) => out = out.add(self),
+                (false, true) => out = out.add(&twice),
+                (true, true) => out = out.add(&thrice),
             }
         }
         out
@@ -888,6 +895,43 @@ pub fn selftest_report() -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ququart_arithmetic_preserves_products_quotients_and_remainders() {
+        for left in 0..128u64 {
+            for right in 0..64u64 {
+                let a = Nat::from_u64(left);
+                let b = Nat::from_u64(right);
+                assert_eq!(a.mul(&b), Nat::from_u64(left * right));
+                match a.div_rem(&b) {
+                    None => assert_eq!(right, 0),
+                    Some((quotient, remainder)) => {
+                        assert_eq!(quotient, Nat::from_u64(left / right));
+                        assert_eq!(remainder, Nat::from_u64(left % right));
+                    }
+                }
+                if right != 0 && left < 16 {
+                    for exponent in 0..8u64 {
+                        let mut expected = 1 % right;
+                        for _ in 0..exponent { expected = expected * left % right; }
+                        assert_eq!(a.pow_mod(&Nat::from_u64(exponent), &b),
+                            Some(Nat::from_u64(expected)));
+                    }
+                }
+            }
+        }
+        for width in [201, 202, 329, 330, 447, 448] {
+            let divisor = Nat::from_bits_le(alloc::vec![true; width]);
+            let quotient = Nat::one().shl(width + 1).add(&Nat::from_u64(3));
+            let remainder = divisor.sub(&Nat::one()).unwrap();
+            let dividend = divisor.mul(&quotient).add(&remainder);
+            assert_eq!(dividend.div_rem(&divisor), Some((quotient, remainder)));
+            assert_eq!(divisor.pow_mod(&Nat::zero(), &Nat::zero()), None);
+            // The residue of (modulus - 1) at an odd exponent returns itself.
+            let minus_one = divisor.sub(&Nat::one()).unwrap();
+            assert_eq!(minus_one.pow_mod(&Nat::from_u64(7), &divisor), Some(minus_one));
+        }
+    }
 
     #[test]
     fn cell_binary_examples() {

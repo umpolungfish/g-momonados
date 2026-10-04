@@ -13,7 +13,7 @@ fn execute() -> Result<String, String> {
     if prepared.get("prepared_operator").is_none() {
         return Err("baked membrane requires a prepared operator in IMASM words".into());
     }
-    let (n, fourier, _) = support::contract(&prepared)?;
+    let (n, fourier, metrics) = support::contract(&prepared)?;
     let base = support::numeral(prepared["base_word"].as_str().ok_or("missing baked base word")?)?;
     let seed = support::numeral(prepared["seed_word"].as_str().ok_or("missing baked seed word")?)?
         .to_u64().ok_or("invalid seed word")?;
@@ -32,7 +32,7 @@ fn execute() -> Result<String, String> {
         shot += 1u8;
         let readout = executor.shot(&n, &base)?;
         if let Some(closure) = readout.closure {
-            let (p, q) = closure.factors();
+            let (p_word, q_word) = closure.factor_words();
             let word = |v: &num_bigint::BigUint| encode_cell_binary(&Nat::from_bits_le(
                 (0..v.bits()).map(|bit| v.bit(bit)).collect()));
             let phase_denominator = readout.phase.denominator()?;
@@ -40,9 +40,14 @@ fn execute() -> Result<String, String> {
                 serde_json::json!({"numerator_word": word(numerator), "denominator_word": word(denominator)})).collect();
             let samples = serde_json::to_string(&samples).map_err(|e| e.to_string())?;
             return Ok(format!(
-                "completed ququart factor extraction\nsource_word={}\nbase_word={}\nshots_word={}\nphase_numerator_word={}\nphase_denominator_word={}\norder_word={}\np_word={}\nq_word={}\ngodel_product_verified=true\nclosure_word={}\nphase_samples={samples}\n",
-                word(&n), word(&base), word(&shot), word(readout.phase.numerator()),
-                word(&phase_denominator), word(closure.order()), word(p), word(q), closure.word()));
+                "completed ququart factor extraction\nsource_word={}\nbase_word={}\nshots_word={}\nphase_numerator_word={}\nphase_denominator_word={}\norder_word={}\np_word={}\nq_word={}\ngodel_product_verified=true\nclosure_word={}\nfourier_computational_word={}\nfourier_leakage_word={}\nfourier_return_word={}\nfourier_exchanges_word={}\nphase_samples={samples}\n",
+                closure.source_word(), prepared["base_word"].as_str().ok_or("missing baked base word")?,
+                word(&shot), word(readout.phase.numerator()),
+                word(&phase_denominator), word(closure.order()), p_word, q_word, closure.word(),
+                word(&num_bigint::BigUint::from(metrics.computational.to_bits())),
+                word(&num_bigint::BigUint::from(metrics.leakage.to_bits())),
+                word(&num_bigint::BigUint::from(metrics.closure.to_bits())),
+                word(&num_bigint::BigUint::from(metrics.exchanges))));
         }
     }
 }
@@ -51,7 +56,7 @@ fn main() {
     let result = execute();
     let (report, code) = match result {
         Ok(report) => (report, 0),
-        Err(error) => (format!("completed with error: {error}\n"), 1),
+        Err(_) => ("factor extraction failed\n".to_string(), 1),
     };
     // This is the sole output operation and follows measurement and extraction.
     if std::io::stdout().lock().write_all(report.as_bytes()).is_err() { std::process::exit(1); }
