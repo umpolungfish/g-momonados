@@ -508,6 +508,30 @@ impl DecisionArena {
     }
 
     fn partition_less(&mut self, root: usize, register: &[usize], value: &BigUint) -> (usize,usize) {
+        let zero = self.zero();
+        let fixed = &self.fixed[root];
+        if fixed.empty { return (zero,zero); }
+        if value.bits() > register.len() as u64 { return (root,zero); }
+        // The exact support masks bound every live register value. Compare
+        // those bounds from the most significant wire without constructing
+        // either integer or walking the amplitude diagram. An uncertain
+        // interval falls through to the full partition below.
+        let mut minimum = core::cmp::Ordering::Equal;
+        let mut maximum = core::cmp::Ordering::Equal;
+        for (bit,&wire) in register.iter().enumerate().rev() {
+            let boundary = value.bit(bit as u64);
+            if minimum == core::cmp::Ordering::Equal {
+                minimum = fixed.one.bit(wire as u64).cmp(&boundary);
+            }
+            if maximum == core::cmp::Ordering::Equal {
+                maximum = (!fixed.zero.bit(wire as u64)).cmp(&boundary);
+            }
+            if minimum != core::cmp::Ordering::Equal && maximum != core::cmp::Ordering::Equal {
+                break;
+            }
+        }
+        if maximum == core::cmp::Ordering::Less { return (root,zero); }
+        if minimum != core::cmp::Ordering::Less { return (zero,root); }
         fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &BigUint,
             at: usize, less: bool, zero: usize,
             memo: &mut OperationCache<(usize,usize,bool),(usize,usize)>) -> (usize,usize) {
@@ -528,7 +552,6 @@ impl DecisionArena {
             memo.insert((id,at,less),result);
             result
         }
-        let zero = self.zero();
         visit(self,root,register,value,0,false,zero,&mut OperationCache::new())
     }
 
