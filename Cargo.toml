@@ -2,6 +2,7 @@
 name = "g-momonados"
 version = "0.1.0"
 edition = "2021"
+autobins = false
 
 [dependencies]
 libm = "0.2"
@@ -17,6 +18,46 @@ serde_json = { version = "1", optional = true }
 [[bin]]
 name = "g-momonados"
 path = "src/main.rs"
+
+# [[bin]]
+# name = "ququart_word"
+# path = "src/bin/ququart_word.rs"
+# required-features = ["hosted"]
+
+[[bin]]
+name = "ququart_baked"
+path = "src/bin/ququart_baked.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "ququart_factor_baked"
+path = "src/bin/ququart_factor_baked.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "ququart_prepare_operator"
+path = "src/bin/ququart_prepare_operator.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "anyon_generator"
+path = "src/bin/anyon_generator.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "ququart_verify_readout"
+path = "src/bin/ququart_verify_readout.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "anyon_cnot_compile"
+path = "src/bin/anyon_cnot_compile.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "qpe_semiprime_cases"
+path = "src/bin/qpe_semiprime_cases.rs"
+required-features = ["hosted"]
 
 [[bin]]
 name = "godel"

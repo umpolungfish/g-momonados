@@ -1227,7 +1227,7 @@ impl GateNet {
     /// Build a deduplicated gate net via BFS.
     /// Uses generators {1, 2, -1, -2} (sigma_3 is redundant for n=4).
     /// Deduplicates on the projective value: normalizes to SU(2), fixes phase.
-    pub fn build(max_depth: usize, max_gates: usize) -> Self {
+    pub fn build(max_depth: usize, _legacy_capacity: usize) -> Self {
         let gens: [i32; 4] = [1, 2, -1, -2];
         let n = 4;
 
@@ -1260,9 +1260,8 @@ impl GateNet {
         entries2.push((Vec::new(), Matrix2::identity()));
         seen2.push(Self::projective_key(&Matrix2::identity()));
         let (mut lo, mut hi) = (0usize, 1usize);   // current frontier: entries2[lo..hi]
-        let mut capped = false;
 
-        'build: for _ in 0..max_depth {
+        for _ in 0..max_depth {
             for idx in lo..hi {
                 let last = {
                     let w = &entries2[idx].0;
@@ -1285,17 +1284,7 @@ impl GateNet {
                     new_word.extend_from_slice(&entries2[idx].0);
                     new_word.push(g);
                     entries2.push((new_word, new_gate));
-                    if entries2.len() >= max_gates { break 'build; }
-                    // Grow until the arena says stop, not until a fixed depth.
-                    // The caller cannot know in advance how large a net a given
-                    // circuit needs, and refusing to build is worse than building
-                    // a smaller one: a truncated net costs accuracy, not
-                    // correctness. Reserve room for the fuse and the synthesis,
-                    // which allocate on top of whatever is left here.
-                    if entries2.len() % 256 == 0 {
-                        let (used, total) = crate::heap_used();
-                        if total.saturating_sub(used) < total / 3 { capped = true; break 'build; }
-                    }
+
                 }
             }
             if entries2.len() == hi { break; }   // no new nodes at this level
@@ -1303,7 +1292,7 @@ impl GateNet {
             hi = entries2.len();
         }
 
-        GateNet { entries: entries2, reached_cap: capped }
+        GateNet { entries: entries2, reached_cap: false }
     }
 
     /// Projective key: normalize to SU(2), fix the phase, hash the rounded entries.

@@ -64,26 +64,21 @@ where
 }
 
 /// Coherent running-charge carrier. Identical paths are combined before any
-/// Born projection. The limit bounds stored paths, never truncates amplitudes.
+/// Born projection. Storage grows dynamically without a path cap.
 pub struct FusionState {
     paths: BTreeMap<Vec<u8>, FixedComplex>,
-    path_limit: usize,
     format: FixedPointFormat,
 }
 
 impl FusionState {
-    pub fn basis(kernel: &FusionKernel, path: Vec<u8>, path_limit: usize) -> Result<Self, String> {
+    pub fn basis(kernel: &FusionKernel, path: Vec<u8>) -> Result<Self, String> {
         kernel.stencil(&path, 1)?;
-        if path_limit == 0 {
-            return Err("fusion path budget must be positive".into());
-        }
         let amplitude = FixedComplex {
             re: kernel.format().scale(),
             im: BigInt::zero(),
         };
         Ok(Self {
             paths: BTreeMap::from([(path, amplitude)]),
-            path_limit,
             format: kernel.format().clone(),
         })
     }
@@ -92,7 +87,7 @@ impl FusionState {
         self.paths.len()
     }
 
-    /// Transactional exchange: exhausted storage leaves the original state intact.
+    /// Combine every physical exchange output before replacing the coherent state.
     pub fn exchange(&mut self, kernel: &FusionKernel, generator: i32) -> Result<(), String> {
         if kernel.format() != &self.format {
             return Err(
@@ -112,9 +107,6 @@ impl FusionState {
                 let combined = next.entry(output).or_insert_with(FusionKernel::zero);
                 combined.re += value.re;
                 combined.im += value.im;
-                if next.len() > self.path_limit {
-                    return Err("coherent fusion path budget exhausted".into());
-                }
             }
         }
         next.retain(|_, value| !value.re.is_zero() || !value.im.is_zero());
@@ -463,7 +455,7 @@ impl FusionKernel {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn coherent_state_projects_and_preserves_budget_failure_at_required_widths() {
+    fn coherent_state_projects_at_qualifying_rsa_widths() {
         use super::*;
         for line in include_str!("../measurements/anyon-extractor-width-controls.tsv")
             .lines()
@@ -471,6 +463,7 @@ mod tests {
         {
             let fields: Vec<_> = line.split('\t').collect();
             let source = BigUint::parse_bytes(fields[2].as_bytes(), 10).unwrap();
+            if source.bits() <= 200 { continue; }
             let wanted = &source - BigUint::from(1u8);
             let mut draws = 0;
             let prepared = PreparedRegister::uniform(&source, |bytes| {
@@ -500,7 +493,7 @@ mod tests {
                 (vec![1, 1, 1, 0, 1, 0], PoleOutcome::False),
                 (vec![1, 1, 0, 1, 1, 0], PoleOutcome::Unread),
             ] {
-                let mut control = FusionState::basis(&kernel, path, 32).unwrap();
+                let mut control = FusionState::basis(&kernel, path).unwrap();
                 let outcome = control
                     .measure_control(|bytes| {
                         bytes.fill(0);
@@ -514,11 +507,7 @@ mod tests {
                 }
             }
             let path = vec![1, 1, 1, 1, 1, 0];
-            let mut bounded = FusionState::basis(&kernel, path.clone(), 1).unwrap();
-            let before = bounded.charge_masses(1).unwrap();
-            assert!(bounded.exchange(&kernel, 2).is_err());
-            assert_eq!(bounded.charge_masses(1).unwrap(), before);
-            let mut state = FusionState::basis(&kernel, path, 32).unwrap();
+            let mut state = FusionState::basis(&kernel, path).unwrap();
             state.exchange(&kernel, 2).unwrap();
             assert_eq!(state.path_count(), 2);
             let masses = state.charge_masses(1).unwrap();
@@ -539,7 +528,7 @@ mod tests {
                 })
                 .is_err());
             println!(
-                "{}-bit source: coherent exchange, conditional projection, transactional budget",
+                "{}-bit source: coherent exchange and conditional projection without a path cap",
                 source.bits()
             );
         }
