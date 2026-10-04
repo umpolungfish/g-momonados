@@ -12,6 +12,10 @@ use alloc::{string::String, vec::Vec};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
 
+pub struct PreparedModularWork {
+    pub operations: Vec<NestedOperation>,
+    pub stages: Vec<(BigUint,Vec<usize>)>,
+}
 pub struct QuquartFoldedWorkDevice {
     source: BigUint,
     format: FixedPointFormat,
@@ -26,7 +30,7 @@ pub struct QuquartFoldedWorkDevice {
     count: usize,
     interleaved_work: bool,
     digit_bits: usize,
-    prepared_work: Option<Vec<(BigUint,Vec<NestedOperation>)>>,
+    prepared_work: Option<PreparedModularWork>,
     pub peak_nodes: usize,
 }
 impl QuquartFoldedWorkDevice {
@@ -54,7 +58,7 @@ impl QuquartFoldedWorkDevice {
             peak_nodes: 0,
         })
     }
-    pub fn with_prepared_work(mut self, work: Vec<(BigUint,Vec<NestedOperation>)>) -> Self {
+    pub fn with_prepared_work(mut self, work: PreparedModularWork) -> Self {
         self.prepared_work = Some(work);
         self
     }
@@ -329,8 +333,11 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
     fn controlled_multiply(&mut self, multiplier: &BigUint) -> Result<(), String> {
         self.require_active()?;
         if let Some(work) = self.prepared_work.take() {
-            let result = match work.iter().find(|(power,_)| power == multiplier) {
-                Some((_,operations)) => operations.iter().try_for_each(|operation| self.apply_nested(operation.clone())),
+            let result = match work.stages.iter().find(|(power,_)| power == multiplier) {
+                Some((_,indices)) => indices.iter().try_for_each(|&index| {
+                    let operation = work.operations.get(index).ok_or("prepared operation reference outside pool")?;
+                    self.apply_nested(operation.clone())
+                }),
                 None => Err("controlled multiplier absent from baked work schedule".into()),
             };
             self.prepared_work = Some(work);
