@@ -1,1 +1,1 @@
-I share canonical wire decoding across prepared operations
+I share prepared operation structure across phase stages

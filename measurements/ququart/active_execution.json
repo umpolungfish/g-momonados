@@ -170,5 +170,12 @@
     "exit_code": 124,
     "closure_time_limit_seconds": 90,
     "factor_extraction_verified": false
+  },
+  "shared_work_128_preparation": {
+    "case": "membranes/ququart_shared_work_128_20261004",
+    "state": "prepared_not_executed",
+    "factor_extraction_verified": false,
+    "instrument": "Vox symbol-bounded disassembly",
+    "work_storage": "shared_operation_pool_with_numeral_word_references"
   }
 }

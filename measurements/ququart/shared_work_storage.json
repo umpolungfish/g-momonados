@@ -1,0 +1,9 @@
+{
+  "stage_count": 132,
+  "operation_references": 168960,
+  "distinct_operations": 68096,
+  "prepared_bytes": 179515008,
+  "previous_prepared_bytes": 190585381,
+  "factor_extraction_verified": false,
+  "execution_state": "prepared_not_executed"
+}
