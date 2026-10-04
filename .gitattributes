@@ -1,3 +1,16 @@
+/membranes/ququart_factor_447_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_447_unlimited_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_control_128_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_control_128_unlimited_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_rsa100_330_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_rsa100_baked_schedule_v2_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_rsa100_native_words_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_rsa100_phase_audit_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_rsa100_prepared_operator_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_semiprime_128_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_factor_semiprime_control_129_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_fourier_128_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_fourier_447_20261004/membrane.glyphs filter=lfs diff=lfs merge=lfs -text
 measurements/anyon_wiring/nested_state_baseline/source.tar.gz filter=lfs diff=lfs merge=lfs -text
 measurements/anyon_wiring/stack_recovery/g-momonados/index.html filter=lfs diff=lfs merge=lfs -text
 measurements/exact_hex_target/transported_signed_collection_2.native.log.gz filter=lfs diff=lfs merge=lfs -text
