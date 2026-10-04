@@ -136,6 +136,9 @@ impl QuquartFoldedWorkDevice {
             NestedOperation::Toggle(gate) => NestedOperation::Toggle(crate::reversible_modular::ControlledX {
                 target: self.work_wire(gate.target), controls: map_controls(gate.controls),
             }),
+            NestedOperation::ModularAdd { register,value,modulus,controls } => NestedOperation::ModularAdd {
+                register: map_register(register),value,modulus,controls: map_controls(controls),
+            },
             NestedOperation::Add { register,value,controls } => NestedOperation::Add {
                 register: map_register(register),value,controls: map_controls(controls),
             },
@@ -145,7 +148,7 @@ impl QuquartFoldedWorkDevice {
         };
         let (controls, targets): (&[(usize,bool)], Vec<usize>) = match &operation {
             NestedOperation::Toggle(gate) => (&gate.controls, alloc::vec![gate.target]),
-            NestedOperation::Add { register, controls, .. } => (controls, register.clone()),
+            NestedOperation::Add { register, controls, .. } | NestedOperation::ModularAdd { register, controls, .. } => (controls, register.clone()),
             NestedOperation::Compare { register, controls, flag, .. } => {
                 if register.last().is_some_and(|wire| wire >= flag) {
                     return Err("nested comparison flag must follow its register".into());
@@ -158,7 +161,7 @@ impl QuquartFoldedWorkDevice {
             || targets.iter().any(|&wire| wire >= extent) {
             return Err("nested arithmetic has invalid or overlapping wires".into());
         }
-        if let NestedOperation::Add { register, .. } | NestedOperation::Compare { register, .. } = &operation {
+        if let NestedOperation::Add { register, .. } | NestedOperation::Compare { register, .. } | NestedOperation::ModularAdd { register, .. } = &operation {
             if register.is_empty() || register[0] < 2
                 || register.windows(2).any(|pair| pair[0] >= pair[1])
                 || register.iter().any(|&wire| wire >= extent)
@@ -195,6 +198,8 @@ impl QuquartFoldedWorkDevice {
                     };
                     self.arena.conditional_literals(old[channel],changed,&work)
                 }
+                NestedOperation::ModularAdd { register,value,modulus,.. } => self.arena.modular_add(
+                    old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,modulus,&work),
                 NestedOperation::Add { register,value,.. } => self.arena.add_constant(
                     old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,&work),
                 NestedOperation::Compare { register,value,flag,.. } => self.arena.compare_constant(

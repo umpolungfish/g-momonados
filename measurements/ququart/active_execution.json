@@ -83,5 +83,13 @@
     "closure_time_limit_seconds": 90,
     "factor_extraction_verified": false,
     "instrument": "Vox disassembly; bounded direct native execution"
+  },
+  "modular_boundary_execution": {
+    "case": "membranes/ququart_modular_boundary_rsa100_20261004",
+    "session_id": 55483,
+    "state": "stopped_at_user_time_limit",
+    "exit_code": 124,
+    "closure_time_limit_seconds": 90,
+    "factor_extraction_verified": false
   }
 }

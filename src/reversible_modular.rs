@@ -21,6 +21,7 @@ pub struct ControlledX {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NestedOperation {
     Toggle(ControlledX),
+    ModularAdd { register: Vec<usize>, value: BigUint, modulus: BigUint, controls: Vec<(usize, bool)> },
     Add { register: Vec<usize>, value: BigUint, controls: Vec<(usize, bool)> },
     Compare { register: Vec<usize>, value: BigUint, controls: Vec<(usize, bool)>, flag: usize },
 }
@@ -428,6 +429,9 @@ impl ModularMultiply {
                 .map(|(q, value)| (wire(q), value)).collect();
             let register = |items: Vec<usize>| items.into_iter().map(wire).collect();
             emit(match operation {
+                NestedOperation::ModularAdd { register: r, value, modulus, controls: c } => NestedOperation::ModularAdd {
+                    register: register(r), value, modulus, controls: controls(c),
+                },
                 NestedOperation::Toggle(gate) => NestedOperation::Toggle(ControlledX {
                     target: wire(gate.target), controls: controls(gate.controls),
                 }),
@@ -439,9 +443,9 @@ impl ModularMultiply {
                 },
             })
         };
-        // The same add_mod and inverse rail feed both elementary lowering and
-        // these nested boundaries. Only the execution representation differs.
-        self.emit_nested(multiplier, output)
+        // Keep each complete modular translation at the shared boundary;
+        // elementary lowering retains the borrow-flag shell on the same rail.
+        self.emit_nested(multiplier, true, output)
     }
 
     fn emit_with_ops<F, A, C>(
@@ -456,7 +460,8 @@ impl ModularMultiply {
         A: FnMut(&[usize], &BigUint, &[(usize, bool)], &mut F) -> Result<(), String>,
         C: FnMut(&[usize], &BigUint, &[(usize, bool)], usize, &mut F) -> Result<(), String>,
     {
-        self.emit_nested(multiplier, |operation| match operation {
+        self.emit_nested(multiplier, false, |operation| match operation {
+            NestedOperation::ModularAdd { .. } => Err("modular boundary reached elementary lowering".into()),
             NestedOperation::Toggle(gate) => emit(gate),
             NestedOperation::Add { register, value, controls } =>
                 addition(&register, &value, &controls, &mut emit),
@@ -465,7 +470,7 @@ impl ModularMultiply {
         })
     }
 
-    fn emit_nested<F>(&self, multiplier: &BigUint, mut emit: F) -> Result<(), String>
+    fn emit_nested<F>(&self, multiplier: &BigUint, whole_modular: bool, mut emit: F) -> Result<(), String>
     where F: FnMut(NestedOperation) -> Result<(), String> {
         let multiplier = multiplier % &self.n;
         if multiplier.is_one() {
@@ -477,14 +482,17 @@ impl ModularMultiply {
         let flag = 2 * self.width + 2;
         let mut power = multiplier;
         for &bit in &source {
-            add_mod(
+            if whole_modular {
+                emit(NestedOperation::ModularAdd { register: workspace.clone(), value: power.clone(),
+                    modulus: self.n.clone(), controls: alloc::vec![(0,true),(bit,true)] })?;
+            } else { add_mod(
                 &workspace,
                 &power,
                 &self.n,
                 &[(0, true), (bit, true)],
                 flag,
                 &mut emit,
-            )?;
+            )?; }
             power = (&power << 1usize) % &self.n;
         }
         for (&x, &y) in source.iter().zip(&workspace) {
@@ -501,14 +509,17 @@ impl ModularMultiply {
             } else {
                 &self.n - &power
             };
-            add_mod(
+            if whole_modular {
+                emit(NestedOperation::ModularAdd { register: workspace.clone(), value: negative.clone(),
+                    modulus: self.n.clone(), controls: alloc::vec![(0,true),(bit,true)] })?;
+            } else { add_mod(
                 &workspace,
                 &negative,
                 &self.n,
                 &[(0, true), (bit, true)],
                 flag,
                 &mut emit,
-            )?;
+            )?; }
             power = (&power << 1usize) % &self.n;
         }
         Ok(())
