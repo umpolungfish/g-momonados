@@ -447,6 +447,11 @@ impl DecisionArena {
             if positive { fixed.zero.bit(wire as u64) } else { fixed.one.bit(wire as u64) }
         })
     }
+    /// Exact clean-work boundary predicate, using the same support metadata
+    /// maintained by every branch constructor. Empty arms are vacuously clean.
+    pub fn wire_is_zero(&self, root: usize, wire: usize) -> bool {
+        self.fixed[root].empty || self.fixed[root].zero.bit(wire as u64)
+    }
 
     /// Fuse changed and unchanged arms on the original literal controls.
     pub fn conditional_literals(&mut self, a: usize, b: usize, controls: &[(usize, bool)]) -> usize {
