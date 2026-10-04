@@ -1,3 +1,3 @@
-I hash shared split fuse traversal caches
+I debug the compiled producer with Vox and interleave work wires
 
-I preserve exact complex arithmetic and Born mass through hashed memo lookup, validate the coordinate and modular controls, and retain a separately prepared source-bound execution.
+I retain the disassembled call path and compiled wire permutation, stop the prepared execution at the requested closure limit, and record that factor closure remains missing.

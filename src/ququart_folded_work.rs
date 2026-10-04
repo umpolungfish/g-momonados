@@ -24,6 +24,7 @@ pub struct QuquartFoldedWorkDevice {
     measured: Option<QuquartDigit>,
     expected: usize,
     count: usize,
+    interleaved_work: bool,
     pub peak_nodes: usize,
 }
 impl QuquartFoldedWorkDevice {
@@ -45,8 +46,28 @@ impl QuquartFoldedWorkDevice {
             measured: None,
             expected: 0,
             count: 0,
+            interleaved_work: false,
             peak_nodes: 0,
         })
+    }
+    pub fn new_interleaved(source: BigUint, fourier: PairMatrix, seed: u64) -> Result<Self, String> {
+        let mut device = Self::new(source, fourier, seed)?;
+        device.interleaved_work = true;
+        Ok(device)
+    }
+    fn work_wire(&self, wire: usize) -> usize {
+        let width = self.source.bits() as usize;
+        if !self.interleaved_work || wire < 2 || wire > 2 * width + 1 { return wire; }
+        if wire <= width + 1 { 2 * (wire - 1) }
+        else { 2 * (wire - width - 1) + 1 }
+    }
+    fn work_address(&self, residue: &BigUint) -> BigUint {
+        if !self.interleaved_work { return residue.clone(); }
+        let mut address = BigUint::zero();
+        for bit in 0..residue.bits() {
+            address.set_bit(2 * bit, residue.bit(bit));
+        }
+        address
     }
     fn entropy(random: &mut u64, bytes: &mut [u8]) -> Result<(), String> {
         for chunk in bytes.chunks_mut(8) {
@@ -108,6 +129,20 @@ impl QuquartFoldedWorkDevice {
     }
 
     fn apply_nested(&mut self, operation: NestedOperation) -> Result<(), String> {
+        let map_register = |r: Vec<usize>| r.into_iter().map(|wire| self.work_wire(wire)).collect();
+        let map_controls = |c: Vec<(usize,bool)>| c.into_iter()
+            .map(|(wire,value)| (self.work_wire(wire),value)).collect();
+        let operation = match operation {
+            NestedOperation::Toggle(gate) => NestedOperation::Toggle(crate::reversible_modular::ControlledX {
+                target: self.work_wire(gate.target), controls: map_controls(gate.controls),
+            }),
+            NestedOperation::Add { register,value,controls } => NestedOperation::Add {
+                register: map_register(register),value,controls: map_controls(controls),
+            },
+            NestedOperation::Compare { register,value,controls,flag } => NestedOperation::Compare {
+                register: map_register(register),value,controls: map_controls(controls),flag: self.work_wire(flag),
+            },
+        };
         let (controls, targets): (&[(usize,bool)], Vec<usize>) = match &operation {
             NestedOperation::Toggle(gate) => (&gate.controls, alloc::vec![gate.target]),
             NestedOperation::Add { register, controls, .. } => (controls, register.clone()),
@@ -233,8 +268,9 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         self.arena = DecisionArena::new(self.arena.cells);
         let z = self.arena.zero();
         self.roots = [z; 5];
+        let address = self.work_address(register.residue());
         self.roots[COMPUTATIONAL_CHANNELS[0]] =
-            self.arena.basis(register.residue(), self.format.scale());
+            self.arena.basis(&address, self.format.scale());
         self.active = true;
         self.measured = None;
         self.expected = digits;

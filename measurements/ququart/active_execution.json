@@ -1,7 +1,7 @@
 {
   "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_factor_rsa100_shared_reclaim_20261004",
   "session_id": 88072,
-  "state": "running_no_terminal_report",
+  "state": "stopped_by_user_time_limit",
   "execution": "direct_native",
   "source": "RSA-100",
   "source_bits": 330,
@@ -25,10 +25,11 @@
     {
       "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_nested_work_radix_rsa100_20261004/octal",
       "session_id": 26456,
-      "state": "running_no_terminal_report",
+      "state": "stopped_by_user_time_limit",
       "radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
       "modular_work": "nested_reversible_arithmetic",
-      "terminal_closure": "nested_factor_words_with_godel_product"
+      "terminal_closure": "nested_factor_words_with_godel_product",
+      "exit_code": 143
     }
   ],
   "debug_execution": {
@@ -36,31 +37,51 @@
     "instrument": "Vox profile-native",
     "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_nested_work_radix_rsa100_20261004/octal",
     "report_prefix": "measurements/ququart/nested_work_vox_profile",
-    "state": "running_no_terminal_report",
-    "purpose": "sample source-dependent nested work; no supplied factors or winding"
+    "state": "terminated_by_user_time_limit",
+    "purpose": "sample source-dependent nested work; no supplied factors or winding",
+    "exit_code": 1,
+    "target_signal": "SIGTERM"
   },
   "hash_nested_work_execution": {
     "case": "membranes/ququart_nested_work_hash_rsa100_20261004",
     "session_id": 75884,
-    "state": "running_no_terminal_report",
+    "state": "stopped_by_user_time_limit",
     "node_index": "hosted_hash",
     "phase_carrier": "ququart",
-    "terminal_closure": "nested_factor_words_with_godel_product"
+    "terminal_closure": "nested_factor_words_with_godel_product",
+    "exit_code": 143
   },
   "outer_split_execution": {
     "case": "membranes/ququart_outer_split_rsa100_20261004",
     "session_id": 92843,
-    "state": "running_no_terminal_report",
+    "state": "stopped_by_user_time_limit",
     "work_arm_order": "outer_controls_before_arithmetic_and_flip",
     "phase_carrier": "ququart",
-    "terminal_closure": "nested_factor_words_with_godel_product"
+    "terminal_closure": "nested_factor_words_with_godel_product",
+    "exit_code": 143
   },
   "hashed_traversal_execution": {
     "case": "membranes/ququart_hashed_traversal_rsa100_20261004",
     "session_id": 88217,
-    "state": "running_no_terminal_report",
+    "state": "stopped_by_user_time_limit",
     "hosted_traversal_cache": "hash",
     "phase_carrier": "ququart",
-    "terminal_closure": "nested_factor_words_with_godel_product"
+    "terminal_closure": "nested_factor_words_with_godel_product",
+    "exit_code": 143
+  },
+  "exit_code": 143,
+  "user_execution_policy": {
+    "closure_time_limit_seconds": 90,
+    "on_timeout": "stop_and_debug",
+    "factor_extraction_verified": false
+  },
+  "interleaved_execution": {
+    "case": "membranes/ququart_interleaved_rsa100_20261004",
+    "session_id": 46068,
+    "state": "stopped_at_user_time_limit",
+    "exit_code": 124,
+    "closure_time_limit_seconds": 90,
+    "factor_extraction_verified": false,
+    "instrument": "Vox disassembly; bounded direct native execution"
   }
 }
