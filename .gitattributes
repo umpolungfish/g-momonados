@@ -19,3 +19,7 @@
 /membranes/ququart_cached_words_128_20261004/prepared.json filter=lfs diff=lfs merge=lfs -text
 /membranes/ququart_shared_work_128_20261004/membrane filter=lfs diff=lfs merge=lfs -text
 /membranes/ququart_shared_work_128_20261004/prepared.json filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_inclusive_native_radix4_128_20261004/membrane filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_inclusive_native_radix4_128_20261004/prepared.json filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_inclusive_native_radix8_128_20261004/membrane filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_inclusive_native_radix8_128_20261004/prepared.json filter=lfs diff=lfs merge=lfs -text

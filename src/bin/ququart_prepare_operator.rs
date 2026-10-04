@@ -16,6 +16,23 @@ pub fn signed_word(value: &BigInt) -> String {
 
 fn prepare() -> Result<String, String> {
     let path = std::env::args().nth(1).ok_or("missing preparation file")?;
+    if path == "--scale-base" || path == "--prepare-powers" {
+        let input = std::env::args().nth(2).ok_or("missing source-bound input file")?;
+        let prepared: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(input).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+        let n = support::numeral(prepared["source_word"].as_str().ok_or("missing source word")?)?;
+        let base = support::numeral(prepared["base_word"].as_str().ok_or("missing base word")?)?;
+        if path == "--scale-base" {
+            let scaled = g_momonados::ququart_factor::scaled_modular_base(&n, &base,
+                prepared["radix_word"].as_str().ok_or("missing work radix word")?)?;
+            return Ok(serde_json::json!({"binary_base_word":word(&base), "base_word":word(&scaled)}).to_string());
+        }
+        support::validate_base_scaling(&prepared)?;
+        let schedule = g_momonados::ququart_factor::QuquartPowerSchedule::prepare(&n, &base)?;
+        return Ok(serde_json::json!({
+            "controlled_power_words":schedule.powers().iter().map(word).collect::<Vec<_>>(),
+            "phase_digits_word":word(&BigUint::from(schedule.powers().len()))}).to_string());
+    }
     if path == "--prepare-work" {
         let path = std::env::args().nth(2).ok_or("missing prepared source file")?;
         let prepared = serde_json::from_str(&std::fs::read_to_string(path).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
@@ -34,6 +51,7 @@ fn prepare() -> Result<String, String> {
             "seed_word": scalar(1729), "accuracy_word": scalar(4), "radix_word": scalar(4),
             "sk_word": scalar(5), "net_word": scalar(7),
             "capacity_word": scalar(0), "refinement_word": scalar(4),
+            "native_arm_word": scalar(1),
         }).to_string());
     }
     if path == "--validate-inputs" {
@@ -50,6 +68,7 @@ fn prepare() -> Result<String, String> {
         support::numeral(inputs["seed_word"].as_str().ok_or("missing measurement seed word")?)?
             .to_u64().ok_or("measurement seed exceeds the prepared entropy register")?;
         if let Some(base) = inputs["base_word"].as_str() {
+            support::validate_base_scaling(&inputs)?;
             g_momonados::ququart_factor::power_of_two_radix_word(
                 inputs["radix_word"].as_str().ok_or("missing nested radix word")?)?;
             let base = support::numeral(base)?;

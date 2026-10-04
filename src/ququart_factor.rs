@@ -6,6 +6,22 @@ use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
+/// Carry a binary modular base into a power-of-two work radix.
+/// A radix digit contains log2(radix) binary places, so its base is that
+/// many compositions of the binary modular multiplication.
+pub fn scaled_modular_base(source: &BigUint, binary_base: &BigUint, radix_word: &str) -> Result<BigUint, String> {
+    let radix = power_of_two_radix_word(radix_word)?;
+    let places = radix.bits_le().len() - 1;
+    ModularMultiply::new(source)?;
+    let scaled = binary_base.modpow(&BigUint::from(places), source);
+    if scaled.is_zero() || scaled.is_one() {
+        return Err("scaled modular base must be nontrivial".into());
+    }
+    // This also checks that the resolved base is a unit modulo the source.
+    QuquartPowerSchedule::prepare(source, &scaled)?;
+    Ok(scaled)
+}
+
 /// Full Z4 Fourier decomposition on little-endian control lanes zero and one.
 /// The controlled-S uses exact T/CNOT decomposition; the final swap fixes
 /// the four-channel output order. Each target can enter the existing braid
@@ -440,7 +456,13 @@ impl<D: QuquartPhaseDevice> QuquartFactorExecutor<D> {
         let result = (|| {
             let mut outcomes = Vec::with_capacity(powers.len());
             let mut staged_evidence = phase_evidence.clone();
-            for power in powers.iter().rev() {
+            for (stage, power) in powers.iter().rev().enumerate() {
+                // The multiplier is a^(4^j) mod N. SIC likelihoods instead
+                // evaluate the eigenphase times 4^j; the two coordinates are
+                // different even though they describe the same work gate.
+                let exponent_bits = (powers.len() - 1 - stage).checked_mul(2)
+                    .ok_or("SIC phase exponent width overflow")?;
+                let phase_power = BigUint::one() << exponent_bits;
                 self.device.fourier(false)?;
                 self.device.controlled_multiply(power)?;
                 self.device.fourier(true)?;
@@ -449,7 +471,7 @@ impl<D: QuquartPhaseDevice> QuquartFactorExecutor<D> {
                     QuquartSicOutcome::Carrier(_) => {
                         staged_evidence.observe(
                             outcome,
-                            power,
+                            &phase_power,
                             &BigUint::zero(),
                             &BigUint::one(),
                         )?;
