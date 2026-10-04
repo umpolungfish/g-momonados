@@ -532,6 +532,28 @@ impl DecisionArena {
         visit(self,root,register,value,0,false,zero,&mut OperationCache::new())
     }
 
+    /// Remove one unchanged source coordinate in a shared traversal.
+    /// Both cofactors retain every earlier work coordinate. The caller restores
+    /// the source wire after translating the work register.
+    fn source_cofactors(&mut self, root: usize, source: usize) -> (usize,usize) {
+        fn visit(arena: &mut DecisionArena, root: usize, source: usize,
+            memo: &mut OperationCache<usize,(usize,usize)>) -> (usize,usize) {
+            if let Some(&result) = memo.get(&root) { return result; }
+            let result = match *arena.node(root) {
+                Node::Branch { wire, low, high } if wire == source => (low,high),
+                Node::Branch { wire, low, high } if wire < source => {
+                    let low = visit(arena,low,source,memo);
+                    let high = visit(arena,high,source,memo);
+                    (arena.branch(wire,low.0,high.0),arena.branch(wire,low.1,high.1))
+                }
+                _ => (root,root),
+            };
+            memo.insert(root,result);
+            result
+        }
+        visit(self,root,source,&mut OperationCache::new())
+    }
+
     /// Split only live source-digit arms, translate each complete digit once,
     /// and fuse their disjoint source coordinates without a candidate table.
     pub fn modular_digit_add(&mut self, root: usize, register: &[usize], digit: &[usize],
@@ -549,12 +571,13 @@ impl DecisionArena {
             if arena.fixed[root].one.bit(digit[at] as u64) {
                 return visit(arena,root,register,digit,at+1,&next_accumulated,&next_place,modulus);
             }
-            let zero = arena.zero();
-            let low = arena.conditional_literals(zero,root,&[(digit[at],false)]);
-            let high = arena.conditional_literals(zero,root,&[(digit[at],true)]);
+            let (low,high) = arena.source_cofactors(root,digit[at]);
             let low = visit(arena,low,register,digit,at+1,accumulated,&next_place,modulus);
             let high = visit(arena,high,register,digit,at+1,&next_accumulated,&next_place,modulus);
-            arena.sum(low,high)
+            // Source and work coordinates are disjoint. Restore the removed
+            // source wire in diagram order, including earlier work branches
+            // changed by the translation, rather than adding masked roots.
+            arena.conditional_literals(low,high,&[(digit[at],true)])
         }
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);

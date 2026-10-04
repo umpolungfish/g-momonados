@@ -126,5 +126,14 @@
     "closure_time_limit_seconds": 90,
     "factor_extraction_verified": false,
     "instrument": "Vox symbol-bounded disassembly; direct native execution"
+  },
+  "cofactor_hexadecimal_execution": {
+    "case": "membranes/ququart_cofactor_hexadecimal_rsa100_20261004",
+    "session_id": 63846,
+    "state": "stopped_at_user_time_limit",
+    "exit_code": 124,
+    "closure_time_limit_seconds": 90,
+    "factor_extraction_verified": false,
+    "source_digit_split": "shared_cofactors_with_ordered_wire_restoration"
   }
 }
