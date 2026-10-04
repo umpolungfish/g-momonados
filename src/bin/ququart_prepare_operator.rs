@@ -16,6 +16,11 @@ pub fn signed_word(value: &BigInt) -> String {
 
 fn prepare() -> Result<String, String> {
     let path = std::env::args().nth(1).ok_or("missing preparation file")?;
+    if path == "--prepare-work" {
+        let path = std::env::args().nth(2).ok_or("missing prepared source file")?;
+        let prepared = serde_json::from_str(&std::fs::read_to_string(path).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
+        return Ok(support::work::compile(&prepared)?.to_string());
+    }
     if path == "--radix-words" {
         let extent = std::env::args().nth(2).ok_or("missing radix-ladder extent word")?;
         let extent = support::numeral(&extent)?.to_usize().ok_or("radix ladder exceeds host indexing")?;

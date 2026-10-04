@@ -153,5 +153,14 @@
     "factor_extraction_verified": false,
     "source_classification": "documented balanced unstructured RSA-style semiprime",
     "provenance_audit": "measurements/ququart/supplied_128_preparation_audit.json"
+  },
+  "prepared_work_128_execution": {
+    "case": "membranes/ququart_prepared_work_128_20261004",
+    "session_id": 78756,
+    "state": "stopped_at_user_time_limit",
+    "exit_code": 124,
+    "closure_time_limit_seconds": 90,
+    "factor_extraction_verified": false,
+    "modular_work_preparation": "source_bound_operations_baked_as_numeral_words"
   }
 }
