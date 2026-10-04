@@ -532,6 +532,30 @@ impl DecisionArena {
         visit(self,root,register,value,0,false,zero,&mut OperationCache::new())
     }
 
+    /// Split only live source-digit arms, translate each complete digit once,
+    /// and fuse their disjoint source coordinates without a candidate table.
+    pub fn modular_digit_add(&mut self, root: usize, register: &[usize], digit: &[usize],
+        value: &BigUint, modulus: &BigUint, controls: &[(usize,bool)]) -> usize {
+        if !self.controls_possible(root,controls) { return root; }
+        fn visit(arena: &mut DecisionArena, root: usize, register: &[usize], digit: &[usize],
+            at: usize, accumulated: &BigUint, place: &BigUint, modulus: &BigUint) -> usize {
+            if arena.fixed[root].empty { return root; }
+            if at == digit.len() { return arena.modular_add(root,register,accumulated,modulus,&[]); }
+            let zero = arena.zero();
+            let low = arena.conditional_literals(zero,root,&[(digit[at],false)]);
+            let high = arena.conditional_literals(zero,root,&[(digit[at],true)]);
+            let next_place = (place << 1usize) % modulus;
+            let low = visit(arena,low,register,digit,at+1,accumulated,&next_place,modulus);
+            let next_accumulated = (accumulated + place) % modulus;
+            let high = visit(arena,high,register,digit,at+1,&next_accumulated,&next_place,modulus);
+            arena.sum(low,high)
+        }
+        let zero = self.zero();
+        let enabled = self.conditional_literals(zero,root,controls);
+        let changed = visit(self,enabled,register,digit,0,&BigUint::zero(),value,modulus);
+        self.conditional_literals(root,changed,controls)
+    }
+
     /// Fuse the two translated intervals of a complete modular addition.
     /// Invalid register values and disabled control arms stay unchanged.
     /// No borrow flag is materialized between the input and output boundary.
