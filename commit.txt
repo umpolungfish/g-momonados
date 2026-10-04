@@ -1,1 +1,1 @@
-I share prepared operation structure across phase stages
+I inspect the executable Vox module and its omitted dispatch words
