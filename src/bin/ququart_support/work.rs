@@ -23,7 +23,7 @@ fn controls(c: &[(usize, bool)]) -> (Vec<String>, Vec<String>) {
         c.iter().map(|&(_, v)| index(usize::from(v))).collect(),
     )
 }
-pub fn compile(p: &Value) -> Result<Value, String> {
+fn compile_legacy(p: &Value) -> Result<Value, String> {
     let n = numeral(p["source_word"].as_str().ok_or("missing source")?)?;
     let radix = g_momonados::ququart_factor::power_of_two_radix_word(
         p["radix_word"].as_str().ok_or("missing radix")?,
@@ -55,6 +55,43 @@ pub fn compile(p: &Value) -> Result<Value, String> {
         stages.push(json!({"multiplier_word":power,"register_words":wires(&register),"operations":operations}));
     }
     Ok(Value::Array(stages))
+}
+pub fn compile(p: &Value) -> Result<Value, String> {
+    let legacy = compile_legacy(p)?;
+    // Retained older artifacts are checked in their original wire format.
+    if p.get("prepared_work").is_some_and(Value::is_array) {
+        return Ok(legacy);
+    }
+    let mut pool = Vec::new();
+    let mut known = std::collections::HashMap::new();
+    let mut register = Value::Array(Vec::new());
+    let mut stages = Vec::new();
+    for stage in legacy.as_array().ok_or("invalid generated work")? {
+        let r = &stage["register_words"];
+        if !r.as_array().ok_or("invalid generated register")?.is_empty() {
+            if register.as_array().unwrap().is_empty() {
+                register = r.clone();
+            } else if register != *r {
+                return Err("work pool has inconsistent workspace".into());
+            }
+        }
+        let mut references = Vec::new();
+        for operation in stage["operations"]
+            .as_array()
+            .ok_or("invalid generated operations")?
+        {
+            let key = operation.to_string();
+            let id = *known.entry(key).or_insert_with(|| {
+                let id = pool.len();
+                pool.push(operation.clone());
+                id
+            });
+            references.push(index(id));
+        }
+        stages
+            .push(json!({"multiplier_word":stage["multiplier_word"],"operation_words":references}));
+    }
+    Ok(json!({"register_words":register,"operations":pool,"stages":stages}))
 }
 fn number(v: &Value) -> Result<BigUint, String> {
     numeral(v.as_str().ok_or("work value must be a word")?)
@@ -92,7 +129,7 @@ impl<'a> WireReader<'a> {
         Ok(w.into_iter().zip(p.into_iter().map(|x| x == 1)).collect())
     }
 }
-pub fn decode(p: &Value) -> Result<Vec<(BigUint, Vec<NestedOperation>)>, String> {
+fn decode_legacy(p: &Value) -> Result<Vec<(BigUint, Vec<NestedOperation>)>, String> {
     let n = number(&p["source_word"])?;
     let mut stages = Vec::new();
     let mut reader = WireReader {
@@ -132,4 +169,41 @@ pub fn decode(p: &Value) -> Result<Vec<(BigUint, Vec<NestedOperation>)>, String>
         stages.push((number(&stage["multiplier_word"])?, ops));
     }
     Ok(stages)
+}
+
+pub fn decode(p: &Value) -> Result<g_momonados::ququart_folded_work::PreparedModularWork, String> {
+    use g_momonados::ququart_folded_work::PreparedModularWork;
+    if p["prepared_work"].is_array() {
+        let mut operations = Vec::new();
+        let mut stages = Vec::new();
+        for (power, ops) in decode_legacy(p)? {
+            let start = operations.len();
+            operations.extend(ops);
+            stages.push((power, (start..operations.len()).collect()));
+        }
+        return Ok(PreparedModularWork { operations, stages });
+    }
+    let work = &p["prepared_work"];
+    // Decode the pool through the same operation reader, once. References are
+    // numeral words and are checked before they can select any operation.
+    let temporary = json!({"source_word":p["source_word"],"prepared_work":[{
+        "multiplier_word":word(&BigUint::from(0u8)),
+        "register_words":work["register_words"],"operations":work["operations"]}]});
+    let mut decoded = decode_legacy(&temporary)?;
+    let operations = decoded.pop().ok_or("missing work pool")?.1;
+    let mut reader = WireReader {
+        indices: std::collections::HashMap::new(),
+    };
+    let mut stages = Vec::new();
+    for stage in work["stages"]
+        .as_array()
+        .ok_or("missing pooled work stages")?
+    {
+        let references = reader.wires(&stage["operation_words"])?;
+        if references.iter().any(|&id| id >= operations.len()) {
+            return Err("prepared operation reference outside pool".into());
+        }
+        stages.push((number(&stage["multiplier_word"])?, references));
+    }
+    Ok(PreparedModularWork { operations, stages })
 }
