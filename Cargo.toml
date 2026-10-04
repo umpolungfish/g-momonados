@@ -34,6 +34,11 @@ path = "src/semiprime_tool.rs"
 name = "prime-tool"
 path = "src/prime_tool.rs"
 
+[[bin]]
+name = "sic-tool"
+path = "src/bin/sic_tool.rs"
+required-features = ["hosted"]
+
 [lib]
 name = "g_momonados"
 path = "src/lib.rs"
