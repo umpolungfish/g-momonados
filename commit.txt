@@ -1,3 +1,3 @@
-I retain Vox disassembly of the compiled modular cleanup boundary
+I record the complete executable Vox glyph roundtrip
 
-I expose dirty workspace wires as canonical numeral words and retain baked error details. I rebuild the prepared membrane and record the actual compiled calls, complete symbol disassembly, and executable IMASM pipeline.
+I retain the pipeline manifest and confirm the restored executable IMASM matches the compiled module byte for byte.
