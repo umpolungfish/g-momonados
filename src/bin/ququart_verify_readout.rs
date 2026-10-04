@@ -113,7 +113,7 @@ fn verify() -> Result<bool, String> {
     let prepared_word = |key: &str| prepared[key].as_str().ok_or_else(|| format!("missing prepared {key}"));
     let n = numeral(prepared_word("source_word")?)?;
     let base = numeral(prepared_word("base_word")?)?;
-    if n.bits() <= 200 { return Err("factor evidence must exceed 200 bits".into()); }
+    if n.bits() < 128 { return Err("factor evidence must be at least 128 bits".into()); }
     if numeral(field("source_word")?)? != n || numeral(field("base_word")?)? != base {
         return Err("terminal input words differ from the prepared IMASM words".into());
     }

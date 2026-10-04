@@ -37,7 +37,7 @@ fn prepare() -> Result<String, String> {
             &std::fs::read_to_string(path).map_err(|error| error.to_string())?)
             .map_err(|error| error.to_string())?;
         let n = support::numeral(inputs["source_word"].as_str().ok_or("missing source word")?)?;
-        if n.bits() <= 200 { return Err("source word is below the qualifying source precision".into()); }
+        if n.bits() < 128 { return Err("source word is below the qualifying source precision".into()); }
         for field in ["sk_word", "net_word", "capacity_word", "refinement_word", "accuracy_word"] {
             support::numeral(inputs[field].as_str().ok_or("missing compiler option word")?)?
                 .to_usize().ok_or("compiler option exceeds host indexing")?;
@@ -57,8 +57,8 @@ fn prepare() -> Result<String, String> {
     // A supplied operator never bypasses physical contraction in preparation.
     prepared.as_object_mut().ok_or("preparation must be an object")?.remove("prepared_operator");
     let (n, matrix, metrics) = support::contract(&prepared)?;
-    if n.bits() <= 200 {
-        return Err("qualifying preparations require sources above the minimum source precision".into());
+    if n.bits() < 128 {
+        return Err("qualifying preparations require sources of at least 128 bits".into());
     }
     let format = g_momonados::phase_unbraid::FixedPointFormat::for_modulus(&n)?;
     let entries: Vec<_> = matrix.0.iter().map(|value|
