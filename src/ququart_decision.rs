@@ -495,7 +495,11 @@ impl DecisionArena {
             memo.insert((id,at,borrow),result);
             result
         }
-        let changed = visit(self,root,register,value,0,false,&mut BTreeMap::new());
+        // Split on the outer controls before doing arithmetic. Disabled arms
+        // retain their original amplitudes and never enter the transducer.
+        let zero = self.zero();
+        let enabled = self.conditional_literals(zero,root,controls);
+        let changed = visit(self,enabled,register,value,0,false,&mut BTreeMap::new());
         self.conditional_literals(root,changed,controls)
     }
 
@@ -524,7 +528,9 @@ impl DecisionArena {
             memo.insert((id,at,less),result);
             result
         }
-        let changed = visit(self,root,register,value,0,false,flag,&mut BTreeMap::new());
+        let zero = self.zero();
+        let enabled = self.conditional_literals(zero,root,controls);
+        let changed = visit(self,enabled,register,value,0,false,flag,&mut BTreeMap::new());
         self.conditional_literals(root,changed,controls)
     }
     pub fn mass(&self, root: usize) -> BigUint {
