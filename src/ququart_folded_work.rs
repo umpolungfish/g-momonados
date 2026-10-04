@@ -25,6 +25,7 @@ pub struct QuquartFoldedWorkDevice {
     expected: usize,
     count: usize,
     interleaved_work: bool,
+    digit_bits: usize,
     pub peak_nodes: usize,
 }
 impl QuquartFoldedWorkDevice {
@@ -47,12 +48,19 @@ impl QuquartFoldedWorkDevice {
             expected: 0,
             count: 0,
             interleaved_work: false,
+            digit_bits: 1,
             peak_nodes: 0,
         })
     }
     pub fn new_interleaved(source: BigUint, fourier: PairMatrix, seed: u64) -> Result<Self, String> {
         let mut device = Self::new(source, fourier, seed)?;
         device.interleaved_work = true;
+        Ok(device)
+    }
+    pub fn new_interleaved_radix(source: BigUint, fourier: PairMatrix, seed: u64, radix_word: &str) -> Result<Self,String> {
+        let radix = crate::ququart_factor::power_of_two_radix_word(radix_word)?;
+        let mut device = Self::new_interleaved(source,fourier,seed)?;
+        device.digit_bits = radix.bits_le().len()-1;
         Ok(device)
     }
     fn work_wire(&self, wire: usize) -> usize {
@@ -136,8 +144,8 @@ impl QuquartFoldedWorkDevice {
             NestedOperation::Toggle(gate) => NestedOperation::Toggle(crate::reversible_modular::ControlledX {
                 target: self.work_wire(gate.target), controls: map_controls(gate.controls),
             }),
-            NestedOperation::ModularAdd { register,value,modulus,controls } => NestedOperation::ModularAdd {
-                register: map_register(register),value,modulus,controls: map_controls(controls),
+            NestedOperation::ModularAdd { register,digit,value,modulus,controls } => NestedOperation::ModularAdd {
+                register: map_register(register),digit: map_register(digit),value,modulus,controls: map_controls(controls),
             },
             NestedOperation::Add { register,value,controls } => NestedOperation::Add {
                 register: map_register(register),value,controls: map_controls(controls),
@@ -157,6 +165,13 @@ impl QuquartFoldedWorkDevice {
             }
         };
         let extent = self.arena.cells + 2;
+        if let NestedOperation::ModularAdd { register,digit,controls,.. } = &operation {
+            if digit.is_empty() || digit.iter().any(|&wire| wire < 2 || wire >= extent || register.contains(&wire))
+                || digit.windows(2).any(|pair| pair[0] >= pair[1])
+                || controls.iter().any(|&(wire,_)| digit.contains(&wire)) {
+                return Err("modular source digit requires ordered disjoint wires".into());
+            }
+        }
         if controls.iter().any(|&(wire,_)| wire >= extent || targets.contains(&wire))
             || targets.iter().any(|&wire| wire >= extent) {
             return Err("nested arithmetic has invalid or overlapping wires".into());
@@ -198,8 +213,9 @@ impl QuquartFoldedWorkDevice {
                     };
                     self.arena.conditional_literals(old[channel],changed,&work)
                 }
-                NestedOperation::ModularAdd { register,value,modulus,.. } => self.arena.modular_add(
-                    old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,modulus,&work),
+                NestedOperation::ModularAdd { register,digit,value,modulus,.. } => self.arena.modular_digit_add(
+                    old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),
+                    &digit.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,modulus,&work),
                 NestedOperation::Add { register,value,.. } => self.arena.add_constant(
                     old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,&work),
                 NestedOperation::Compare { register,value,flag,.. } => self.arena.compare_constant(
@@ -307,9 +323,9 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
     fn controlled_multiply(&mut self, multiplier: &BigUint) -> Result<(), String> {
         self.require_active()?;
         let arithmetic = ModularMultiply::new(&self.source)?;
-        arithmetic.emit_ququart_nested(multiplier,0,|operation| self.apply_nested(operation))?;
+        arithmetic.emit_ququart_nested_radix(multiplier,0,self.digit_bits,|operation| self.apply_nested(operation))?;
         let square = multiplier * multiplier % &self.source;
-        arithmetic.emit_ququart_nested(&square,1,|operation| self.apply_nested(operation))?;
+        arithmetic.emit_ququart_nested_radix(&square,1,self.digit_bits,|operation| self.apply_nested(operation))?;
         self.fold();
         Ok(())
     }

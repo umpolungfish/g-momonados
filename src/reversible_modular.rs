@@ -21,7 +21,7 @@ pub struct ControlledX {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NestedOperation {
     Toggle(ControlledX),
-    ModularAdd { register: Vec<usize>, value: BigUint, modulus: BigUint, controls: Vec<(usize, bool)> },
+    ModularAdd { register: Vec<usize>, digit: Vec<usize>, value: BigUint, modulus: BigUint, controls: Vec<(usize, bool)> },
     Add { register: Vec<usize>, value: BigUint, controls: Vec<(usize, bool)> },
     Compare { register: Vec<usize>, value: BigUint, controls: Vec<(usize, bool)>, flag: usize },
 }
@@ -419,9 +419,15 @@ impl ModularMultiply {
     }
 
     pub fn emit_ququart_nested<F>(
-        &self, multiplier: &BigUint, lane: usize, mut emit: F,
+        &self, multiplier: &BigUint, lane: usize, emit: F,
     ) -> Result<(), String>
     where F: FnMut(NestedOperation) -> Result<(), String> {
+        self.emit_ququart_nested_radix(multiplier,lane,1,emit)
+    }
+
+    pub fn emit_ququart_nested_radix<F>(&self, multiplier: &BigUint, lane: usize, digit_bits: usize, mut emit: F) -> Result<(),String>
+    where F: FnMut(NestedOperation) -> Result<(),String> {
+        if digit_bits == 0 { return Err("empty work radix digit".into()); }
         if lane > 1 { return Err("ququart control lane must be zero or one".into()); }
         let wire = |q| if q == 0 { lane } else { q + 1 };
         let output = |operation: NestedOperation| {
@@ -429,8 +435,8 @@ impl ModularMultiply {
                 .map(|(q, value)| (wire(q), value)).collect();
             let register = |items: Vec<usize>| items.into_iter().map(wire).collect();
             emit(match operation {
-                NestedOperation::ModularAdd { register: r, value, modulus, controls: c } => NestedOperation::ModularAdd {
-                    register: register(r), value, modulus, controls: controls(c),
+                NestedOperation::ModularAdd { register: r, digit, value, modulus, controls: c } => NestedOperation::ModularAdd {
+                    register: register(r), digit: register(digit), value, modulus, controls: controls(c),
                 },
                 NestedOperation::Toggle(gate) => NestedOperation::Toggle(ControlledX {
                     target: wire(gate.target), controls: controls(gate.controls),
@@ -445,7 +451,7 @@ impl ModularMultiply {
         };
         // Keep each complete modular translation at the shared boundary;
         // elementary lowering retains the borrow-flag shell on the same rail.
-        self.emit_nested(multiplier, true, output)
+        self.emit_nested(multiplier, true, digit_bits, output)
     }
 
     fn emit_with_ops<F, A, C>(
@@ -460,7 +466,7 @@ impl ModularMultiply {
         A: FnMut(&[usize], &BigUint, &[(usize, bool)], &mut F) -> Result<(), String>,
         C: FnMut(&[usize], &BigUint, &[(usize, bool)], usize, &mut F) -> Result<(), String>,
     {
-        self.emit_nested(multiplier, false, |operation| match operation {
+        self.emit_nested(multiplier, false, 1, |operation| match operation {
             NestedOperation::ModularAdd { .. } => Err("modular boundary reached elementary lowering".into()),
             NestedOperation::Toggle(gate) => emit(gate),
             NestedOperation::Add { register, value, controls } =>
@@ -470,7 +476,7 @@ impl ModularMultiply {
         })
     }
 
-    fn emit_nested<F>(&self, multiplier: &BigUint, whole_modular: bool, mut emit: F) -> Result<(), String>
+    fn emit_nested<F>(&self, multiplier: &BigUint, whole_modular: bool, digit_bits: usize, mut emit: F) -> Result<(), String>
     where F: FnMut(NestedOperation) -> Result<(), String> {
         let multiplier = multiplier % &self.n;
         if multiplier.is_one() {
@@ -481,19 +487,14 @@ impl ModularMultiply {
         let workspace: Vec<_> = (self.width + 1..=2 * self.width + 1).collect();
         let flag = 2 * self.width + 2;
         let mut power = multiplier;
-        for &bit in &source {
+        for group in source.chunks(digit_bits) {
             if whole_modular {
-                emit(NestedOperation::ModularAdd { register: workspace.clone(), value: power.clone(),
-                    modulus: self.n.clone(), controls: alloc::vec![(0,true),(bit,true)] })?;
-            } else { add_mod(
-                &workspace,
-                &power,
-                &self.n,
-                &[(0, true), (bit, true)],
-                flag,
-                &mut emit,
-            )?; }
-            power = (&power << 1usize) % &self.n;
+                emit(NestedOperation::ModularAdd { register: workspace.clone(), digit: group.to_vec(),
+                    value: power.clone(), modulus: self.n.clone(), controls: alloc::vec![(0,true)] })?;
+            } else {
+                add_mod(&workspace,&power,&self.n,&[(0,true),(group[0],true)],flag,&mut emit)?;
+            }
+            power = (&power << group.len()) % &self.n;
         }
         for (&x, &y) in source.iter().zip(&workspace) {
             for (control, target) in [(x,y), (y,x), (x,y)] {
@@ -503,24 +504,15 @@ impl ModularMultiply {
             }
         }
         let mut power = inverse;
-        for &bit in &source {
-            let negative = if power.is_zero() {
-                BigUint::zero()
-            } else {
-                &self.n - &power
-            };
+        for group in source.chunks(digit_bits) {
+            let negative = if power.is_zero() { BigUint::zero() } else { &self.n - &power };
             if whole_modular {
-                emit(NestedOperation::ModularAdd { register: workspace.clone(), value: negative.clone(),
-                    modulus: self.n.clone(), controls: alloc::vec![(0,true),(bit,true)] })?;
-            } else { add_mod(
-                &workspace,
-                &negative,
-                &self.n,
-                &[(0, true), (bit, true)],
-                flag,
-                &mut emit,
-            )?; }
-            power = (&power << 1usize) % &self.n;
+                emit(NestedOperation::ModularAdd { register: workspace.clone(), digit: group.to_vec(),
+                    value: negative, modulus: self.n.clone(), controls: alloc::vec![(0,true)] })?;
+            } else {
+                add_mod(&workspace,&negative,&self.n,&[(0,true),(group[0],true)],flag,&mut emit)?;
+            }
+            power = (&power << group.len()) % &self.n;
         }
         Ok(())
     }
