@@ -1,11 +1,11 @@
    Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
-    Finished `release` profile [optimized] target(s) in 29.49s
+    Finished `release` profile [optimized] target(s) in 30.48s
      Running unittests src/lib.rs (target/release/deps/g_momonados-abeafce3b6dd8c30)
 
 running 5 tests
 test sic::tests::gpu_overlap_matches_cpu_fft_at_radix_and_bluestein_lengths ... ignored, requires an available CUDA device and NVRTC
-test sic::tests::wh_fft_matches_lazy_displacements_and_general_operator_retraction ... ok
 test sic::tests::tetra_geometry_frame_duality_and_exact_certificate ... ok
+test sic::tests::wh_fft_matches_lazy_displacements_and_general_operator_retraction ... ok
 test sic::tests::physical_regions_measurements_retraction_urgleichung_and_dephasing ... ok
 test sic::tests::fixed_fft_is_reproducible_and_matches_float_wh ... ok
 

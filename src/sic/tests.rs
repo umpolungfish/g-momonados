@@ -131,6 +131,14 @@ fn physical_regions_measurements_retraction_urgleichung_and_dephasing() {
     assert_eq!(policy.classify(Some(1e-10)), V::N);
     assert_eq!(policy.classify(None), V::N);
     assert_eq!(policy.accumulate(V::T, Some(1.0)), V::B);
+    let mut evidence = residual::FourEvidence::default();
+    evidence.record("closure", "execution-a", Some(0.0), policy);
+    evidence.record("closure", "execution-a", Some(1.0), policy);
+    assert_eq!(evidence.verdict("closure"), V::F);
+    evidence.record("closure", "independent-execution-b", Some(0.0), policy);
+    assert_eq!(evidence.verdict("closure"), V::B);
+    evidence.record("normalization", "execution-a", Some(0.0), policy);
+    assert_eq!(evidence.verdict("normalization"), V::T);
 }
 
 #[test]
