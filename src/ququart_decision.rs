@@ -507,29 +507,29 @@ impl DecisionArena {
         self.conditional_literals(root,changed,controls)
     }
 
-    fn filter_less(&mut self, root: usize, register: &[usize], value: &BigUint, wanted: bool) -> usize {
+    fn partition_less(&mut self, root: usize, register: &[usize], value: &BigUint) -> (usize,usize) {
         fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &BigUint,
-            at: usize, less: bool, wanted: bool, zero: usize,
-            memo: &mut OperationCache<(usize,usize,bool),usize>) -> usize {
-            if arena.fixed[id].empty { return zero; }
-            if at == register.len() { return if less == wanted { id } else { zero }; }
+            at: usize, less: bool, zero: usize,
+            memo: &mut OperationCache<(usize,usize,bool),(usize,usize)>) -> (usize,usize) {
+            if arena.fixed[id].empty { return (zero,zero); }
+            if at == register.len() { return if less { (id,zero) } else { (zero,id) }; }
             if let Some(&result) = memo.get(&(id,at,less)) { return result; }
             let wire = arena.top(id).unwrap_or(register[at]).min(register[at]);
             let (low,high) = arena.split(id,wire);
             let (low,high) = if wire == register[at] {
                 let bit = value.bit(at as u64);
-                (visit(arena,low,register,value,at+1,bit || less,wanted,zero,memo),
-                 visit(arena,high,register,value,at+1,bit && less,wanted,zero,memo))
+                (visit(arena,low,register,value,at+1,bit || less,zero,memo),
+                 visit(arena,high,register,value,at+1,bit && less,zero,memo))
             } else {
-                (visit(arena,low,register,value,at,less,wanted,zero,memo),
-                 visit(arena,high,register,value,at,less,wanted,zero,memo))
+                (visit(arena,low,register,value,at,less,zero,memo),
+                 visit(arena,high,register,value,at,less,zero,memo))
             };
-            let result = arena.branch(wire,low,high);
+            let result = (arena.branch(wire,low.0,high.0),arena.branch(wire,low.1,high.1));
             memo.insert((id,at,less),result);
             result
         }
         let zero = self.zero();
-        visit(self,root,register,value,0,false,wanted,zero,&mut OperationCache::new())
+        visit(self,root,register,value,0,false,zero,&mut OperationCache::new())
     }
 
     /// Fuse the two translated intervals of a complete modular addition.
@@ -542,11 +542,9 @@ impl DecisionArena {
         if value.is_zero() { return root; }
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
-        let valid = self.filter_less(enabled,register,modulus,true);
-        let invalid = self.filter_less(enabled,register,modulus,false);
+        let (valid,invalid) = self.partition_less(enabled,register,modulus);
         let threshold = modulus - &value;
-        let low = self.filter_less(valid,register,&threshold,true);
-        let high = self.filter_less(valid,register,&threshold,false);
+        let (low,high) = self.partition_less(valid,register,&threshold);
         let low = self.add_constant(low,register,&value,&[]);
         let radix = BigUint::from(1u8) << register.len();
         let high = self.add_constant(high,register,&(radix-threshold),&[]);
