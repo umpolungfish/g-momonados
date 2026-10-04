@@ -7,3 +7,5 @@ The cleanup predicate checks every workspace wire, including the extension bit, 
 Vox imasm emits the complete executable module. cleanup_wiring_excerpt.imasm contains only the three decoded regions and is not executable. Vox glyphs rejects that excerpt because the codec requires a complete module. The complete module is supplied to Vox glyphs, with its output retained as cleanup_wiring_module.glyphs. The codec creates a new file exclusively, so an attempted FIFO compression destination was rejected before output creation.
 
 No new factor execution or test suite was launched during this investigation. No measured factors or terminal product certificate were produced. The existing source-level swap and inverse schedule still require a numerical wiring diagnosis; compiled placement alone cannot certify them.
+
+Vox unglyphs restores the complete executable IMASM module byte for byte, verified by matching byte lengths and SHA-256 digests. This verifies the codec roundtrip only.
