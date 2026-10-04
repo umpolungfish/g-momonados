@@ -26,6 +26,7 @@ pub struct QuquartFoldedWorkDevice {
     count: usize,
     interleaved_work: bool,
     digit_bits: usize,
+    prepared_work: Option<Vec<(BigUint,Vec<NestedOperation>)>>,
     pub peak_nodes: usize,
 }
 impl QuquartFoldedWorkDevice {
@@ -49,8 +50,13 @@ impl QuquartFoldedWorkDevice {
             count: 0,
             interleaved_work: false,
             digit_bits: 1,
+            prepared_work: None,
             peak_nodes: 0,
         })
+    }
+    pub fn with_prepared_work(mut self, work: Vec<(BigUint,Vec<NestedOperation>)>) -> Self {
+        self.prepared_work = Some(work);
+        self
     }
     pub fn new_interleaved(source: BigUint, fourier: PairMatrix, seed: u64) -> Result<Self, String> {
         let mut device = Self::new(source, fourier, seed)?;
@@ -322,6 +328,16 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
     }
     fn controlled_multiply(&mut self, multiplier: &BigUint) -> Result<(), String> {
         self.require_active()?;
+        if let Some(work) = self.prepared_work.take() {
+            let result = match work.iter().find(|(power,_)| power == multiplier) {
+                Some((_,operations)) => operations.iter().try_for_each(|operation| self.apply_nested(operation.clone())),
+                None => Err("controlled multiplier absent from baked work schedule".into()),
+            };
+            self.prepared_work = Some(work);
+            result?;
+            self.fold();
+            return Ok(());
+        }
         let arithmetic = ModularMultiply::new(&self.source)?;
         arithmetic.emit_ququart_nested_radix(multiplier,0,self.digit_bits,|operation| self.apply_nested(operation))?;
         let square = multiplier * multiplier % &self.source;

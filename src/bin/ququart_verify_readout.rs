@@ -1,4 +1,7 @@
 //! Replay terminal phase evidence without executing the factoring membrane.
+#[allow(dead_code)]
+#[path = "ququart_support/mod.rs"]
+mod support;
 use g_momonados::{godel_calculus::{check, decode, encode_cell_binary, Operator, Structure}, phase_unbraid::PhaseReadoutAccumulator};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
@@ -69,6 +72,11 @@ fn validate_prepared(path: &str) -> Result<(), String> {
     )
     .map_err(|error| error.to_string())?;
     validate_prepared_values(&prepared, None)?;
+    if let Some(work) = prepared.get("prepared_work") {
+        if support::work::compile(&prepared)? != *work {
+            return Err("baked work boundaries differ from source and radix".into());
+        }
+    }
     if let Some(radix) = prepared.get("radix_word") {
         g_momonados::ququart_factor::power_of_two_radix_word(
             radix.as_str().ok_or("prepared radix must be an IMASM word")?,
@@ -87,6 +95,7 @@ fn verify() -> Result<bool, String> {
     validate_prepared(&args[1])?;
     let prepared: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(&args[1]).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    validate_prepared(&args[1])?;
     let terminal = std::fs::read_to_string(&args[2]).map_err(|e| e.to_string())?;
     let mut lines = terminal.lines();
     if lines.next() != Some("completed ququart factor extraction") { return Err("missing completed factor readout".into()); }

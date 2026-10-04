@@ -1,6 +1,8 @@
 use g_momonados::anyon_pair::{FibonacciPair, PairMatrix, COMPUTATIONAL_CHANNELS};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Signed, ToPrimitive, Zero};
+#[allow(dead_code)]
+pub mod work;
 
 pub struct Metrics { pub computational: f64, pub leakage: f64, pub closure: f64, pub exchanges: usize }
 
