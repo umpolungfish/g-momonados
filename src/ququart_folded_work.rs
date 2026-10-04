@@ -87,6 +87,21 @@ impl QuquartFoldedWorkDevice {
         }
         address
     }
+    fn require_clean_workspace(&self) -> Result<(),String> {
+        let width = self.source.bits() as usize;
+        for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+            for logical in width+2..=2*width+2 {
+                let wire = self.work_wire(logical)-2;
+                if !self.arena.wire_is_zero(self.roots[channel],wire) {
+                    let word = |value:usize| crate::godel_calculus::encode_cell_binary(
+                        &crate::godel_calculus::Nat::from_bits_le(
+                            (0..usize::BITS).map(|bit| value & (1usize << bit) != 0).collect()));
+                    return Err(alloc::format!("modular cleanup left dirty workspace: digit_word={} wire_word={}",word(digit),word(logical)));
+                }
+            }
+        }
+        Ok(())
+    }
     fn entropy(random: &mut u64, bytes: &mut [u8]) -> Result<(), String> {
         for chunk in bytes.chunks_mut(8) {
             *random ^= *random << 13;
@@ -343,6 +358,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
             self.prepared_work = Some(work);
             result?;
             self.fold();
+            self.require_clean_workspace()?;
             return Ok(());
         }
         let arithmetic = ModularMultiply::new(&self.source)?;
@@ -350,6 +366,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         let square = multiplier * multiplier % &self.source;
         arithmetic.emit_ququart_nested_radix(&square,1,self.digit_bits,|operation| self.apply_nested(operation))?;
         self.fold();
+        self.require_clean_workspace()?;
         Ok(())
     }
     fn feedback(&mut self, numerator: &BigUint, digits: usize) -> Result<(), String> {
