@@ -2127,6 +2127,11 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             #[cfg(feature = "hosted")]
             "anyon_ququart_word" => {
                 let args: Vec<&str> = parts.collect();
+                if args.is_empty() || args[0] == "help" {
+                    sprintln!("anyon_ququart_word <source-word> [sk-word net-word capacity-word refinement-word accuracy-word inverse]");
+                    sprintln!("Canonical word inputs return a compiler JSON whose numeric values are IMASM words.");
+                    continue;
+                }
                 match crate::anyon_braid_cnot::compile_ququart_fourier(&args) {
                     Ok(report) => sprintln!("{report}"),
                     Err(error) => sprintln!("anyon_ququart_word: {error}"),

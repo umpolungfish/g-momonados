@@ -1,11 +1,22 @@
 {
   "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_factor_rsa100_shared_reclaim_20261004",
-  "session_id": 52510,
+  "session_id": 88072,
   "state": "running_no_terminal_report",
   "execution": "direct_native",
   "source": "RSA-100",
   "source_bits": 330,
   "terminal_closure": "native_factor_carrier_with_verified_godel_product",
   "execution_limits": null,
-  "factor_extraction_verified": false
+  "factor_extraction_verified": false,
+  "stdout": "resumed.stdout",
+  "stderr": "resumed.stderr",
+  "nested_radix_executions": [
+    {
+      "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_nested_radix_rsa100_20261004/octal",
+      "session_id": 25554,
+      "state": "running_no_terminal_report",
+      "radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+      "terminal_closure": "nested_factor_words_with_godel_product"
+    }
+  ]
 }

@@ -62,10 +62,21 @@ pub fn contract(prepared: &serde_json::Value) -> Result<(BigUint, PairMatrix, Me
                 .ok_or("invalid prepared exchange count")? };
         return Ok((n, matrix, metrics));
     }
-    let word: Vec<i32> = prepared["fourier_word"].as_array().ok_or("missing Fourier braid")?
-        .iter().map(|g| g.as_i64().and_then(|v| i32::try_from(v).ok()).ok_or("invalid exchange".to_string()))
-        .collect::<Result<_, _>>()?;
-    let accuracy = prepared["accuracy_bits"].as_u64().ok_or("missing accuracy")?;
+    let word: Vec<i32> = if let Some(exchanges) = prepared["exchange_words"].as_array() {
+        exchanges.iter().map(|value| {
+            let generator = signed_numeral(value.as_str().ok_or("exchange must be an IMASM word")?)?
+                .to_i32().ok_or("invalid exchange word")?;
+            if !(1..=5).contains(&generator.unsigned_abs()) {
+                return Err("exchange word is outside the six-strand braid".into());
+            }
+            Ok(generator)
+        }).collect::<Result<_, String>>()?
+    } else {
+        return Err("Fourier preparation requires IMASM exchange words".into());
+    };
+    if word.is_empty() { return Err("Fourier preparation has no exchange words".into()); }
+    let accuracy = numeral(prepared["accuracy_word"].as_str().ok_or("missing accuracy word")?)?
+        .to_u64().ok_or("invalid accuracy word")?;
     let exponent = i32::try_from(accuracy).map_err(|_| "accuracy overflow")?;
     let pair = FibonacciPair::new(&n)?;
     let physical = pair.evaluate(&word)?;

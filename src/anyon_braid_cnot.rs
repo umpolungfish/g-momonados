@@ -1569,16 +1569,28 @@ fn try_compile_fourier_targets(
 /// five-channel physical fusion sector with outside-carrier retention.
 /// Supports dual-path CNOT fallback and per-channel diagnostics.
 pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
-    let source = BigUint::parse_bytes(
-        args.first()
-            .ok_or("usage: anyon_ququart_word N [sk net capacity refinement accuracy inverse]")?
-            .as_bytes(),
-        10,
-    )
-    .ok_or("invalid source")?;
+    let raw_source = *args.first().ok_or(
+        "usage: anyon_ququart_word <source-word> [sk-word net-word capacity-word refinement-word accuracy-word inverse]"
+    )?;
+    let native = raw_source.starts_with('⊢');
+    let numeral = |raw: &str| -> Result<BigUint, String> {
+        let read = g_momonados::godel_calculus::decode(raw).map_err(|error| error.to_string())?;
+        if !matches!(read.structure, g_momonados::godel_calculus::Structure::CellBinary { .. })
+            || g_momonados::godel_calculus::encode_cell_binary(&read.value) != raw {
+            return Err("compiler input must be a canonical IMASM numeral word".into());
+        }
+        Ok(read.value.bits_le().iter().enumerate().fold(BigUint::zero(), |value, (bit, set)| {
+            if *set { value | (BigUint::one() << bit) } else { value }
+        }))
+    };
+    let source = if native { numeral(raw_source)? } else {
+        BigUint::parse_bytes(raw_source.as_bytes(), 10).ok_or("invalid source")?
+    };
     let option = |i: usize, default: usize| -> Result<usize, String> {
         args.get(i)
-            .map(|s| s.parse().map_err(|_| format!("invalid option {i}")))
+            .map(|s| if native {
+                numeral(s)?.to_usize().ok_or("compiler option exceeds host indexing".into())
+            } else { s.parse().map_err(|_| format!("invalid option {i}")) })
             .unwrap_or(Ok(default))
     };
     let depth = option(1, 4)?;
@@ -1708,6 +1720,22 @@ pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
         ));
     }
 
+    if native {
+        let native_word = |value: &BigUint| g_momonados::godel_calculus::encode_cell_binary(
+            &g_momonados::godel_calculus::Nat::from_bits_le((0..value.bits()).map(|bit| value.bit(bit)).collect()));
+        let scalar = |value: u64| native_word(&BigUint::from(value));
+        let exchange_words: Vec<_> = word.iter().map(|generator| format!("{}{}",
+            if *generator < 0 { '≺' } else { '≻' }, scalar(u64::from(generator.unsigned_abs())))).collect();
+        return Ok(serde_json::json!({
+            "component": "ququart_fourier", "source_word": raw_source,
+            "source_bits_word": scalar(source.bits()), "inverse_word": scalar(u64::from(inverse)),
+            "exchanges_word": native_word(&BigUint::from(word.len())),
+            "computational_word": scalar(computational.to_bits()),
+            "leakage_word": scalar(leakage.to_bits()),
+            "unitarity_word": scalar(unitarity.to_bits()),
+            "exchange_words": exchange_words,
+        }).to_string());
+    }
     let mut report = format!(
         "Z4 Fourier Fibonacci braid\nsource_bits={} inverse={} physical_word_length={}\ncomputational={computational:.8e} leakage={leakage:.8e} unitarity={unitarity:.8e}\nword=",
         source.bits(),

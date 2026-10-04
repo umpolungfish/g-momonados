@@ -43,7 +43,9 @@ fn validate_prepared_values(value: &serde_json::Value, key: Option<&str>) -> Res
                     _ if field.ends_with("_words") => {
                         let words = child.as_array().ok_or_else(|| format!("prepared {field} must be an array of IMASM words"))?;
                         for word in words {
-                            numeral(word.as_str().ok_or_else(|| format!("prepared {field} contains a non-word value"))?)?;
+                            let word = word.as_str().ok_or_else(|| format!("prepared {field} contains a non-word value"))?;
+                            if field == "exchange_words" { signed_numeral(word)?; }
+                            else { numeral(word)?; }
                         }
                     }
                     _ => validate_prepared_values(child, Some(field))?,
@@ -66,7 +68,13 @@ fn validate_prepared(path: &str) -> Result<(), String> {
         &std::fs::read_to_string(path).map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
-    validate_prepared_values(&prepared, None)
+    validate_prepared_values(&prepared, None)?;
+    if let Some(radix) = prepared.get("radix_word") {
+        g_momonados::ququart_factor::power_of_two_radix_word(
+            radix.as_str().ok_or("prepared radix must be an IMASM word")?,
+        )?;
+    }
+    Ok(())
 }
 fn verify() -> Result<bool, String> {
     let args: Vec<_> = std::env::args().collect();
@@ -76,6 +84,7 @@ fn verify() -> Result<bool, String> {
         return Ok(false);
     }
     if args.len() != 3 { return Err("usage: ququart_verify_readout prepared.json terminal.stdout".into()); }
+    validate_prepared(&args[1])?;
     let prepared: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(&args[1]).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
     let terminal = std::fs::read_to_string(&args[2]).map_err(|e| e.to_string())?;
@@ -83,9 +92,8 @@ fn verify() -> Result<bool, String> {
     if lines.next() != Some("completed ququart factor extraction") { return Err("missing completed factor readout".into()); }
     let mut fields = std::collections::BTreeMap::new();
     for line in lines {
-        if let Some((key, value)) = line.split_once('=') {
-            if fields.insert(key, value).is_some() { return Err("duplicate readout field".into()); }
-        }
+        let (key, value) = line.split_once('=').ok_or("terminal readout contains an untyped line")?;
+        if fields.insert(key, value).is_some() { return Err("duplicate readout field".into()); }
     }
     let allowed_fields = [
         "source_word", "base_word", "shots_word", "phase_numerator_word",
@@ -93,6 +101,7 @@ fn verify() -> Result<bool, String> {
         "godel_product_verified", "closure_word", "phase_samples",
         "fourier_computational_word", "fourier_leakage_word",
         "fourier_return_word", "fourier_exchanges_word",
+        "radix_word", "nested_factor_word",
     ];
     if fields.keys().any(|key| !allowed_fields.contains(key)) {
         return Err("terminal output contains an unapproved field or a non-word numeric value".into());
@@ -118,11 +127,24 @@ fn verify() -> Result<bool, String> {
     if field("godel_product_verified")? != "true" {
         return Err("terminal report lacks a successful Gödel product verdict".into());
     }
+    if let Some(radix) = prepared.get("radix_word") {
+        let radix = radix.as_str().ok_or("baked radix must be an IMASM word")?;
+        if field("radix_word")? != radix || field("nested_factor_word")? != field("closure_word")? {
+            return Err("terminal nested factor carrier differs from its baked radix or closure".into());
+        }
+        let (nested_p, nested_q) = g_momonados::ququart_factor::nested_radix_factor_words(
+            prepared_word("source_word")?, field("p_word")?, field("q_word")?, radix,
+        )?;
+        if nested_p != field("p_word")? || nested_q != field("q_word")? {
+            return Err("terminal factors differ from the nested meeting point".into());
+        }
+    }
     let source_word = prepared_word("source_word")?;
     if !check(closure[1], Operator::Mul, closure[2], source_word).map_err(|e| e.to_string())?.valid {
         return Err("terminal factors do not close through Gödel multiplication".into());
     }
     let samples: serde_json::Value = serde_json::from_str(field("phase_samples")?).map_err(|e| e.to_string())?;
+    validate_prepared_values(&samples, None)?;
     let samples = samples.as_array().ok_or("phase samples must be an array")?;
     if numeral(field("shots_word")?)? != BigUint::from(samples.len()) {
         return Err("shot-count word differs from resident phase ledger".into());

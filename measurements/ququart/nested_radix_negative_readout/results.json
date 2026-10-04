@@ -1,0 +1,17 @@
+[
+  {
+    "control": "empty_ledger",
+    "rejected": true,
+    "reason": "readout verification failed: recorded measurements do not close factor extraction"
+  },
+  {
+    "control": "decimal_output",
+    "rejected": true,
+    "reason": "readout verification failed: terminal output contains an unapproved field or a non-word numeric value"
+  },
+  {
+    "control": "wrong_radix",
+    "rejected": true,
+    "reason": "readout verification failed: terminal nested factor carrier differs from its baked radix or closure"
+  }
+]

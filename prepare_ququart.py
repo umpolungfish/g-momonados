@@ -1,133 +1,154 @@
-"""Compile a source-bound ququart executable with IMASM-word constants.
+"""Compile a retained ququart membrane from canonical IMASM numeral words.
 
-Preparation takes a source and creates a retained, input-free executable.
-Its execution emits only its terminal result. With --base it retains joint
-work amplitudes through phase measurements and attempts factor extraction.
+Supply the source and numeric options as words, or use @path to read a word
+from a local file. With --base the executable retains joint work amplitudes
+through phase measurements and emits factor words after Gödel closure.
 """
 import argparse
 import fcntl
 import hashlib
 import json
 import os
-import re
 from pathlib import Path
 import shutil
 import subprocess
 
 ROOT = Path(__file__).resolve().parent
+
 def run(args, **kwargs):
     return subprocess.run(args, cwd=ROOT, check=True, text=True,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
 
 
+def input_word(raw):
+    return Path(raw[1:]).read_text().strip() if raw.startswith("@") else raw
+
+
+def retained_operator(case, inputs):
+    case = case.resolve()
+    manifest = json.loads((case / "manifest.json").read_text())
+    executable = (case / "membrane").read_bytes()
+    if hashlib.sha256(executable).hexdigest() != manifest["sha256"]:
+        raise RuntimeError("retained Fourier membrane differs from its manifest")
+    raw = (case / "prepared.json").read_bytes()
+    if raw not in executable:
+        raise RuntimeError("retained operator is not the preparation baked in the membrane")
+    prepared = json.loads(raw)
+    if any(prepared.get(field) != inputs.get(field)
+           for field in ("source_word", "base_word", "accuracy_word")):
+        raise RuntimeError("retained operator differs from requested source, modular base or accuracy")
+    run([str(ROOT / "target/release/ququart_verify_readout"), "--validate-prepared",
+         str(case / "prepared.json")])
+    operator = prepared["prepared_operator"]
+    if "controlled_power_words" not in operator or "phase_digits_word" not in operator:
+        raise RuntimeError("retained factor operator lacks a prepared controlled-power schedule")
+    return operator
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("source")
+    parser.add_argument("source", help="canonical source word, or @word-file")
     parser.add_argument("destination", type=Path)
-    parser.add_argument("--base", help="bake a factor-extraction membrane with this phase-estimation base")
-    parser.add_argument("--seed", type=int, default=1729)
-    parser.add_argument("--accuracy", type=int, default=4)
-    parser.add_argument("--sk", type=int, default=5)
-    parser.add_argument("--net", type=int, default=7)
-    parser.add_argument("--refinement", type=int, default=4)
-    parser.add_argument("--compiled-report", type=Path,
-                        help="use a retained compiler report; source and residuals are rechecked by the baked binary")
+    parser.add_argument("--base", help="canonical phase-estimation base word, or @word-file")
+    for option in ("seed", "accuracy", "sk", "net", "refinement", "radix"):
+        parser.add_argument(f"--{option}", help=f"canonical {option} word, or @word-file")
+    reports = parser.add_mutually_exclusive_group()
+    reports.add_argument("--compiled-report", type=Path,
+                        help="retained compiler JSON containing IMASM words; the physical braid is recontracted")
+    reports.add_argument("--retained-case", type=Path,
+                         help="reuse the exact source-bound Fourier operator embedded in a retained membrane")
     args = parser.parse_args()
-    if int(args.source).bit_length() <= 200:
-        raise RuntimeError("qualifying preparations require RSA-style unstructured semiprimes over 200 bits")
     case = args.destination.resolve()
     case.mkdir(parents=True, exist_ok=False)
-    encoded = run([str(ROOT / "target/release/godel"), "encode", args.source]).stdout
-    source_word = next(line.split(None, 1)[1] for line in encoded.splitlines()
-                       if line.startswith("word "))
-    if args.compiled_report:
-        report = args.compiled_report.read_text()
-    else:
-        report = run([str(ROOT / "target/release/g-momonados"), "anyon_ququart_word",
-                      args.source, str(args.sk), str(args.net), "0",
-                      str(args.refinement), str(args.accuracy)]).stdout
-    if not report.startswith("Z4 Fourier Fibonacci braid\n") or "inverse=false" not in report:
-        raise RuntimeError("preparation requires a successfully compiled forward Fourier braid")
-    source_bits = re.search(r"source_bits=(\d+)", report)
-    if not source_bits or int(source_bits[1]) != int(args.source).bit_length():
-        raise RuntimeError("compiler source precision differs from the requested source")
-    residuals = [float(re.search(rf"{name}=([\deE+.-]+)", report)[1])
-                 for name in ("computational", "leakage", "unitarity")]
-    if any(not (0 <= residual <= 2.0 ** -args.accuracy) for residual in residuals):
-        raise RuntimeError("compiled braid exceeds the prepared accuracy budget")
-    word = [int(g) for g in report.split("\nword=", 1)[1].split()]
-    if not word or any(abs(g) not in range(1, 6) for g in word):
-        raise RuntimeError("invalid six-strand Fourier braid")
+    build = run(["cargo", "build", "--release", "--bin", "ququart_prepare_operator",
+                 "--bin", "ququart_verify_readout"])
+    (case / "operator_build.log").write_text(build.stdout + build.stderr)
+    defaults = json.loads(run([str(ROOT / "target/release/ququart_prepare_operator"), "--defaults"]).stdout)
+    inputs = dict(defaults, source_word=input_word(args.source))
+    for option in ("seed", "accuracy", "sk", "net", "refinement", "radix"):
+        if getattr(args, option) is not None:
+            inputs[f"{option}_word"] = input_word(getattr(args, option))
+    if args.base is not None:
+        inputs["base_word"] = input_word(args.base)
+    inputs_path = case / "inputs.json"
+    inputs_path.write_text(json.dumps(inputs, ensure_ascii=False, indent=2) + "\n")
+    validation = run([str(ROOT / "target/release/ququart_verify_readout"),
+                      "--validate-prepared", str(inputs_path)])
+    (case / "input_validation.log").write_text(validation.stdout + validation.stderr)
+    run([str(ROOT / "target/release/ququart_prepare_operator"), "--validate-inputs", str(inputs_path)])
+    source_word = inputs["source_word"]
     prepared = {"component": "ququart_fourier", "source_word": source_word,
-                "fourier_word": word, "accuracy_bits": args.accuracy,
+                "accuracy_word": inputs["accuracy_word"],
                 "telemetry": "terminal_only"}
+    if args.retained_case:
+        if args.base is None:
+            raise RuntimeError("retained factor preparations require a modular base word")
+        prepared["prepared_operator"] = retained_operator(args.retained_case, inputs)
+    else:
+        if args.compiled_report:
+            report = args.compiled_report.read_text()
+        else:
+            compiler_build = run(["cargo", "build", "--release", "--bin", "g-momonados"])
+            (case / "compiler_build.log").write_text(compiler_build.stdout + compiler_build.stderr)
+            report = run([str(ROOT / "target/release/g-momonados"), "anyon_ququart_word",
+                          source_word, inputs["sk_word"], inputs["net_word"], inputs["capacity_word"],
+                          inputs["refinement_word"], inputs["accuracy_word"]]).stdout
+        compiled = json.loads(report)
+        if (compiled.get("component") != "ququart_fourier" or compiled.get("source_word") != source_word
+                or compiled.get("inverse_word") != defaults["capacity_word"]):
+            raise RuntimeError("preparation requires a source-bound forward Fourier braid in IMASM words")
+        prepared["exchange_words"] = compiled["exchange_words"]
+        (case / "compiler.json").write_text(json.dumps(compiled, ensure_ascii=False, indent=2) + "\n")
     binary_name = "ququart_baked"
     if args.base is not None:
-        base_encoded = run([str(ROOT / "target/release/godel"), "encode", args.base]).stdout
-        base_word = next(line.split(None, 1)[1] for line in base_encoded.splitlines()
-                         if line.startswith("word "))
-        if not 0 <= args.seed < 2**64:
-            raise RuntimeError("invalid baked measurement seed")
-        prepared.update(component="ququart_factor", base_word=base_word,
-                        seed=args.seed)
+        prepared.update(component="ququart_factor", base_word=inputs["base_word"],
+                        seed_word=inputs["seed_word"], radix_word=inputs["radix_word"])
         binary_name = "ququart_factor_baked"
     prepared_path = case / "prepared.json"
-    prepared_path.write_text(json.dumps(prepared) + "\n")
-    (case / "compiler.log").write_text(report)
+    prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
     (case / "source.imasm").write_text(source_word + "\n")
     env = dict(os.environ, QUQUART_PREPARED_FILE=str(prepared_path))
     binary = case / "membrane"
     with (ROOT / "target/ququart-bake.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        contraction_build = run(["cargo", "build", "--release", "--bin", "ququart_prepare_operator"])
-        (case / "operator_build.log").write_text(contraction_build.stdout + contraction_build.stderr)
-        contraction = run([str(ROOT / "target/release/ququart_prepare_operator"), str(prepared_path)])
-        prepared["prepared_operator"] = json.loads(contraction.stdout)
-        def native_word(value):
-            output = run([str(ROOT / "target/release/godel"), "encode", str(value)]).stdout
-            return next(line.split(None, 1)[1] for line in output.splitlines() if line.startswith("word "))
-        if args.base is not None:
-            prepared["seed_word"] = native_word(prepared.pop("seed"))
-        prepared["accuracy_word"] = native_word(prepared.pop("accuracy_bits"))
-        prepared.pop("fourier_word")
-        def assert_native(value, key=None):
-            if isinstance(value, dict):
-                for field, child in value.items(): assert_native(child, field)
-            elif isinstance(value, list):
-                if key and key.endswith("_words"):
-                    if any(not isinstance(child, str) for child in value):
-                        raise RuntimeError(f"baked {key} must contain only IMASM words")
-                else:
-                    for child in value: assert_native(child, key)
-            elif key in ("component", "telemetry") and isinstance(value, str):
-                return
-            elif key and key.endswith("_word") and isinstance(value, str):
-                return
-            else:
-                raise RuntimeError(f"baked {key or 'root'} is not an IMASM word or approved metadata")
-        assert_native(prepared)
-        prepared_path.write_text(json.dumps(prepared) + "\n")
-        build = run(["cargo", "build", "--release", "--bin", binary_name, "--bin", "ququart_verify_readout"], env=env)
+        run([str(ROOT / "target/release/ququart_verify_readout"), "--validate-prepared", str(prepared_path)])
+        if not args.retained_case:
+            contraction = run([str(ROOT / "target/release/ququart_prepare_operator"), str(prepared_path)])
+            prepared["prepared_operator"] = json.loads(contraction.stdout)
+            prepared.pop("exchange_words")
+        prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
+        build = run(["cargo", "build", "--release", "--bin", binary_name,
+                     "--bin", "ququart_verify_readout"], env=env)
         (case / "build.log").write_text(build.stdout + build.stderr)
         validation = run([str(ROOT / "target/release/ququart_verify_readout"),
                           "--validate-prepared", str(prepared_path)])
         (case / "prepared_validation.log").write_text(validation.stdout + validation.stderr)
         shutil.copy2(ROOT / "target/release" / binary_name, binary)
+        shutil.copy2(ROOT / "target/release/ququart_verify_readout", case / "verify_readout")
     manifest = {"component": prepared["component"], "binary": str(binary),
                 "sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+                "verifier_sha256": hashlib.sha256((case / "verify_readout").read_bytes()).hexdigest(),
+                "prepared_sha256": hashlib.sha256(prepared_path.read_bytes()).hexdigest(),
                 "source_word": source_word, "accuracy_word": prepared["accuracy_word"],
                 "runtime_inputs": [], "telemetry": "terminal_only",
                 "prepared_values": "canonical_cell_binary_imasm_words"}
     if args.base is not None:
         manifest.update(base_word=prepared["base_word"], seed_word=prepared["seed_word"],
-                        execution_limits=None,
-                        extraction="native_ququart_factor_executor",
+                        radix_word=prepared["radix_word"],
+                        terminal_nesting="vox_product_over_prefix_meets_prefix_over_product",
+                        execution_limits=None, extraction="native_ququart_factor_executor",
                         fourier_operator="contracted_physical_fibonacci_braid",
                         fourier_contraction="preparation_time",
                         modular_work_operator="reversible_gates_on_shared_complex_decision_branches",
                         feedback_operator="fixed_point_winding",
+                        closure_arithmetic="radix_four_paired_numeral_cells",
+                        terminal_factors="direct_godel_closure_words",
                         physical_modular_braids_compiled=False)
-    (case / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    if args.retained_case:
+        manifest["retained_fourier_case"] = str(args.retained_case.resolve())
+        manifest["retained_fourier_sha256"] = json.loads(
+            (args.retained_case / "manifest.json").read_text())["sha256"]
+    (case / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     print(binary)
 
 
