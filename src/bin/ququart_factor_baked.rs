@@ -19,7 +19,7 @@ fn execute() -> Result<String, String> {
         .to_u64().ok_or("invalid seed word")?;
     let radix_word = prepared["radix_word"].as_str().ok_or("missing baked nested radix word")?;
     g_momonados::ququart_factor::power_of_two_radix_word(radix_word)?;
-    let device = QuquartFoldedWorkDevice::new(n.clone(), fourier, seed)?;
+    let device = QuquartFoldedWorkDevice::new_interleaved(n.clone(), fourier, seed)?;
     let powers = prepared["prepared_operator"]["controlled_power_words"].as_array()
         .ok_or("missing baked controlled power words")?.iter()
         .map(|value| support::numeral(value.as_str().ok_or("controlled power must be an IMASM word")?))

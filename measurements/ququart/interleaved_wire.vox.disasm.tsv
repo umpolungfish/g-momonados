@@ -1,0 +1,43 @@
+2151fc	mov	r:rax r:rsi
+2151ff	xor	r:ecx r:ecx
+215201	cmp	r:rcx m:rdi::1:0xe0:8
+215208	jno	i:0x21522b
+21520a	cmp	m:rdi::1:0xe8:1 i:0x0
+215211	je	i:0x215254
+215213	mov	r:edx i:0x7f
+215218	bsr	r:rdx m:rdi::1:0xf0:8
+215220	xor	r:rdx i:0x3f
+215224	mov	r:ecx i:0x40
+215229	jmp	i:0x215269
+21522b	mov	r:rcx m:rdi::1:0xf0:8
+215232	test	r:rcx r:rcx
+215235	sete	r:dl
+215238	lea	r:rsi m::rcx:8:0x0:8
+215240	add	r:rsi m:rdi::1:0xe8:8
+215247	add	r:rsi i:-0x8
+21524b	sete	r:r8b
+21524f	or	r:r8b r:dl
+215252	je	i:0x215258
+215254	xor	r:ecx r:ecx
+215256	jmp	i:0x21526c
+215258	mov	r:edx i:0x7f
+21525d	bsr	r:rdx m:rsi::1:0x0:8
+215261	xor	r:rdx i:0x3f
+215265	shl	r:rcx i:0x6
+215269	sub	r:rcx r:rdx
+21526c	cmp	r:rax i:0x2
+215270	jb	i:0x2152a8
+215272	cmp	m:rdi::1:0x17a1:1 i:0x0
+215279	je	i:0x2152a8
+21527b	lea	r:rdx m::rcx:2:0x1:8
+215283	cmp	r:rax r:rdx
+215286	ja	i:0x2152a8
+215288	lea	r:rdx m:rcx::1:0x1:8
+21528c	cmp	r:rax r:rdx
+21528f	jbe	i:0x2152a0
+215291	not	r:rcx
+215294	add	r:rax r:rcx
+215297	lea	r:rax m::rax:2:0x1:8
+21529f	ret	
+2152a0	lea	r:rax m::rax:2:-0x2:8
+2152a8	ret	
