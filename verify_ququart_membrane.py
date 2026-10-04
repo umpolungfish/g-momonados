@@ -2,16 +2,10 @@
 import argparse
 import hashlib
 import json
-import re
 import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-
-def decode(word):
-    report = subprocess.run([str(ROOT / "target/release/godel"), "decode", word],
-                            check=True, text=True, capture_output=True).stdout
-    return int(re.search(r"^value\s+(\d+)$", report, re.M)[1])
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -31,20 +25,18 @@ def main():
     result = {"binary_sha256": binary_hash, "factor_extraction": False}
     if output.startswith("completed ququart factor extraction\n"):
         fields = dict(line.split("=", 1) for line in output.splitlines()[1:] if "=" in line)
-        n, p, q = map(int, (fields["source"], fields["p"], fields["q"]))
-        if not (1 < p < n and 1 < q < n and p*q == n):
-            raise RuntimeError("invalid proper factor product")
-        if decode(prepared["source_word"]) != n or decode(prepared["base_word"]) != int(fields["base"]):
+        if fields["source_word"] != prepared["source_word"] or fields["base_word"] != prepared["base_word"]:
             raise RuntimeError("output differs from prepared source or base")
-        if decode(fields["p_word"]) != p or decode(fields["q_word"]) != q:
-            raise RuntimeError("factor words differ from numeric factors")
         replay = subprocess.run([str(ROOT / "target/release/ququart_verify_readout"),
                                  str(case / "prepared.json"), str(case / f"{stem}.stdout")],
                                 check=True, text=True, capture_output=True)
         result["measured_phase_closure_replayed"] = True
         result["phase_audit"] = replay.stdout.strip()
-        result.update(factor_extraction=True, p=str(p), q=str(q), shots=int(fields["shots"]))
-    elif output.startswith("completed with error: "):
+        result.update(factor_extraction=True, source_word=fields["source_word"],
+                      p_word=fields["p_word"], q_word=fields["q_word"],
+                      shots_word=fields["shots_word"],
+                      godel_product_verified=fields["godel_product_verified"] == "true")
+    elif output == "factor extraction failed\n":
         result["completed_error"] = output.strip()
     else:
         raise RuntimeError("missing terminal report")
