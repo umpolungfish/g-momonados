@@ -1,14 +1,18 @@
 //! Shared complex-amplitude decision branches for a coherent work register.
 //! Equal branches share storage; gates act on the diagram without enumerating residues.
 use crate::phase_unbraid::{FixedComplex, FixedPointFormat};
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::vec::Vec;
+#[cfg(any(test, not(feature = "hosted")))]
+use alloc::collections::BTreeMap;
 use num_bigint::{BigInt, BigUint};
 use num_traits::Zero;
 
 #[cfg(feature = "hosted")]
-type NodeIndex = std::collections::HashMap<Node, usize>;
+type OperationCache<K, V> = std::collections::HashMap<K, V>;
 #[cfg(not(feature = "hosted"))]
-type NodeIndex = BTreeMap<Node, usize>;
+type OperationCache<K, V> = BTreeMap<K, V>;
+
+type NodeIndex = OperationCache<Node, usize>;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Node {
@@ -253,7 +257,7 @@ impl DecisionArena {
             id: usize,
             scalar: &FixedComplex,
             f: &FixedPointFormat,
-            memo: &mut BTreeMap<usize, usize>,
+            memo: &mut OperationCache<usize, usize>,
         ) -> usize {
             if let Some(r) = memo.get(&id) {
                 return *r;
@@ -272,7 +276,7 @@ impl DecisionArena {
             memo.insert(id, r);
             r
         }
-        visit(self, id, scalar, format, &mut BTreeMap::new())
+        visit(self, id, scalar, format, &mut OperationCache::new())
     }
     pub fn sum(&mut self, a: usize, b: usize) -> usize {
         if let Node::Leaf(re, im) = self.node(a) {
@@ -289,7 +293,7 @@ impl DecisionArena {
             arena: &mut DecisionArena,
             a: usize,
             b: usize,
-            memo: &mut BTreeMap<(usize, usize), usize>,
+            memo: &mut OperationCache<(usize, usize), usize>,
         ) -> usize {
             if let Some(r) = memo.get(&(a, b)) {
                 return *r;
@@ -314,14 +318,14 @@ impl DecisionArena {
             memo.insert((a, b), r);
             r
         }
-        visit(self, a, b, &mut BTreeMap::new())
+        visit(self, a, b, &mut OperationCache::new())
     }
     pub fn flip(&mut self, id: usize, target: usize) -> usize {
         fn visit(
             a: &mut DecisionArena,
             id: usize,
             t: usize,
-            memo: &mut BTreeMap<usize, usize>,
+            memo: &mut OperationCache<usize, usize>,
         ) -> usize {
             if let Some(r) = memo.get(&id) {
                 return *r;
@@ -338,7 +342,7 @@ impl DecisionArena {
             memo.insert(id, r);
             r
         }
-        visit(self, id, target, &mut BTreeMap::new())
+        visit(self, id, target, &mut OperationCache::new())
     }
     /// Apply a controlled work-bit permutation directly to shared branches.
     /// Constant subtrees remain unchanged, including every zero subtree.
@@ -358,7 +362,7 @@ impl DecisionArena {
             target: usize,
             controls: &[usize],
             at: usize,
-            memo: &mut BTreeMap<(usize, usize), usize>,
+            memo: &mut OperationCache<(usize, usize), usize>,
         ) -> usize {
             if matches!(a.node(id), Node::Leaf(..)) {
                 return id;
@@ -392,7 +396,7 @@ impl DecisionArena {
             memo.insert((id, at), r);
             r
         }
-        visit(self, root, target, &controls, 0, &mut BTreeMap::new())
+        visit(self, root, target, &controls, 0, &mut OperationCache::new())
     }
     pub fn conditional(&mut self, a: usize, b: usize, controls: &[usize]) -> usize {
         fn visit(
@@ -401,7 +405,7 @@ impl DecisionArena {
             b: usize,
             controls: &[usize],
             at: usize,
-            memo: &mut BTreeMap<(usize, usize, usize), usize>,
+            memo: &mut OperationCache<(usize, usize, usize), usize>,
         ) -> usize {
             if a == b {
                 return a;
@@ -434,7 +438,7 @@ impl DecisionArena {
             memo.insert((a, b, at), r);
             r
         }
-        visit(self, a, b, controls, 0, &mut BTreeMap::new())
+        visit(self, a, b, controls, 0, &mut OperationCache::new())
     }
 
     pub fn controls_possible(&self, root: usize, controls: &[(usize, bool)]) -> bool {
@@ -448,7 +452,7 @@ impl DecisionArena {
     pub fn conditional_literals(&mut self, a: usize, b: usize, controls: &[(usize, bool)]) -> usize {
         fn visit(arena: &mut DecisionArena, a: usize, b: usize,
             controls: &[(usize, bool)], at: usize,
-            memo: &mut BTreeMap<(usize, usize, usize), usize>) -> usize {
+            memo: &mut OperationCache<(usize, usize, usize), usize>) -> usize {
             if a == b { return a; }
             if at == controls.len() { return b; }
             if let Some(&result) = memo.get(&(a,b,at)) { return result; }
@@ -467,7 +471,7 @@ impl DecisionArena {
             memo.insert((a,b,at),result);
             result
         }
-        visit(self,a,b,controls,0,&mut BTreeMap::new())
+        visit(self,a,b,controls,0,&mut OperationCache::new())
     }
 
     /// Reversible constant addition as a shared dyadic split/fuse transducer.
@@ -477,7 +481,7 @@ impl DecisionArena {
         controls: &[(usize, bool)]) -> usize {
         if !self.controls_possible(root,controls) || value.is_zero() { return root; }
         fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &BigUint,
-            at: usize, borrow: bool, memo: &mut BTreeMap<(usize,usize,bool),usize>) -> usize {
+            at: usize, borrow: bool, memo: &mut OperationCache<(usize,usize,bool),usize>) -> usize {
             if at == register.len() || matches!(arena.node(id),Node::Leaf(..)) { return id; }
             if let Some(&result) = memo.get(&(id,at,borrow)) { return result; }
             let wire = arena.top(id).unwrap().min(register[at]);
@@ -499,7 +503,7 @@ impl DecisionArena {
         // retain their original amplitudes and never enter the transducer.
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
-        let changed = visit(self,enabled,register,value,0,false,&mut BTreeMap::new());
+        let changed = visit(self,enabled,register,value,0,false,&mut OperationCache::new());
         self.conditional_literals(root,changed,controls)
     }
 
@@ -510,7 +514,7 @@ impl DecisionArena {
         controls: &[(usize,bool)], flag: usize) -> usize {
         if !self.controls_possible(root,controls) || value.is_zero() { return root; }
         fn visit(arena: &mut DecisionArena,id: usize,register: &[usize],value: &BigUint,
-            at: usize,less: bool,flag: usize,memo: &mut BTreeMap<(usize,usize,bool),usize>) -> usize {
+            at: usize,less: bool,flag: usize,memo: &mut OperationCache<(usize,usize,bool),usize>) -> usize {
             if at == register.len() { return if less { arena.flip(id,flag) } else { id }; }
             if matches!(arena.node(id),Node::Leaf(..)) { return id; }
             if let Some(&result) = memo.get(&(id,at,less)) { return result; }
@@ -530,7 +534,7 @@ impl DecisionArena {
         }
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
-        let changed = visit(self,enabled,register,value,0,false,flag,&mut BTreeMap::new());
+        let changed = visit(self,enabled,register,value,0,false,flag,&mut OperationCache::new());
         self.conditional_literals(root,changed,controls)
     }
     pub fn mass(&self, root: usize) -> BigUint {
@@ -538,7 +542,7 @@ impl DecisionArena {
             a: &DecisionArena,
             id: usize,
             depth: usize,
-            memo: &mut BTreeMap<(usize, usize), BigUint>,
+            memo: &mut OperationCache<(usize, usize), BigUint>,
         ) -> BigUint {
             if let Some(r) = memo.get(&(id, depth)) {
                 return r.clone();
@@ -555,7 +559,7 @@ impl DecisionArena {
             memo.insert((id, depth), r.clone());
             r
         }
-        visit(self, root, 0, &mut BTreeMap::new())
+        visit(self, root, 0, &mut OperationCache::new())
     }
     pub fn normalize(&mut self, root: usize, norm: &BigInt, scale: &BigInt) -> usize {
         fn visit(
@@ -563,7 +567,7 @@ impl DecisionArena {
             id: usize,
             norm: &BigInt,
             scale: &BigInt,
-            memo: &mut BTreeMap<usize, usize>,
+            memo: &mut OperationCache<usize, usize>,
         ) -> usize {
             if let Some(r) = memo.get(&id) {
                 return *r;
@@ -579,7 +583,7 @@ impl DecisionArena {
             memo.insert(id, r);
             r
         }
-        visit(self, root, norm, scale, &mut BTreeMap::new())
+        visit(self, root, norm, scale, &mut OperationCache::new())
     }
     /// Pin the new roots, release only unreachable branches, and reuse slots.
     /// No complete diagram copy or node-count/heap cutoff is involved.
