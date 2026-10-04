@@ -487,13 +487,23 @@ fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
     use std::process::{Command, Stdio};
     use std::time::{Duration, Instant};
     let mut child = Command::new("gp")
-        .args(["-q", "-f", "-s", "64000000"])
+        .args(["-q", "-f"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .ok()?;
-    let input = format!("print(factor({})[1,1]);quit(0)\n", n.to_str_radix(10));
+    // The native engine's data boundary receives and returns canonical words.
+    // GP reconstructs its internal integer from the UTF-8 numeral marks; no
+    // decimal source or decimal factor crosses this adapter.
+    let input = format!(concat!(
+        "allocatemem(2^26);\n",
+        "w=Vecsmall(\"{}\");z=Vecsmall(\"⊤\");o=Vecsmall(\"⊥\");n=0;b=1;",
+        "for(i=1,#w-2,if(w[i]==o[1]&&w[i+1]==o[2]&&w[i+2]==o[3],n+=b;b*=2,",
+        "if(w[i]==z[1]&&w[i+1]==z[2]&&w[i+2]==z[3],b*=2)));",
+        "p=factor(n)[1,1];printf(\"⊢\");",
+        "while(p>0,printf(\"≻⋈∈%s∋\",if(p%2,\"⊥\",\"⊤\"));p=p\\2);",
+        "print(\"⊙⊡⊣\");quit(0)\n"), word_of(n));
     let written = child
         .stdin
         .take()
@@ -515,10 +525,6 @@ fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
             _ => {
                 let _ = child.kill();
                 let _ = child.wait();
-                eprintln!(
-                    "factor extraction: {}-bit native candidate attempt ended; advancing routes",
-                    n.bits()
-                );
                 return None;
             }
         }
@@ -528,10 +534,29 @@ fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
         return None;
     }
     let candidate = core::str::from_utf8(&output.stdout).ok()?.trim();
-    if candidate.is_empty() || !candidate.bytes().all(|byte| byte.is_ascii_digit()) {
-        return None;
+    let reading = decode(candidate).ok()?;
+    if reading.family != Family::CellBinary || encode_cell_binary(&reading.value) != candidate { return None; }
+    Some(nat_to_biguint(&reading.value))
+}
+
+/// Source-bound native arm for the inclusive prepared membrane. Factor words
+/// are released only after nontriviality and native Gödel product closure.
+pub fn native_factor_word_pair(source_word: &str) -> Result<Option<(String,String)>,String> {
+    if !source_word.starts_with('⊢') { return Err("native membrane source must be an IMASM numeral word".into()); }
+    let (source,canonical) = parse_source(source_word)?;
+    if source.bits() < 128 { return Err("native membrane source must be at least 128 bits".into()); }
+    let Some(p) = native_factor_candidate(&source) else { return Ok(None); };
+    if !verified_factor(&source,&canonical,&p) { return Ok(None); }
+    let (q,remainder) = divmod_via_word(&source,&p).ok_or("native factor division failed")?;
+    if !remainder.is_zero() || q <= BigUint::one() || !verify_split(&canonical,&p,&q) {
+        return Err("native factor arms failed Gödel product closure".into());
     }
-    BigUint::parse_bytes(candidate.as_bytes(), 10)
+    // The first arm is a prime from factor(N). Certify the remaining arm via
+    // the same word-only engine boundary rather than assuming semiprimality.
+    if native_factor_candidate(&q).as_ref() != Some(&q) {
+        return Ok(None);
+    }
+    Ok(Some((word_of(&p),word_of(&q))))
 }
 
 #[cfg(not(feature = "hosted"))]

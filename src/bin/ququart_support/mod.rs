@@ -6,6 +6,20 @@ pub mod work;
 
 pub struct Metrics { pub computational: f64, pub leakage: f64, pub closure: f64, pub exchanges: usize }
 
+pub fn validate_base_scaling(prepared: &serde_json::Value) -> Result<(), String> {
+    if prepared.get("binary_base_word").is_none() { return Ok(()); }
+    let read = |field: &str| -> Result<BigUint,String> {
+        numeral(prepared[field].as_str().ok_or_else(|| format!("missing {field}"))?)
+    };
+    let radix = prepared["radix_word"].as_str().ok_or("missing scaling radix word")?;
+    let expected = g_momonados::ququart_factor::scaled_modular_base(
+        &read("source_word")?, &read("binary_base_word")?, radix)?;
+    if read("base_word")? != expected {
+        return Err("modular base differs from binary base scaled to the work radix".into());
+    }
+    Ok(())
+}
+
 pub fn numeral(word: &str) -> Result<BigUint, String> {
     let decoded = g_momonados::godel_calculus::decode(word).map_err(|e| e.to_string())?;
     if !matches!(decoded.structure, g_momonados::godel_calculus::Structure::CellBinary { .. }) {

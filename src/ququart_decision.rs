@@ -295,6 +295,10 @@ impl DecisionArena {
             b: usize,
             memo: &mut OperationCache<(usize, usize), usize>,
         ) -> usize {
+            // Additive identity closes at every nested boundary, not only at
+            // the outer sum. Preserve the other shared arm without walking it.
+            if arena.fixed[a].empty { return b; }
+            if arena.fixed[b].empty { return a; }
             if let Some(r) = memo.get(&(a, b)) {
                 return *r;
             }
@@ -453,6 +457,36 @@ impl DecisionArena {
         self.fixed[root].empty || self.fixed[root].zero.bit(wire as u64)
     }
 
+    /// Trace the shared work coordinates once per paired decision branch.
+    /// Entry i,j is <work_i|work_j>; skipped wires retain their multiplicity.
+    pub fn control_gram(&self, roots: &[usize;4]) -> [(BigInt,BigInt);16] {
+        fn visit(a: &DecisionArena, left: usize, right: usize, depth: usize,
+            memo: &mut OperationCache<(usize,usize,usize),(BigInt,BigInt)>) -> (BigInt,BigInt) {
+            if a.fixed[left].empty || a.fixed[right].empty {
+                return (BigInt::zero(),BigInt::zero());
+            }
+            if let Some(value) = memo.get(&(left,right,depth)) { return value.clone(); }
+            let value = match (a.top(left),a.top(right)) {
+                (None,None) => {
+                    let (Node::Leaf(lr,li),Node::Leaf(rr,ri)) = (a.node(left),a.node(right)) else { unreachable!() };
+                    ((lr*rr+li*ri) << (a.cells-depth),(lr*ri-li*rr) << (a.cells-depth))
+                }
+                (x,y) => {
+                    let wire = x.into_iter().chain(y).min().unwrap();
+                    let (ll,lh) = a.split(left,wire);
+                    let (rl,rh) = a.split(right,wire);
+                    let low = visit(a,ll,rl,wire+1,memo);
+                    let high = visit(a,lh,rh,wire+1,memo);
+                    ((low.0+high.0) << (wire-depth),(low.1+high.1) << (wire-depth))
+                }
+            };
+            memo.insert((left,right,depth),value.clone());
+            value
+        }
+        let mut memo = OperationCache::new();
+        core::array::from_fn(|index| visit(self,roots[index/4],roots[index%4],0,&mut memo))
+    }
+
     /// Fuse changed and unchanged arms on the original literal controls.
     pub fn conditional_literals(&mut self, a: usize, b: usize, controls: &[(usize, bool)]) -> usize {
         fn visit(arena: &mut DecisionArena, a: usize, b: usize,
@@ -461,7 +495,23 @@ impl DecisionArena {
             if a == b { return a; }
             if at == controls.len() { return b; }
             if let Some(&result) = memo.get(&(a,b,at)) { return result; }
-            let (control, positive) = controls[at];
+            // A fixed literal has already closed inside both nested arms.
+            // Reuse that closure instead of walking every remaining wire to
+            // reimpose the same selector. Empty support satisfies it vacuously.
+            let (control,positive) = controls[at];
+            let fixed_literal = |root:usize, value:bool| {
+                let fixed = &arena.fixed[root];
+                fixed.empty || if value { fixed.one.bit(control as u64) }
+                    else { fixed.zero.bit(control as u64) }
+            };
+            if fixed_literal(a,positive) && fixed_literal(b,positive) {
+                let result = visit(arena,a,b,controls,at+1,memo);
+                memo.insert((a,b,at),result);
+                return result;
+            }
+            if fixed_literal(a,!positive) && fixed_literal(b,!positive) {
+                return a;
+            }
             let wire = arena.top(a).into_iter().chain(arena.top(b))
                 .chain(core::iter::once(control)).min().unwrap();
             let (al,ah) = arena.split(a,wire);
