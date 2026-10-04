@@ -412,3 +412,9 @@ The release executables are retained in `measurements/anyon-compilation/` as
 `tool-elf-sha256.txt`. The standalone prime-square and original balanced 128-bit
 readings are retained in `measurements/semiprime_tool_prime_square_128.log` and
 `measurements/semiprime_tool_unstructured_128.log`.
+
+### Coherent running-charge state
+
+`FusionState` now applies the local exchange stencil to supported running-charge paths, combines amplitudes of identical paths before calculating Born masses, and retains conditional amplitudes after a sampled charge measurement. Projection leaves amplitudes unnormalized because the common factor cancels in subsequent Born ratios. Storage exhaustion is transactional and never silently truncates amplitude.
+
+This carrier does not yet supply uniform-residue preparation or the encoded logical-control fusion measurement required by the recycled factoring device. Sparse path storage can still grow with entanglement; it is not a proof of polynomial memory use. The producer must integrate preparation, logical readout mapping, and a contraction strategy before this component constitutes an end-to-end factoring backend.

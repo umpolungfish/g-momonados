@@ -2,10 +2,97 @@
 //! Each exchange changes one intermediate charge and has at most two outputs.
 use crate::anyon_local::{FibonacciLocal, LocalMatrix};
 use crate::phase_unbraid::{FixedComplex, FixedPointFormat};
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use num_bigint::{BigInt, BigUint};
 use num_traits::Zero;
+
+/// Coherent running-charge carrier. Identical paths are combined before any
+/// Born projection. The limit bounds stored paths, never truncates amplitudes.
+pub struct FusionState {
+    paths: BTreeMap<Vec<u8>, FixedComplex>,
+    path_limit: usize,
+    format: FixedPointFormat,
+}
+
+impl FusionState {
+    pub fn basis(kernel: &FusionKernel, path: Vec<u8>, path_limit: usize) -> Result<Self, String> {
+        kernel.stencil(&path, 1)?;
+        if path_limit == 0 {
+            return Err("fusion path budget must be positive".into());
+        }
+        let amplitude = FixedComplex {
+            re: kernel.format().scale(),
+            im: BigInt::zero(),
+        };
+        Ok(Self {
+            paths: BTreeMap::from([(path, amplitude)]),
+            path_limit,
+            format: kernel.format().clone(),
+        })
+    }
+
+    pub fn path_count(&self) -> usize {
+        self.paths.len()
+    }
+
+    /// Transactional exchange: exhausted storage leaves the original state intact.
+    pub fn exchange(&mut self, kernel: &FusionKernel, generator: i32) -> Result<(), String> {
+        if kernel.format() != &self.format {
+            return Err(
+                "fusion state and exchange kernel use different fixed-point formats".into(),
+            );
+        }
+        let mut next: BTreeMap<Vec<u8>, FixedComplex> = BTreeMap::new();
+        for (path, amplitude) in &self.paths {
+            let (site, weights) = kernel.stencil(path, generator)?;
+            for (charge, weight) in weights.iter().enumerate() {
+                let value = amplitude.mul(weight, kernel.format());
+                if value.re.is_zero() && value.im.is_zero() {
+                    continue;
+                }
+                let mut output = path.clone();
+                output[site] = charge as u8;
+                let combined = next.entry(output).or_insert_with(FusionKernel::zero);
+                combined.re += value.re;
+                combined.im += value.im;
+                if next.len() > self.path_limit {
+                    return Err("coherent fusion path budget exhausted".into());
+                }
+            }
+        }
+        next.retain(|_, value| !value.re.is_zero() || !value.im.is_zero());
+        if next.is_empty() {
+            return Err("exchange produced a zero fusion state".into());
+        }
+        self.paths = next;
+        Ok(())
+    }
+
+    pub fn charge_masses(&self, site: usize) -> Result<[BigUint; 2], String> {
+        let mut masses = [BigUint::zero(), BigUint::zero()];
+        for (path, amplitude) in &self.paths {
+            let charge = *path
+                .get(site)
+                .ok_or("fusion readout site is outside the tree")?;
+            let mass = &amplitude.re * &amplitude.re + &amplitude.im * &amplitude.im;
+            masses[charge as usize] += mass.to_biguint().ok_or("negative Born mass")?;
+        }
+        Ok(masses)
+    }
+
+    /// Retains the conditional amplitudes. Their common normalization cancels
+    /// in subsequent Born ratios, so projection needs no lossy division.
+    pub fn measure_charge<F>(&mut self, site: usize, entropy: F) -> Result<bool, String>
+    where
+        F: FnMut(&mut [u8]) -> Result<(), String>,
+    {
+        let outcome = sample_fusion_channel(&self.charge_masses(site)?, entropy)?;
+        self.paths.retain(|path, _| path[site] == u8::from(outcome));
+        Ok(outcome)
+    }
+}
 
 /// Draw the fusion channel from contracted integer Born masses. The caller
 /// supplies fresh entropy; no floating-point conversion or known period enters
@@ -308,6 +395,47 @@ impl FusionKernel {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn coherent_state_projects_and_preserves_budget_failure_at_required_widths() {
+        use super::*;
+        for line in include_str!("../measurements/anyon-extractor-width-controls.tsv")
+            .lines()
+            .skip(1)
+        {
+            let fields: Vec<_> = line.split('\t').collect();
+            let source = BigUint::parse_bytes(fields[2].as_bytes(), 10).unwrap();
+            let kernel = FusionKernel::new(&source).unwrap();
+            let path = vec![1, 1, 1, 1, 1, 0];
+            let mut bounded = FusionState::basis(&kernel, path.clone(), 1).unwrap();
+            let before = bounded.charge_masses(1).unwrap();
+            assert!(bounded.exchange(&kernel, 2).is_err());
+            assert_eq!(bounded.charge_masses(1).unwrap(), before);
+            let mut state = FusionState::basis(&kernel, path, 32).unwrap();
+            state.exchange(&kernel, 2).unwrap();
+            assert_eq!(state.path_count(), 2);
+            let masses = state.charge_masses(1).unwrap();
+            assert!(masses.iter().all(|mass| !mass.is_zero()));
+            let outcome = state
+                .measure_charge(1, |bytes| {
+                    bytes.fill(0);
+                    Ok(())
+                })
+                .unwrap();
+            assert!(!outcome);
+            assert_eq!(state.path_count(), 1);
+            assert!(state.charge_masses(1).unwrap()[1].is_zero());
+            assert!(state
+                .measure_charge(99, |bytes| {
+                    bytes.fill(0);
+                    Ok(())
+                })
+                .is_err());
+            println!(
+                "{}-bit source: coherent exchange, conditional projection, transactional budget",
+                source.bits()
+            );
+        }
+    }
     use super::*;
     use crate::anyon_pair::FibonacciPair;
     use num_traits::Signed;
