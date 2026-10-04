@@ -1,0 +1,5 @@
+{
+  "scope": "diagnostic counts of prepared word references; no factor computation",
+  "wire_word_occurrences": 726660,
+  "distinct_wire_words": 259
+}

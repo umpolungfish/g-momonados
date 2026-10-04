@@ -1,1 +1,1 @@
-I bake the source-dependent modular work boundaries before execution
+I share canonical wire decoding across prepared operations

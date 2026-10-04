@@ -1,0 +1,81 @@
+b5eaa3c	push	r:rbp
+b5eaa3d	push	r:r15
+b5eaa3f	push	r:r14
+b5eaa41	push	r:r13
+b5eaa43	push	r:r12
+b5eaa45	push	r:rbx
+b5eaa46	sub	r:rsp i:0x28
+b5eaa4a	mov	r:r15 r:rdi
+b5eaa4d	lea	r:r12 m:rsp::1:0x8:8
+b5eaa52	mov	r:rdi r:r12
+b5eaa55	call	i:0xb5eb795
+b5eaa5a	mov	r:r14 m:r12::1:0x8:8
+b5eaa5f	mov	r:rbx m:r12::1:0x10:8
+b5eaa64	mov	r:r13 m:r12::1:0x18:8
+b5eaa69	cmp	m:r12::1:0x0:4 i:0x1
+b5eaa6e	jne	i:0xb5eaa80
+b5eaa70	mov	m:r15::1:0x0:8 r:r14
+b5eaa73	mov	m:r15::1:0x8:8 r:rbx
+b5eaa77	mov	m:r15::1:0x10:8 r:r13
+b5eaa7b	jmp	i:0xb5eab10
+b5eaa80	mov	r:rax r:r14
+b5eaa83	neg	r:rax
+b5eaa86	jno	i:0xb5eaa92
+b5eaa88	mov	r:bpl i:0x1
+b5eaa8b	test	r:bl i:0x1
+b5eaa8e	je	i:0xb5eaaa7
+b5eaa90	jmp	i:0xb5eaaaa
+b5eaa92	test	r:r13 r:r13
+b5eaa95	je	i:0xb5eaaa4
+b5eaa97	cmp	r:r13 i:0x1
+b5eaa9b	mov	r:r13 m:rbx::1:0x0:8
+b5eaa9e	sete	r:bpl
+b5eaaa2	jmp	i:0xb5eaaaa
+b5eaaa4	mov	r:bpl i:0x1
+b5eaaa7	xor	r:r13d r:r13d
+b5eaaaa	mov	r:edi i:0x1a
+b5eaaaf	call	m:rip::1:0x7b743:8
+b5eaab5	test	r:rax r:rax
+b5eaab8	je	i:0xb5eab42
+b5eaabe	movabs	r:r12 i:-0x8000000000000000
+b5eaac8	movups	r:xmm0 m:rip::1:-0x205d3:16
+b5eaacf	movups	m:rax::1:0xa:16 r:xmm0
+b5eaad3	movups	r:xmm0 m:rip::1:-0x205e8:16
+b5eaada	movups	m:rax::1:0x0:16 r:xmm0
+b5eaadd	test	r:bpl r:bpl
+b5eaae0	je	i:0xb5eaaf4
+b5eaae2	mov	r:edi i:0x1a
+b5eaae7	mov	r:rsi r:rax
+b5eaaea	call	i:0xb618432
+b5eaaef	mov	r:rcx r:r12
+b5eaaf2	jmp	i:0xb5eab04
+b5eaaf4	mov	m:r15::1:0x10:8 i:0x1a
+b5eaafc	mov	r:ecx i:0x1a
+b5eab01	mov	r:r13 r:rax
+b5eab04	mov	m:r15::1:0x8:8 r:r13
+b5eab08	mov	m:r15::1:0x0:8 r:rcx
+b5eab0b	cmp	r:r14 r:r12
+b5eab0e	jne	i:0xb5eab1f
+b5eab10	add	r:rsp i:0x28
+b5eab14	pop	r:rbx
+b5eab15	pop	r:r12
+b5eab17	pop	r:r13
+b5eab19	pop	r:r14
+b5eab1b	pop	r:r15
+b5eab1d	pop	r:rbp
+b5eab1e	ret	
+b5eab1f	mov	r:edx i:0x8
+b5eab24	mov	r:ecx i:0x8
+b5eab29	mov	r:rdi r:r14
+b5eab2c	mov	r:rsi r:rbx
+b5eab2f	add	r:rsp i:0x28
+b5eab33	pop	r:rbx
+b5eab34	pop	r:r12
+b5eab36	pop	r:r13
+b5eab38	pop	r:r14
+b5eab3a	pop	r:r15
+b5eab3c	pop	r:rbp
+b5eab3d	jmp	i:0xb61732d
+b5eab42	mov	r:edi i:0x1
+b5eab47	mov	r:esi i:0x1a
+b5eab4c	call	i:0xb5ed3c5

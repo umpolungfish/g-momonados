@@ -162,5 +162,13 @@
     "closure_time_limit_seconds": 90,
     "factor_extraction_verified": false,
     "modular_work_preparation": "source_bound_operations_baked_as_numeral_words"
+  },
+  "cached_words_128_execution": {
+    "case": "membranes/ququart_cached_words_128_20261004",
+    "session_id": 39165,
+    "state": "stopped_at_user_time_limit",
+    "exit_code": 124,
+    "closure_time_limit_seconds": 90,
+    "factor_extraction_verified": false
   }
 }

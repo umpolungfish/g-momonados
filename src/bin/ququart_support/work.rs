@@ -59,34 +59,50 @@ pub fn compile(p: &Value) -> Result<Value, String> {
 fn number(v: &Value) -> Result<BigUint, String> {
     numeral(v.as_str().ok_or("work value must be a word")?)
 }
-fn wire(v: &Value) -> Result<usize, String> {
-    number(v)?
-        .to_usize()
-        .ok_or("work wire exceeds indexing".into())
+// Wire and polarity words repeat throughout the prepared circuit. Validate
+// each distinct word once; cache only its decoded index, never a work result.
+struct WireReader<'a> {
+    indices: std::collections::HashMap<&'a str, usize>,
 }
-fn read_wires(v: &Value) -> Result<Vec<usize>, String> {
-    v.as_array()
-        .ok_or("missing wire words")?
-        .iter()
-        .map(wire)
-        .collect()
-}
-fn read_controls(v: &Value) -> Result<Vec<(usize, bool)>, String> {
-    let w = read_wires(&v["control_words"])?;
-    let p = read_wires(&v["polarity_words"])?;
-    if w.len() != p.len() || p.iter().any(|&x| x > 1) {
-        return Err("malformed literal controls".into());
+impl<'a> WireReader<'a> {
+    fn wire(&mut self, v: &'a Value) -> Result<usize, String> {
+        let text = v.as_str().ok_or("work wire must be a word")?;
+        if let Some(&index) = self.indices.get(text) {
+            return Ok(index);
+        }
+        let index = numeral(text)?
+            .to_usize()
+            .ok_or("work wire exceeds indexing")?;
+        self.indices.insert(text, index);
+        Ok(index)
     }
-    Ok(w.into_iter().zip(p.into_iter().map(|x| x == 1)).collect())
+    fn wires(&mut self, v: &'a Value) -> Result<Vec<usize>, String> {
+        v.as_array()
+            .ok_or("missing wire words")?
+            .iter()
+            .map(|v| self.wire(v))
+            .collect()
+    }
+    fn controls(&mut self, v: &'a Value) -> Result<Vec<(usize, bool)>, String> {
+        let w = self.wires(&v["control_words"])?;
+        let p = self.wires(&v["polarity_words"])?;
+        if w.len() != p.len() || p.iter().any(|&x| x > 1) {
+            return Err("malformed literal controls".into());
+        }
+        Ok(w.into_iter().zip(p.into_iter().map(|x| x == 1)).collect())
+    }
 }
 pub fn decode(p: &Value) -> Result<Vec<(BigUint, Vec<NestedOperation>)>, String> {
     let n = number(&p["source_word"])?;
     let mut stages = Vec::new();
+    let mut reader = WireReader {
+        indices: std::collections::HashMap::new(),
+    };
     for stage in p["prepared_work"]
         .as_array()
         .ok_or("missing baked work boundaries")?
     {
-        let register = read_wires(&stage["register_words"])?;
+        let register = reader.wires(&stage["register_words"])?;
         let mut ops = Vec::new();
         for op in stage["operations"]
             .as_array()
@@ -99,15 +115,15 @@ pub fn decode(p: &Value) -> Result<Vec<(BigUint, Vec<NestedOperation>)>, String>
                 }
                 NestedOperation::ModularAdd {
                     register: register.clone(),
-                    digit: read_wires(&v["digit_words"])?,
+                    digit: reader.wires(&v["digit_words"])?,
                     value,
                     modulus: n.clone(),
-                    controls: read_controls(v)?,
+                    controls: reader.controls(v)?,
                 }
             } else if let Some(v) = op.get("toggle") {
                 NestedOperation::Toggle(ControlledX {
-                    target: wire(&v["target_word"])?,
-                    controls: read_controls(v)?,
+                    target: reader.wire(&v["target_word"])?,
+                    controls: reader.controls(v)?,
                 })
             } else {
                 return Err("unknown baked work operation".into());
