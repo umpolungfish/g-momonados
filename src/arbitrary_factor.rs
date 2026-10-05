@@ -483,6 +483,11 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
 /// passes the same word-level split gate as every other route.
 #[cfg(feature = "hosted")]
 fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
+    native_factor_candidate_with_budget(n, std::time::Duration::from_secs(10))
+}
+
+#[cfg(feature = "hosted")]
+fn native_factor_candidate_with_budget(n: &BigUint, budget: std::time::Duration) -> Option<BigUint> {
     use std::io::Write;
     use std::process::{Command, Stdio};
     use std::time::{Duration, Instant};
@@ -515,7 +520,7 @@ fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
     }
     // This optional route must yield to the remaining extraction routes.
     // Killing and reaping our own GP child leaves no abandoned factoring job.
-    let deadline = Instant::now() + Duration::from_secs(10);
+    let deadline = Instant::now() + budget;
     loop {
         match child.try_wait() {
             Ok(Some(_)) => break,
@@ -525,16 +530,26 @@ fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
             _ => {
                 let _ = child.kill();
                 let _ = child.wait();
+                eprintln!("native factor arm: child did not finish within its {}-second budget", budget.as_secs());
                 return None;
             }
         }
     }
     let output = child.wait_with_output().ok()?;
     if !output.status.success() {
+        eprintln!("native factor arm: child status {}; {}", output.status,
+                  String::from_utf8_lossy(&output.stderr).trim());
         return None;
     }
     let candidate = core::str::from_utf8(&output.stdout).ok()?.trim();
-    let reading = decode(candidate).ok()?;
+    let reading = match decode(candidate) {
+        Ok(reading) => reading,
+        Err(_) => {
+            eprintln!("native factor arm: invalid candidate; {}",
+                      String::from_utf8_lossy(&output.stderr).trim());
+            return None;
+        }
+    };
     if reading.family != Family::CellBinary || encode_cell_binary(&reading.value) != candidate { return None; }
     Some(nat_to_biguint(&reading.value))
 }
@@ -545,7 +560,13 @@ pub fn native_factor_word_pair(source_word: &str) -> Result<Option<(String,Strin
     if !source_word.starts_with('⊢') { return Err("native membrane source must be an IMASM numeral word".into()); }
     let (source,canonical) = parse_source(source_word)?;
     if source.bits() < 128 { return Err("native membrane source must be at least 128 bits".into()); }
-    let Some(p) = native_factor_candidate(&source) else { return Ok(None); };
+    // Reserve up to ten seconds for the cofactor call, leaving room for the
+    // source-bound closure gate within the external ninety-second cutoff.
+    #[cfg(feature = "hosted")]
+    let candidate = native_factor_candidate_with_budget(&source, std::time::Duration::from_secs(70));
+    #[cfg(not(feature = "hosted"))]
+    let candidate = native_factor_candidate(&source);
+    let Some(p) = candidate else { return Ok(None); };
     if !verified_factor(&source,&canonical,&p) { return Ok(None); }
     let (q,remainder) = divmod_via_word(&source,&p).ok_or("native factor division failed")?;
     if !remainder.is_zero() || q <= BigUint::one() || !verify_split(&canonical,&p,&q) {

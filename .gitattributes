@@ -40,3 +40,7 @@
 /membranes/ququart_increasing_224_radix4_20261004/compiler.json filter=lfs diff=lfs merge=lfs -text
 /membranes/ququart_increasing_224_radix4_20261004/membrane filter=lfs diff=lfs merge=lfs -text
 /membranes/ququart_increasing_224_radix4_20261004/prepared.json filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_repaired_224_radix4_20261004/membrane filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_repaired_224_radix4_20261004/prepared.json filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_repaired_budget_224_radix4_20261004/membrane filter=lfs diff=lfs merge=lfs -text
+/membranes/ququart_repaired_budget_224_radix4_20261004/prepared.json filter=lfs diff=lfs merge=lfs -text
