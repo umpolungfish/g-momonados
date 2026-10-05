@@ -1,0 +1,10 @@
+set pagination off
+set confirm off
+set disable-randomization off
+break _RNvXs_NtCsdpsOGJVkNCx_11g_momonados19ququart_folded_workNtB4_23QuquartFoldedWorkDeviceNtNtB6_14ququart_factor18QuquartPhaseDevice19controlled_multiply
+ignore 1 1
+run
+printf "next_multiplier_reached_after_inclusive_readout\n"
+bt 6
+kill
+quit

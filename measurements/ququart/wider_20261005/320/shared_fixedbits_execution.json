@@ -1,0 +1,15 @@
+{
+  "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_wider_320_shared_fixedbits_radix4_20261005",
+  "debugger_exit": 0,
+  "elapsed_seconds": 240.16716010699975,
+  "closure_time_limit_seconds": 245,
+  "factor_report_present": false,
+  "inferior_killed": true,
+  "factor_extraction_verified": false,
+  "ququart_controlled_stage_entries": [
+    1,
+    2,
+    3,
+    4
+  ]
+}

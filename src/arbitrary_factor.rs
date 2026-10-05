@@ -581,31 +581,77 @@ fn native_factor_candidate_with_budget(n: &BigUint, budget: std::time::Duration,
     Some(nat_to_biguint(&reading.value))
 }
 
+pub fn vox_morphism_factor_candidate(n: &BigUint) -> Option<BigUint> {
+    let word = word_of(n);
+    let tape = vox_core::morphism_factor::parse_numeral(&word).ok()?;
+    if let Some((p_tape, _)) = vox_core::glut_system::glut_factor(&tape) {
+        let f_word = vox_core::morphism_factor::emit_numeral(&p_tape);
+        if let Ok(reading) = decode(&f_word) {
+            let f = nat_to_biguint(&reading.value);
+            if f > BigUint::one() && &f < n && (n % &f).is_zero() {
+                return Some(f);
+            }
+        }
+    }
+    if let Some(execution) = vox_core::glut_system::glut_correlation_execution(&tape) {
+        let f_word = vox_core::morphism_factor::emit_numeral(&execution.p);
+        if let Ok(reading) = decode(&f_word) {
+            let f = nat_to_biguint(&reading.value);
+            if f > BigUint::one() && &f < n && (n % &f).is_zero() {
+                return Some(f);
+            }
+        }
+    }
+    let (factors, _) = vox_core::morphism_factor::smart_factor(&tape);
+    for factor_tape in factors {
+        let f_word = vox_core::morphism_factor::emit_numeral(&factor_tape);
+        if let Ok(reading) = decode(&f_word) {
+            let f = nat_to_biguint(&reading.value);
+            if f > BigUint::one() && &f < n && (n % &f).is_zero() {
+                return Some(f);
+            }
+        }
+    }
+    if let (Some((p_tape, _)), _, _) = vox_core::factor_operator::resolve_moat(&tape, 2_000_000) {
+        let f_word = vox_core::morphism_factor::emit_numeral(&p_tape);
+        if let Ok(reading) = decode(&f_word) {
+            let f = nat_to_biguint(&reading.value);
+            if f > BigUint::one() && &f < n && (n % &f).is_zero() {
+                return Some(f);
+            }
+        }
+    }
+    None
+}
+
 /// Source-bound native arm for the inclusive prepared membrane. Factor words
 /// are released only after nontriviality and native Gödel product closure.
 pub fn native_factor_word_pair(source_word: &str) -> Result<Option<(String,String)>,String> {
     if !source_word.starts_with('⊢') { return Err("native membrane source must be an IMASM numeral word".into()); }
     let (source,canonical) = parse_source(source_word)?;
     if source.bits() < 128 { return Err("native membrane source must be at least 128 bits".into()); }
-    // Include a direct MPQS entry before the default native schedule. PARI's
-    // flags 2|4 skip its initial ECM and Rho/SQUFOF stages; final ECM remains
-    // available. The default schedule is retained as the next native arm.
-    // Both attempts together reserve ten seconds for the cofactor call and
-    // room for word closure within the external ninety-second cutoff.
     #[cfg(feature = "hosted")]
-    let candidate = native_factor_candidate_with_budget(&source, std::time::Duration::from_secs(65), 6)
-        .or_else(|| native_factor_candidate_with_budget(&source, std::time::Duration::from_secs(5), 0));
+    let candidate = vox_morphism_factor_candidate(&source)
+        .or_else(|| native_factor_candidate_with_budget(&source, std::time::Duration::from_secs(5), 0))
+        .or_else(|| native_factor_candidate_with_budget(&source, std::time::Duration::from_secs(65), 6));
     #[cfg(not(feature = "hosted"))]
-    let candidate = native_factor_candidate(&source);
+    let candidate = vox_morphism_factor_candidate(&source).or_else(|| native_factor_candidate(&source));
     let Some(p) = candidate else { return Ok(None); };
     if !verified_factor(&source,&canonical,&p) { return Ok(None); }
     let (q,remainder) = divmod_via_word(&source,&p).ok_or("native factor division failed")?;
     if !remainder.is_zero() || q <= BigUint::one() || !verify_split(&canonical,&p,&q) {
         return Err("native factor arms failed Gödel product closure".into());
     }
-    // The first arm is a prime from factor(N). Certify the remaining arm via
-    // the same word-only engine boundary rather than assuming semiprimality.
-    if native_factor_candidate(&q).as_ref() != Some(&q) {
+    // Certify the remaining arm via instant morphism Miller-Rabin or word engine.
+    let q_word = word_of(&q);
+    let q_certified = if let Ok(q_tape) = vox_core::morphism_factor::parse_numeral(&q_word) {
+        vox_core::morphism_factor::miller_rabin(&q_tape)
+    } else if let Some(cand) = native_factor_candidate(&q) {
+        cand == q
+    } else {
+        false
+    };
+    if !q_certified {
         return Ok(None);
     }
     Ok(Some((word_of(&p),word_of(&q))))

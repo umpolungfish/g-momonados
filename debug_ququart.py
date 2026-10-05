@@ -11,7 +11,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("case", type=Path)
     parser.add_argument("output_prefix", type=Path)
+    parser.add_argument("--stop-after-seconds", type=int, default=85,
+                        help="stop the debugger after this many seconds")
     args = parser.parse_args()
+    if args.stop_after_seconds < 1:
+        parser.error("--stop-after-seconds must be positive")
     case = args.case.resolve()
     prefix = args.output_prefix.resolve()
     manifest = json.loads((case / "manifest.json").read_text())
@@ -22,7 +26,7 @@ def main():
              (".gdb", ".stdout", ".stderr", ".json", ".terminal.stdout", ".verification.log")}
     if any(path.exists() for path in paths.values()):
         raise RuntimeError("debug output prefix already exists; preserve the previous reading")
-    paths[".gdb"].write_text("""set pagination off
+    paths[".gdb"].write_text(f"""set pagination off
 set confirm off
 set disable-randomization off
 set $ququart_stages = 0
@@ -36,7 +40,7 @@ end
 python
 import os, signal, threading, time
 def stop_at_limit():
-    time.sleep(85)
+    time.sleep({args.stop_after_seconds})
     os.kill(os.getpid(), signal.SIGINT)
 threading.Thread(target=stop_at_limit,daemon=True).start()
 end
@@ -45,6 +49,7 @@ printf "terminal_or_cutoff_debug_stop\\n"
 info program
 python
 if gdb.selected_inferior().pid:
+    gdb.execute("info proc status")
     gdb.execute("info registers rip")
     gdb.execute("info proc mappings")
     gdb.execute("bt")
@@ -54,7 +59,8 @@ quit
 """)
     started = time.monotonic()
     with paths[".stdout"].open("w") as out, paths[".stderr"].open("w") as err:
-        result = subprocess.run(["timeout", "--signal=TERM", "--kill-after=2s", "88s",
+        result = subprocess.run(["timeout", "--signal=TERM", "--kill-after=2s",
+                                 f"{args.stop_after_seconds + 3}s",
                                  "gdb", "--quiet", "--nx", "--batch", "-x",
                                  str(paths[".gdb"]), str(binary)], stdout=out, stderr=err)
     elapsed = time.monotonic() - started
@@ -70,7 +76,8 @@ quit
         report = marker + "\n".join(lines) + "\n"
         paths[".terminal.stdout"].write_text(report)
     state = {"case": str(case), "debugger_exit": result.returncode,
-             "elapsed_seconds": elapsed, "closure_time_limit_seconds": 90,
+             "elapsed_seconds": elapsed,
+             "closure_time_limit_seconds": args.stop_after_seconds + 5,
              "factor_report_present": report is not None,
              "inferior_killed": "killed]" in output,
              "factor_extraction_verified": False}

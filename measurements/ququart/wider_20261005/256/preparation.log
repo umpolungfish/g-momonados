@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/mrnob0dy666/imsgct/G-mOMonadOS/prepare_ququart.py", line 190, in <module>
+    main()
+  File "/home/mrnob0dy666/imsgct/G-mOMonadOS/prepare_ququart.py", line 95, in main
+    prepared["prepared_operator"] = retained_operator(args.retained_case, inputs)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mrnob0dy666/imsgct/G-mOMonadOS/prepare_ququart.py", line 40, in retained_operator
+    raise RuntimeError("retained Fourier operator differs from requested source or accuracy")
+RuntimeError: retained Fourier operator differs from requested source or accuracy

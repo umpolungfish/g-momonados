@@ -1,0 +1,8 @@
+{
+  "binary_base_word": "⊢≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+  "resolved_base_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+  "work_radix_word": "⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+  "phase_radix": 4,
+  "scaling": "binary base composed log2(work radix) times modulo source",
+  "native_arm_word": "⊢≻⋈∈⊤∋⊙⊡⊣"
+}

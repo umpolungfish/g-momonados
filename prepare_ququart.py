@@ -54,13 +54,16 @@ def main():
     parser.add_argument("source", help="canonical source word, or @word-file")
     parser.add_argument("destination", type=Path)
     parser.add_argument("--base", help="canonical binary modular base word, scaled to --radix, or @word-file")
-    for option in ("seed", "accuracy", "sk", "net", "refinement", "radix", "native-arm"):
-        parser.add_argument(f"--{option}", help=f"canonical {option} word, or @word-file")
+    for option in ("seed", "accuracy", "sk", "net", "refinement", "radix", "native_arm"):
+        flag = option.replace("_", "-")
+        parser.add_argument(f"--{flag}", dest=option, help=f"canonical {flag} word, or @word-file")
     reports = parser.add_mutually_exclusive_group()
     reports.add_argument("--compiled-report", type=Path,
                         help="retained compiler JSON containing IMASM words; the physical braid is recontracted")
     reports.add_argument("--retained-case", type=Path,
                          help="reuse the exact source-bound Fourier operator embedded in a retained membrane")
+    parser.add_argument("--dynamic-work", action="store_true",
+                        help="generate nested arithmetic operations at execution from baked source words")
     args = parser.parse_args()
     case = args.destination.resolve()
     case.mkdir(parents=True, exist_ok=False)
@@ -133,8 +136,9 @@ def main():
                           "--prepare-powers", str(prepared_path)])
             prepared["prepared_operator"].update(json.loads(powers.stdout))
             prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
-            work = run([str(ROOT / "target/release/ququart_prepare_operator"), "--prepare-work", str(prepared_path)])
-            prepared["prepared_work"] = json.loads(work.stdout)
+            if not args.dynamic_work:
+                work = run([str(ROOT / "target/release/ququart_prepare_operator"), "--prepare-work", str(prepared_path)])
+                prepared["prepared_work"] = json.loads(work.stdout)
             prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
         build = run(["cargo", "build", "--release", "--bin", binary_name,
                      "--bin", "ququart_verify_readout"], env=env)
@@ -163,7 +167,8 @@ def main():
                         modular_work_operator="nested_reversible_arithmetic_on_shared_complex_decision_branches",
                         work_wire_layout="interleaved_source_workspace",
                         source_work_radix="baked_radix_word_live_digit_split_fuse",
-                        modular_work_preparation="source_bound_operations_baked_as_numeral_words",
+                        modular_work_preparation=("nested_operations_generated_at_execution_from_baked_words"
+                            if args.dynamic_work else "source_bound_operations_baked_as_numeral_words"),
                         feedback_operator="fixed_point_winding",
                         sic_inclusion="shared_control_gram_full_frame_and_dual_synthesis_at_each_phase_readout",
                         native_arm_word=prepared["native_arm_word"],

@@ -1,0 +1,13 @@
+Breakpoint 1 at 0x605eee9
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Breakpoint 1, 0x000060e056e08ee9 in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::controlled_multiply ()
+next_multiplier_reached_after_inclusive_readout
+#0  0x000060e056e08ee9 in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::controlled_multiply ()
+#1  0x000060e056dd4b40 in <g_momonados::ququart_factor::QuquartFactorExecutor<g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>>::shot ()
+#2  0x000060e056dd24df in ququart_factor_baked::execute ()
+#3  0x000060e056dcf6cd in ququart_factor_baked::main ()
+#4  0x000060e056dcce7d in std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()> ()
+#5  0x000060e056ddcf51 in main ()
+[Inferior 1 (process 34436) killed]

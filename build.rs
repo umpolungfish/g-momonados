@@ -6,11 +6,12 @@ fn main() {
         Ok(path) => {
             let path = fs::canonicalize(path).expect("prepared ququart file must exist");
             println!("cargo:rerun-if-changed={}", path.display());
-            let raw = fs::read_to_string(&path).expect("prepared ququart file must be UTF-8");
-            format!("const PREPARED: &str = {raw:?};\n")
+            let path_str = path.to_str().expect("valid UTF-8 path");
+            format!("const PREPARED: &str = include_str!({path_str:?});\n")
         }
         Err(_) => "const PREPARED: &str = \"\";\n".into(),
     };
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     fs::write(out.join("ququart_prepared.rs"), contents).unwrap();
 }
+

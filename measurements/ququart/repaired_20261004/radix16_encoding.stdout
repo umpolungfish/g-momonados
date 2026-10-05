@@ -1,0 +1,12 @@
+value      16
+word       ⊢≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣
+family     cell-binary
+value      16
+binary     10000
+support    {4}
+polynomial x^4
+bits-le    00001
+binary.frames          5
+braid.crossings        5
+braid.frame-closure    PASS
+rule       ⊥=1  ⊤=0  leftmost=2^0

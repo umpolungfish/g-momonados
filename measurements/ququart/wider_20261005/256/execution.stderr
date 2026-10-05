@@ -1,0 +1,82 @@
+native factor arm: child did not finish within its 65-second budget
+native factor stage: IFAC: cracking composite
+native factor stage: IFAC: checking for pure square
+native factor stage: IFAC: trying MPQS
+native factor stage: MPQS: number to factor N = #############################################################################
+native factor stage: MPQS: factoring number of ## decimal digits
+native factor stage: MPQS: sieving interval = [-######, ######]
+native factor stage: MPQS: size of factor base = #####
+native factor stage: MPQS: striving for ##### relations
+native factor stage: MPQS: coefficients A will be built from # primes each
+native factor stage: MPQS: primes for A to be chosen near FB[###] = ####
+native factor stage: MPQS: smallest prime used for sieving FB[##] = ##
+native factor stage: MPQS: largest prime in FB = ######
+native factor stage: MPQS: bound for `large primes' = ########
+native factor stage: MPQS: computing relations: #% #% #% #% #% #% #% #% #% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##% ##%
+native factor arm: child did not finish within its 5-second budget
+native factor stage: IFAC: cracking composite
+native factor stage: IFAC: checking for pure square
+native factor stage: IFAC: trying Pollard-Brent rho method
+native factor stage: Rho: searching small factor of ###-bit integer
+native factor stage: Rho: using X^#+# for up to ##### rounds of ## iterations
+native factor stage: Rho: time =     ## ms,	#### rounds
+native factor stage: Rho: fast forward phase (#### rounds of ##)...
+native factor stage: Rho: time =     ## ms,	#### rounds, back to normal mode
+native factor stage: Rho: time =      # ms,	#### rounds
+native factor stage: Rho: time =      # ms,	#### rounds
+native factor stage: Rho: fast forward phase (#### rounds of ##)...
+native factor stage: Rho: time =     ## ms,	#### rounds, back to normal mode
+native factor stage: Rho: time =      # ms,	#### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: fast forward phase (#### rounds of ##)...
+native factor stage: Rho: time =     ## ms,	##### rounds, back to normal mode
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	##### rounds
+native factor stage: Rho: time =      # ms,	Pollard-Brent giving up.
+native factor stage: IFAC: trying Shanks' SQUFOF, will fail silently if input
+native factor stage: IFAC: trying Lenstra-Montgomery ECM
+native factor stage: ECM: working on ## curves at a time; initializing for up to ## rounds...
+native factor stage: ECM: time =      # ms
+native factor stage: ECM: B# = ####,	B# = ######,	gss =  ###*###
+native factor stage: ECM: time =    ### ms, B# phase done, p = ####, setting up for B#
+native factor stage: ECM: time =      # ms, entering B# phase, p = ####
+native factor stage: ECM: time =     ## ms
+native factor stage: ECM: B# = ####,	B# = ######,	gss =  ###*###
+native factor stage: ECM: time =    ### ms, B# phase done, p = ####, setting up for B#
+native factor stage: ECM: time =      # ms, entering B# phase, p = ####
+native factor stage: ECM: time =    ### ms
+native factor stage: ECM: B# = ####,	B# = ######,	gss =  ###*###
+native factor stage: ECM: time =    ### ms, B# phase done, p = ####, setting up for B#
+native factor stage: ECM: time =      # ms, entering B# phase, p = ####
+native factor stage: ECM: time =    ### ms
+native factor stage: ECM: B# = ####,	B# = ######,	gss =  ###*###
+native factor stage: ECM: time =    ### ms, B# phase done, p = ####, setting up for B#
+native factor stage: ECM: time =      # ms, entering B# phase, p = ####
+native factor stage: ECM: time =    ### ms
+native factor stage: ECM: B# = ####,	B# = ######,	gss =  ###*###
+native factor stage: ECM: time =    ### ms, B# phase done, p = ####, setting up for B#
+native factor stage: ECM: time =      # ms, entering B# phase, p = ####
+native factor stage: ECM: time =    ### ms
+native factor stage: ECM: B# = ####,	B# = ######,	gss =  ###*###
+native factor stage: ECM: time =    ### ms, B# phase done, p = ####, setting up for B#
+native factor stage: ECM: time =      # ms, entering B# phase, p = ####
+native factor stage: ECM: time =    ### ms
+native factor stage: ECM: B# = ####,	B# = ######,	gss =  ###*###
+native factor stage: ECM: time =    ### ms, B# phase done, p = ####, setting up for B#
+native factor stage: ECM: time =      # ms, entering B# phase, p = ####
+native factor stage: ECM: time =    ### ms
+native factor stage: ECM: B# = ####,	B# = ######,	gss =  ###*###
+native factor stage: ECM: time =    ### ms, B# phase done, p = ####, setting up for B#
+native factor stage: ECM: time =      # ms, entering B# phase, p = ####
+native factor stage: ECM: time =    ### ms
+native factor stage: ECM: B# = ####,	B# = ######,	gss =  ###*###
+native factor stage: ECM: time =    ### ms, B# phase done, p = ####, setting up for B#
+native factor stage: ECM: time =      # ms, entering B# phase, p = ####

@@ -1,0 +1,139 @@
+Breakpoint 1 at 0x22f932
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Detaching after vfork from child process 11645]
+[New Thread 0x72e39d1ff640 (LWP 11646)]
+[Thread 0x72e39d1ff640 (LWP 11646) exited]
+[Detaching after vfork from child process 11664]
+[New Thread 0x72e39d1ff640 (LWP 11665)]
+[Thread 0x72e39d1ff640 (LWP 11665) exited]
+ququart_controlled_stage_entered=1
+ququart_controlled_stage_entered=2
+ququart_controlled_stage_entered=3
+ququart_controlled_stage_entered=4
+
+Thread 1 "membrane" received signal SIGINT, Interrupt.
+_int_free (av=0x72e39d41ac80 <main_arena>, p=<optimized out>, have_lock=<optimized out>) at ./malloc/malloc.c:4693
+terminal_or_cutoff_debug_stop
+	Using the running image of child Thread 0x72e39d476bc0 (LWP 11642).
+Program stopped at 0x72e39d2a2901.
+It stopped with signal SIGINT, Interrupt.
+process 11642
+Name:	membrane
+Umask:	0022
+State:	t (tracing stop)
+Tgid:	11642
+Ngid:	0
+Pid:	11642
+PPid:	11631
+TracerPid:	11631
+Uid:	1000	1000	1000	1000
+Gid:	1000	1000	1000	1000
+FDSize:	64
+Groups:	4 20 24 25 27 29 30 44 46 117 999 1000 
+NStgid:	11642
+NSpid:	11642
+NSpgid:	11642
+NSsid:	11617
+Kthread:	0
+VmPeak:	  791668 kB
+VmSize:	  673312 kB
+VmLck:	       0 kB
+VmPin:	       0 kB
+VmHWM:	  715152 kB
+VmRSS:	  579692 kB
+RssAnon:	  575212 kB
+RssFile:	    4480 kB
+RssShmem:	       0 kB
+VmData:	  601328 kB
+VmStk:	     524 kB
+VmExe:	     624 kB
+VmLib:	    2384 kB
+VmPTE:	    1200 kB
+VmSwap:	       0 kB
+HugetlbPages:	       0 kB
+CoreDumping:	0
+THP_enabled:	1
+untag_mask:	0xffffffffffffffff
+Threads:	1
+SigQ:	2/160409
+SigPnd:	0000000000000000
+ShdPnd:	0000000000000000
+SigBlk:	0000000000000000
+SigIgn:	0000000000001000
+SigCgt:	0000000100000440
+CapInh:	0000000000000000
+CapPrm:	0000000000000000
+CapEff:	0000000000000000
+CapBnd:	000001ffffffffff
+CapAmb:	0000000000000000
+NoNewPrivs:	0
+Seccomp:	0
+Seccomp_filters:	0
+Speculation_Store_Bypass:	thread vulnerable
+SpeculationIndirectBranch:	conditional enabled
+Cpus_allowed:	ff
+Cpus_allowed_list:	0-7
+Mems_allowed:	00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001
+Mems_allowed_list:	0
+voluntary_ctxt_switches:	3510
+nonvoluntary_ctxt_switches:	272
+rip            0x72e39d2a2901      0x72e39d2a2901 <_int_free+673>
+process 11642
+Mapped address spaces:
+
+          Start Addr           End Addr       Size     Offset  Perms  objfile
+      0x5afff4d66000     0x5afff4f4f000   0x1e9000        0x0  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_wider_320_shared_fixedbits_radix4_20261005/membrane
+      0x5afff4f4f000     0x5afff4feb000    0x9c000   0x1e8000  r-xp   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_wider_320_shared_fixedbits_radix4_20261005/membrane
+      0x5afff4feb000     0x5afff4ff0000     0x5000   0x283000  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_wider_320_shared_fixedbits_radix4_20261005/membrane
+      0x5afff4ff0000     0x5afff4ff1000     0x1000   0x287000  rw-p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_wider_320_shared_fixedbits_radix4_20261005/membrane
+      0x5b0033219000     0x5b004a918000 0x176ff000        0x0  rw-p   [heap]
+      0x72e38507b000     0x72e38e27c000  0x9201000        0x0  rw-p   
+      0x72e392b7d000     0x72e396b7e000  0x4001000        0x0  rw-p   
+      0x72e398000000     0x72e398021000    0x21000        0x0  rw-p   
+      0x72e398021000     0x72e39c000000  0x3fdf000        0x0  ---p   
+      0x72e39cfff000     0x72e39d000000     0x1000        0x0  ---p   
+      0x72e39d000000     0x72e39d200000   0x200000        0x0  rw-p   
+      0x72e39d200000     0x72e39d228000    0x28000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x72e39d228000     0x72e39d3bd000   0x195000    0x28000  r-xp   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x72e39d3bd000     0x72e39d415000    0x58000   0x1bd000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x72e39d415000     0x72e39d416000     0x1000   0x215000  ---p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x72e39d416000     0x72e39d41a000     0x4000   0x215000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x72e39d41a000     0x72e39d41c000     0x2000   0x219000  rw-p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x72e39d41c000     0x72e39d429000     0xd000        0x0  rw-p   
+      0x72e39d476000     0x72e39d478000     0x2000        0x0  rw-p   
+      0x72e39d478000     0x72e39d486000     0xe000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x72e39d486000     0x72e39d502000    0x7c000     0xe000  r-xp   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x72e39d502000     0x72e39d55d000    0x5b000    0x8a000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x72e39d55d000     0x72e39d55e000     0x1000    0xe4000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x72e39d55e000     0x72e39d55f000     0x1000    0xe5000  rw-p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x72e39d55f000     0x72e39d562000     0x3000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x72e39d562000     0x72e39d579000    0x17000     0x3000  r-xp   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x72e39d579000     0x72e39d57d000     0x4000    0x1a000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x72e39d57d000     0x72e39d57e000     0x1000    0x1d000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x72e39d57e000     0x72e39d57f000     0x1000    0x1e000  rw-p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x72e39d595000     0x72e39d596000     0x1000        0x0  ---p   
+      0x72e39d596000     0x72e39d59a000     0x4000        0x0  rw-p   
+      0x72e39d59a000     0x72e39d59c000     0x2000        0x0  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x72e39d59c000     0x72e39d5c6000    0x2a000     0x2000  r-xp   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x72e39d5c6000     0x72e39d5d1000     0xb000    0x2c000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x72e39d5d2000     0x72e39d5d4000     0x2000    0x37000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x72e39d5d4000     0x72e39d5d6000     0x2000    0x39000  rw-p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7ffec051f000     0x7ffec05a2000    0x83000        0x0  rw-p   [stack]
+      0x7ffec05a5000     0x7ffec05a9000     0x4000        0x0  r--p   [vvar]
+      0x7ffec05a9000     0x7ffec05ab000     0x2000        0x0  r-xp   [vdso]
+#0  _int_free (av=0x72e39d41ac80 <main_arena>, p=<optimized out>, have_lock=<optimized out>) at ./malloc/malloc.c:4693
+#1  0x000072e39d2a5413 in __GI___libc_free (mem=<optimized out>) at ./malloc/malloc.c:3391
+#2  0x00005afff4f75703 in <alloc::sync::Arc<num_bigint::biguint::BigUint>>::drop_slow ()
+#3  0x00005afff4f750c2 in core::ptr::drop_in_place::<g_momonados::ququart_decision::FixedBits> ()
+#4  0x00005afff4f75bd9 in <g_momonados::ququart_decision::DecisionArena>::reclaim ()
+#5  0x00005afff4f6d3cf in <g_momonados::ququart_decision::DecisionArena>::fold ()
+#6  0x00005afff4f6cc0d in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>::apply_nested ()
+#7  0x00005afff4f6b678 in <g_momonados::reversible_modular::ModularMultiply>::emit_ququart_nested_radix::<<g_momonados::ququart_folded_work::QuquartFoldedWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::controlled_multiply::{closure#2}>::{closure#1} ()
+#8  0x00005afff4f97225 in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::controlled_multiply ()
+#9  0x00005afff4f58b69 in <g_momonados::ququart_factor::QuquartFactorExecutor<g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>>::shot ()
+#10 0x00005afff4f56159 in ququart_factor_baked::execute ()
+#11 0x00005afff4f52ef1 in ququart_factor_baked::main ()
+#12 0x00005afff4f5060e in std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()> ()
+#13 0x00005afff4f61021 in main ()
+[Inferior 1 (process 11642) killed]

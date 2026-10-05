@@ -1,0 +1,12 @@
+value      0
+word       ⊢≻⋈∈⊤∋⊙⊡⊣
+family     cell-binary
+value      0
+binary     0
+support    {}
+polynomial 0
+bits-le    0
+binary.frames          1
+braid.crossings        1
+braid.frame-closure    PASS
+rule       ⊥=1  ⊤=0  leftmost=2^0

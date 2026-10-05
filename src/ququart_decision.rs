@@ -1,7 +1,7 @@
 //! Shared complex-amplitude decision branches for a coherent work register.
 //! Equal branches share storage; gates act on the diagram without enumerating residues.
 use crate::phase_unbraid::{FixedComplex, FixedPointFormat};
-use alloc::vec::Vec;
+use alloc::{sync::Arc, vec::Vec};
 #[cfg(any(test, not(feature = "hosted")))]
 use alloc::collections::BTreeMap;
 use num_bigint::{BigInt, BigUint};
@@ -116,12 +116,12 @@ mod tests {
 #[derive(Clone)]
 struct FixedBits {
     empty: bool,
-    zero: BigUint,
-    one: BigUint,
+    zero: Arc<BigUint>,
+    one: Arc<BigUint>,
 }
 impl FixedBits {
     fn leaf(empty: bool) -> Self {
-        Self { empty, zero: BigUint::zero(), one: BigUint::zero() }
+        Self { empty, zero: Arc::new(BigUint::zero()), one: Arc::new(BigUint::zero()) }
     }
 }
 pub struct DecisionArena {
@@ -161,17 +161,29 @@ impl DecisionArena {
                 let high = &self.fixed[*high];
                 let mut fixed = match (low.empty, high.empty) {
                     (true, true) => FixedBits::leaf(true),
-                    (false, true) => low.clone(),
-                    (true, false) => high.clone(),
+                    (false, true) => FixedBits {
+                        empty: false,
+                        zero: low.zero.clone(),
+                        one: low.one.clone(),
+                    },
+                    (true, false) => FixedBits {
+                        empty: false,
+                        zero: high.zero.clone(),
+                        one: high.one.clone(),
+                    },
                     (false, false) => FixedBits {
                         empty: false,
-                        zero: &low.zero & &high.zero,
-                        one: &low.one & &high.one,
+                        zero: Arc::new(&*low.zero & &*high.zero),
+                        one: Arc::new(&*low.one & &*high.one),
                     },
                 };
                 if !fixed.empty {
-                    fixed.zero.set_bit(*wire as u64, high.empty);
-                    fixed.one.set_bit(*wire as u64, low.empty);
+                    if high.empty {
+                        Arc::make_mut(&mut fixed.zero).set_bit(*wire as u64, true);
+                    }
+                    if low.empty {
+                        Arc::make_mut(&mut fixed.one).set_bit(*wire as u64, true);
+                    }
                 }
                 fixed
             }
@@ -203,15 +215,25 @@ impl DecisionArena {
         }
     }
     fn reclaim(&mut self, id: usize) {
-        let Some(node) = self.nodes[id].take() else {
-            return;
-        };
-        self.unique.remove(&node);
-        self.fixed[id] = FixedBits::leaf(true);
-        self.free.push(id);
-        if let Node::Branch { low, high, .. } = node {
-            self.release(low);
-            self.release(high);
+        let mut pending = alloc::vec![id];
+        while let Some(id) = pending.pop() {
+            if self.references[id] != 0 {
+                continue;
+            }
+            let Some(node) = self.nodes[id].take() else {
+                continue;
+            };
+            self.unique.remove(&node);
+            self.fixed[id] = FixedBits::leaf(true);
+            self.free.push(id);
+            if let Node::Branch { low, high, .. } = node {
+                for child in [low, high] {
+                    self.references[child] -= 1;
+                    if self.references[child] == 0 {
+                        pending.push(child);
+                    }
+                }
+            }
         }
     }
     pub fn zero(&mut self) -> usize {

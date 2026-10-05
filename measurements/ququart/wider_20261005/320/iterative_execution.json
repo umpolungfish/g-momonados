@@ -1,0 +1,14 @@
+{
+  "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_wider_320_iterative_radix4_20261005",
+  "debugger_exit": 0,
+  "elapsed_seconds": 85.27741869300007,
+  "closure_time_limit_seconds": 90,
+  "factor_report_present": false,
+  "inferior_killed": true,
+  "factor_extraction_verified": false,
+  "ququart_controlled_stage_entries": [
+    1,
+    2,
+    3
+  ]
+}

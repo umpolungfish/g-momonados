@@ -1,0 +1,27 @@
+{
+  "binary_sha256": "e18b5d96680a4569bd624e35751936ca9143c674985edc100d2adb3ba84fad53",
+  "relocation_base": "0x599ca9de6000",
+  "frames": [
+    {
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::intern",
+      "live_pc": "0x599cd17c0370",
+      "elf_pc": "0x279da370",
+      "start": "00000000279d9ffa",
+      "end": "0x279da7f9",
+      "disassembly": "intern.disasm",
+      "decoder_exit": 0
+    },
+    {
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit",
+      "live_pc": "0x599cd17c3170",
+      "elf_pc": "0x279dd170",
+      "start": "00000000279dcfef",
+      "end": "0x279dd2f7",
+      "disassembly": "source_cofactors.disasm",
+      "decoder_exit": 0
+    }
+  ],
+  "native_failure": "seventy-second source deadline expired",
+  "observed_stop": "intern -> recursive source_cofactors::visit",
+  "cutoff_elapsed_seconds": 85.28462613099691
+}

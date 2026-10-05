@@ -1,0 +1,30 @@
+{
+  "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cofactor_reuse_256_radix4_20261004",
+  "binary_sha256": "39e82ec8ca486bdd38a88769a1160cccb76ef0e571f0a8f65f41ff104e8329a8",
+  "controlled_stage_entries": [
+    1,
+    2,
+    3
+  ],
+  "completed_prior_readouts_inferred": 2,
+  "inference": "The shot loop advances to each next controlled multiplier only after measure_phase_digit, phase.push, and reset_control return Ok. measure_phase_digit performs Gram/SIC validation before returning Ok. Three entries precede cutoff within the first shot.",
+  "independent_terminal_verifier_used": false,
+  "factor_closure": false,
+  "instrument": "GDB controlled-multiply breakpoint plus complete Vox shot disassembly",
+  "regions": [
+    {
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::partition_less::visit",
+      "start": "00000000279e0a0f",
+      "size": "0000000000000544",
+      "decoder_exit": 0,
+      "file": "measurements/ququart/repaired_20261004/256/partition_less.cofactor.disasm"
+    },
+    {
+      "symbol": "<g_momonados::ququart_factor::QuquartFactorExecutor<g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>>::shot",
+      "start": "00000000279c61c4",
+      "size": "0000000000005252",
+      "decoder_exit": 0,
+      "file": "measurements/ququart/repaired_20261004/256/shot.cofactor.disasm"
+    }
+  ]
+}

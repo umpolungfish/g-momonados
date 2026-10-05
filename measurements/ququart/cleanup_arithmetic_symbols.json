@@ -1,0 +1,42 @@
+[
+  {
+    "start": 179732631,
+    "end": 179732864,
+    "symbol": "_RNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB4_13DecisionArena20conditional_literals"
+  },
+  {
+    "start": 179733078,
+    "end": 179733507,
+    "symbol": "_RNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB4_13DecisionArena12add_constant"
+  },
+  {
+    "start": 179738127,
+    "end": 179739019,
+    "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena12add_constant5visit"
+  },
+  {
+    "start": 179739019,
+    "end": 179742303,
+    "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena17modular_digit_add5visit"
+  },
+  {
+    "start": 179742739,
+    "end": 179743515,
+    "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena16source_cofactors5visit"
+  },
+  {
+    "start": 179745283,
+    "end": 179746135,
+    "symbol": "_RNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB4_13DecisionArena14partition_less"
+  },
+  {
+    "start": 179750600,
+    "end": 179751948,
+    "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena14partition_less5visit"
+  },
+  {
+    "start": 179756257,
+    "end": 179757465,
+    "symbol": "_RNvNvMs_NtCsdpsOGJVkNCx_11g_momonados16ququart_decisionNtB6_13DecisionArena20conditional_literals5visit"
+  }
+]

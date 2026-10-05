@@ -1,0 +1,23 @@
+[
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::partition_suffix_bound",
+    "start": "00000000279e09c0",
+    "size": "00000000000001b4",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/256/suffix_bound.partition.disasm"
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::partition_less::visit",
+    "start": "00000000279e0b74",
+    "size": "000000000000046a",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/256/partition_visit.partition.disasm"
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit",
+    "start": "00000000279ded47",
+    "size": "0000000000000319",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/256/cofactor_visit.partition.disasm"
+  }
+]

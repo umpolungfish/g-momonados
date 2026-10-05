@@ -1,0 +1,30 @@
+[
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit",
+    "start": "00000000279dec47",
+    "size": "0000000000000319",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/256/source_cofactors.cofactor.disasm"
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::modular_digit_add::visit",
+    "start": "00000000279ddee8",
+    "size": "0000000000000bab",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/256/modular_digit_add.cofactor.disasm"
+  },
+  {
+    "symbol": "core::ptr::drop_in_place::<<std::thread::Builder>::spawn_unchecked_<g_momonados::arbitrary_factor::native_factor_candidate_with_budget::{closure#0}, alloc::vec::Vec<u8>>::{closure#1}>",
+    "start": "00000000279d7195",
+    "size": "00000000000000dd",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/256/{closure#1}>.cofactor.disasm"
+  },
+  {
+    "symbol": "g_momonados::arbitrary_factor::native_factor_word_pair",
+    "start": "0000000027a02aae",
+    "size": "0000000000001118",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/256/native_factor_word_pair.cofactor.disasm"
+  }
+]

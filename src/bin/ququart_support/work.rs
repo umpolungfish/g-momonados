@@ -57,39 +57,96 @@ fn compile_legacy(p: &Value) -> Result<Value, String> {
     Ok(Value::Array(stages))
 }
 pub fn compile(p: &Value) -> Result<Value, String> {
-    let legacy = compile_legacy(p)?;
     // Retained older artifacts are checked in their original wire format.
     if p.get("prepared_work").is_some_and(Value::is_array) {
-        return Ok(legacy);
+        return compile_legacy(p);
     }
+
+    // Pool operations as they are generated. Building the complete legacy
+    // stage array first duplicates every wire word before the pool is made;
+    // at larger source widths that temporary representation dwarfs the final
+    // prepared work and can exhaust the preparation process.
+    let n = numeral(p["source_word"].as_str().ok_or("missing source")?)?;
+    let radix = g_momonados::ququart_factor::power_of_two_radix_word(
+        p["radix_word"].as_str().ok_or("missing radix")?,
+    )?;
+    let bits = radix.bits_le().len() - 1;
+    let arithmetic = ModularMultiply::new(&n)?;
+    let powers = p["prepared_operator"]["controlled_power_words"]
+        .as_array()
+        .ok_or("missing powers")?;
     let mut pool = Vec::new();
     let mut known = std::collections::HashMap::new();
     let mut register = Value::Array(Vec::new());
     let mut stages = Vec::new();
-    for stage in legacy.as_array().ok_or("invalid generated work")? {
-        let r = &stage["register_words"];
-        if !r.as_array().ok_or("invalid generated register")?.is_empty() {
+
+    for power in powers {
+        let multiplier = numeral(power.as_str().ok_or("nonword power")?)?;
+        let mut stage_references = Vec::new();
+        let mut stage_register = Vec::new();
+        for (lane, value) in [
+            (0, multiplier.clone()),
+            (1, &multiplier * &multiplier % &n),
+        ] {
+            arithmetic.emit_ququart_nested_radix(&value, lane, bits, |operation| {
+                let encoded = match operation {
+                    NestedOperation::ModularAdd {
+                        register: register_wires,
+                        digit,
+                        value,
+                        modulus,
+                        controls: literals,
+                    } => {
+                        if modulus != n
+                            || (!stage_register.is_empty() && stage_register != register_wires)
+                        {
+                            return Err("inconsistent work template".into());
+                        }
+                        stage_register = register_wires;
+                        let (control_words, polarity_words) = controls(&literals);
+                        json!({"modular_add": {
+                            "digit_words": wires(&digit),
+                            "value_word": word(&value),
+                            "control_words": control_words,
+                            "polarity_words": polarity_words
+                        }})
+                    }
+                    NestedOperation::Toggle(gate) => {
+                        let (control_words, polarity_words) = controls(&gate.controls);
+                        json!({"toggle": {
+                            "target_word": index(gate.target),
+                            "control_words": control_words,
+                            "polarity_words": polarity_words
+                        }})
+                    }
+                    _ => return Err("unexpected prepared operation".into()),
+                };
+
+                let key = encoded.to_string();
+                let id = if let Some(&id) = known.get(&key) {
+                    id
+                } else {
+                    let id = pool.len();
+                    pool.push(encoded);
+                    known.insert(key, id);
+                    id
+                };
+                stage_references.push(index(id));
+                Ok(())
+            })?;
+        }
+        let stage_register_words = wires(&stage_register);
+        if !stage_register_words.is_empty() {
             if register.as_array().unwrap().is_empty() {
-                register = r.clone();
-            } else if register != *r {
+                register = Value::Array(stage_register_words.into_iter().map(Value::String).collect());
+            } else if register != json!(stage_register_words) {
                 return Err("work pool has inconsistent workspace".into());
             }
         }
-        let mut references = Vec::new();
-        for operation in stage["operations"]
-            .as_array()
-            .ok_or("invalid generated operations")?
-        {
-            let key = operation.to_string();
-            let id = *known.entry(key).or_insert_with(|| {
-                let id = pool.len();
-                pool.push(operation.clone());
-                id
-            });
-            references.push(index(id));
-        }
-        stages
-            .push(json!({"multiplier_word":stage["multiplier_word"],"operation_words":references}));
+        stages.push(json!({
+            "multiplier_word": power,
+            "operation_words": stage_references
+        }));
     }
     Ok(json!({"register_words":register,"operations":pool,"stages":stages}))
 }

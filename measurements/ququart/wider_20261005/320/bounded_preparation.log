@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/home/mrnob0dy666/imsgct/G-mOMonadOS/prepare_ququart.py", line 190, in <module>
+    main()
+  File "/home/mrnob0dy666/imsgct/G-mOMonadOS/prepare_ququart.py", line 136, in main
+    work = run([str(ROOT / "target/release/ququart_prepare_operator"), "--prepare-work", str(prepared_path)])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mrnob0dy666/imsgct/G-mOMonadOS/prepare_ququart.py", line 20, in run
+    return subprocess.run(args, cwd=ROOT, check=True, text=True,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mrnob0dy666/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/home/mrnob0dy666/imsgct/G-mOMonadOS/target/release/ququart_prepare_operator', '--prepare-work', '/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_wider_320_bounded_radix4_20261005/prepared.json']' died with <Signals.SIGABRT: 6>.

@@ -1,0 +1,14 @@
+{
+  "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cofactor_reuse_256_radix4_20261004",
+  "debugger_exit": 0,
+  "elapsed_seconds": 85.50168594600109,
+  "closure_time_limit_seconds": 90,
+  "factor_report_present": false,
+  "inferior_killed": true,
+  "factor_extraction_verified": false,
+  "ququart_controlled_stage_entries": [
+    1,
+    2,
+    3
+  ]
+}

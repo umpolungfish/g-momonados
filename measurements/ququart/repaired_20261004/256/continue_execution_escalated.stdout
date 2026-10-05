@@ -1,0 +1,202 @@
+Breakpoint 1 at 0x27a04108
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Detaching after vfork from child process 58118]
+[New Thread 0x791365bff640 (LWP 58119)]
+[Thread 0x791365bff640 (LWP 58119) exited]
+[Detaching after vfork from child process 58132]
+[New Thread 0x791365bff640 (LWP 58133)]
+[Thread 0x791365bff640 (LWP 58133) exited]
+ququart_controlled_stage_entered=1
+ququart_controlled_stage_entered=2
+ququart_controlled_stage_entered=3
+
+Thread 1 "membrane" received signal SIGINT, Interrupt.
+__GI___libc_malloc (bytes=64) at ./malloc/malloc.c:3340
+terminal_or_cutoff_debug_stop
+	Using the running image of child Thread 0x791365fedbc0 (LWP 58114).
+Program stopped at 0x791365ca5108.
+It stopped with signal SIGINT, Interrupt.
+rip            0x791365ca5108      0x791365ca5108 <__GI___libc_malloc+168>
+process 58114
+Mapped address spaces:
+
+          Start Addr           End Addr       Size     Offset  Perms  objfile
+      0x5d41c772b000     0x5d41ef0e8000 0x279bd000        0x0  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_continue_256_radix4_20261005/membrane
+      0x5d41ef0e8000     0x5d41ef184000    0x9c000 0x279bc000  r-xp   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_continue_256_radix4_20261005/membrane
+      0x5d41ef184000     0x5d41ef189000     0x5000 0x27a57000  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_continue_256_radix4_20261005/membrane
+      0x5d41ef189000     0x5d41ef18b000     0x2000 0x27a5b000  rw-p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_continue_256_radix4_20261005/membrane
+      0x5d420024c000     0x5d42782c3000 0x78077000        0x0  rw-p   [heap]
+      0x79135cb7d000     0x79135e97e000  0x1e01000        0x0  rw-p   
+      0x791360000000     0x791360021000    0x21000        0x0  rw-p   
+      0x791360021000     0x791364000000  0x3fdf000        0x0  ---p   
+      0x791364cfc000     0x7913654fd000   0x801000        0x0  rw-p   
+      0x7913659ff000     0x791365a00000     0x1000        0x0  ---p   
+      0x791365a00000     0x791365c00000   0x200000        0x0  rw-p   
+      0x791365c00000     0x791365c28000    0x28000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x791365c28000     0x791365dbd000   0x195000    0x28000  r-xp   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x791365dbd000     0x791365e15000    0x58000   0x1bd000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x791365e15000     0x791365e16000     0x1000   0x215000  ---p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x791365e16000     0x791365e1a000     0x4000   0x215000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x791365e1a000     0x791365e1c000     0x2000   0x219000  rw-p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x791365e1c000     0x791365e29000     0xd000        0x0  rw-p   
+      0x791365fed000     0x791365fef000     0x2000        0x0  rw-p   
+      0x791365fef000     0x791365ffd000     0xe000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x791365ffd000     0x791366079000    0x7c000     0xe000  r-xp   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x791366079000     0x7913660d4000    0x5b000    0x8a000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7913660d4000     0x7913660d5000     0x1000    0xe4000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7913660d5000     0x7913660d6000     0x1000    0xe5000  rw-p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7913660d6000     0x7913660d9000     0x3000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7913660d9000     0x7913660f0000    0x17000     0x3000  r-xp   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7913660f0000     0x7913660f4000     0x4000    0x1a000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7913660f4000     0x7913660f5000     0x1000    0x1d000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7913660f5000     0x7913660f6000     0x1000    0x1e000  rw-p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x79136610c000     0x79136610d000     0x1000        0x0  ---p   
+      0x79136610d000     0x791366111000     0x4000        0x0  rw-p   
+      0x791366111000     0x791366113000     0x2000        0x0  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x791366113000     0x79136613d000    0x2a000     0x2000  r-xp   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x79136613d000     0x791366148000     0xb000    0x2c000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x791366149000     0x79136614b000     0x2000    0x37000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x79136614b000     0x79136614d000     0x2000    0x39000  rw-p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7ffff5703000     0x7ffff576e000    0x6b000        0x0  rw-p   [stack]
+      0x7ffff5770000     0x7ffff5774000     0x4000        0x0  r--p   [vvar]
+      0x7ffff5774000     0x7ffff5776000     0x2000        0x0  r-xp   [vdso]
+#0  __GI___libc_malloc (bytes=64) at ./malloc/malloc.c:3340
+#1  0x00005d41ef10e947 in <g_momonados::ququart_decision::FixedBits as core::clone::Clone>::clone ()
+#2  0x00005d41ef1070b3 in <g_momonados::ququart_decision::DecisionArena>::intern ()
+#3  0x00005d41ef10d8cd in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#4  0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#5  0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#6  0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#7  0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#8  0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#9  0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#10 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#11 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#12 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#13 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#14 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#15 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#16 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#17 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#18 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#19 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#20 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#21 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#22 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#23 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#24 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#25 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#26 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#27 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#28 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#29 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#30 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#31 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#32 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#33 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#34 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#35 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#36 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#37 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#38 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#39 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#40 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#41 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#42 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#43 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#44 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#45 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#46 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#47 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#48 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#49 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#50 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#51 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#52 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#53 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#54 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#55 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#56 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#57 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#58 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#59 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#60 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#61 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#62 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#63 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#64 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#65 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#66 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#67 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#68 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#69 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#70 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#71 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#72 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#73 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#74 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#75 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#76 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#77 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#78 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#79 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#80 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#81 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#82 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#83 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#84 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#85 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#86 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#87 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#88 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#89 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#90 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#91 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#92 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#93 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#94 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#95 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#96 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#97 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#98 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#99 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#100 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#101 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#102 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#103 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#104 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#105 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#106 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#107 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#108 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#109 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#110 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#111 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#112 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#113 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#114 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#115 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#116 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#117 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#118 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#119 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#120 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#121 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#122 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#123 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#124 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#125 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#126 0x00005d41ef10d850 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#127 0x00005d41ef10d878 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit ()
+#128 0x00005d41ef107703 in <g_momonados::ququart_decision::DecisionArena>::conditional_literals ()
+#129 0x00005d41ef1096b6 in <g_momonados::ququart_decision::DecisionArena>::modular_digit_add::visit ()
+#130 0x00005d41ef109644 in <g_momonados::ququart_decision::DecisionArena>::modular_digit_add::visit ()
+#131 0x00005d41ef106373 in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>::apply_nested ()
+#132 0x00005d41ef12f987 in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::controlled_multiply ()
+#133 0x00005d41ef0f2465 in <g_momonados::ququart_factor::QuquartFactorExecutor<g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>>::shot ()
+#134 0x00005d41ef0efa6c in ququart_factor_baked::execute ()
+#135 0x00005d41ef0ec8c0 in ququart_factor_baked::main ()
+#136 0x00005d41ef0e9fdd in std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()> ()
+#137 0x00005d41ef0fa911 in main ()
+[Inferior 1 (process 58114) killed]
