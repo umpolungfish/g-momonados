@@ -87,7 +87,20 @@ pub fn process_semiprime(raw_input: &str) -> Result<SemiprimeReport, String> {
     let sieve_read = prime_sieve_read(&word, 65536)?;
 
     // 2. Factor Pair Extraction and product closure
-    let extraction = crate::arbitrary_factor::extract(raw_input)?;
+    let extraction = crate::arbitrary_factor::extract_with_anyons(raw_input, |cand_n| {
+        let cand_word = crate::arbitrary_factor::word_of(cand_n);
+        if let Ok(Some((p_word, _))) = crate::arbitrary_factor::native_factor_word_pair(&cand_word) {
+            if let Ok(reading) = decode(&p_word) {
+                let p = crate::arbitrary_factor::nat_to_biguint(&reading.value);
+                return Ok(Some(crate::arbitrary_factor::AnyonCandidate {
+                    factor: p,
+                    detail: "Anyon ququart morphism closure".into(),
+                }));
+            }
+        }
+        Ok(None)
+    })?;
+
     let mut pair = Vec::new();
     if extraction.verified {
         for (prime, exponent) in &extraction.factors {

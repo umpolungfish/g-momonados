@@ -1,0 +1,251 @@
+Breakpoint 1 at 0x27a03d73
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Detaching after vfork from child process 44363]
+[New Thread 0x7afef43ff640 (LWP 44364)]
+[Thread 0x7afef43ff640 (LWP 44364) exited]
+[Detaching after vfork from child process 44419]
+[New Thread 0x7afef43ff640 (LWP 44420)]
+[Thread 0x7afef43ff640 (LWP 44420) exited]
+ququart_controlled_stage_entered=1
+ququart_controlled_stage_entered=2
+ququart_controlled_stage_entered=3
+
+Thread 1 "membrane" received signal SIGINT, Interrupt.
+0x00005fc76fd4ac72 in <g_momonados::ququart_decision::DecisionArena>::node ()
+terminal_or_cutoff_debug_stop
+	Using the running image of child Thread 0x7afef46cabc0 (LWP 44360).
+Program stopped at 0x5fc76fd4ac72.
+It stopped with signal SIGINT, Interrupt.
+rip            0x5fc76fd4ac72      0x5fc76fd4ac72 <<g_momonados::ququart_decision::DecisionArena>::node+26>
+process 44360
+Mapped address spaces:
+
+          Start Addr           End Addr       Size     Offset  Perms  objfile
+      0x5fc74836e000     0x5fc76fd2b000 0x279bd000        0x0  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cofactor_reuse_256_radix4_20261004/membrane
+      0x5fc76fd2b000     0x5fc76fdc7000    0x9c000 0x279bc000  r-xp   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cofactor_reuse_256_radix4_20261004/membrane
+      0x5fc76fdc7000     0x5fc76fdcc000     0x5000 0x27a57000  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cofactor_reuse_256_radix4_20261004/membrane
+      0x5fc76fdcc000     0x5fc76fdcd000     0x1000 0x27a5b000  rw-p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_cofactor_reuse_256_radix4_20261004/membrane
+      0x5fc772855000     0x5fc7ea8d0000 0x7807b000        0x0  rw-p   [heap]
+      0x7afeea1ff000     0x7afeec000000  0x1e01000        0x0  rw-p   
+      0x7afeec000000     0x7afeec021000    0x21000        0x0  rw-p   
+      0x7afeec021000     0x7afef0000000  0x3fdf000        0x0  ---p   
+      0x7afef347b000     0x7afef3c7c000   0x801000        0x0  rw-p   
+      0x7afef41ff000     0x7afef4200000     0x1000        0x0  ---p   
+      0x7afef4200000     0x7afef4400000   0x200000        0x0  rw-p   
+      0x7afef4400000     0x7afef4428000    0x28000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7afef4428000     0x7afef45bd000   0x195000    0x28000  r-xp   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7afef45bd000     0x7afef4615000    0x58000   0x1bd000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7afef4615000     0x7afef4616000     0x1000   0x215000  ---p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7afef4616000     0x7afef461a000     0x4000   0x215000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7afef461a000     0x7afef461c000     0x2000   0x219000  rw-p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7afef461c000     0x7afef4629000     0xd000        0x0  rw-p   
+      0x7afef46ca000     0x7afef46cc000     0x2000        0x0  rw-p   
+      0x7afef46cc000     0x7afef46da000     0xe000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7afef46da000     0x7afef4756000    0x7c000     0xe000  r-xp   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7afef4756000     0x7afef47b1000    0x5b000    0x8a000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7afef47b1000     0x7afef47b2000     0x1000    0xe4000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7afef47b2000     0x7afef47b3000     0x1000    0xe5000  rw-p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7afef47b3000     0x7afef47b6000     0x3000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7afef47b6000     0x7afef47cd000    0x17000     0x3000  r-xp   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7afef47cd000     0x7afef47d1000     0x4000    0x1a000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7afef47d1000     0x7afef47d2000     0x1000    0x1d000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7afef47d2000     0x7afef47d3000     0x1000    0x1e000  rw-p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7afef47e9000     0x7afef47ea000     0x1000        0x0  ---p   
+      0x7afef47ea000     0x7afef47ee000     0x4000        0x0  rw-p   
+      0x7afef47ee000     0x7afef47f0000     0x2000        0x0  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7afef47f0000     0x7afef481a000    0x2a000     0x2000  r-xp   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7afef481a000     0x7afef4825000     0xb000    0x2c000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7afef4826000     0x7afef4828000     0x2000    0x37000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7afef4828000     0x7afef482a000     0x2000    0x39000  rw-p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7ffc6b574000     0x7ffc6b5df000    0x6b000        0x0  rw-p   [stack]
+      0x7ffc6b5ef000     0x7ffc6b5f3000     0x4000        0x0  r--p   [vvar]
+      0x7ffc6b5f3000     0x7ffc6b5f5000     0x2000        0x0  r-xp   [vdso]
+#0  0x00005fc76fd4ac72 in <g_momonados::ququart_decision::DecisionArena>::node ()
+#1  0x00005fc76fd4eb65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#2  0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#3  0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#4  0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#5  0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#6  0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#7  0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#8  0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#9  0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#10 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#11 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#12 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#13 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#14 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#15 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#16 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#17 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#18 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#19 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#20 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#21 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#22 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#23 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#24 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#25 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#26 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#27 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#28 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#29 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#30 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#31 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#32 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#33 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#34 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#35 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#36 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#37 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#38 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#39 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#40 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#41 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#42 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#43 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#44 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#45 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#46 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#47 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#48 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#49 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#50 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#51 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#52 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#53 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#54 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#55 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#56 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#57 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#58 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#59 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#60 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#61 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#62 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#63 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#64 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#65 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#66 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#67 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#68 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#69 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#70 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#71 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#72 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#73 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#74 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#75 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#76 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#77 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#78 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#79 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#80 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#81 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#82 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#83 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#84 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#85 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#86 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#87 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#88 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#89 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#90 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#91 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#92 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#93 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#94 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#95 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#96 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#97 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#98 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#99 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#100 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#101 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#102 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#103 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#104 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#105 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#106 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#107 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#108 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#109 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#110 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#111 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#112 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#113 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#114 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#115 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#116 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#117 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#118 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#119 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#120 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#121 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#122 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#123 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#124 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#125 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#126 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#127 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#128 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#129 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#130 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#131 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#132 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#133 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#134 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#135 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#136 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#137 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#138 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#139 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#140 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#141 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#142 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#143 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#144 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#145 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#146 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#147 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#148 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#149 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#150 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#151 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#152 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#153 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#154 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#155 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#156 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#157 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#158 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#159 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#160 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#161 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#162 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#163 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#164 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#165 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#166 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#167 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#168 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#169 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#170 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#171 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#172 0x00005fc76fd4ecfe in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#173 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#174 0x00005fc76fd4ed3d in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#175 0x00005fc76fd4ec65 in <g_momonados::ququart_decision::DecisionArena>::partition_less::visit ()
+#176 0x00005fc76fd4d96a in <g_momonados::ququart_decision::DecisionArena>::partition_less ()
+#177 0x00005fc76fd4c8ae in <g_momonados::ququart_decision::DecisionArena>::modular_digit_add::visit ()
+#178 0x00005fc76fd4c589 in <g_momonados::ququart_decision::DecisionArena>::modular_digit_add::visit ()
+#179 0x00005fc76fd4c544 in <g_momonados::ququart_decision::DecisionArena>::modular_digit_add::visit ()
+#180 0x00005fc76fd49273 in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>::apply_nested ()
+#181 0x00005fc76fd725f2 in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::controlled_multiply ()
+#182 0x00005fc76fd35365 in <g_momonados::ququart_factor::QuquartFactorExecutor<g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>>::shot ()
+#183 0x00005fc76fd3296c in ququart_factor_baked::execute ()
+#184 0x00005fc76fd2f7c0 in ququart_factor_baked::main ()
+#185 0x00005fc76fd2cedd in std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()> ()
+#186 0x00005fc76fd3d811 in main ()
+[Inferior 1 (process 44360) killed]

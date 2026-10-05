@@ -55,6 +55,11 @@ path = "src/bin/ququart_verify_readout.rs"
 required-features = ["hosted"]
 
 [[bin]]
+name = "test_source_256"
+path = "src/bin/test_source_256.rs"
+required-features = ["hosted"]
+
+[[bin]]
 name = "anyon_cnot_compile"
 path = "src/bin/anyon_cnot_compile.rs"
 required-features = ["hosted"]

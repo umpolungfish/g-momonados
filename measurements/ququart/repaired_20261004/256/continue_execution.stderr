@@ -1,0 +1,4 @@
+warning: Could not trace the inferior process.
+warning: ptrace: Operation not permitted
+/home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/ququart/repaired_20261004/256/continue_execution.gdb:19: Error in sourced command file:
+During startup program exited with code 127.

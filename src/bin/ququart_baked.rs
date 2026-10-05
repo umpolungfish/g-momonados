@@ -1,4 +1,5 @@
 //! Source-bound Fourier membrane with one terminal readout.
+#[allow(dead_code)]
 #[path = "ququart_support/mod.rs"]
 mod support;
 include!(concat!(env!("OUT_DIR"), "/ququart_prepared.rs"));
