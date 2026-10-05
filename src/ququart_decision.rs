@@ -537,6 +537,9 @@ impl DecisionArena {
         if !self.controls_possible(root,controls) || value.is_zero() { return root; }
         fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &BigUint,
             at: usize, borrow: bool, memo: &mut OperationCache<(usize,usize,bool),usize>) -> usize {
+            // Subtraction by a zero suffix with no incoming borrow is the
+            // identity on every remaining register and spectator wire.
+            if !borrow && value.bits() <= at as u64 { return id; }
             if at == register.len() || matches!(arena.node(id),Node::Leaf(..)) { return id; }
             if let Some(&result) = memo.get(&(id,at,borrow)) { return result; }
             let wire = arena.top(id).unwrap().min(register[at]);
