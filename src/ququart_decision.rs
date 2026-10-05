@@ -574,28 +574,20 @@ impl DecisionArena {
         // those bounds from the most significant wire without constructing
         // either integer or walking the amplitude diagram. An uncertain
         // interval falls through to the full partition below.
-        let mut minimum = core::cmp::Ordering::Equal;
-        let mut maximum = core::cmp::Ordering::Equal;
-        for (bit,&wire) in register.iter().enumerate().rev() {
-            let boundary = value.bit(bit as u64);
-            if minimum == core::cmp::Ordering::Equal {
-                minimum = fixed.one.bit(wire as u64).cmp(&boundary);
-            }
-            if maximum == core::cmp::Ordering::Equal {
-                maximum = (!fixed.zero.bit(wire as u64)).cmp(&boundary);
-            }
-            if minimum != core::cmp::Ordering::Equal && maximum != core::cmp::Ordering::Equal {
-                break;
-            }
+        if let Some(less) = self.partition_suffix_bound(root,register,value,0,false) {
+            return if less { (root,zero) } else { (zero,root) };
         }
-        if maximum == core::cmp::Ordering::Less { return (root,zero); }
-        if minimum != core::cmp::Ordering::Less { return (zero,root); }
         fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &BigUint,
             at: usize, less: bool, zero: usize,
             memo: &mut OperationCache<(usize,usize,bool),(usize,usize)>) -> (usize,usize) {
             if arena.fixed[id].empty { return (zero,zero); }
             if at == register.len() { return if less { (id,zero) } else { (zero,id) }; }
             if let Some(&result) = memo.get(&(id,at,less)) { return result; }
+            if let Some(all_less) = arena.partition_suffix_bound(id,register,value,at,less) {
+                let result = if all_less { (id,zero) } else { (zero,id) };
+                memo.insert((id,at,less),result);
+                return result;
+            }
             let wire = arena.top(id).unwrap_or(register[at]).min(register[at]);
             let (low,high) = arena.split(id,wire);
             let (low,high) = if wire == register[at] {
@@ -613,13 +605,42 @@ impl DecisionArena {
         visit(self,root,register,value,0,false,zero,&mut OperationCache::new())
     }
 
+    // Compare the remaining support interval with the remaining threshold.
+    // Equal suffixes inherit the subtraction borrow from the consumed prefix.
+    fn partition_suffix_bound(&self, root: usize, register: &[usize], value: &BigUint,
+        at: usize, less: bool) -> Option<bool> {
+        let fixed = &self.fixed[root];
+        let mut minimum = core::cmp::Ordering::Equal;
+        let mut maximum = core::cmp::Ordering::Equal;
+        for (bit,&wire) in register.iter().enumerate().skip(at).rev() {
+            let boundary = value.bit(bit as u64);
+            if minimum == core::cmp::Ordering::Equal {
+                minimum = fixed.one.bit(wire as u64).cmp(&boundary);
+            }
+            if maximum == core::cmp::Ordering::Equal {
+                maximum = (!fixed.zero.bit(wire as u64)).cmp(&boundary);
+            }
+            if minimum != core::cmp::Ordering::Equal && maximum != core::cmp::Ordering::Equal {
+                break;
+            }
+        }
+        if maximum == core::cmp::Ordering::Less || (maximum == core::cmp::Ordering::Equal && less) {
+            return Some(true);
+        }
+        if minimum == core::cmp::Ordering::Greater || (minimum == core::cmp::Ordering::Equal && !less) {
+            return Some(false);
+        }
+        None
+    }
+
     /// Remove one unchanged source coordinate in a shared traversal.
     /// Both cofactors retain every earlier work coordinate. The caller restores
     /// the source wire after translating the work register.
-    fn source_cofactors(&mut self, root: usize, source: usize) -> (usize,usize) {
+    fn source_cofactors(&mut self, root: usize, source: usize,
+        memo: &mut OperationCache<(usize,usize),(usize,usize)>) -> (usize,usize) {
         fn visit(arena: &mut DecisionArena, root: usize, source: usize,
-            memo: &mut OperationCache<usize,(usize,usize)>) -> (usize,usize) {
-            if let Some(&result) = memo.get(&root) { return result; }
+            memo: &mut OperationCache<(usize,usize),(usize,usize)>) -> (usize,usize) {
+            if let Some(&result) = memo.get(&(root,source)) { return result; }
             let result = match *arena.node(root) {
                 Node::Branch { wire, low, high } if wire == source => (low,high),
                 Node::Branch { wire, low, high } if wire < source => {
@@ -629,10 +650,10 @@ impl DecisionArena {
                 }
                 _ => (root,root),
             };
-            memo.insert(root,result);
+            memo.insert((root,source),result);
             result
         }
-        visit(self,root,source,&mut OperationCache::new())
+        visit(self,root,source,memo)
     }
 
     /// Split only live source-digit arms, translate each complete digit once,
@@ -641,20 +662,21 @@ impl DecisionArena {
         value: &BigUint, modulus: &BigUint, controls: &[(usize,bool)]) -> usize {
         if !self.controls_possible(root,controls) { return root; }
         fn visit(arena: &mut DecisionArena, root: usize, register: &[usize], digit: &[usize],
-            at: usize, accumulated: &BigUint, place: &BigUint, modulus: &BigUint) -> usize {
+            at: usize, accumulated: &BigUint, place: &BigUint, modulus: &BigUint,
+            cofactors: &mut OperationCache<(usize,usize),(usize,usize)>) -> usize {
             if arena.fixed[root].empty { return root; }
             if at == digit.len() { return arena.modular_add(root,register,accumulated,modulus,&[]); }
             let next_place = (place << 1usize) % modulus;
             if arena.fixed[root].zero.bit(digit[at] as u64) {
-                return visit(arena,root,register,digit,at+1,accumulated,&next_place,modulus);
+                return visit(arena,root,register,digit,at+1,accumulated,&next_place,modulus,cofactors);
             }
             let next_accumulated = (accumulated + place) % modulus;
             if arena.fixed[root].one.bit(digit[at] as u64) {
-                return visit(arena,root,register,digit,at+1,&next_accumulated,&next_place,modulus);
+                return visit(arena,root,register,digit,at+1,&next_accumulated,&next_place,modulus,cofactors);
             }
-            let (low,high) = arena.source_cofactors(root,digit[at]);
-            let low = visit(arena,low,register,digit,at+1,accumulated,&next_place,modulus);
-            let high = visit(arena,high,register,digit,at+1,&next_accumulated,&next_place,modulus);
+            let (low,high) = arena.source_cofactors(root,digit[at],cofactors);
+            let low = visit(arena,low,register,digit,at+1,accumulated,&next_place,modulus,cofactors);
+            let high = visit(arena,high,register,digit,at+1,&next_accumulated,&next_place,modulus,cofactors);
             // Source and work coordinates are disjoint. Restore the removed
             // source wire in diagram order, including earlier work branches
             // changed by the translation, rather than adding masked roots.
@@ -662,7 +684,10 @@ impl DecisionArena {
         }
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
-        let changed = visit(self,enabled,register,digit,0,&BigUint::zero(),value,modulus);
+        // Nested digit arms share cofactor answers. Nodes are immutable and
+        // none are reclaimed until this arithmetic operation has returned.
+        let changed = visit(self,enabled,register,digit,0,&BigUint::zero(),value,modulus,
+            &mut OperationCache::new());
         self.conditional_literals(root,changed,controls)
     }
 
