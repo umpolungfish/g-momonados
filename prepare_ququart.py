@@ -54,7 +54,7 @@ def main():
     parser.add_argument("source", help="canonical source word, or @word-file")
     parser.add_argument("destination", type=Path)
     parser.add_argument("--base", help="canonical binary modular base word, scaled to --radix, or @word-file")
-    for option in ("seed", "accuracy", "sk", "net", "refinement", "radix"):
+    for option in ("seed", "accuracy", "sk", "net", "refinement", "radix", "native-arm"):
         parser.add_argument(f"--{option}", help=f"canonical {option} word, or @word-file")
     reports = parser.add_mutually_exclusive_group()
     reports.add_argument("--compiled-report", type=Path,
@@ -69,7 +69,7 @@ def main():
     (case / "operator_build.log").write_text(build.stdout + build.stderr)
     defaults = json.loads(run([str(ROOT / "target/release/ququart_prepare_operator"), "--defaults"]).stdout)
     inputs = dict(defaults, source_word=input_word(args.source))
-    for option in ("seed", "accuracy", "sk", "net", "refinement", "radix"):
+    for option in ("seed", "accuracy", "sk", "net", "refinement", "radix", "native_arm"):
         if getattr(args, option) is not None:
             inputs[f"{option}_word"] = input_word(getattr(args, option))
     if args.base is not None:
@@ -170,6 +170,8 @@ def main():
                         nested_arms=["native_factor_engine", "ququart_phase_with_sic_frame"],
                         native_factor_engine="PARI_GP_canonical_IMASM_word_adapter",
                         native_source_budget_seconds=70,
+                        native_source_attempts=[{"factorint_flags":6,"budget_seconds":65},
+                                                {"factorint_flags":0,"budget_seconds":5}],
                         native_cofactor_budget_seconds=10,
                         producing_arm_words={"native_factor_engine":defaults["capacity_word"],
                                              "ququart_phase_with_sic_frame":defaults["native_arm_word"]},

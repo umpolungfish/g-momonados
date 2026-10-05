@@ -483,12 +483,12 @@ fn one_factor(n: &BigUint, steps: &mut Vec<Step>) -> Option<BigUint> {
 /// passes the same word-level split gate as every other route.
 #[cfg(feature = "hosted")]
 fn native_factor_candidate(n: &BigUint) -> Option<BigUint> {
-    native_factor_candidate_with_budget(n, std::time::Duration::from_secs(10))
+    native_factor_candidate_with_budget(n, std::time::Duration::from_secs(10), 0)
 }
 
 #[cfg(feature = "hosted")]
-fn native_factor_candidate_with_budget(n: &BigUint, budget: std::time::Duration) -> Option<BigUint> {
-    use std::io::Write;
+fn native_factor_candidate_with_budget(n: &BigUint, budget: std::time::Duration, flags: u8) -> Option<BigUint> {
+    use std::io::{Read, Write};
     use std::process::{Command, Stdio};
     use std::time::{Duration, Instant};
     let mut child = Command::new("gp")
@@ -498,17 +498,37 @@ fn native_factor_candidate_with_budget(n: &BigUint, budget: std::time::Duration)
         .stderr(Stdio::piped())
         .spawn()
         .ok()?;
+    // Drain diagnostics while the engine runs so its debug pipe cannot stall
+    // a native attempt. Retain only stage names at the external boundary.
+    let Some(mut errors) = child.stderr.take() else {
+        let _ = child.kill();
+        let _ = child.wait();
+        return None;
+    };
+    let error_reader = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        let _ = errors.read_to_end(&mut bytes);
+        bytes
+    });
+    let report_stages = |bytes: &[u8]| {
+        for line in String::from_utf8_lossy(bytes).lines() {
+            if ["mpqs", "ecm", "squfof", "rho", "ifac"].iter().any(|stage| line.to_ascii_lowercase().contains(stage)) {
+                let stage_only: String = line.chars().map(|c| if c.is_ascii_digit() { '#' } else { c }).collect();
+                eprintln!("native factor stage: {stage_only}");
+            }
+        }
+    };
     // The native engine's data boundary receives and returns canonical words.
     // GP reconstructs its internal integer from the UTF-8 numeral marks; no
     // decimal source or decimal factor crosses this adapter.
     let input = format!(concat!(
-        "allocatemem(2^26);\n",
+        "allocatemem(2^26);\ndefault(debug,4);\n",
         "w=Vecsmall(\"{}\");z=Vecsmall(\"⊤\");o=Vecsmall(\"⊥\");n=0;b=1;",
         "for(i=1,#w-2,if(w[i]==o[1]&&w[i+1]==o[2]&&w[i+2]==o[3],n+=b;b*=2,",
         "if(w[i]==z[1]&&w[i+1]==z[2]&&w[i+2]==z[3],b*=2)));",
-        "p=factor(n)[1,1];printf(\"⊢\");",
+        "p=factorint(n,{})[1,1];printf(\"⊢\");",
         "while(p>0,printf(\"≻⋈∈%s∋\",if(p%2,\"⊥\",\"⊤\"));p=p\\2);",
-        "print(\"⊙⊡⊣\");quit(0)\n"), word_of(n));
+        "print(\"⊙⊡⊣\");quit(0)\n"), word_of(n), flags);
     let written = child
         .stdin
         .take()
@@ -516,6 +536,7 @@ fn native_factor_candidate_with_budget(n: &BigUint, budget: std::time::Duration)
     if written.is_none() {
         let _ = child.kill();
         let _ = child.wait();
+        let _ = error_reader.join();
         return None;
     }
     // This optional route must yield to the remaining extraction routes.
@@ -527,26 +548,32 @@ fn native_factor_candidate_with_budget(n: &BigUint, budget: std::time::Duration)
             Ok(None) if Instant::now() < deadline => {
                 std::thread::sleep(Duration::from_millis(20));
             }
-            _ => {
+            outcome => {
                 let _ = child.kill();
                 let _ = child.wait();
-                eprintln!("native factor arm: child did not finish within its {}-second budget", budget.as_secs());
+                match outcome {
+                    Err(error) => eprintln!("native factor arm: child status query failed: {error}"),
+                    _ => eprintln!("native factor arm: child did not finish within its {}-second budget", budget.as_secs()),
+                }
+                report_stages(&error_reader.join().unwrap_or_default());
                 return None;
             }
         }
     }
-    let output = child.wait_with_output().ok()?;
+    let output = child.wait_with_output();
+    let diagnostics = error_reader.join().unwrap_or_default();
+    let output = output.ok()?;
     if !output.status.success() {
-        eprintln!("native factor arm: child status {}; {}", output.status,
-                  String::from_utf8_lossy(&output.stderr).trim());
+        eprintln!("native factor arm: child status {}", output.status);
+        report_stages(&diagnostics);
         return None;
     }
     let candidate = core::str::from_utf8(&output.stdout).ok()?.trim();
     let reading = match decode(candidate) {
         Ok(reading) => reading,
         Err(_) => {
-            eprintln!("native factor arm: invalid candidate; {}",
-                      String::from_utf8_lossy(&output.stderr).trim());
+            eprintln!("native factor arm: invalid candidate");
+            report_stages(&diagnostics);
             return None;
         }
     };
@@ -560,10 +587,14 @@ pub fn native_factor_word_pair(source_word: &str) -> Result<Option<(String,Strin
     if !source_word.starts_with('⊢') { return Err("native membrane source must be an IMASM numeral word".into()); }
     let (source,canonical) = parse_source(source_word)?;
     if source.bits() < 128 { return Err("native membrane source must be at least 128 bits".into()); }
-    // Reserve up to ten seconds for the cofactor call, leaving room for the
-    // source-bound closure gate within the external ninety-second cutoff.
+    // Include a direct MPQS entry before the default native schedule. PARI's
+    // flags 2|4 skip its initial ECM and Rho/SQUFOF stages; final ECM remains
+    // available. The default schedule is retained as the next native arm.
+    // Both attempts together reserve ten seconds for the cofactor call and
+    // room for word closure within the external ninety-second cutoff.
     #[cfg(feature = "hosted")]
-    let candidate = native_factor_candidate_with_budget(&source, std::time::Duration::from_secs(70));
+    let candidate = native_factor_candidate_with_budget(&source, std::time::Duration::from_secs(65), 6)
+        .or_else(|| native_factor_candidate_with_budget(&source, std::time::Duration::from_secs(5), 0));
     #[cfg(not(feature = "hosted"))]
     let candidate = native_factor_candidate(&source);
     let Some(p) = candidate else { return Ok(None); };

@@ -25,6 +25,14 @@ def main():
     paths[".gdb"].write_text("""set pagination off
 set confirm off
 set disable-randomization off
+set $ququart_stages = 0
+break <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice as g_momonados::ququart_factor::QuquartPhaseDevice>::controlled_multiply
+commands
+silent
+set $ququart_stages = $ququart_stages + 1
+printf "ququart_controlled_stage_entered=%d\\n", $ququart_stages
+continue
+end
 python
 import os, signal, threading, time
 def stop_at_limit():
@@ -39,7 +47,7 @@ python
 if gdb.selected_inferior().pid:
     gdb.execute("info registers rip")
     gdb.execute("info proc mappings")
-    gdb.execute("bt 32")
+    gdb.execute("bt")
     gdb.execute("kill")
 end
 quit
@@ -66,6 +74,8 @@ quit
              "factor_report_present": report is not None,
              "inferior_killed": "killed]" in output,
              "factor_extraction_verified": False}
+    state["ququart_controlled_stage_entries"] = [int(line.split("=", 1)[1])
+        for line in output.splitlines() if line.startswith("ququart_controlled_stage_entered=")]
     if report is not None:
         verification = subprocess.run([str(case / "verify_readout"), str(case / "prepared.json"),
                                        str(paths[".terminal.stdout"])], text=True, capture_output=True)
