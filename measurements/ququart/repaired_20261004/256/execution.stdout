@@ -1,0 +1,83 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Detaching after vfork from child process 42973]
+
+Program received signal SIGINT, Interrupt.
+0x0000599cd17c0370 in <g_momonados::ququart_decision::DecisionArena>::intern ()
+terminal_or_cutoff_debug_stop
+	Using the running image of child Thread 0x716e7d91eb80 (LWP 42962).
+Program stopped at 0x599cd17c0370.
+It stopped with signal SIGINT, Interrupt.
+rip            0x599cd17c0370      0x599cd17c0370 <<g_momonados::ququart_decision::DecisionArena>::intern+886>
+process 42962
+Mapped address spaces:
+
+          Start Addr           End Addr       Size     Offset  Perms  objfile
+      0x599ca9de6000     0x599cd17a2000 0x279bc000        0x0  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_repaired_256_radix4_20261004/membrane
+      0x599cd17a2000     0x599cd183b000    0x99000 0x279bb000  r-xp   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_repaired_256_radix4_20261004/membrane
+      0x599cd183b000     0x599cd1840000     0x5000 0x27a53000  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_repaired_256_radix4_20261004/membrane
+      0x599cd1840000     0x599cd1841000     0x1000 0x27a57000  rw-p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_repaired_256_radix4_20261004/membrane
+      0x599cfd5c2000     0x599d7563a000 0x78078000        0x0  rw-p   [heap]
+      0x716e78eb8000     0x716e7acb9000  0x1e01000        0x0  rw-p   
+      0x716e7c6fc000     0x716e7cefd000   0x801000        0x0  rw-p   
+      0x716e7d600000     0x716e7d628000    0x28000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x716e7d628000     0x716e7d7bd000   0x195000    0x28000  r-xp   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x716e7d7bd000     0x716e7d815000    0x58000   0x1bd000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x716e7d815000     0x716e7d816000     0x1000   0x215000  ---p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x716e7d816000     0x716e7d81a000     0x4000   0x215000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x716e7d81a000     0x716e7d81c000     0x2000   0x219000  rw-p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x716e7d81c000     0x716e7d829000     0xd000        0x0  rw-p   
+      0x716e7d91e000     0x716e7d920000     0x2000        0x0  rw-p   
+      0x716e7d920000     0x716e7d92e000     0xe000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x716e7d92e000     0x716e7d9aa000    0x7c000     0xe000  r-xp   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x716e7d9aa000     0x716e7da05000    0x5b000    0x8a000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x716e7da05000     0x716e7da06000     0x1000    0xe4000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x716e7da06000     0x716e7da07000     0x1000    0xe5000  rw-p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x716e7da07000     0x716e7da0a000     0x3000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x716e7da0a000     0x716e7da21000    0x17000     0x3000  r-xp   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x716e7da21000     0x716e7da25000     0x4000    0x1a000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x716e7da25000     0x716e7da26000     0x1000    0x1d000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x716e7da26000     0x716e7da27000     0x1000    0x1e000  rw-p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x716e7da3d000     0x716e7da3e000     0x1000        0x0  ---p   
+      0x716e7da3e000     0x716e7da42000     0x4000        0x0  rw-p   
+      0x716e7da42000     0x716e7da44000     0x2000        0x0  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x716e7da44000     0x716e7da6e000    0x2a000     0x2000  r-xp   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x716e7da6e000     0x716e7da79000     0xb000    0x2c000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x716e7da7a000     0x716e7da7c000     0x2000    0x37000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x716e7da7c000     0x716e7da7e000     0x2000    0x39000  rw-p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7ffd345cb000     0x7ffd34637000    0x6c000        0x0  rw-p   [stack]
+      0x7ffd347df000     0x7ffd347e3000     0x4000        0x0  r--p   [vvar]
+      0x7ffd347e3000     0x7ffd347e5000     0x2000        0x0  r-xp   [vdso]
+#0  0x0000599cd17c0370 in <g_momonados::ququart_decision::DecisionArena>::intern ()
+#1  0x0000599cd17c3170 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#2  0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#3  0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#4  0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#5  0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#6  0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#7  0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#8  0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#9  0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#10 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#11 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#12 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#13 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#14 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#15 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#16 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#17 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#18 0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#19 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#20 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#21 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#22 0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#23 0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#24 0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#25 0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#26 0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#27 0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#28 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#29 0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#30 0x0000599cd17c313d in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+#31 0x0000599cd17c3124 in <g_momonados::ququart_decision::DecisionArena>::source_cofactors::visit ()
+[Inferior 1 (process 42962) killed]
