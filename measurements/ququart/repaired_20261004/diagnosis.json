@@ -1,0 +1,15 @@
+{
+  "original_224_case": "membranes/ququart_increasing_224_radix4_20261004",
+  "handoff_case": "membranes/ququart_repaired_224_radix4_20261004",
+  "instrument": "GDB breakpoint at QuquartFoldedWorkDevice::new_interleaved_radix; Vox complete symbol decoding",
+  "observed_native_failure": "ten-second child deadline expired",
+  "native_evidence": "224/handoff.stderr",
+  "handoff_stack": "224/handoff.stdout",
+  "addition_fix": "Return resident subtree once remaining subtraction constant and incoming borrow are both zero",
+  "addition_identity_argument": "For every remaining selected bit c=0 and borrow=0, subtraction selects each original child and propagates borrow=0. Spectator wires are unchanged. Induction on remaining register positions gives the same subtree.",
+  "performance_effect_measured": false,
+  "inclusive_source_budget_seconds": 70,
+  "cofactor_budget_seconds": 10,
+  "external_cutoff_seconds": 90,
+  "reference_certificate_source": "../increasing_20261004/sources.tsv.proofs.jsonl"
+}

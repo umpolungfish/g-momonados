@@ -1,0 +1,12 @@
+Breakpoint 1 at 0x1b597e73
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Detaching after vfork from child process 42176]
+
+Breakpoint 1, 0x00005f681f95ee73 in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>::new_interleaved_radix ()
+#0  0x00005f681f95ee73 in <g_momonados::ququart_folded_work::QuquartFoldedWorkDevice>::new_interleaved_radix ()
+#1  0x00005f681f92d957 in ququart_factor_baked::execute ()
+#2  0x00005f681f92af20 in ququart_factor_baked::main ()
+#3  0x00005f681f92863d in std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()> ()
+#4  0x00005f681f938f51 in main ()
+[Inferior 1 (process 42172) killed]

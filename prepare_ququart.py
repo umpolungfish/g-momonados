@@ -169,6 +169,8 @@ def main():
                         native_arm_word=prepared["native_arm_word"],
                         nested_arms=["native_factor_engine", "ququart_phase_with_sic_frame"],
                         native_factor_engine="PARI_GP_canonical_IMASM_word_adapter",
+                        native_source_budget_seconds=70,
+                        native_cofactor_budget_seconds=10,
                         producing_arm_words={"native_factor_engine":defaults["capacity_word"],
                                              "ququart_phase_with_sic_frame":defaults["native_arm_word"]},
                         closure_arithmetic="radix_four_paired_numeral_cells",

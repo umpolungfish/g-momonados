@@ -1,0 +1,23 @@
+[
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+    "start": "000000001b57f9b1",
+    "size": "00000000000003f6",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/224/visit.budget.disasm"
+  },
+  {
+    "symbol": "g_momonados::arbitrary_factor::native_factor_candidate_with_budget",
+    "start": "000000001b58e89c",
+    "size": "000000000000325e",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/224/native_factor_candidate_with_budget.budget.disasm"
+  },
+  {
+    "symbol": "g_momonados::arbitrary_factor::native_factor_word_pair",
+    "start": "000000001b5a3372",
+    "size": "00000000000010b4",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/224/native_factor_word_pair.budget.disasm"
+  }
+]

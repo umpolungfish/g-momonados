@@ -1,0 +1,16 @@
+[
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+    "start": "000000001b57f9b1",
+    "size": "00000000000003f6",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/224/add_constant.disasm"
+  },
+  {
+    "symbol": "g_momonados::arbitrary_factor::native_factor_candidate",
+    "start": "000000001b58e89c",
+    "size": "00000000000031af",
+    "decoder_exit": 0,
+    "output": "measurements/ququart/repaired_20261004/224/native_adapter.disasm"
+  }
+]
