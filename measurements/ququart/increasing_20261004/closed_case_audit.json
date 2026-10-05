@@ -1,0 +1,51 @@
+[
+  {
+    "bits": 128,
+    "case": "membranes/ququart_increasing_128_radix4_20261004",
+    "binary_sha256_matches": true,
+    "prepared_sha256_matches": true,
+    "verifier_sha256_matches": true,
+    "prepared_bytes_embedded": true,
+    "factor_extraction_verified": true,
+    "diagnostic_time_includes_debugger": true,
+    "matches_certified_reference": true,
+    "factor_words_absent_from_binary": true,
+    "producing_arm_word": "⊢≻⋈∈⊤∋⊙⊡⊣"
+  },
+  {
+    "bits": 160,
+    "case": "membranes/ququart_increasing_160_radix4_20261004",
+    "binary_sha256_matches": true,
+    "prepared_sha256_matches": true,
+    "verifier_sha256_matches": true,
+    "prepared_bytes_embedded": true,
+    "factor_extraction_verified": true,
+    "diagnostic_time_includes_debugger": true,
+    "matches_certified_reference": true,
+    "factor_words_absent_from_binary": true,
+    "producing_arm_word": "⊢≻⋈∈⊤∋⊙⊡⊣"
+  },
+  {
+    "bits": 192,
+    "case": "membranes/ququart_increasing_192_radix4_20261004",
+    "binary_sha256_matches": true,
+    "prepared_sha256_matches": true,
+    "verifier_sha256_matches": true,
+    "prepared_bytes_embedded": true,
+    "factor_extraction_verified": true,
+    "diagnostic_time_includes_debugger": true,
+    "matches_certified_reference": true,
+    "factor_words_absent_from_binary": true,
+    "producing_arm_word": "⊢≻⋈∈⊤∋⊙⊡⊣"
+  },
+  {
+    "bits": 224,
+    "case": "membranes/ququart_increasing_224_radix4_20261004",
+    "binary_sha256_matches": true,
+    "prepared_sha256_matches": true,
+    "verifier_sha256_matches": true,
+    "prepared_bytes_embedded": true,
+    "factor_extraction_verified": false,
+    "diagnostic_time_includes_debugger": true
+  }
+]

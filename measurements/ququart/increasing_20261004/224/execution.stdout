@@ -1,0 +1,83 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Detaching after vfork from child process 40665]
+
+Program received signal SIGINT, Interrupt.
+_int_malloc (av=av@entry=0x7a309641ac80 <main_arena>, bytes=bytes@entry=88) at ./malloc/malloc.c:3803
+terminal_or_cutoff_debug_stop
+	Using the running image of child Thread 0x7a30965c4b80 (LWP 40662).
+Program stopped at 0x7a30962a3994.
+It stopped with signal SIGINT, Interrupt.
+rip            0x7a30962a3994      0x7a30962a3994 <_int_malloc+36>
+process 40662
+Mapped address spaces:
+
+          Start Addr           End Addr       Size     Offset  Perms  objfile
+      0x5f30e3486000     0x5f30fe9e5000 0x1b55f000        0x0  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_increasing_224_radix4_20261004/membrane
+      0x5f30fe9e5000     0x5f30fea7e000    0x99000 0x1b55e000  r-xp   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_increasing_224_radix4_20261004/membrane
+      0x5f30fea7e000     0x5f30fea82000     0x4000 0x1b5f6000  r--p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_increasing_224_radix4_20261004/membrane
+      0x5f30fea82000     0x5f30fea84000     0x2000 0x1b5f9000  rw-p   /home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_increasing_224_radix4_20261004/membrane
+      0x5f3136da2000     0x5f318b883000 0x54ae1000        0x0  rw-p   [heap]
+      0x7a3093d94000     0x7a3094c95000   0xf01000        0x0  rw-p   
+      0x7a3095afd000     0x7a3095efe000   0x401000        0x0  rw-p   
+      0x7a3096200000     0x7a3096228000    0x28000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7a3096228000     0x7a30963bd000   0x195000    0x28000  r-xp   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7a30963bd000     0x7a3096415000    0x58000   0x1bd000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7a3096415000     0x7a3096416000     0x1000   0x215000  ---p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7a3096416000     0x7a309641a000     0x4000   0x215000  r--p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7a309641a000     0x7a309641c000     0x2000   0x219000  rw-p   /usr/lib/x86_64-linux-gnu/libc.so.6
+      0x7a309641c000     0x7a3096429000     0xd000        0x0  rw-p   
+      0x7a30965c4000     0x7a30965c6000     0x2000        0x0  rw-p   
+      0x7a30965c6000     0x7a30965d4000     0xe000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7a30965d4000     0x7a3096650000    0x7c000     0xe000  r-xp   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7a3096650000     0x7a30966ab000    0x5b000    0x8a000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7a30966ab000     0x7a30966ac000     0x1000    0xe4000  r--p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7a30966ac000     0x7a30966ad000     0x1000    0xe5000  rw-p   /usr/lib/x86_64-linux-gnu/libm.so.6
+      0x7a30966ad000     0x7a30966b0000     0x3000        0x0  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7a30966b0000     0x7a30966c7000    0x17000     0x3000  r-xp   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7a30966c7000     0x7a30966cb000     0x4000    0x1a000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7a30966cb000     0x7a30966cc000     0x1000    0x1d000  r--p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7a30966cc000     0x7a30966cd000     0x1000    0x1e000  rw-p   /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+      0x7a30966e3000     0x7a30966e4000     0x1000        0x0  ---p   
+      0x7a30966e4000     0x7a30966e8000     0x4000        0x0  rw-p   
+      0x7a30966e8000     0x7a30966ea000     0x2000        0x0  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7a30966ea000     0x7a3096714000    0x2a000     0x2000  r-xp   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7a3096714000     0x7a309671f000     0xb000    0x2c000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7a3096720000     0x7a3096722000     0x2000    0x37000  r--p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7a3096722000     0x7a3096724000     0x2000    0x39000  rw-p   /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+      0x7ffc603d6000     0x7ffc60436000    0x60000        0x0  rw-p   [stack]
+      0x7ffc60496000     0x7ffc6049a000     0x4000        0x0  r--p   [vvar]
+      0x7ffc6049a000     0x7ffc6049c000     0x2000        0x0  r-xp   [vdso]
+#0  _int_malloc (av=av@entry=0x7a309641ac80 <main_arena>, bytes=bytes@entry=88) at ./malloc/malloc.c:3803
+#1  0x00007a30962a5222 in __GI___libc_malloc (bytes=88) at ./malloc/malloc.c:3321
+#2  0x00005f30fea0ae4c in <g_momonados::ququart_decision::FixedBits as core::clone::Clone>::clone ()
+#3  0x00005f30fea036d2 in <g_momonados::ququart_decision::DecisionArena>::intern ()
+#4  0x00005f30fea05540 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#5  0x00005f30fea053fe in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#6  0x00005f30fea054d4 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#7  0x00005f30fea053fe in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#8  0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#9  0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#10 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#11 0x00005f30fea053fe in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#12 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#13 0x00005f30fea053fe in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#14 0x00005f30fea054d4 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#15 0x00005f30fea053fe in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#16 0x00005f30fea054d4 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#17 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#18 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#19 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#20 0x00005f30fea054d4 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#21 0x00005f30fea053fe in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#22 0x00005f30fea054d4 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#23 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#24 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#25 0x00005f30fea053fe in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#26 0x00005f30fea054d4 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#27 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#28 0x00005f30fea054d4 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#29 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#30 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+#31 0x00005f30fea05502 in <g_momonados::ququart_decision::DecisionArena>::add_constant::visit ()
+[Inferior 1 (process 40662) killed]

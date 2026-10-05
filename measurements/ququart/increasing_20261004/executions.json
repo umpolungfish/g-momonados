@@ -1,0 +1,73 @@
+{
+  "results": [
+    {
+      "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_increasing_128_radix4_20261004",
+      "debugger_exit": 0,
+      "elapsed_seconds": 0.5905598460012698,
+      "closure_time_limit_seconds": 90,
+      "factor_report_present": true,
+      "inferior_killed": false,
+      "factor_extraction_verified": true,
+      "bits": 128,
+      "runtime_source_inputs": [],
+      "reference_factors_entered_preparation": false,
+      "preparation_embedded": true,
+      "binary_manifest_matches": true,
+      "matches_certified_reference": true,
+      "producing_arm_word": "⊢≻⋈∈⊤∋⊙⊡⊣",
+      "factor_words_absent_from_binary": true
+    },
+    {
+      "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_increasing_160_radix4_20261004",
+      "debugger_exit": 0,
+      "elapsed_seconds": 0.7980256800001371,
+      "closure_time_limit_seconds": 90,
+      "factor_report_present": true,
+      "inferior_killed": false,
+      "factor_extraction_verified": true,
+      "bits": 160,
+      "runtime_source_inputs": [],
+      "reference_factors_entered_preparation": false,
+      "preparation_embedded": true,
+      "binary_manifest_matches": true,
+      "matches_certified_reference": true,
+      "producing_arm_word": "⊢≻⋈∈⊤∋⊙⊡⊣",
+      "factor_words_absent_from_binary": true
+    },
+    {
+      "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_increasing_192_radix4_20261004",
+      "debugger_exit": 0,
+      "elapsed_seconds": 2.5074217509973096,
+      "closure_time_limit_seconds": 90,
+      "factor_report_present": true,
+      "inferior_killed": false,
+      "factor_extraction_verified": true,
+      "bits": 192,
+      "runtime_source_inputs": [],
+      "reference_factors_entered_preparation": false,
+      "preparation_embedded": true,
+      "binary_manifest_matches": true,
+      "matches_certified_reference": true,
+      "producing_arm_word": "⊢≻⋈∈⊤∋⊙⊡⊣",
+      "factor_words_absent_from_binary": true
+    },
+    {
+      "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_increasing_224_radix4_20261004",
+      "debugger_exit": 0,
+      "elapsed_seconds": 85.31167682799423,
+      "closure_time_limit_seconds": 90,
+      "factor_report_present": false,
+      "inferior_killed": true,
+      "factor_extraction_verified": false,
+      "bits": 224,
+      "runtime_source_inputs": [],
+      "reference_factors_entered_preparation": false,
+      "preparation_embedded": true,
+      "binary_manifest_matches": true
+    }
+  ],
+  "remaining_widths": [
+    256
+  ],
+  "stopped_at_first_unclosed": true
+}

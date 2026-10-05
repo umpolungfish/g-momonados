@@ -1,0 +1,223 @@
+{
+  "binary_sha256": "4cd47c0adc47fdf911b70ade4d2a75e03ba48fbaafd703854f6ba29ab4d63164",
+  "relocation_base": "0x5f30e3486000",
+  "frames": [
+    {
+      "frame": 2,
+      "live_pc": "0x00005f30fea0ae4c",
+      "elf_pc": "0x1b584e4c",
+      "symbol": "<g_momonados::ququart_decision::FixedBits as core::clone::Clone>::clone",
+      "disassembly": "fixed_bits_clone.disasm"
+    },
+    {
+      "frame": 3,
+      "live_pc": "0x00005f30fea036d2",
+      "elf_pc": "0x1b57d6d2",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::intern",
+      "disassembly": "intern.disasm"
+    },
+    {
+      "frame": 4,
+      "live_pc": "0x00005f30fea05540",
+      "elf_pc": "0x1b57f540",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 5,
+      "live_pc": "0x00005f30fea053fe",
+      "elf_pc": "0x1b57f3fe",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 6,
+      "live_pc": "0x00005f30fea054d4",
+      "elf_pc": "0x1b57f4d4",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 7,
+      "live_pc": "0x00005f30fea053fe",
+      "elf_pc": "0x1b57f3fe",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 8,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 9,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 10,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 11,
+      "live_pc": "0x00005f30fea053fe",
+      "elf_pc": "0x1b57f3fe",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 12,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 13,
+      "live_pc": "0x00005f30fea053fe",
+      "elf_pc": "0x1b57f3fe",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 14,
+      "live_pc": "0x00005f30fea054d4",
+      "elf_pc": "0x1b57f4d4",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 15,
+      "live_pc": "0x00005f30fea053fe",
+      "elf_pc": "0x1b57f3fe",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 16,
+      "live_pc": "0x00005f30fea054d4",
+      "elf_pc": "0x1b57f4d4",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 17,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 18,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 19,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 20,
+      "live_pc": "0x00005f30fea054d4",
+      "elf_pc": "0x1b57f4d4",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 21,
+      "live_pc": "0x00005f30fea053fe",
+      "elf_pc": "0x1b57f3fe",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 22,
+      "live_pc": "0x00005f30fea054d4",
+      "elf_pc": "0x1b57f4d4",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 23,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 24,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 25,
+      "live_pc": "0x00005f30fea053fe",
+      "elf_pc": "0x1b57f3fe",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 26,
+      "live_pc": "0x00005f30fea054d4",
+      "elf_pc": "0x1b57f4d4",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 27,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 28,
+      "live_pc": "0x00005f30fea054d4",
+      "elf_pc": "0x1b57f4d4",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 29,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 30,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    },
+    {
+      "frame": 31,
+      "live_pc": "0x00005f30fea05502",
+      "elf_pc": "0x1b57f502",
+      "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+      "disassembly": "add_constant_visit.disasm"
+    }
+  ],
+  "observed_stop": "allocator -> FixedBits clone -> DecisionArena intern -> recursive add_constant visit",
+  "factor_report_present": false,
+  "killed_at_debug_cutoff": true,
+  "native_arm_result": "no released native factor pair; execution entered ququart continuation",
+  "native_timeout_policy_seconds": 10,
+  "full_quantum_call_chain": "only 32 frames retained; deeper caller not inferred",
+  "source_bound_scope_bits": 224
+}

@@ -1,0 +1,7 @@
+membranes/ququart_increasing_224_radix4_20261004/membrane  elf  entry 0x1b55fd50  620450 byte(s) of code
+  1191 function(s), 136101 instruction(s)
+  claimed 91% of the image (569630 of 620450 bytes)
+
+  1191 function(s) by descent, 4072 more by fallback sweep
+  covered 99% of the image (620436 of 620450 bytes)
+  verdicts  T 158   B 1075   N 4030   F 0  (F: 0 from descent, 0 from fallback sweep)

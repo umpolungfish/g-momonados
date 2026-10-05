@@ -1,0 +1,6 @@
+Certified case 0: 128-bit semiprime
+Certified case 1: 160-bit semiprime
+Certified case 2: 192-bit semiprime
+Certified case 3: 224-bit semiprime
+Certified case 4: 256-bit semiprime
+Generated 5 certified semiprimes in measurements/ququart/increasing_20261004/sources.tsv

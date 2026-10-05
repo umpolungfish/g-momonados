@@ -1,0 +1,65 @@
+[
+  {
+    "symbol": "g_momonados::arbitrary_factor::native_factor_candidate",
+    "start": "1b58e082",
+    "end": "1b59111c",
+    "file": "arbitrary_factor_native_factor_candidate.disasm",
+    "decoder_exit": 0
+  },
+  {
+    "symbol": "g_momonados::arbitrary_factor::native_factor_word_pair",
+    "start": "1b5a2994",
+    "end": "1b5a3a4d",
+    "file": "arbitrary_factor_native_factor_word_pair.disasm",
+    "decoder_exit": 0
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::sum::visit",
+    "start": "1b581292",
+    "end": "1b5816fb",
+    "file": "sum_visit.disasm",
+    "decoder_exit": 0
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::conditional_literals::visit",
+    "start": "1b583929",
+    "end": "1b583e6f",
+    "file": "conditional_literals_visit.disasm",
+    "decoder_exit": 0
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::modular_digit_add::visit",
+    "start": "1b57f58d",
+    "end": "1b580261",
+    "file": "modular_digit_add_visit.disasm",
+    "decoder_exit": 0
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::control_gram::visit",
+    "start": "1b5a03d9",
+    "end": "1b5a141e",
+    "file": "control_gram_visit.disasm",
+    "decoder_exit": 0
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::intern",
+    "start": "1b57d49a",
+    "end": "1b57dc99",
+    "file": "intern.disasm",
+    "decoder_exit": 0
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::DecisionArena>::add_constant::visit",
+    "start": "1b57f211",
+    "end": "1b57f58d",
+    "file": "add_constant_visit.disasm",
+    "decoder_exit": 0
+  },
+  {
+    "symbol": "<g_momonados::ququart_decision::FixedBits as core::clone::Clone>::clone",
+    "start": "1b584d56",
+    "end": "1b584f07",
+    "file": "fixed_bits_clone.disasm",
+    "decoder_exit": 0
+  }
+]

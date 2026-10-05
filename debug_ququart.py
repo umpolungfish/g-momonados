@@ -35,9 +35,13 @@ end
 run
 printf "terminal_or_cutoff_debug_stop\\n"
 info program
-info registers rip
-bt 32
-kill
+python
+if gdb.selected_inferior().pid:
+    gdb.execute("info registers rip")
+    gdb.execute("info proc mappings")
+    gdb.execute("bt 32")
+    gdb.execute("kill")
+end
 quit
 """)
     started = time.monotonic()

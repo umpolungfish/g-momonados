@@ -1,0 +1,754 @@
+1b57f58d	push	r:rbp
+1b57f58e	push	r:r15
+1b57f590	push	r:r14
+1b57f592	push	r:r13
+1b57f594	push	r:r12
+1b57f596	push	r:rbx
+1b57f597	sub	r:rsp i:0x118
+1b57f59e	mov	r:rbx r:rsi
+1b57f5a1	mov	r:rsi m:rdi::1:0x58:8
+1b57f5a5	cmp	r:rbx r:rsi
+1b57f5a8	jae	i:0x1b58022c
+1b57f5ae	mov	r:r14 r:rdi
+1b57f5b1	mov	r:rdi m:rdi::1:0x50:8
+1b57f5b5	imul	r:rbp r:rbx i:0x38
+1b57f5b9	cmp	m:rdi:rbp:1:0x30:1 i:0x0
+1b57f5be	jne	i:0x1b580158
+1b57f5c4	mov	r:r15 r:rcx
+1b57f5c7	mov	r:r13 r:rdx
+1b57f5ca	mov	r:r12 m:rsp::1:0x168:8
+1b57f5d2	cmp	m:rsp::1:0x150:8 r:r9
+1b57f5da	jne	i:0x1b57f630
+1b57f5dc	mov	r:ecx i:0x8
+1b57f5e1	mov	r:rdx r:rbx
+1b57f5e4	xor	r:r8d r:r8d
+1b57f5e7	call	i:0x1b57d40b
+1b57f5ec	test	r:al r:al
+1b57f5ee	je	i:0x1b580158
+1b57f5f4	mov	r:rbp m:r12::1:0x0:8
+1b57f5f8	mov	r:rax r:rbp
+1b57f5fb	neg	r:rax
+1b57f5fe	jno	i:0x1b57f700
+1b57f604	mov	r:r10 m:r12::1:0x8:8
+1b57f609	cmp	r:r10 i:0x1
+1b57f60d	mov	r:rdi m:rsp::1:0x158:8
+1b57f615	jne	i:0x1b57fd69
+1b57f61b	lea	r:rcx m:r12::1:0x10:8
+1b57f620	mov	r:eax i:0x8
+1b57f625	mov	r:r9d i:0x1
+1b57f62b	jmp	i:0x1b57f725
+1b57f630	mov	m:rsp::1:0x78:8 r:r15
+1b57f635	mov	m:rsp::1:0x8:8 r:r8
+1b57f63a	mov	m:rsp::1:0x10:8 r:r9
+1b57f63f	mov	r:rcx m:rsp::1:0x160:8
+1b57f647	movabs	r:r8 i:-0x8000000000000000
+1b57f651	xor	r:eax r:eax
+1b57f653	cmp	r:rax m:rcx::1:0x0:8
+1b57f656	jno	i:0x1b57f673
+1b57f658	mov	r:r15 r:r13
+1b57f65b	cmp	m:rcx::1:0x8:4 i:0x1
+1b57f65f	je	i:0x1b57f67d
+1b57f661	lea	r:rdi m:rsp::1:0x40:8
+1b57f666	mov	r:rsi r:rcx
+1b57f669	mov	r:r13 r:r8
+1b57f66c	call	i:0x1b5ace6c
+1b57f671	jmp	i:0x1b57f6a4
+1b57f673	mov	r:r15 r:r13
+1b57f676	cmp	m:rcx::1:0x10:8 i:0x0
+1b57f67b	je	i:0x1b57f661
+1b57f67d	lea	r:rax m:r8::1:0x1:8
+1b57f681	lea	r:rsi m:rsp::1:0xc0:8
+1b57f689	mov	m:rsi::1:0x0:8 r:rax
+1b57f68c	mov	m:rsi::1:0x8:8 r:rcx
+1b57f690	lea	r:rdi m:rsp::1:0x40:8
+1b57f695	xor	r:edx r:edx
+1b57f697	mov	r:ecx i:0x1
+1b57f69c	mov	r:r13 r:r8
+1b57f69f	call	i:0x1b5b12f7
+1b57f6a4	mov	r:r8 m:r12::1:0x0:8
+1b57f6a8	cmp	r:r8 r:r13
+1b57f6ab	mov	r:r9 r:r13
+1b57f6ae	mov	m:rsp::1:0x18:8 r:r15
+1b57f6b3	jne	i:0x1b57f6d6
+1b57f6b5	mov	r:r13 m:r12::1:0x8:8
+1b57f6ba	cmp	r:r13 i:0x1
+1b57f6be	jne	i:0x1b57f734
+1b57f6c0	lea	r:rcx m:r12::1:0x10:8
+1b57f6c5	mov	r:eax i:0x8
+1b57f6ca	mov	r:edx i:0x1
+1b57f6cf	mov	m:rsp::1:0x60:8 r:rdx
+1b57f6d4	jmp	i:0x1b57f6f4
+1b57f6d6	mov	r:rdx m:r12::1:0x8:8
+1b57f6db	mov	r:rax m:r12::1:0x10:8
+1b57f6e0	test	r:rax r:rax
+1b57f6e3	mov	m:rsp::1:0x60:8 r:rdx
+1b57f6e8	je	i:0x1b57f743
+1b57f6ea	shl	r:rax i:0x3
+1b57f6ee	mov	r:r13 r:rdx
+1b57f6f1	mov	r:rcx r:rdx
+1b57f6f4	mov	r:rcx m:rcx::1:0x0:8
+1b57f6f7	cmp	r:rax i:0x8
+1b57f6fb	sete	r:al
+1b57f6fe	jmp	i:0x1b57f74a
+1b57f700	mov	r:r9 m:r12::1:0x8:8
+1b57f705	mov	r:rax m:r12::1:0x10:8
+1b57f70a	test	r:rax r:rax
+1b57f70d	mov	r:rdi m:rsp::1:0x158:8
+1b57f715	je	i:0x1b57fd72
+1b57f71b	shl	r:rax i:0x3
+1b57f71f	mov	r:r10 r:r9
+1b57f722	mov	r:rcx r:r9
+1b57f725	mov	r:rcx m:rcx::1:0x0:8
+1b57f728	cmp	r:rax i:0x8
+1b57f72c	sete	r:al
+1b57f72f	jmp	i:0x1b57fd79
+1b57f734	mov	r:al i:0x1
+1b57f736	mov	m:rsp::1:0x60:8 i:0x0
+1b57f73f	xor	r:ecx r:ecx
+1b57f741	jmp	i:0x1b57f74a
+1b57f743	xor	r:ecx r:ecx
+1b57f745	mov	r:al i:0x1
+1b57f747	mov	r:r13 r:rdx
+1b57f74a	mov	r:rdx r:rcx
+1b57f74d	shr	r:rdx i:0x20
+1b57f751	mov	m:rsp::1:0x68:8 r:r8
+1b57f756	jne	i:0x1b57f795
+1b57f758	test	r:al r:al
+1b57f75a	je	i:0x1b57f795
+1b57f75c	test	r:rcx r:rcx
+1b57f75f	je	i:0x1b5801f3
+1b57f765	mov	r:rdi m:rsp::1:0x40:8
+1b57f76a	cmp	r:rdi r:r9
+1b57f76d	mov	r:r15 m:rsp::1:0x150:8
+1b57f775	jne	i:0x1b57f827
+1b57f77b	cmp	m:rsp::1:0x48:4 i:0x1
+1b57f780	jne	i:0x1b57f84c
+1b57f786	mov	r:esi i:0x8
+1b57f78b	lea	r:r8 m:rsp::1:0x50:8
+1b57f790	jmp	i:0x1b57f83a
+1b57f795	lea	r:rax m:rsp::1:0x40:8
+1b57f79a	lea	r:rsi m:rsp::1:0x100:8
+1b57f7a2	mov	m:rsi::1:0x8:8 r:rax
+1b57f7a6	lea	r:rax m:r9::1:0x1:8
+1b57f7aa	mov	m:rsi::1:0x0:8 r:rax
+1b57f7ad	lea	r:rdx m:rsp::1:0xa0:8
+1b57f7b5	mov	m:rdx::1:0x8:8 r:r12
+1b57f7b9	mov	m:rdx::1:0x0:8 r:rax
+1b57f7bc	lea	r:r15 m:rsp::1:0xc0:8
+1b57f7c4	mov	r:rdi r:r15
+1b57f7c7	call	i:0x1b5b2545
+1b57f7cc	movabs	r:r9 i:-0x8000000000000000
+1b57f7d6	movups	r:xmm0 m:r15::1:0x18:16
+1b57f7db	movaps	m:rsp::1:0x80:16 r:xmm0
+1b57f7e3	mov	r:rax m:r15::1:0x28:8
+1b57f7e7	mov	m:rsp::1:0x90:8 r:rax
+1b57f7ef	mov	r:rdi m:r15::1:0x0:8
+1b57f7f2	cmp	r:rdi r:r9
+1b57f7f5	je	i:0x1b57f818
+1b57f7f7	mov	r:rsi m:rsp::1:0xc8:8
+1b57f7ff	mov	r:edx i:0x8
+1b57f804	mov	r:ecx i:0x8
+1b57f809	call	i:0x1b5a7dfd
+1b57f80e	movabs	r:r9 i:-0x8000000000000000
+1b57f818	mov	r:rdi m:rsp::1:0x40:8
+1b57f81d	mov	r:r15 m:rsp::1:0x150:8
+1b57f825	jmp	i:0x1b57f86e
+1b57f827	mov	r:rsi m:rsp::1:0x50:8
+1b57f82c	test	r:rsi r:rsi
+1b57f82f	je	i:0x1b57f84c
+1b57f831	mov	r:r8 m:rsp::1:0x48:8
+1b57f836	shl	r:rsi i:0x3
+1b57f83a	xor	r:edx r:edx
+1b57f83c	mov	r:rax m:r8:rsi:1:-0x8:8
+1b57f841	div	r:rcx
+1b57f844	add	r:rsi i:-0x8
+1b57f848	jne	i:0x1b57f83c
+1b57f84a	jmp	i:0x1b57f84e
+1b57f84c	xor	r:edx r:edx
+1b57f84e	xor	r:eax r:eax
+1b57f850	test	r:rdx r:rdx
+1b57f853	setne	r:al
+1b57f856	mov	m:rsp::1:0x80:8 r:r9
+1b57f85e	mov	m:rsp::1:0x88:8 r:rax
+1b57f866	mov	m:rsp::1:0x90:8 r:rdx
+1b57f86e	cmp	r:rdi r:r9
+1b57f871	je	i:0x1b57f891
+1b57f873	mov	r:rsi m:rsp::1:0x48:8
+1b57f878	mov	r:edx i:0x8
+1b57f87d	mov	r:ecx i:0x8
+1b57f882	call	i:0x1b5a7dfd
+1b57f887	movabs	r:r9 i:-0x8000000000000000
+1b57f891	mov	r:rsi m:r14::1:0x58:8
+1b57f895	cmp	r:rbx r:rsi
+1b57f898	jae	i:0x1b58023b
+1b57f89e	cmp	r:r15 m:rsp::1:0x10:8
+1b57f8a3	jae	i:0x1b580244
+1b57f8a9	mov	r:rcx m:r14::1:0x50:8
+1b57f8ad	lea	r:rax m:rcx:rbp:1:0x0:8
+1b57f8b1	mov	r:rdx m:rsp::1:0x8:8
+1b57f8b6	mov	r:rsi m:rdx:r15:8:0x0:8
+1b57f8ba	mov	r:r12 r:rsi
+1b57f8bd	shr	r:r12 i:0x6
+1b57f8c1	cmp	m:rcx:rbp:1:0x0:8 r:r9
+1b57f8c5	jne	i:0x1b57f8db
+1b57f8c7	cmp	m:rax::1:0x8:4 i:0x1
+1b57f8cb	jne	i:0x1b57f939
+1b57f8cd	add	r:rax i:0x10
+1b57f8d1	mov	r:edx i:0x1
+1b57f8d6	mov	r:rcx r:rax
+1b57f8d9	jmp	i:0x1b57f8e3
+1b57f8db	mov	r:rcx m:rax::1:0x8:8
+1b57f8df	mov	r:rdx m:rax::1:0x10:8
+1b57f8e3	cmp	r:r12 r:rdx
+1b57f8e6	jae	i:0x1b57f939
+1b57f8e8	mov	r:rax m:rcx:r12:8:0x0:8
+1b57f8ec	bt	r:rax r:rsi
+1b57f8f0	jae	i:0x1b57f939
+1b57f8f2	inc	r:r15
+1b57f8f5	lea	r:rax m:rsp::1:0x80:8
+1b57f8fd	mov	r:rdi r:r14
+1b57f900	mov	r:rsi r:rbx
+1b57f903	mov	r:rdx m:rsp::1:0x18:8
+1b57f908	mov	r:rcx m:rsp::1:0x78:8
+1b57f90d	mov	r:r8 m:rsp::1:0x8:8
+1b57f912	mov	r:r9 m:rsp::1:0x10:8
+1b57f917	push	m:rsp::1:0x168:8
+1b57f91e	push	r:rax
+1b57f91f	push	m:rsp::1:0x168:8
+1b57f926	push	r:r15
+1b57f928	call	i:0x1b57f58d
+1b57f92d	add	r:rsp i:0x20
+1b57f931	mov	r:rbx r:rax
+1b57f934	jmp	i:0x1b57fba6
+1b57f939	mov	m:rsp::1:0x70:8 r:rsi
+1b57f93e	lea	r:r15 m:rsp::1:0x40:8
+1b57f943	mov	r:rdi r:r15
+1b57f946	mov	r:rsi m:rsp::1:0x158:8
+1b57f94e	mov	r:rdx m:rsp::1:0x160:8
+1b57f956	call	i:0x1b580261
+1b57f95b	movabs	r:r9 i:-0x8000000000000000
+1b57f965	cmp	m:rsp::1:0x68:8 r:r9
+1b57f96a	jne	i:0x1b57f986
+1b57f96c	test	m:rsp::1:0x60:1 i:0x1
+1b57f971	je	i:0x1b57f9a8
+1b57f973	mov	r:rax m:rsp::1:0x168:8
+1b57f97b	lea	r:r13 m:rax::1:0x10:8
+1b57f97f	mov	r:eax i:0x8
+1b57f984	jmp	i:0x1b57f99b
+1b57f986	mov	r:rax m:rsp::1:0x168:8
+1b57f98e	mov	r:rax m:rax::1:0x10:8
+1b57f992	test	r:rax r:rax
+1b57f995	je	i:0x1b57f9a8
+1b57f997	shl	r:rax i:0x3
+1b57f99b	mov	r:rcx m:r13::1:0x0:8
+1b57f99f	cmp	r:rax i:0x8
+1b57f9a3	sete	r:al
+1b57f9a6	jmp	i:0x1b57f9ac
+1b57f9a8	mov	r:al i:0x1
+1b57f9aa	xor	r:ecx r:ecx
+1b57f9ac	mov	r:rdx r:rcx
+1b57f9af	shr	r:rdx i:0x20
+1b57f9b3	jne	i:0x1b57f9f2
+1b57f9b5	test	r:al r:al
+1b57f9b7	je	i:0x1b57f9f2
+1b57f9b9	test	r:rcx r:rcx
+1b57f9bc	je	i:0x1b5801f3
+1b57f9c2	mov	r:rdi m:rsp::1:0x40:8
+1b57f9c7	cmp	r:rdi r:r9
+1b57f9ca	mov	r:r15 m:rsp::1:0x150:8
+1b57f9d2	jne	i:0x1b57fa81
+1b57f9d8	cmp	m:rsp::1:0x48:4 i:0x1
+1b57f9dd	jne	i:0x1b57faa6
+1b57f9e3	mov	r:esi i:0x8
+1b57f9e8	lea	r:r8 m:rsp::1:0x50:8
+1b57f9ed	jmp	i:0x1b57fa94
+1b57f9f2	lea	r:rsi m:rsp::1:0x100:8
+1b57f9fa	mov	m:rsi::1:0x8:8 r:r15
+1b57f9fe	lea	r:rax m:r9::1:0x1:8
+1b57fa02	mov	m:rsi::1:0x0:8 r:rax
+1b57fa05	lea	r:rdx m:rsp::1:0xa0:8
+1b57fa0d	mov	r:rcx m:rsp::1:0x168:8
+1b57fa15	mov	m:rdx::1:0x8:8 r:rcx
+1b57fa19	mov	m:rdx::1:0x0:8 r:rax
+1b57fa1c	lea	r:r15 m:rsp::1:0xc0:8
+1b57fa24	mov	r:rdi r:r15
+1b57fa27	call	i:0x1b5b2545
+1b57fa2c	movabs	r:r9 i:-0x8000000000000000
+1b57fa36	movups	r:xmm0 m:r15::1:0x18:16
+1b57fa3b	movaps	m:rsp::1:0x20:16 r:xmm0
+1b57fa40	mov	r:rax m:r15::1:0x28:8
+1b57fa44	mov	m:rsp::1:0x30:8 r:rax
+1b57fa49	mov	r:rdi m:r15::1:0x0:8
+1b57fa4c	cmp	r:rdi r:r9
+1b57fa4f	je	i:0x1b57fa72
+1b57fa51	mov	r:rsi m:rsp::1:0xc8:8
+1b57fa59	mov	r:edx i:0x8
+1b57fa5e	mov	r:ecx i:0x8
+1b57fa63	call	i:0x1b5a7dfd
+1b57fa68	movabs	r:r9 i:-0x8000000000000000
+1b57fa72	mov	r:rdi m:rsp::1:0x40:8
+1b57fa77	mov	r:r15 m:rsp::1:0x150:8
+1b57fa7f	jmp	i:0x1b57fabf
+1b57fa81	mov	r:rsi m:rsp::1:0x50:8
+1b57fa86	test	r:rsi r:rsi
+1b57fa89	je	i:0x1b57faa6
+1b57fa8b	mov	r:r8 m:rsp::1:0x48:8
+1b57fa90	shl	r:rsi i:0x3
+1b57fa94	xor	r:edx r:edx
+1b57fa96	mov	r:rax m:r8:rsi:1:-0x8:8
+1b57fa9b	div	r:rcx
+1b57fa9e	add	r:rsi i:-0x8
+1b57faa2	jne	i:0x1b57fa96
+1b57faa4	jmp	i:0x1b57faa8
+1b57faa6	xor	r:edx r:edx
+1b57faa8	xor	r:eax r:eax
+1b57faaa	test	r:rdx r:rdx
+1b57faad	setne	r:al
+1b57fab0	mov	m:rsp::1:0x20:8 r:r9
+1b57fab5	mov	m:rsp::1:0x28:8 r:rax
+1b57faba	mov	m:rsp::1:0x30:8 r:rdx
+1b57fabf	cmp	r:rdi r:r9
+1b57fac2	je	i:0x1b57fae2
+1b57fac4	mov	r:rsi m:rsp::1:0x48:8
+1b57fac9	mov	r:edx i:0x8
+1b57face	mov	r:ecx i:0x8
+1b57fad3	call	i:0x1b5a7dfd
+1b57fad8	movabs	r:r9 i:-0x8000000000000000
+1b57fae2	mov	r:rsi m:r14::1:0x58:8
+1b57fae6	cmp	r:rbx r:rsi
+1b57fae9	mov	r:rdx m:rsp::1:0x70:8
+1b57faee	jae	i:0x1b580258
+1b57faf4	mov	r:rax m:r14::1:0x50:8
+1b57faf8	add	r:rax r:rbp
+1b57fafb	add	r:rax i:0x18
+1b57faff	cmp	m:rax::1:0x0:8 r:r9
+1b57fb02	jne	i:0x1b57fb1c
+1b57fb04	cmp	m:rax::1:0x8:4 i:0x1
+1b57fb08	jne	i:0x1b57fbc6
+1b57fb0e	add	r:rax i:0x10
+1b57fb12	mov	r:esi i:0x1
+1b57fb17	mov	r:rcx r:rax
+1b57fb1a	jmp	i:0x1b57fb24
+1b57fb1c	mov	r:rcx m:rax::1:0x8:8
+1b57fb20	mov	r:rsi m:rax::1:0x10:8
+1b57fb24	cmp	r:r12 r:rsi
+1b57fb27	jae	i:0x1b57fbc6
+1b57fb2d	mov	r:rax m:rcx:r12:8:0x0:8
+1b57fb31	bt	r:rax r:rdx
+1b57fb35	jae	i:0x1b57fbc6
+1b57fb3b	inc	r:r15
+1b57fb3e	lea	r:rax m:rsp::1:0x80:8
+1b57fb46	mov	r:r10 r:r15
+1b57fb49	lea	r:r15 m:rsp::1:0x20:8
+1b57fb4e	mov	r:rdi r:r14
+1b57fb51	mov	r:rsi r:rbx
+1b57fb54	mov	r:rdx m:rsp::1:0x18:8
+1b57fb59	mov	r:rcx m:rsp::1:0x78:8
+1b57fb5e	mov	r:r8 m:rsp::1:0x8:8
+1b57fb63	mov	r:r9 m:rsp::1:0x10:8
+1b57fb68	push	m:rsp::1:0x168:8
+1b57fb6f	push	r:rax
+1b57fb70	push	r:r15
+1b57fb72	push	r:r10
+1b57fb74	call	i:0x1b57f58d
+1b57fb79	movabs	r:rcx i:-0x8000000000000000
+1b57fb83	add	r:rsp i:0x20
+1b57fb87	mov	r:rbx r:rax
+1b57fb8a	mov	r:rdi m:r15::1:0x0:8
+1b57fb8d	cmp	r:rdi r:rcx
+1b57fb90	je	i:0x1b57fbb0
+1b57fb92	mov	r:rsi m:rsp::1:0x28:8
+1b57fb97	mov	r:edx i:0x8
+1b57fb9c	mov	r:ecx i:0x8
+1b57fba1	call	i:0x1b5a7dfd
+1b57fba6	movabs	r:rcx i:-0x8000000000000000
+1b57fbb0	mov	r:rdi m:rsp::1:0x80:8
+1b57fbb8	cmp	r:rdi r:rcx
+1b57fbbb	jne	i:0x1b57fd5c
+1b57fbc1	jmp	i:0x1b580158
+1b57fbc6	cmp	m:fs::1:-0x10:1 i:0x0
+1b57fbcf	je	i:0x1b58020b
+1b57fbd5	mov	r:rax m:fs::1:-0x20:8
+1b57fbde	mov	r:rcx m:fs::1:-0x18:8
+1b57fbe7	lea	r:rsi m:rax::1:0x1:8
+1b57fbeb	mov	m:fs::1:-0x20:8 r:rsi
+1b57fbf4	movups	r:xmm0 m:rip::1:0x78f9d:16
+1b57fbfb	lea	r:rbp m:rsp::1:0xc0:8
+1b57fc03	movaps	m:rbp::1:0x0:16 r:xmm0
+1b57fc07	movups	r:xmm0 m:rip::1:0x78f9a:16
+1b57fc0e	movaps	m:rbp::1:0x10:16 r:xmm0
+1b57fc12	mov	m:rbp::1:0x20:8 r:rax
+1b57fc16	mov	m:rbp::1:0x28:8 r:rcx
+1b57fc1a	mov	r:rdi r:r14
+1b57fc1d	mov	r:rsi r:rbx
+1b57fc20	mov	r:rcx r:rbp
+1b57fc23	call	i:0x1b580415
+1b57fc28	mov	r:r15 r:rax
+1b57fc2b	mov	m:rsp::1:0x68:8 r:rdx
+1b57fc30	mov	r:rcx m:rbp::1:0x8:8
+1b57fc34	test	r:rcx r:rcx
+1b57fc37	je	i:0x1b57fc63
+1b57fc39	lea	r:rax m:rcx:rcx:2:0x0:8
+1b57fc3d	lea	r:rax m::rax:8:0x27:8
+1b57fc45	and	r:rax i:-0x10
+1b57fc49	add	r:rcx r:rax
+1b57fc4c	cmp	r:rcx i:-0x11
+1b57fc50	je	i:0x1b57fc63
+1b57fc52	mov	r:rdi m:rsp::1:0xc0:8
+1b57fc5a	sub	r:rdi r:rax
+1b57fc5d	call	m:rip::1:0x7bc7d:8
+1b57fc63	mov	r:rbp m:rsp::1:0x150:8
+1b57fc6b	inc	r:rbp
+1b57fc6e	lea	r:r10 m:rsp::1:0x80:8
+1b57fc76	mov	r:rdi r:r14
+1b57fc79	mov	r:rsi r:r15
+1b57fc7c	mov	r:rdx m:rsp::1:0x18:8
+1b57fc81	mov	r:r13 m:rsp::1:0x78:8
+1b57fc86	mov	r:rcx r:r13
+1b57fc89	mov	r:r15 m:rsp::1:0x8:8
+1b57fc8e	mov	r:r8 r:r15
+1b57fc91	mov	r:r12 m:rsp::1:0x10:8
+1b57fc96	mov	r:r9 r:r12
+1b57fc99	mov	r:rbx m:rsp::1:0x168:8
+1b57fca1	push	r:rbx
+1b57fca2	push	r:r10
+1b57fca4	push	m:rsp::1:0x168:8
+1b57fcab	push	r:rbp
+1b57fcac	call	i:0x1b57f58d
+1b57fcb1	add	r:rsp i:0x20
+1b57fcb5	mov	m:rsp::1:0x60:8 r:rax
+1b57fcba	lea	r:rax m:rsp::1:0x20:8
+1b57fcbf	mov	r:rdi r:r14
+1b57fcc2	mov	r:rsi m:rsp::1:0x68:8
+1b57fcc7	mov	r:rdx m:rsp::1:0x18:8
+1b57fccc	mov	r:rcx r:r13
+1b57fccf	mov	r:r8 r:r15
+1b57fcd2	mov	r:r9 r:r12
+1b57fcd5	push	r:rbx
+1b57fcd6	lea	r:r10 m:rsp::1:0x88:8
+1b57fcde	push	r:r10
+1b57fce0	push	r:rax
+1b57fce1	mov	r:r15 r:rax
+1b57fce4	push	r:rbp
+1b57fce5	call	i:0x1b57f58d
+1b57fcea	add	r:rsp i:0x20
+1b57fcee	lea	r:rcx m:rsp::1:0xc0:8
+1b57fcf6	mov	r:rdx m:rsp::1:0x70:8
+1b57fcfb	mov	m:rcx::1:0x0:8 r:rdx
+1b57fcfe	mov	m:rcx::1:0x8:1 i:0x1
+1b57fd02	mov	r:r8d i:0x1
+1b57fd08	mov	r:rdi r:r14
+1b57fd0b	mov	r:rsi m:rsp::1:0x60:8
+1b57fd10	mov	r:rdx r:rax
+1b57fd13	call	i:0x1b57dc99
+1b57fd18	mov	r:rbx r:rax
+1b57fd1b	mov	r:rdi m:r15::1:0x0:8
+1b57fd1e	movabs	r:rax i:-0x8000000000000000
+1b57fd28	cmp	r:rdi r:rax
+1b57fd2b	je	i:0x1b57fd4b
+1b57fd2d	mov	r:rsi m:rsp::1:0x28:8
+1b57fd32	mov	r:edx i:0x8
+1b57fd37	mov	r:ecx i:0x8
+1b57fd3c	call	i:0x1b5a7dfd
+1b57fd41	movabs	r:rax i:-0x8000000000000000
+1b57fd4b	mov	r:rdi m:rsp::1:0x80:8
+1b57fd53	cmp	r:rdi r:rax
+1b57fd56	je	i:0x1b580158
+1b57fd5c	mov	r:rsi m:rsp::1:0x88:8
+1b57fd64	jmp	i:0x1b580149
+1b57fd69	mov	r:al i:0x1
+1b57fd6b	xor	r:r9d r:r9d
+1b57fd6e	xor	r:ecx r:ecx
+1b57fd70	jmp	i:0x1b57fd79
+1b57fd72	xor	r:ecx r:ecx
+1b57fd74	mov	r:al i:0x1
+1b57fd76	mov	r:r10 r:r9
+1b57fd79	movabs	r:r8 i:-0x8000000000000000
+1b57fd83	mov	r:rdx r:rcx
+1b57fd86	shr	r:rdx i:0x20
+1b57fd8a	jne	i:0x1b57fdba
+1b57fd8c	test	r:al r:al
+1b57fd8e	je	i:0x1b57fdba
+1b57fd90	test	r:rcx r:rcx
+1b57fd93	je	i:0x1b5801f3
+1b57fd99	cmp	m:rdi::1:0x0:8 r:r8
+1b57fd9c	jne	i:0x1b57fe72
+1b57fda2	cmp	m:rdi::1:0x8:4 i:0x1
+1b57fda6	jne	i:0x1b580158
+1b57fdac	add	r:rdi i:0x10
+1b57fdb0	mov	r:esi i:0x8
+1b57fdb5	jmp	i:0x1b57fe87
+1b57fdba	mov	m:rsp::1:0x8:8 r:r10
+1b57fdbf	mov	m:rsp::1:0x10:8 r:r9
+1b57fdc4	lea	r:rsi m:rsp::1:0x100:8
+1b57fdcc	mov	m:rsi::1:0x8:8 r:rdi
+1b57fdd0	lea	r:rax m:r8::1:0x1:8
+1b57fdd4	mov	m:rsi::1:0x0:8 r:rax
+1b57fdd7	lea	r:rdx m:rsp::1:0xa0:8
+1b57fddf	mov	m:rdx::1:0x8:8 r:r12
+1b57fde3	mov	m:rdx::1:0x0:8 r:rax
+1b57fde6	lea	r:r12 m:rsp::1:0xc0:8
+1b57fdee	mov	r:rdi r:r12
+1b57fdf1	call	i:0x1b5b2545
+1b57fdf6	movabs	r:rcx i:-0x8000000000000000
+1b57fe00	movups	r:xmm0 m:r12::1:0x18:16
+1b57fe06	movaps	m:rsp::1:0x20:16 r:xmm0
+1b57fe0b	mov	r:rax m:r12::1:0x28:8
+1b57fe10	mov	m:rsp::1:0x30:8 r:rax
+1b57fe15	mov	r:rdi m:r12::1:0x0:8
+1b57fe19	cmp	r:rdi r:rcx
+1b57fe1c	je	i:0x1b57fe3f
+1b57fe1e	mov	r:rsi m:rsp::1:0xc8:8
+1b57fe26	mov	r:edx i:0x8
+1b57fe2b	mov	r:ecx i:0x8
+1b57fe30	call	i:0x1b5a7dfd
+1b57fe35	movabs	r:rcx i:-0x8000000000000000
+1b57fe3f	mov	r:rdi m:rsp::1:0x20:8
+1b57fe44	cmp	r:rdi r:rcx
+1b57fe47	jne	i:0x1b57fe5d
+1b57fe49	cmp	m:rsp::1:0x28:1 i:0x0
+1b57fe4e	mov	r:r12 m:rsp::1:0x168:8
+1b57fe56	jne	i:0x1b57febe
+1b57fe58	jmp	i:0x1b580158
+1b57fe5d	cmp	m:rsp::1:0x30:8 i:0x0
+1b57fe63	mov	r:r12 m:rsp::1:0x168:8
+1b57fe6b	jne	i:0x1b57febe
+1b57fe6d	jmp	i:0x1b580144
+1b57fe72	mov	r:rsi m:rdi::1:0x10:8
+1b57fe76	test	r:rsi r:rsi
+1b57fe79	je	i:0x1b580158
+1b57fe7f	mov	r:rdi m:rdi::1:0x8:8
+1b57fe83	shl	r:rsi i:0x3
+1b57fe87	mov	m:rsp::1:0x8:8 r:r10
+1b57fe8c	mov	m:rsp::1:0x10:8 r:r9
+1b57fe91	xor	r:edx r:edx
+1b57fe93	mov	r:rax m:rdi:rsi:1:-0x8:8
+1b57fe98	div	r:rcx
+1b57fe9b	add	r:rsi i:-0x8
+1b57fe9f	jne	i:0x1b57fe93
+1b57fea1	xor	r:eax r:eax
+1b57fea3	test	r:rdx r:rdx
+1b57fea6	setne	r:al
+1b57fea9	mov	m:rsp::1:0x20:8 r:r8
+1b57feae	mov	m:rsp::1:0x28:8 r:rax
+1b57feb3	mov	m:rsp::1:0x30:8 r:rdx
+1b57feb8	je	i:0x1b580158
+1b57febe	movups	r:xmm0 m:rip::1:-0x34d2d:16
+1b57fec5	lea	r:rsi m:rsp::1:0xc0:8
+1b57fecd	movaps	m:rsi::1:0x10:16 r:xmm0
+1b57fed1	movups	r:xmm1 m:rip::1:-0x34d50:16
+1b57fed8	movaps	m:rsi::1:0x0:16 r:xmm1
+1b57fedb	movaps	m:rsi::1:0x20:16 r:xmm1
+1b57fedf	movaps	m:rsi::1:0x30:16 r:xmm0
+1b57fee3	mov	r:rdi r:r14
+1b57fee6	call	i:0x1b57d49a
+1b57feeb	mov	r:ecx i:0x8
+1b57fef0	mov	r:rdi r:r14
+1b57fef3	mov	r:rsi r:rax
+1b57fef6	mov	r:rdx r:rbx
+1b57fef9	xor	r:r8d r:r8d
+1b57fefc	call	i:0x1b57dc99
+1b57ff01	mov	r:rdi r:r14
+1b57ff04	mov	r:rsi r:rax
+1b57ff07	mov	m:rsp::1:0x18:8 r:r13
+1b57ff0c	mov	r:rdx r:r13
+1b57ff0f	mov	r:rcx r:r15
+1b57ff12	mov	r:r8 r:r12
+1b57ff15	call	i:0x1b580e05
+1b57ff1a	movabs	r:rcx i:-0x8000000000000000
+1b57ff24	mov	r:r13 m:r12::1:0x10:8
+1b57ff29	cmp	r:rbp r:rcx
+1b57ff2c	mov	m:rsp::1:0x70:8 r:rdx
+1b57ff31	mov	m:rsp::1:0x68:8 r:rax
+1b57ff36	jne	i:0x1b57ff45
+1b57ff38	mov	r:r12 r:r15
+1b57ff3b	mov	r:r15 r:rcx
+1b57ff3e	mov	r:rdx m:rsp::1:0x10:8
+1b57ff43	jmp	i:0x1b57ff6f
+1b57ff45	test	r:r13 r:r13
+1b57ff48	je	i:0x1b57ff66
+1b57ff4a	cmp	r:r13 i:0x1
+1b57ff4e	jne	i:0x1b58016d
+1b57ff54	mov	r:r12 r:r15
+1b57ff57	mov	r:rax m:rsp::1:0x8:8
+1b57ff5c	mov	r:r13 m:rax::1:0x0:8
+1b57ff5f	mov	r:edx i:0x1
+1b57ff64	jmp	i:0x1b57ff6c
+1b57ff66	mov	r:r12 r:r15
+1b57ff69	mov	r:rdx r:r13
+1b57ff6c	mov	r:r15 r:rcx
+1b57ff6f	lea	r:rbp m:rsp::1:0xc0:8
+1b57ff77	mov	m:rbp::1:0x0:8 r:r15
+1b57ff7b	mov	m:rbp::1:0x8:8 r:rdx
+1b57ff7f	mov	m:rbp::1:0x10:8 r:r13
+1b57ff83	lea	r:rsi m:rsp::1:0x20:8
+1b57ff88	mov	r:rdi r:rbp
+1b57ff8b	call	i:0x1b5b20e7
+1b57ff90	mov	r:rax m:rbp::1:0x10:8
+1b57ff94	lea	r:r13 m:rsp::1:0x40:8
+1b57ff99	mov	m:r13::1:0x10:8 r:rax
+1b57ff9d	movups	r:xmm0 m:rbp::1:0x0:16
+1b57ffa1	movaps	m:r13::1:0x0:16 r:xmm0
+1b57ffa6	mov	r:rdi r:r14
+1b57ffa9	mov	r:rsi m:rsp::1:0x68:8
+1b57ffae	mov	r:r15 m:rsp::1:0x18:8
+1b57ffb3	mov	r:rdx r:r15
+1b57ffb6	mov	r:rcx r:r12
+1b57ffb9	mov	r:r8 r:r13
+1b57ffbc	call	i:0x1b580e05
+1b57ffc1	mov	m:rsp::1:0x8:8 r:rdx
+1b57ffc6	sub	r:rsp i:0x8
+1b57ffca	mov	r:r9d i:0x8
+1b57ffd0	mov	r:rdi r:r14
+1b57ffd3	mov	r:rsi r:rax
+1b57ffd6	mov	r:rdx r:r15
+1b57ffd9	mov	r:rcx r:r12
+1b57ffdc	lea	r:r8 m:rsp::1:0x28:8
+1b57ffe1	push	i:0x0
+1b57ffe3	call	i:0x1b57de58
+1b57ffe8	add	r:rsp i:0x10
+1b57ffec	mov	m:rsp::1:0x10:8 r:rax
+1b57fff1	mov	r:eax r:r12d
+1b57fff4	and	r:al i:0x3f
+1b57fff6	mov	m:rsp::1:0x78:8 r:r12
+1b57fffb	mov	r:rdx r:r12
+1b57fffe	shr	r:rdx i:0x6
+1b580002	movabs	r:r12 i:-0x8000000000000000
+1b58000c	mov	m:rbp::1:0x0:8 r:r12
+1b580010	mov	r:ecx i:0x1
+1b580015	mov	m:rbp::1:0x8:8 r:rcx
+1b580019	mov	m:rbp::1:0x10:8 r:rcx
+1b58001d	movzx	r:ecx r:al
+1b580020	lea	r:rbp m:rsp::1:0x100:8
+1b580028	lea	r:r15 m:rsp::1:0xc0:8
+1b580030	mov	r:rdi r:rbp
+1b580033	mov	r:rsi r:r15
+1b580036	call	i:0x1b5b12f7
+1b58003b	mov	r:rax m:r13::1:0x10:8
+1b58003f	mov	m:r15::1:0x10:8 r:rax
+1b580043	movaps	r:xmm0 m:r13::1:0x0:16
+1b580048	movaps	m:r15::1:0x0:16 r:xmm0
+1b58004c	lea	r:r15 m:rsp::1:0xc0:8
+1b580054	mov	r:rdi r:rbp
+1b580057	mov	r:rsi r:r15
+1b58005a	call	i:0x1b5b20e7
+1b58005f	mov	r:rax m:rbp::1:0x10:8
+1b580063	mov	m:rsp::1:0xb0:8 r:rax
+1b58006b	movups	r:xmm0 m:rbp::1:0x0:16
+1b58006f	movaps	m:rsp::1:0xa0:16 r:xmm0
+1b580077	mov	r:rdi m:r15::1:0x0:8
+1b58007a	cmp	r:rdi r:r12
+1b58007d	je	i:0x1b580096
+1b58007f	mov	r:rsi m:rsp::1:0xc8:8
+1b580087	mov	r:edx i:0x8
+1b58008c	mov	r:ecx i:0x8
+1b580091	call	i:0x1b5a7dfd
+1b580096	sub	r:rsp i:0x8
+1b58009a	lea	r:r15 m:rsp::1:0xa8:8
+1b5800a2	mov	r:r9d i:0x8
+1b5800a8	mov	r:rdi r:r14
+1b5800ab	mov	r:rsi m:rsp::1:0x10:8
+1b5800b0	mov	r:rdx m:rsp::1:0x20:8
+1b5800b5	mov	r:rcx m:rsp::1:0x80:8
+1b5800bd	mov	r:r8 r:r15
+1b5800c0	push	i:0x0
+1b5800c2	call	i:0x1b57de58
+1b5800c7	add	r:rsp i:0x10
+1b5800cb	mov	r:r12 r:rax
+1b5800ce	mov	r:rdi m:r15::1:0x0:8
+1b5800d1	movabs	r:rax i:-0x8000000000000000
+1b5800db	cmp	r:rdi r:rax
+1b5800de	je	i:0x1b5800f7
+1b5800e0	mov	r:rsi m:rsp::1:0xa8:8
+1b5800e8	mov	r:edx i:0x8
+1b5800ed	mov	r:ecx i:0x8
+1b5800f2	call	i:0x1b5a7dfd
+1b5800f7	mov	r:rdi r:r14
+1b5800fa	mov	r:rsi m:rsp::1:0x10:8
+1b5800ff	mov	r:rdx r:r12
+1b580102	call	i:0x1b581159
+1b580107	mov	r:rdi r:r14
+1b58010a	mov	r:rsi r:rax
+1b58010d	mov	r:rdx m:rsp::1:0x70:8
+1b580112	call	i:0x1b581159
+1b580117	mov	r:ecx i:0x8
+1b58011c	mov	r:rdi r:r14
+1b58011f	mov	r:rsi r:rbx
+1b580122	mov	r:rdx r:rax
+1b580125	xor	r:r8d r:r8d
+1b580128	call	i:0x1b57dc99
+1b58012d	mov	r:rbx r:rax
+1b580130	mov	r:rdi m:rsp::1:0x20:8
+1b580135	movabs	r:rax i:-0x8000000000000000
+1b58013f	cmp	r:rdi r:rax
+1b580142	je	i:0x1b580158
+1b580144	mov	r:rsi m:rsp::1:0x28:8
+1b580149	mov	r:edx i:0x8
+1b58014e	mov	r:ecx i:0x8
+1b580153	call	i:0x1b5a7dfd
+1b580158	mov	r:rax r:rbx
+1b58015b	add	r:rsp i:0x118
+1b580162	pop	r:rbx
+1b580163	pop	r:r12
+1b580165	pop	r:r13
+1b580167	pop	r:r14
+1b580169	pop	r:r15
+1b58016b	pop	r:rbp
+1b58016c	ret	
+1b58016d	lea	r:rbp m::r13:8:0x0:8
+1b580175	mov	r:rsi r:r13
+1b580178	shr	r:rsi i:0x3d
+1b58017c	setne	r:sil
+1b580180	add	r:rcx i:-0x8
+1b580184	cmp	r:rbp r:rcx
+1b580187	seta	r:cl
+1b58018a	or	r:cl r:sil
+1b58018d	mov	r:rsi m:rsp::1:0x8:8
+1b580192	je	i:0x1b5801a2
+1b580194	xor	r:r15d r:r15d
+1b580197	mov	r:rdi r:r15
+1b58019a	mov	r:rsi r:rbp
+1b58019d	call	i:0x1b571aec
+1b5801a2	test	r:rbp r:rbp
+1b5801a5	je	i:0x1b5801d4
+1b5801a7	mov	m:rsp::1:0x8:8 r:rsi
+1b5801ac	mov	r:r12 r:r15
+1b5801af	mov	r:r15d i:0x8
+1b5801b5	mov	r:esi i:0x8
+1b5801ba	mov	r:rdi r:rbp
+1b5801bd	call	i:0x1b578e90
+1b5801c2	test	r:rax r:rax
+1b5801c5	je	i:0x1b580197
+1b5801c7	mov	r:rdi r:rax
+1b5801ca	mov	r:r15 r:r13
+1b5801cd	mov	r:rsi m:rsp::1:0x8:8
+1b5801d2	jmp	i:0x1b5801df
+1b5801d4	mov	r:r12 r:r15
+1b5801d7	mov	r:edi i:0x8
+1b5801dc	xor	r:r15d r:r15d
+1b5801df	mov	r:rdx r:rbp
+1b5801e2	mov	r:rbp r:rdi
+1b5801e5	call	m:rip::1:0x7b6dd:8
+1b5801eb	mov	r:rdx r:rbp
+1b5801ee	jmp	i:0x1b57ff6f
+1b5801f3	lea	r:rdi m:rip::1:-0x30545:8
+1b5801fa	lea	r:rdx m:rip::1:0x7b3e7:8
+1b580201	mov	r:esi i:0x33
+1b580206	call	i:0x1b5725e0
+1b58020b	mov	r:rax m:fs::1:0x0:8
+1b580214	lea	r:rdi m:rax::1:-0x20:8
+1b58021b	xor	r:esi r:esi
+1b58021d	call	i:0x1b57ef52
+1b580222	mov	r:rdx m:rsp::1:0x70:8
+1b580227	jmp	i:0x1b57fbd5
+1b58022c	lea	r:rdx m:rip::1:0x79035:8
+1b580233	mov	r:rdi r:rbx
+1b580236	call	i:0x1b5731cd
+1b58023b	lea	r:rdx m:rip::1:0x7903e:8
+1b580242	jmp	i:0x1b580233
+1b580244	lea	r:rdx m:rip::1:0x7904d:8
+1b58024b	mov	r:rdi r:r15
+1b58024e	mov	r:rsi m:rsp::1:0x10:8
+1b580253	call	i:0x1b5731cd
+1b580258	lea	r:rdx m:rip::1:0x79051:8
+1b58025f	jmp	i:0x1b580233
