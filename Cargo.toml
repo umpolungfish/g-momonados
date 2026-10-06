@@ -25,6 +25,11 @@ path = "src/main.rs"
 # required-features = ["hosted"]
 
 [[bin]]
+name = "ququart_factor"
+path = "src/bin/ququart_factor.rs"
+required-features = ["hosted"]
+
+[[bin]]
 name = "ququart_baked"
 path = "src/bin/ququart_baked.rs"
 required-features = ["hosted"]
@@ -80,6 +85,10 @@ path = "src/bin/imasm_phase_factor.rs"
 [[bin]]
 name = "semiprime-tool"
 path = "src/semiprime_tool.rs"
+
+[[bin]]
+name = "membrane-factor"
+path = "src/bin/membrane_factor.rs"
 
 [[bin]]
 name = "prime-tool"
