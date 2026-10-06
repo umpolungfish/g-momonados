@@ -222,64 +222,89 @@ pub struct QuquartSicFactorShot {
 
 /// Close a measured winding with the native order-two factor relation and
 /// verify its factor arms against the source word.
-fn extract_certified_winding(
+/// Tries multiple bases automatically to find a non-trivial half-power.
+pub fn extract_certified_winding(
     source: &BigUint,
-    base: &BigUint,
     order: &BigUint,
 ) -> Result<QuquartFactorClosure, String> {
     use crate::godel_calculus::{check, encode_cell_binary, Nat, Operator};
     let numeral = |value: &BigUint| Nat::from_bits_le(
         crate::native_numeral::to_bits_low_first(value));
     let source_numeral = numeral(source);
-    let base_numeral = numeral(base);
     let order_numeral = numeral(order);
     let one = Nat::one();
     if source_numeral.is_zero() || order_numeral.is_zero()
-        || order_numeral.bits_le()[0]
-        || base_numeral.pow_mod(&order_numeral, &source_numeral) != Some(one.clone()) {
+        || order_numeral.bits_le()[0] {
         return Err("measured phase did not close an even modular winding".into());
     }
-    let half_order = Nat::from_bits_le(order_numeral.bits_le()[1..].to_vec());
-    let half_power = base_numeral.pow_mod(&half_order, &source_numeral)
-        .ok_or("measured winding has a zero source")?;
-    if half_power == one || half_power.add(&one) == source_numeral {
-        return Err("measured winding has a trivial half-winding".into());
-    }
-    let gcd = |mut left: Nat, mut right: Nat| {
-        while !right.is_zero() {
-            let remainder = left.div_rem(&right).expect("nonzero winding divisor").1;
-            left = right;
-            right = remainder;
+
+    // Try multiple bases until one yields a non-trivial factor
+    for base_val in [2u32, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47] {
+        let base = BigUint::from(base_val);
+        if base >= *source { continue; }
+        let base_numeral = numeral(&base);
+        
+        // Verify this base has the correct order
+        if base_numeral.pow_mod(&order_numeral, &source_numeral) != Some(one.clone()) {
+            continue;
         }
-        left
-    };
-    if gcd(base_numeral, source_numeral.clone()) != one {
-        return Err("measured phase base is not coprime to its source".into());
+        
+        let gcd = |mut left: Nat, mut right: Nat| {
+            while !right.is_zero() {
+                let remainder = left.div_rem(&right).expect("nonzero winding divisor").1;
+                left = right;
+                right = remainder;
+            }
+            left
+        };
+        if gcd(base_numeral.clone(), source_numeral.clone()) != one {
+            continue;
+        }
+        
+        let mut current_order = order_numeral.clone();
+        let mut p_numeral = one.clone();
+        while current_order.bits_le().get(0) == Some(&false) && !current_order.is_zero() {
+            let half = Nat::from_bits_le(current_order.bits_le()[1..].to_vec());
+            let half_power = base_numeral.pow_mod(&half, &source_numeral)
+                .ok_or("measured winding has a zero source")?;
+            if half_power != one && half_power.add(&one) != source_numeral {
+                let mut cand = gcd(half_power.sub(&one).ok_or("zero half-winding")?, source_numeral.clone());
+                if cand == one || cand == source_numeral {
+                    cand = gcd(half_power.add(&one), source_numeral.clone());
+                }
+                if cand != one && cand != source_numeral && !cand.is_zero() {
+                    p_numeral = cand;
+                    break;
+                }
+            }
+            if half_power != one {
+                break;
+            }
+            current_order = half;
+        }
+        if p_numeral == one || p_numeral == source_numeral || p_numeral.is_zero() {
+            continue; // try next base
+        }
+
+        let (q_numeral, remainder) = source_numeral.div_rem(&p_numeral)
+            .ok_or("zero measured factor arm")?;
+        let source_word = encode_cell_binary(&source_numeral);
+        let p_word = encode_cell_binary(&p_numeral);
+        let q_word = encode_cell_binary(&q_numeral);
+        if q_numeral == one || !remainder.is_zero()
+            || !check(&p_word, Operator::Mul, &q_word, &source_word)
+                .map_err(|error| error.to_string())?.valid {
+            continue; // try next base
+        }
+        let host_value = |value: &Nat| value.bits_le().iter().enumerate().fold(
+            BigUint::zero(), |result, (bit, set)| {
+                if *set { result | (BigUint::one() << bit) } else { result }
+            });
+        let p = host_value(&p_numeral);
+        let q = host_value(&q_numeral);
+        return Ok(QuquartFactorClosure { source_word, p_word, q_word, order: order.clone(), p, q });
     }
-    let mut p_numeral = gcd(half_power.sub(&one).ok_or("zero half-winding")?, source_numeral.clone());
-    if p_numeral == one || p_numeral == source_numeral {
-        p_numeral = gcd(half_power.add(&one), source_numeral.clone());
-    }
-    if p_numeral == one || p_numeral == source_numeral || p_numeral.is_zero() {
-        return Err("measured winding did not yield a nontrivial factor".into());
-    }
-    let (q_numeral, remainder) = source_numeral.div_rem(&p_numeral)
-        .ok_or("zero measured factor arm")?;
-    let source_word = encode_cell_binary(&source_numeral);
-    let p_word = encode_cell_binary(&p_numeral);
-    let q_word = encode_cell_binary(&q_numeral);
-    if q_numeral == one || !remainder.is_zero()
-        || !check(&p_word, Operator::Mul, &q_word, &source_word)
-            .map_err(|error| error.to_string())?.valid {
-        return Err("measured factor arms did not close through the Gödel product".into());
-    }
-    let host_value = |value: &Nat| value.bits_le().iter().enumerate().fold(
-        BigUint::zero(), |result, (bit, set)| {
-            if *set { result | (BigUint::one() << bit) } else { result }
-        });
-    let p = host_value(&p_numeral);
-    let q = host_value(&q_numeral);
-    Ok(QuquartFactorClosure { source_word, p_word, q_word, order: order.clone(), p, q })
+    Err("no base yielded a nontrivial factor".into())
 }
 
 pub fn close_sic_phase_evidence(
@@ -314,7 +339,7 @@ pub fn close_sic_phase_evidence(
         if (&order & BigUint::one()).is_one() || base.modpow(&order, source) != BigUint::one() {
             continue;
         }
-        if let Ok(closure) = extract_certified_winding(source, base, &order) {
+        if let Ok(closure) = extract_certified_winding(source, &order) {
             return Ok(Some(closure));
         }
     }
@@ -417,7 +442,7 @@ impl<D: QuquartPhaseDevice> QuquartFactorExecutor<D> {
             self.measured_phases.push((phase.numerator().clone(), phase.denominator()?));
             let closure = phase.close(&mut self.evidence, source, base)?;
             let closure = if let Some((order, measured_p, measured_q)) = closure {
-                let result = extract_certified_winding(source, base, &order)?;
+                let result = extract_certified_winding(source, &order)?;
                 let (p, q) = result.factors();
                 if !((p == &measured_p && q == &measured_q) || (p == &measured_q && q == &measured_p)) {
                     return Err("resident closure changed the measured factor arms".into());
@@ -524,9 +549,8 @@ mod tests {
         let decimal = |text: &[u8]| BigUint::parse_bytes(text, 10).unwrap();
         let n = decimal(b"1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139");
         let order = decimal(b"761302513961266680267809189066318714859034057480651309369510315012584735325452345278878285127821940");
-        let base = BigUint::from(2u8);
-        assert!(base.modpow(&order, &n).is_one());
-        let closure = extract_certified_winding(&n, &base, &order).unwrap();
+        assert!(BigUint::from(2u8).modpow(&order, &n).is_one());
+        let closure = extract_certified_winding(&n, &order).unwrap();
         let (p, q) = closure.factors();
         let closure_word = closure.word();
         let fields: Vec<_> = closure_word.split('|').collect();
@@ -555,6 +579,7 @@ mod tests {
         sic_evidence
             .add_hypothesis(BigUint::one(), order.clone())
             .unwrap();
+        let base = BigUint::from(2u8);
         assert!(close_sic_phase_evidence(&sic_evidence, &n, &base).is_err());
         let sic = crate::anyon_ququart::FixedQuquartSic::new(&format).unwrap();
         let likelihoods = sic
@@ -857,4 +882,84 @@ mod tests {
             .collect();
         assert_eq!(resulting_scores, prior_scores);
     }
+
+    #[test]
+    fn verifies_512_bit_ququart_factor_extraction() {
+        let decimal = |text: &[u8]| BigUint::parse_bytes(text, 10).unwrap();
+        let n = decimal(b"11162976014038284584554175035280811655083993185498643191965951037218051747349440530628445745955177331569497978454837683546181487349739261779520188124718987");
+        let expected_p = decimal(b"110779456096946995998735844958063127842452369788344050538596801986807382628657");
+        let expected_q = decimal(b"100767564739342752224444557822865047492636548230856823653835998616381530381691");
+        assert_eq!(n.bits(), 512);
+        assert_eq!(&expected_p * &expected_q, n);
+
+        let p_minus_1 = &expected_p - BigUint::one();
+        let q_minus_1 = &expected_q - BigUint::one();
+        let gcd_pq = {
+            let mut a = p_minus_1.clone();
+            let mut b = q_minus_1.clone();
+            while !b.is_zero() { let r = &a % &b; a = b; b = r; }
+            a
+        };
+        let lambda = (&p_minus_1 * &q_minus_1) / gcd_pq;
+        assert!(BigUint::from(2u8).modpow(&lambda, &n).is_one());
+
+        let closure = extract_certified_winding(&n, &lambda).unwrap();
+        let (p, q) = closure.factors();
+        assert_eq!(p * q, n);
+        assert!((p == &expected_p && q == &expected_q) || (p == &expected_q && q == &expected_p));
+    }
+
+    #[test]
+    fn verifies_1024_bit_ququart_factor_extraction() {
+        let decimal = |text: &[u8]| BigUint::parse_bytes(text, 10).unwrap();
+        let n = decimal(b"70861570985469828970978375027150824771325362925536430801863707403280257973533474815678878566486497157759335697196173771724964596869875870950455390817281861709395768323091937899375301994450415588859487555661978347769562342528703617184541681351383605548345883498591697056358218968957925649962155183181161648877");
+        let expected_p = decimal(b"8423945702231033480279626805661697571136171088513584371549559439303673208549567234533476041711110412891370595809504580475465901560004514487086232803224349");
+        let expected_q = decimal(b"8411921620850731528501225753658164765893900305151189422899504415271368440071356856887195001919503343804694889509778053803141353378428525816831267093638673");
+        assert_eq!(n.bits(), 1023);
+        assert_eq!(&expected_p * &expected_q, n);
+
+        let p_minus_1 = &expected_p - BigUint::one();
+        let q_minus_1 = &expected_q - BigUint::one();
+        let gcd_pq = {
+            let mut a = p_minus_1.clone();
+            let mut b = q_minus_1.clone();
+            while !b.is_zero() { let r = &a % &b; a = b; b = r; }
+            a
+        };
+        let lambda = (&p_minus_1 * &q_minus_1) / gcd_pq;
+        assert!(BigUint::from(2u8).modpow(&lambda, &n).is_one());
+
+        let closure = extract_certified_winding(&n, &lambda).unwrap();
+        let (p, q) = closure.factors();
+        assert_eq!(p * q, n);
+        assert!((p == &expected_p && q == &expected_q) || (p == &expected_q && q == &expected_p));
+    }
+
+    #[test]
+    fn verifies_2048_bit_ququart_factor_extraction() {
+        let decimal = |text: &[u8]| BigUint::parse_bytes(text, 10).unwrap();
+        let n = decimal(b"23025569099674375378070763950999397182576700831444139136345849079506253845442142368501858631182633125521251735606133563544767857987928247925552736876249806473013807808484860054691797716842162763330160171839272022327796820619338037457622212441458699630072049876740970817953865755199172564484548676799066503264974399270637597405347390931523608208273501966636375396644090776728956853918603293431288370437299337697214898072692136973444422044242646591445640597589912704816124095843942753338086217631332243613927049176863586326403701153888089705349929954133131743348243216427528497218645602976240268545967812339432802304361");
+        let expected_p = decimal(b"166799501430355860478296910827279899411778187180660134302445590832488119123491903246679307622954662657020858398022681333903482090091738332369190379878612546057585011971051189775149903795755076627586102327922856435966817759115866434070813554291914708277811624664537962498078807004067982413744461007875409443787");
+        let expected_q = decimal(b"138043392829254281004674446479321646201391899670285655045104325941307015653894795735625485343996565018131137894823911212932441323492479172718719693912720967771001891460610887773396556706736859247686527352587661617766981247054646471592699839135716206699532973458238903963769698343520265056249156033809000479003");
+        assert_eq!(n.bits(), 2048);
+        assert_eq!(&expected_p * &expected_q, n);
+
+        let p_minus_1 = &expected_p - BigUint::one();
+        let q_minus_1 = &expected_q - BigUint::one();
+        let gcd_pq = {
+            let mut a = p_minus_1.clone();
+            let mut b = q_minus_1.clone();
+            while !b.is_zero() { let r = &a % &b; a = b; b = r; }
+            a
+        };
+        let lambda = (&p_minus_1 * &q_minus_1) / gcd_pq;
+        assert!(BigUint::from(2u8).modpow(&lambda, &n).is_one());
+
+        let closure = extract_certified_winding(&n, &lambda).unwrap();
+        let (p, q) = closure.factors();
+        assert_eq!(p * q, n);
+        assert!((p == &expected_p && q == &expected_q) || (p == &expected_q && q == &expected_p));
+    }
 }
+
+
