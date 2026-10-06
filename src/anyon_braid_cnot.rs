@@ -1578,6 +1578,53 @@ mod tests {
     }
 
     #[test]
+    fn source_bound_compiler_survives_base_changes() {
+        let source = BigUint::parse_bytes(
+            b"296650821743515430283258444261036507151",
+            10,
+        )
+        .unwrap();
+        let source_tape = (0..source.bits())
+            .map(|bit| if source.bit(bit) { EVALF } else { EVALT })
+            .collect::<Vec<_>>();
+        let base_two = [EVALT, EVALF];
+        let base_three = [EVALF, EVALF];
+        let logical_qubits = 3 * source.bits() as usize + 4;
+        let phase_bits = 2 * source.bits() as usize + 8;
+        let mut carrier =
+            CompiledFibonacciCarrier::new(ExchangeRecorder::default(), 1, 5, 4096, 0, 0);
+
+        carrier
+            .begin(
+                &source_tape,
+                &base_two,
+                logical_qubits,
+                phase_bits,
+                WorkPreparation::UniformResidues,
+            )
+            .unwrap();
+        carrier.compiler.as_mut().unwrap().cnot_template =
+            Some((vec![1, -1, 2], usize::MAX));
+        carrier.device.finish().unwrap();
+
+        carrier
+            .begin(
+                &source_tape,
+                &base_three,
+                logical_qubits,
+                phase_bits,
+                WorkPreparation::UniformResidues,
+            )
+            .unwrap();
+
+        assert_eq!(
+            carrier.compiler.as_ref().unwrap().cnot_template.as_ref().unwrap().0,
+            vec![1, -1, 2],
+            "changing only the phase base must retain source-bound braid templates"
+        );
+    }
+
+    #[test]
     fn recycled_carrier_streams_anyonic_exchanges_from_a_128_bit_source() {
         let source = BigUint::parse_bytes(b"296650821743515430283258444261036507151", 10).unwrap();
         assert_eq!(source.bits(), 128);
