@@ -82,6 +82,7 @@ fn awaiting_bigint_arg(line: &str) -> bool {
     // Keep in lockstep with join_digit_continuations.awk::awaiting.
     let t: Vec<&str> = line.split_whitespace().collect();
     match t.as_slice() {
+        ["anyon_factor"] | ["anyon-factor"] => true,
         ["gpu_ecm"] | ["gpu_ecm", "bsgs"] => true,
         ["gpu_gnfs"] => true,
         ["gpu_factor"] => true,
@@ -2135,6 +2136,14 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 match crate::anyon_braid_cnot::compile_ququart_fourier(&args) {
                     Ok(report) => sprintln!("{report}"),
                     Err(error) => sprintln!("anyon_ququart_word: {error}"),
+                }
+            }
+            #[cfg(feature = "hosted")]
+            "anyon_factor" | "anyon-factor" => {
+                let args: alloc::vec::Vec<&str> = parts.collect();
+                match crate::anyon_factor(&args) {
+                    Ok(report) => sprintln!("{report}"),
+                    Err(error) => sprintln!("anyon_factor: {error}"),
                 }
             }
             #[cfg(feature = "hosted")]

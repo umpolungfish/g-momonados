@@ -1,0 +1,311 @@
+Exec	exec	Execution (run, tick, watch, timer, boot)	
+Status	status	Status (program, snapshot, graph, heatmap, registers)	
+Programs	programs	Program loading (list, canonical, continuous, novel, shunt)	
+Crystal	crystal	Crystal FS (decode, store, find, name)	
+Grammar	grammar	Grammar bridges (ig, classify, frob, aleph, shor, rh, ym, fde)	
+Quantum	quantum	Quantum computation (fibqc, jones, braids, shor, shors_btc_2, btc_oneshot, secp256k1_unwinder, baryon_asymmetry, qft, iuft, sic, d12, d2048, dqi)	help quantum
+IMASM	imasm	IMASM word walks (cycle, weight, banked, insert, trans, arev)	
+Kernel	kernel	Kernel utilities (ask, spine, vessel, vita, whoami, ruleset)	
+Rebis	rebis	Red-Hot Rebis (codon, translate, genetics, materials, bio, tx)	
+Dialect	dialect	Cross-dialect (ruleset, jump, seal, compound, whoami)	
+ParaASM	parasm	ParaASM (test, frob, kernel, load)	
+Cr3echrz	cr3echrz	Theorem engine + p4rakernel (cr3, p4ra)	
+Seals	seals	Sealed proofs — walk constant closure proofs step by step	
+Proof	proof	Guided proofs — walk a proof step by step on the kernel	
+Help	help	Help system (help <topic> for details)	help fibqc
+Tools	tools	Real commands with no prior menu entry: opi, nested factoring, braids, GPU batches, fuzzing, provenance	help opi
+imasm_add	imasm_add	Run dynamically sized ripple-carry addition in the IMASM stream; inputs and output are LSB-first ⊤/⊥ encodings	imasm_add ⊥ ⊤⊥
+imasm_sub	imasm_sub	Run dynamically sized ripple-borrow subtraction in the IMASM stream; final ⊥ indicates unsigned underflow	imasm_sub ⊤⊥ ⊥
+imasm_mul	imasm_mul	Compile a width-specialized schoolbook multiplier whose partial products and carries execute as IMASM	imasm_mul ⊥⊥ ⊥⊥
+imasm_divmod	imasm_divmod	Compile restoring long division as IMASM; returns encoded quotient and remainder	imasm_divmod ⊥⊥⊥⊥ ⊥⊥
+imasm_mod	imasm_mod	Return the remainder from the IMASM restoring-division circuit	imasm_mod ⊥⊥⊥⊥ ⊥⊥
+imasm_gcd	imasm_gcd	Compose restoring division into a width-specialized Euclidean closure, entirely in IMASM	imasm_gcd ⊥⊥⊥⊥ ⊥⊤⊥
+imasm_close	imasm_close	Nest IMASM multiplication inside exact product-to-N closure; all three operands are encoded tapes	imasm_close ⊥⊥ ⊥⊤⊥ ⊥⊥⊥⊥
+imasm_edit_square	imasm_edit_square	Check the token-edit commuting square and its additive/multiplicative closure in one dynamically sized IMASM stream	imasm_edit_square ⊤⊥ ⊤⊥
+imasm_powmod	imasm_powmod	Compose phase-bit branches, IMASM multiplication, and restoring modulus closure into a modular-winding membrane	imasm_powmod ⊤⊥ ⊤⊥⊤⊥ ⊥⊤⊤⊤⊥
+opi	opi	DQI's Optimal Polynomial Intersection: exact Lemma 9.2 eigenvalue + m to p asymptotic, settable wall-clock budget	opi run 10007 4954 10s
+weight_ladder	weight_ladder	The general reduction behind opi's eigenvalue, for any m-exchangeable-trial Hamming-weight ladder, not just OPI	weight_ladder 10006 2477 0.0
+nested_prime_factorization	nested_prime_factorization	16-morphism factorization tower, IFIX banks the complete factor record at the END (non-vacuous) (alias: npf)	nested_prime_factorization factor 91
+factor_membrane	factor_membrane	Factor-Separating Imscription Membrane: D2 lane split, N_lane DEFINED as P_lane*Q_lane (aliases: membrane, fmembrane)	factor_membrane factor 91
+shor_b4	shor_b4	Key membrane finding: shors_algorithm x b4_factor_v2_engine click (T<->H, certified) + membrane family (aliases: shor_b4_membrane, key_membrane)	shor_b4 click
+membrane_family	membrane_family	Membrane family registry: list/run factor membranes by word (alias: mfam)	membrane_family list
+doubly_nested_oneshot	doubly_nested_oneshot	Winding-order factoring by hypernest depth: each depth wraps one more carrier and gives a fresh Brent seed. factor <N> [maxdepth] sweeps the ladder; ladder <N> [maxdepth] shows every depth's word, seed and budget (alias: dnos)	doubly_nested_oneshot ladder 3215031751
+nested_oneshot	nested_oneshot	Winding-order factoring, nested one level (aliases: nested, nos)	nested_oneshot factor 91
+multilattice	multilattice	The FDE/QM boundary as real code: the corrected Pauli-algebra WH action, orbit 4^n, zero axioms	multilattice help
+jones_polynomial	jones_polynomial	Jones polynomial of a braid word (alias: jp)	jp 1 2 1
+braid_image	braid_image	Render or compute a braid word's IMASM image (alias: bi)	bi 1 2 1
+braid-grammar	braid-grammar	Braid word to IG-tuple grammar bridge (alias: bg)	braid-grammar tuple \
+circuit	circuit	Substrate round trips through the twelve-glyph alphabet: x86/RNA/wasm/AA via IMASM	circuit table
+counterfactual	counterfactual	Perturb one glyph of a word and read what moved: which invariants held, which broke, the smallest repair (alias: cf)	cf help
+shiab	shiab	SHIABO: holographic scale-collapse. An integer collapses to its δ boundary with μ∘δ=id recovery and winding; an IMASM word is wrapped as bulk in ⊢⊙∈…⋈∋⊡⊣ and run	shiab 42
+hyperstack	hyperstack	Heterogeneous hypernesting: load a value through a stack of different carrier types (phase, shor, fib, ...), each carrier's word the payload of the next; reads register, verdict and winding at each layer. Phase closes to T, Shor opens the both-value B, Fibonacci holds it	hyperstack 91 phase shor fib
+basin	basin	Fixed-point archaeology for word maps: orbit, attractor, transient depth, cycle length, basin size	basin help
+ouroboros-inverse	ouroboros-inverse	Inverse grammar: tuple -> IMASM word -> braid word -> ... -> tuple (alias: oinv)	oinv help
+frobenius-fuzzer	frobenius-fuzzer	Mine the whole word space for rare, stable Frobenius-closing programs (alias: fuzz)	fuzz help
+provenance	provenance	Epistemic type checking: every result carries a provenance, provenances form a lattice (alias: prov)	prov help
+ctc-loom	ctc-loom	Fixed-point enumerator: every IMASM word of a given length walked to its Belnap verdict (alias: loom)	loom help
+sk-forge	sk-forge	Crystal Harvester: read a public key as an IG tuple, find the nearest O-infinity carrier, report the repair path	sk-forge help
+demonstrate	demonstrate	Turn a claim into an executable experiment, every value computed at print time, nothing stored (alias: demo)	demo help
+distance	distance	Hamming and weighted distance of the active IG tuple from the ZFC baseline tuple (alias: dist)	distance
+mersearch	mersearch	Parallel Mersenne prime search: FSPLIT-forked candidate space, big-integer Lucas-Lehmer (alias: msearch)	mersearch run 1 1000
+shor-qft	shor-qft	Shor's algorithm's QFT step, run directly	shor-qft help
+gpu_native	gpu_native	The literal GPU-native build protocol, run for real, not simulated	gpu_native run 1024
+gpu16_3	gpu16_3	Batch SIXTEEN_3 register gates on GPU: many registers at once, verified against the scalar path	gpu16_3 verify
+gpu_gnfs	gpu_gnfs	Grammar-native GNFS on GPU — FB + sieve + GF(2) + φ-congruence (multi-limb) on device	gpu_gnfs soak 15
+gpu_rho	gpu_rho	GPU Pollard's rho, fixed 256-bit Montgomery width, verified against BigUint (verify | prims | factor)	gpu_rho factor 8051
+gpu_rho_ml	gpu_rho_ml	Multi-limb GPU Pollard's rho beyond gpu_rho's 256-bit cap, any width up to 2048 bits	gpu_rho_ml factor 8051
+gpu_ecm	gpu_ecm	Lenstra elliptic-curve factorization on GPU at any width, one Montgomery curve per thread across every device	gpu_ecm 8051 50000
+gpu_factor	gpu_factor	Full GPU factorization: parallel trial division first, then ECM/rho/Pollard-Brent on whatever cofactor remains	gpu_factor 8051
+gpu_shor	gpu_shor	Shor's algorithm order-finding on GPU: brute-force verify, direct order lookup, or real baby-step/giant-step	gpu_shor bsgs 7 143
+gpu_dqi	gpu_dqi	DQI min-weight coset search on GPU, checked against the CPU path	gpu_dqi verify 128 20
+gpu_fde	gpu_fde	FDE tower theorems checked on GPU against the CPU functions	gpu_fde verify 16
+gpu_kernel	gpu_kernel	Execute or verify an IMASM program on GPU, checked against kernel::self_imscribe	gpu_kernel verify 256 1
+gpu_millennium	gpu_millennium	Static self-imscription of the Millennium-conjecture ob3ects on GPU, checked against the CPU kernel	gpu_millennium verify
+gpu_opi	gpu_opi	OPI Prange trial arithmetic on GPU, checked against the CPU path	gpu_opi verify 101 10
+gpu_vox	gpu_vox	vox's control-flow closure verdict run on GPU, checked against the CPU auditor	gpu_vox verify 4096 1
+gaussian_extract	gaussian_extract	Fermat two-square extraction: a real root of -1 mod p, then Cornacchia descent to p=a²+b² (alias: gaussian)	gaussian_extract 97
+abc	abc	Real arithmetic from the ABC/IUTT Lean proofs: radical, discrepancy, quality, window maximum, and a real scale-link check between window sizes	abc window 0.1 9 32
+trilattice_factor	trilattice_factor	Trilattice factoring toolkit — read/sieve/factor/dialect-probe/gpu-verify, with the number's own crystal address (alias: tfactor)	trilattice_factor read 8051
+prime_tool	prime_tool	Prime Gödel-encoding relationship tool: sieve witness, atomicity verdict, and structural analysis (alias: prime-tool)	prime_tool 296650821743515430283258444261036507151
+semiprime_tool	semiprime_tool	Semiprime Gödel-encoding relationship tool: extract a factor pair and verify product closure (alias: semiprime-tool)	semiprime_tool 296650821743515430283258444261036507151
+arbitrary_factor	arbitrary_factor	Gödel-verified prime-power extraction with route trace (alias: arbitrary-factor)	arbitrary_factor 340282366920938461286658806734041124249
+arbitrary_anyon_factor	arbitrary_anyon_factor	Recursive measured anyon splits with Gödel verification and bounded route fallback	arbitrary_anyon_factor help
+factor_operator	factor_operator	Monotone factor-state constructor F_N over 𝟒={N,T,F,B}: cert certifies a pair, ambient states the moat (free-bit paradox), resolve strips the small part and crosses the moat to return factors (any width)	factor_operator resolve 8051
+native_numeral	native_numeral	The word-native numeral toolkit itself: encode/decode/factor/decompose/redstep/cycle and the rest (alias: numeral)	native_numeral factor 8051
+phase_unbraid	phase_unbraid	CUDA recycled control QPE: complete phase measurement, retained complex residues and verified factor words	phase_unbraid help
+dyn_nest	dyn_nest	Optimal oneshot nesting depth: the least depth at which the Brent cycle closes on a factor (aliases: dyn, dynamic_nest)	dyn_nest 91
+yz	yz	Yamakawa-Zhandry verifiable-quantum-advantage retranslation (r/c/Inc) run as real code, not read as a document	yz report
+yz_list	yz_list	Theorem 11.1's L-list mechanism from the YZ-retranslation, run for real rather than left open	yz_list help
+anyon-sync	anyon-sync	Dialetheic FOUR-valued Carrier16 register walked over THE_WORD, showing where the T/F/t/f lanes sync (alias: anyon_sync)	anyon-sync
+grounded_add	prime_winding grounded_add	a+b plus every operand's own real Grammar-native type, sourced from imscribe generate grounding through digit_type_tensor, not read off the arithmetic	prime_winding grounded_add 8051 8052
+grounded_mul	prime_winding grounded_mul	a*b plus every operand's own real Grammar-native type, same grounding as grounded_add	prime_winding grounded_mul 8051 8052
+grounded_sub	prime_winding grounded_sub	a-b plus every operand's own real Grammar-native type, same grounding as grounded_add	prime_winding grounded_sub 8052 8051
+grounded_mod	prime_winding grounded_mod	a mod b plus every operand's own real Grammar-native type, same grounding as grounded_add	prime_winding grounded_mod 8052 8051
+grounded_divmod	prime_winding grounded_divmod	a=q*b+r plus all four numbers' own real Grammar-native type, same grounding as grounded_add	prime_winding grounded_divmod 8052 8051
+grounded_gcd	prime_winding grounded_gcd	gcd(a,b) plus every operand's own real Grammar-native type, same grounding as grounded_add	prime_winding grounded_gcd 8052 8051
+grounded_factor	prime_winding grounded_factor	N's real prime factorization plus N's and every distinct factor's own real Grammar-native type	prime_winding grounded_factor 8051
+gpu_catalog_crystal	gpu_catalog_crystal	Batch the real catalog's crystal addresses on GPU: fixed-width crystal encode over every live entry	gpu_catalog_crystal
+gpu_crystal_full_space	gpu_crystal_full_space	Checks phase_5's 17.28-million-entry Crystal type-space claim at its actual scale, not just the live catalog	gpu_crystal_full_space
+gpu_imasm_cycle	gpu_imasm_cycle	The full imasm-cycle round trip, forward and reverse legs, batched on GPU	gpu_imasm_cycle
+gpu_ipc_no_serialization	gpu_ipc_no_serialization	Measures phase_5's no-serialization IPC claim for real, both paths run and compared	gpu_ipc_no_serialization
+gpu_sixteen3_tensor_kernel	gpu_sixteen3_tensor_kernel	The sixteen3_gpu_tensor_kernel ob3ect's own batched-register protocol shape, not the flat per-lane version	gpu_sixteen3_tensor_kernel
+list	seals list	List all 10 sealed proofs	seals list
+fine-structure	seals fine-structure	α⁻¹ = d²−7 + arctan(1/4)/(4√3) + α²·d (3 steps)	seals fine-structure
+proton	seals proton	m_p/m_e = d³ + d(d−3) + α-dressing (2 steps)	seals proton
+lepton	seals lepton	m_μ/m_e (exact rational), m_τ/m_e (2 steps)	seals lepton
+boson	seals boson	m_W, m_Z, m_H — π + ω forms (2 steps)	seals boson
+gravity	seals gravity	α_G = α¹⁸·√3 (1 step)	seals gravity
+weinberg	seals weinberg	sin²θ_W = 3/13 (exact rational, 1 step)	seals weinberg
+cosmology	seals cosmology	ρ_Λ/ρ_Pl = e^{-44ω}/744 (1 step)	seals cosmology
+neutrino	seals neutrino	m₁:m₂:m₃ = 1:4:16 (1 step)	seals neutrino
+winding	seals winding	ω = 2π — all angles in windings (1 step)	seals winding
+residuals	seals residuals	Where every remainders comes from (1 step)	seals residuals
+all	seals all	GRAND SEAL — walk through all 10	seals all
+fold	fold	The fold verdict of a word — closed form, surplus, the enclosure witness, the codon lane	fold
+erdos	erdos	Guided walks through the Erdős manuscripts — list | schutte | landau | lcm	erdos schutte
+list	proof list	List available guided proofs	proof list
+bootstrap	proof bootstrap	The Grammar verifying itself (7 steps, auto-play)	proof bootstrap
+prooflift	prooflift	Proof-lift report: undischarged claims and unrejoined forks as one object; `prooflift nest` runs the self-nest word, the proof of mu.delta=id itself (86065 glyphs, verdict T)	prooflift nest
+tick	tick	Run N manual ticks (default 1)	tick 10
+run	run	Run N ticks; no arg = continuous (ESC to stop)	run 100
+watch	watch	Live terminal HUD (ESC to stop)	watch
+timer	timer	Run N ticks, one per PIT interrupt	timer 50
+boot	boot	Load + run any program (I-XXVIII or decimal)	boot VII
+load	load	Load program by Roman numeral	load XII
+sweep	ctc	every value in every action, with the price each closure cost	ctc
+not	ctc not	Belnap negation — fixed at Neither and Both, a 2-cycle between True and False	ctc not T
+next	ctc next	temporal step — True and False swap, Neither and Both hold	ctc next N
+collapse	ctc collapse	everything to Both in one step — one fixed point, whole space in its basin	ctc collapse T
+cycle	ctc cycle	T→F→N→B→T — no fixed point at all, so closure must be manufactured	ctc cycle T
+meet	ctc meet	lattice meet against Both	ctc meet T
+join	ctc join	lattice join against Both	ctc join F
+sweep	nesting	the reference pairings, each predicted then run	nesting
+halve	nesting halve	halve the distance to 3 — settles from anywhere, q = 0.5	nesting halve 203
+newton	nesting newton	Newton on x³−2x−5 — settles fast in range, q well below 1	nesting newton 2
+shift	nesting shift	add one forever — never settles, and its gap never changes	nesting shift 0
+rotate	nesting rotate	turn a third of a circle — a closed orbit, needs x and y	nesting rotate 1 0
+project	nesting project	flatten onto the first axis — settles in one step, needs x and y	nesting project 1 5
+census	carriers	reads the catalog: every entry meeting the closure condition, the distance between each pair, and the classes they fall into	carriers
+sweep	substrate	reads the sequence builder: return time and behaviour across the weight range, plus where a critical weight can exist at all	substrate
+status	status	Kernel status (tick, IP, stack, fork, frob)	status
+program	program	Show loaded program + fork depth	program
+snapshot	snapshot	Structural snapshot (sig, tier, period)	snapshot
+graph	graph	ASCII-art token graph with nesting	graph
+heatmap	heatmap	B4 memory heatmap	heatmap
+memory	memory	Dump B4 memory	memory
+registers	registers	Show R0-R7, plus the real SIXTEEN_3 value from the last FSPLIT3/FFUSE3/EVALI	registers
+color	color	Toggle terminal colour (alias colour)	color on
+stack	stack	Stack depth	stack
+list	list	List all programs (I-XXVIII)	list
+canonical	canonical	Load canonical program I-XII	canonical VII
+continuous	continuous	Load continuous program 1-4	continuous 3
+novel	novel	Load novel program 1-3	novel 1
+shunt	shunt	Load shunted program 1-9	shunt 5
+dynamic	dynamic	Dynamic mode: rebuild sequence from IgTuple each wrap	dynamic on
+decode	crystal	Decode address to 12-tuple: crystal <addr>	crystal 42
+store	crystal store	Store entry: crystal store <n> [d]	crystal store my_system 42
+name	crystal name	Retrieve by name: crystal name <n>	crystal name sic_povm
+find	crystal find	List stored entries	crystal find
+cycle	cycle	walk an IMASM word around its ROTAT orbit (glyphs only)	cycle ⊢⊙∈⊤⊥∋⋈⊡⊣
+weight	weight	where the weight moves through an IMASM word	weight ⊢⊙∈⊤⊥∋⋈⊡⊣
+banked	banked	was a count cleared with nothing banked?	banked ⊢⊙∈⊤⊥∋⋈⊡⊣
+insert	insert	every one-glyph repair for an exposed word	insert ⊢⊙∈⊤⊥⊞∋><⋈⊡⊣
+trans	trans	transitions counted on the ring, closing edge included	trans ⊢⊙∈⊤⊥∋⋈⊡⊣
+arev	arev	H hop: read snapshot through the R1<->R2 mirror	arev
+ask	ask	kernel structural ask (dry). Full wet: host ./ask --file | -i	ask What is the distance to CLINK L8?
+spine	spine	manuscript spine: PROVE->UNIFY->PORT x vessel (no Python)	spine
+vessel	vessel	witness-vessel transport: Clay payloads x 88 dialects, frob-gated	vessel
+vita	vita	one certified turn from the on-board vae_vita trunk	vita
+whoami	whoami	IG tuple under the active ruleset	whoami --ruleset
+ruleset	ruleset	show the active ruleset	ruleset
+absorption	absorption	list all absorption rules	absorption
+replicative	replicative	load the program targeting O_inf_dag (R2) deliberately	replicative
+vox	vox	Control-flow closure auditor: verdict <word> is the classic FOUR-valued reading (T/F/B/N); sixteen3 check <word> is the real 16-valued machine (t/f included, full step trace) — two different engines, not the same question twice. compile <seq> [--code std|mito] [--pdb <path>] runs the RNA<->protein pipeline both ways from one entry point: RNA/DNA in gives a compiled protein with real fold info (Chou-Fasman secondary structure, heuristic tertiary contacts, a real 3D backbone via B4-Ramachandran-NeRF); protein in gives RNA/DNA back out (Frobenius-preferred codon per residue, full degeneracy) with the same fold computed on the input; direction auto-detects from the input alphabet, --pdb writes a real PDB file readable back by rebis pdb. evm <hex> | wasm <hex> | classify <mn> | run <file> [--argv a,b] — runs the file as a real process from its own entry, real argv/envp/auxv stack, real read/write/open/openat/close/mmap/brk syscalls. run <sym> <file> [--args a,b] calls one function directly instead: scalar int args, one int back, no process. Static binaries on direct syscalls run for real; dynamic linking and glibc's own TLS setup are further rungs, not yet built	vox compile ATGGCCTGTGGCAAGTAA --pdb folded.pdb
+quit	quit	halt the kernel (aliases exit, halt)	quit
+anyon_factor	anyon_factor	N-only Fibonacci anyon phase factorization; runtime owns base schedule, shot policy, and controller endpoint	anyon_factor 296650821743515430283258444261036507151
+factor_phase	factor_phase	Exact folded coherent CPU execution and pair measurement over baked IMASM source and quantile	factor_phase
+anyon_ququart_word	anyon_ququart_word	Compile full Z4 Fourier to a Fibonacci braid and measure computational, leakage, and unitarity residuals	anyon_ququart_word 296650821743515430283258444261036507151
+fibqc	fibqc	Fibonacci anyon QC: verify | compile | jones | knot | winding (see also qc, jp)	fibqc verify
+qc	qc	Compile a circuit over H T S X to a braid word; spaces optional; draw|svg|loop before the gates renders it, and two depths size the net and the recursion (aliases quantum_compile, fibqc compile)	qc loop HTSX 10 3
+bi	bi	Draw a braid word — strand diagram in the terminal, SVG with `svg`, the closed braid as a ring with `loop`; window with start:count, column height with /N (alias braid_image)	bi loop 1 2 -1 -2 1 2
+jp	jp	Jones polynomial at the 1/5 winding; signed Artin generators (alias jones_polynomial)	jp 1 1 1
+bg	bg	Braid word to grammar tuple (alias braid-grammar); winding is a closed form in the writhe	bg tuple 1,2,1 3
+shor	shor	Belnap Shor pipeline + dialetheic Fibonacci Shor (word ⊢∈≻⋈⊞∈⊤≻⊥≺∋⊙⋈⊡⊣); N=15,21	shor dialetheic 15 7
+shors_btc_2	shors_btc_2	Shor over secp256k1 ECDLP: recover a Bitcoin private key from a public key (x,y)	shors_btc_2
+prime_winding	prime_winding	Winding period of the primes on the number line - ob3ect-backed: find | factor | cycle | tuple | verdict	prime_winding find 100
+oneshot_prime_winder	oneshot_prime_winder	One-shot primality test using IMASM word ⊢∈≻⊤⋈⊙≺⊥⊞∋⊡⊣ winding certificate	oneshot_prime_winder 17
+dyn_nest	dyn_nest	Dynamic Nesting Prime Finder - pipes oneshot verdict, searches optimal nesting depth d=1,2,3,...; period P(d)=5d+7, closure-derived seed	dyn_nest 1234567
+qft	qft	Quantum Fourier Transform: circuit | phases | iqft | iqft braid | braid, on n qubits	qft circuit 3
+btc_oneshot	btc_oneshot	BTC Secret Key Oneshot Operator — structural verification & phase steps	btc_oneshot verify
+secp256k1_unwinder	secp256k1_unwinder	19-glyph morphism sequence for secp256k1 scalar recovery: word | steps | mapping | walk [k] | verdict [k] | tuple | constants	secp256k1_unwinder walk 0
+baryon_asymmetry	baryon_asymmetry	baryon asymmetry as a banked survival: the word run through the live weight + banked instruments (report | word | mapping | reading)	baryon_asymmetry report
+theta-link	theta-link	IUTT housed in the paraconsistent ambient: the Θ-link closes yet holds register A (four-valued B, the Inclosure), unreachable by the Boolean adjoints (alias iutt)	theta-link
+winding	winding	Period as a torus winding: order | factor | closure | factorgen (alias wperiod)	winding order 2 101
+iuft	iuft	IUFT QC gates — the 12->3 Euler-angle SU(2) encoding of an IG tuple	iuft list
+teich	teich	IUFT <-> IUTT bridge: Teichmuller deformation paths as gate trajectories	teich canonical
+hqe	hqe	Holonomic quasi-ergodic quantale, MBL holonomy	hqe report
+dyson	dyson	Dyson beta-ensemble, double-ramified cycle	dyson report
+troq	troq	Triple-ramified ouroboric quantale	troq report
+afdmc	afdmc	Asymptotic frozen-disordered monadic cohomology	afdmc report
+hop	hop	Universe hopping, cross-framework transport	hop report
+manifold	manifold	Topological manifold operations	manifold
+triple	triple	Triple-frame von Neumann superoperator algebra	triple report
+sic	sic	SIC-POVM d=12 identity, three lattice proofs	sic
+bip39	bip39	BIP39-SIC-POVM: search | words | verify | map | gap	bip39 sic verify
+d12	d12	d=12 SIC Phase VI: tower, magnitudes, orbits, existence, duallink, z0	d12 tower
+d2048	d2048	d=2048 moduli tower ascent (alias d2k)	d2048 next
+dqi	dqi	Decoded Quantum Interferometry operator: word | period | phase | verdict <arm> | syndrome <bits> | tuple | report	dqi report
+ig	ig	IG tuple + crystal address	ig
+classify	classify	Nearest-catalog classification	classify
+frob	frob	Frobenius harness status	frob
+aleph	aleph	Hebrew glyph encoding: aleph <word>	aleph שלום
+rh	rh	Riemann Hypothesis bridge	rh
+ym	ym	Yang-Mills mass gap bridge	ym
+temp	temp	Temporal logic bridge	temp
+cat	cat	Category theory bridge	cat
+algebra	algebra	distance|meet|join|tensor vs ZFC	algebra distance
+cl8nk	cl8nk	CLINK Layer 8: cl8nk <action> [name]	cl8nk entry sic_povm
+c4	c4	Belnap C₄ complex plane (i²=B)	c4
+cscore	cscore	Consciousness score (dual-gate)	cscore
+constants	constants	MoDoT constant closure: fine-structure, proton-electron, lepton, boson, gravity	constants
+ovm	ovm	OVM Computation Tools	ovm list
+oneshots	oneshots	the 10 exotic fixed-point nestings: inner already at outer's fixed point	oneshots
+ctc	ctc	nest a value in an action; closure imposed where the action has none, priced by the width it smears	ctc cycle T
+collatz	collatz	the Collatz block nesting: blocks to one, the budget spectrum, and the records	collatz 27
+straus	straus	the Erdős–Straus ladder: which rung r closes 4/n, and the spectrum across a range	straus 49
+nesting	nesting	read a point against a map: q=r2/r1 splits attracted from never-arrives where one gap cannot	nesting halve 203
+carriers	carriers	census of the mu-delta=id carriers by class: one fixed point seen many ways, or a family	carriers
+substrate	substrate	closure constant, content bifurcating: the conservative substrate read on both observables	substrate
+stark	stark	Stark unit extraction: formula,fibqc,tower,exponents,verify	stark formula 2048
+riemann	riemann	Riemann-SIC report; sub-actions available	riemann
+distance	distance	Hamming + weighted distance vs the ZFC baseline tuple (alias dist)	distance
+join	join	join of the active IG tuple with the ZFC baseline	join
+sigma	sigma	sigma <n> — analyze the Sigma(n) divisor ring	sigma 5
+ringspec	ringspec	ringspec <w1> <w2> <w3> — the spectrum of a ring, in integers: bond weights around a cycle, clean bond 1, cross-link its reaction centres; three is the minimum	ringspec 1 2 2 1
+clay	clay	Clay Millennium structural status (machine-checked)	clay
+psm	psm	dialetheic alignment + measurement tests	psm test
+entropy	entropy	entropy experiment: dS vs tier promotion	entropy tier
+invariant	invariant	Discover invariants under transformations: ROTAT, IMSCRIB, FSPLIT/FFUSE	invariant catalog under ROTAT
+redteam	redteam	Adversarial testing: analyze|stress|mutate, and audit <theory> for hidden assumptions	redteam audit RH
+witness	witness	Smallest executable object standing behind a claim	witness bsd
+counterfactual	counterfactual	Perturb one glyph: invariants held/broken, reversibility, smallest repair (alias cf)	counterfactual \u{22a2}\u{2208}\u{22a4}\u{220b}\u{22a3} rotate 1
+basin	basin	Fixed-point archaeology: orbit, attractor, transient depth, exact basin size	basin \u{22a2}\u{2208}\u{22a4}\u{220b} --action REPAIR
+ouroboros-inverse	ouroboros-inverse	Inverse grammar: shortest IMASM word imscribing a tuple, plus its braid (alias oinv)	oinv
+frobenius-fuzzer	frobenius-fuzzer	Mine the word space for programs the braid reproduces exactly (alias fuzz)	fuzz --len 3
+oracle	oracle	Adversarial: hunt the cheapest structural counterexample; surviving is not proof	oracle rotat-register
+blackbox	blackbox	Infer a law from integer observations, ranked by fit minus complexity	blackbox 1 1 2 3 5 8 13
+dialetheic-compiler	dialetheic-compiler	Lift a classical gate into Belnap FOUR; show where a row rests on a paradox	dialetheic-compiler xor
+stark-geometer	stark-geometer	SIC Stark arithmetic for dimension d: m_d, unit, ramified primes	stark-geometer 12
+dialect-necromancer	dialect-necromancer	Imscribe a fragment and recover its nearest catalog ghost	dialect-necromancer the boundary imscribes the bulk
+braid-apocrypha	braid-apocrypha	Search braid words for a target Jones magnitude; first hit is shortest	braid-apocrypha --target 0.618034
+proof-braider	proof-braider	Lift a claim to a braid and back; PASS iff Frobenius closure survives	proof-braider roundtrip Imscribing.Frobenius
+universe-wormhole	universe-wormhole	Minimum gate-space path between two hop frameworks, as a braid + Jones	universe-wormhole hqe fibonacci
+vox-ce	vox-ce	Lift EVM/WASM hex into an IMASM word and verdict its control-flow closure	vox-ce evm 0x600160025b00
+consciousness-lath	consciousness-lath	Single-axis mutation that most raises the C-score with both gates open	consciousness-lath ⊢∈><⊤⋈⊙⊞∋⊡⊣
+paradox-engine	paradox-engine	Hunt words that are dialetheias by four readings at once (B, price, gate1, C=0)	paradox-engine --min-price 3
+key-dissolver	key-dissolver	SIC-narrowed bounded window before a BSGS split	key-dissolver 03f01d 40
+compiler	compiler	Compile a braid to imasm/jones/lean, or a token word back to a braid	compiler braid 1 2 1 --to imasm
+catalogue	catalogue	Synthesize candidate operators; rank by novelty against the catalog	catalogue synthesize --top 5
+sk_forge	sk_forge	Crystal Harvester: BIP39-SIC integrated structural gap analysis against O_∞ carriers. Commands: forge, tuple, word, verify, carriers, bip39-sic, bip39-pipeline (alias sk-forge)	sk_forge bip39-sic
+museum	museum	The permanent collection of failed constructions — append-only negative knowledge	museum open
+phase	phase	Phase as an object: orbit spectrum, phase period, and two-word interference	phase interference \u{22a2}\u{2208}\u{22a4}\u{220b} \u{22a2}\u{22a4}\u{2208}\u{220b}
+demonstrate	demonstrate	Run a claim as an experiment: INPUT/OPERATION/OUTPUT/CHECK, computed live (alias demo)	demonstrate mu-delta 1 2 -1
+loss	loss	What a transformation destroys: entropy in/out, bits destroyed, irreversible transitions	loss collapse
+shadow	shadow	Ontological nearest-neighbour: shared structure and the measured critical difference	shadow hsoa
+provenance	provenance	Epistemic type check: dependency DAG graded by lattice MEET, not by best sibling (alias prov)	prov RH
+ctc-loom	ctc-loom	Sweep the six Belnap actions over the whole word space; rank closures by price (alias loom)	ctc-loom --len 3
+cl9nk	cl9nk	CLINK L9, the replicative lateral: d(L8,L9) and the ladder read from L9	cl9nk chain
+crystal-scope	crystal-scope	Substitution microscope: distance, tier, dS, gate jump, and the measured driver (alias cscope)	cscope
+minimal	minimal	Shortest word achieving a target property	minimal reach O_inf
+repair	repair	Ranked program/proof surgery with a proof-diff	repair \u{22a2}\u{2208}
+mersearch	mersearch	Mersenne search: run|ll. Composite exponents answer at once (alias msearch)	msearch ll 2213
+pk2sk	pk2sk	PK→SK recovery: bounded-range ECDLP on secp256k1 — recover the scalar in [lo, hi) from its compressed public key, curve-gated, imscribed	pk2sk selftest
+fde	fde	FDE(n) tower navigation: embed | restrict | walk | roundtrip | trans | report — ascend/descend the truth-value lattice at any depth	fde walk 2 3 4 3 2 1
+rsa	rsa	RSA decrypter via BSGS period-finding on ord_N(C): word | period | verify | <C> <N> <e> — only closes when that order is small, not for real RSA moduli	rsa word
+combo	combo	cycle a word, then run weight | banked | insert | repair on every distinct rotation it produces, formatted as one report; add 'brief' for repair's cheapest candidate only	combo ⊢∈≻⊤≺⊥⋈⊞⊙⋈∈≻⊤≺⊥⋈⊞⋈∋⊡⊣⊙ brief
+combo2	combo2	combo (brief) on a word, then weight | banked | insert | repair again on every distinct word the first pass's repairs produced	combo2 ⊢∈≻⊤≺⊥⋈⊞⊙⋈∈≻⊤≺⊥⋈⊞⋈∋⊡⊣⊙
+millennium	millennium	run weight | banked | insert on a Millennium conjecture's promotion word and print its live executed crystal address and tuple; no argument lists the seven names, 'all' runs every one	millennium rh_positivity_promotion
+search	pk2sk search	recover the private scalar from a compressed public key when the scalar lies in [lo, hi): BSGS meet-in-the-middle, gated by the curve itself	pk2sk search 03f01d6b9018ab421dd410404cb869072065522bf85734008f105cf385a023a80f 12000 13000
+selftest	pk2sk selftest	recover the fixed selftest key (SK = 0x1000000b8ef) from its public key alone	pk2sk selftest
+codon	rebis codon	Codon ↔ AA bidirectional	rebis codon AUG
+translate	rebis translate	Gene → protein pipeline	rebis translate ATG...
+reverse	rebis reverse	Protein → mRNA → DNA	rebis reverse MKY...
+frob	rebis frob	Frobenius filtration (64 codons)	rebis frob
+genetics	rebis genetics	7-stage genetic code verification	rebis genetics
+hadron	rebis hadron	Belnap hadron analysis	rebis hadron
+serpent	rebis serpent	Serpent rod motif analysis	rebis serpent
+pipeline	rebis pipeline	IG promotion pipeline	rebis pipeline
+strata	rebis strata	Codon stratum counts	rebis strata
+asm	rebis asm	Genetic ParaASM programs	rebis asm
+tuples	rebis tuples	7-stage generative tuple pipeline	rebis tuples
+clu	rebis clu	CLU power-law clustering	rebis clu
+exotic	rebis exotic	Exotic hadron Frobenius verification	rebis exotic
+pdb	rebis pdb	PDB structure validation	rebis pdb 1CRN
+antibody	rebis antibody	Antibody CDR design	rebis antibody
+material	rebis material	IG material forge & metamaterials	rebis material
+sidechain	rebis sidechain	AA sidechain × environment algebra (20×4)	rebis sidechain
+ligand	rebis ligand	Ligand design from catalytic sites	rebis ligand
+decay	rebis decay	Nuclear decay as IMASM winding	rebis decay
+bio	rebis bio	Biological computation	rebis bio
+tx	rebis tx	Therapeutics (chemo, pill, antidote)	rebis tx
+show	ruleset show	Active ruleset display	ruleset show
+list	ruleset list	List all 88 dialects	ruleset list
+verify	ruleset verify	Invariant violation check	ruleset verify
+jump	jump	Cross-dialect jump: jump <U> using <c>	jump 42 using clay
+seal	seal	IFIX commit to current ruleset	seal
+whoami	whoami --ruleset	IG tuple under active ruleset	whoami --ruleset
+tensor	tensor	Tensor under active absorption	tensor
+meet	meet	Meet under active absorption	meet
+absorb	absorb_test	Test absorption rule	absorb_test
+abs-show	absorption show	List absorption rules	absorption show
+tstatus	tstatus	T-constitution pass/fail	tstatus
+compounds	compound list	List 11 diaschizic compounds	compound list
+compound	compound	compound show|load <name>	compound show I
+test	psm test	Dialetheic alignment + measurement	psm test
+frob	psm frob	Frobenius identity cycle	psm frob
+kernel	psm kernel	Kernel-state B3 invariant loop	psm kernel 5
+load	psm load	Inline ParaASM program (; separator)	psm load ENGAGR %r0; FSPLIT %r0 %r1 %r2; FFUSE %r1 %r2 %r0; HALT
+cr3	cr3	Theorem engine (Collatz, Goldbach, Three-Body, Burnside, ...)	cr3
+p4ra	p4ra	p4rakernel Belnap+Frobenius 13-step bootstrap	p4ra
+version	cr3 --version	cr3 version info	cr3 --version
+list	cr3 --list	List theorems + p4rakernel modules	cr3 --list
