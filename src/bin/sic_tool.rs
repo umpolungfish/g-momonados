@@ -2,10 +2,20 @@ use g_momonados::sic::certificate::{EvidencePolicy, SicCertificate};
 use g_momonados::sic::frame::Complex;
 use g_momonados::sic::wh::WhSic;
 use g_momonados::sic::{BlochVector, QubitState, Sic, SicError, TetraSic};
+#[path = "sic_tool/program.rs"]
+mod program;
 
 fn run(args: &[String]) -> Result<(), SicError> {
     let policy = EvidencePolicy::new(1e-12, 1e-8)?;
     match args.first().map(String::as_str).unwrap_or("ququart") {
+        "anyon-program" => {
+            use std::io::Read;
+            if args.len()!=1 { return Err(SicError("anyon-program reads its bound program from stdin".into())); }
+            let mut input=String::new();
+            std::io::stdin().read_to_string(&mut input).map_err(|e|SicError(e.to_string()))?;
+            let report=program::run(&input).map_err(SicError)?;
+            println!("{}",serde_json::to_string(&report).map_err(|e|SicError(e.to_string()))?);
+        }
         "anyon-ququart" => {
             use g_momonados::anyon_pair::FibonacciPair;
             use g_momonados::anyon_ququart::{
