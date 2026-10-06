@@ -183,6 +183,12 @@ def main():
                         closure_arithmetic="radix_four_paired_numeral_cells",
                         terminal_factors="direct_godel_closure_words",
                         physical_modular_braids_compiled=False)
+        if prepared["native_arm_word"] == defaults["capacity_word"]:
+            manifest.update(nested_arms=["ququart_phase_with_sic_frame"],
+                            native_factor_engine="disabled_by_preparation",
+                            native_source_attempts=[], native_source_budget_seconds=0,
+                            native_cofactor_budget_seconds=0,
+                            producing_arm_words={"ququart_phase_with_sic_frame":defaults["native_arm_word"]})
     if args.retained_case:
         manifest["retained_fourier_case"] = str(args.retained_case.resolve())
         manifest["retained_fourier_sha256"] = json.loads(

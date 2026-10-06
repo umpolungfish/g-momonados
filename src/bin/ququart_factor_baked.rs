@@ -21,7 +21,15 @@ fn execute() -> Result<String, String> {
     let radix_word = prepared["radix_word"].as_str().ok_or("missing baked nested radix word")?;
     g_momonados::ququart_factor::power_of_two_radix_word(radix_word)?;
     let source_word = prepared["source_word"].as_str().ok_or("missing source word")?;
-    if let Some((p,q)) = g_momonados::arbitrary_factor::native_factor_word_pair(source_word)? {
+    let native_enabled = support::numeral(prepared["native_arm_word"].as_str().ok_or("missing native arm selector")?)?
+        == num_bigint::BigUint::from(1u8);
+    // A disabled arm must not call the deliberately removed native producer.
+    let native_pair = if native_enabled {
+        g_momonados::arbitrary_factor::native_factor_word_pair(source_word)?
+    } else {
+        None
+    };
+    if let Some((p,q)) = native_pair {
         let (p,q) = g_momonados::ququart_factor::nested_radix_factor_words(source_word,&p,&q,radix_word)?;
         let closure = format!("{source_word}|{p}|{q}");
         let word = |value:u64| encode_cell_binary(&Nat::from_bits_le(
