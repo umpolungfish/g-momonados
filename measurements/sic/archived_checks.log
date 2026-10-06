@@ -1,10 +1,3 @@
-
-running 6 tests
-test sic::tests::gpu_overlap_matches_cpu_fft_at_radix_and_bluestein_lengths ... ignored, requires an available CUDA device and NVRTC
-test sic::tests::checked_rotated_frames_keep_coordinates_and_caches_consistent ... ok
-test sic::tests::wh_fft_matches_lazy_displacements_and_general_operator_retraction ... ok
-test sic::tests::tetra_geometry_frame_duality_and_exact_certificate ... ok
-test sic::tests::physical_regions_measurements_retraction_urgleichung_and_dephasing ... ok
-test sic::tests::fixed_fft_is_reproducible_and_matches_float_wh ... ok
-
-test result: ok. 5 passed; 0 failed; 1 ignored; 0 measured; 218 filtered out; finished in 0.04s
+version https://git-lfs.github.com/spec/v1
+oid sha256:cb04bd46810c5053edbade6f5c6f89a23788461922980b72152e152499944aac
+size 660

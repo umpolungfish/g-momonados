@@ -1,9 +1,3 @@
-    Finished `release` profile [optimized] target(s) in 0.02s
-     Running unittests src/lib.rs (target/release/deps/g_momonados-018405b138bb1f3e)
-
-running 2 tests
-test ququart_decision::tests::controlled_permutations_preserve_complex_support_through_slot_reuse ... ok
-test ququart_decision::tests::nested_arithmetic_preserves_every_complex_basis_coordinate ... ok
-
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 243 filtered out; finished in 0.01s
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:19fa55cff6e2716fbde80377db3a3807151b052bdf917cf63ea0fbf01c964549
+size 463

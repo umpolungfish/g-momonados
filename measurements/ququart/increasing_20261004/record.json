@@ -1,20 +1,3 @@
-{
-  "case_bundle_commit": "c18134d",
-  "manuscript_commit": "eb0a316b",
-  "verified_widths": [
-    128,
-    160,
-    192
-  ],
-  "cutoff_width": 224,
-  "queued_unexecuted_widths": [
-    256
-  ],
-  "all_closure_processes_terminal": true,
-  "cutoff_inferior_killed": true,
-  "producing_arm": "native",
-  "source_certificate_reference_enters_membrane": false,
-  "time_readings_include_debugger": true,
-  "stopped_stack_instrument": "Vox symbol-bounded ELF decoder with recorded live relocation",
-  "manuscript_pdf_visual_table_check": true
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:1e0dbab0cae8e15c07a0a06a8397f115d84073c2685a569aca40206d164922db
+size 538

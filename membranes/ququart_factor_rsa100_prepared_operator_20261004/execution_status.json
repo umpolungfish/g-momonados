@@ -1,8 +1,0 @@
-{
-  "state": "terminal",
-  "exit_code": 137,
-  "signal": "SIGKILL",
-  "termination_cause": "not_established",
-  "factor_extraction_verified": false,
-  "terminal_report_present": false
-}

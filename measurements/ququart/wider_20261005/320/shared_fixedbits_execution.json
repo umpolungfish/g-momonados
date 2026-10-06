@@ -1,15 +1,3 @@
-{
-  "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_wider_320_shared_fixedbits_radix4_20261005",
-  "debugger_exit": 0,
-  "elapsed_seconds": 240.16716010699975,
-  "closure_time_limit_seconds": 245,
-  "factor_report_present": false,
-  "inferior_killed": true,
-  "factor_extraction_verified": false,
-  "ququart_controlled_stage_entries": [
-    1,
-    2,
-    3,
-    4
-  ]
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:37c13df7f425388a798d20cbe41aae7bd5a68143183fcca8cee880be2f5891ad
+size 386

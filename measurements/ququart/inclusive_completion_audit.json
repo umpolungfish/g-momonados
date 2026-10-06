@@ -1,19 +1,3 @@
-{
-  "checks": {
-    "case_0_verified": true,
-    "case_0_prepared_and_sealed": true,
-    "case_0_source_provenance": true,
-    "case_0_minimum_source_bits": true,
-    "case_1_verified": true,
-    "case_1_prepared_and_sealed": true,
-    "case_1_source_provenance": true,
-    "case_1_minimum_source_bits": true,
-    "actual_user_native_arm_authorization": true,
-    "vox_complete_module_roundtrip": true,
-    "distinct_power_of_two_radices": true
-  },
-  "all_checks_pass": true,
-  "scope": "inclusive prepared factoring membrane with explicitly authorized native producer; ququart/SIC preserved",
-  "pure_ququart_measurement_factor_claim": false,
-  "physical_modular_braids_compiled": false
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:c51315d01cb0191077044eeef346c2c87c41704845af9b7aef22e5e8bee0d507
+size 691

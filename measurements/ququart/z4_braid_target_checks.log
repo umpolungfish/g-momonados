@@ -1,6 +1,3 @@
-
-running 1 test
-test ququart_factor::tests::fourier_and_feedback_braid_targets_match_full_z4_operators ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 232 filtered out; finished in 0.00s
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:7cb3bd40503b449b0ad17f995f1f07f94a8ecc2bad2eb2bcca64a831745b8856
+size 208

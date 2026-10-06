@@ -1,16 +1,3 @@
-[
-  {
-    "symbol": "g_momonados::arbitrary_factor::native_factor_candidate_with_budget",
-    "start": "00000000279eac5c",
-    "size": "00000000000031d7",
-    "decoder_exit": 0,
-    "output": "measurements/ququart/repaired_20261004/256/native_factor_candidate_with_budget.nested.disasm"
-  },
-  {
-    "symbol": "g_momonados::arbitrary_factor::native_factor_word_pair",
-    "start": "00000000279ff6ab",
-    "size": "0000000000001118",
-    "decoder_exit": 0,
-    "output": "measurements/ququart/repaired_20261004/256/native_factor_word_pair.nested.disasm"
-  }
-]
+version https://git-lfs.github.com/spec/v1
+oid sha256:7a7fd86afaed97bac3d9deab5c64ea7e7a92c82ee63b1607ec8fda70f01cee9c
+size 559

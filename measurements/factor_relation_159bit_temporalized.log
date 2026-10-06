@@ -1,5 +1,3 @@
-fully nested phase relation: N=365375409332725729550962311656937652305923146355 m=80
-  process: ⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⋈⊙⊣
-  IMASM nesting depth=64; phase vessels=1; nested mark ticks=12544
-  temporal relation storage=159 bits
-  365375409332725729550962311656937652305923146355 = 604462909807314587353099 x 604462909807314587353145 (verified)
+version https://git-lfs.github.com/spec/v1
+oid sha256:63e9ee15e44a1c78bbae35802344d6b7d6d71fe3dc7751f89a5c3d74988fe5c8
+size 359

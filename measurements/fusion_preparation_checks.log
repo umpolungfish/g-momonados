@@ -1,21 +1,3 @@
-   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.98s
-     Running unittests src/lib.rs (target/debug/deps/g_momonados-0b4383bec2bbfbda)
-
-running 4 tests
-test anyon_fusion_kernel::tests::integer_born_selection_preserves_required_widths_and_rejects_out_of_range_entropy ... ok
-test anyon_fusion_kernel::tests::quadratic_poles_preserve_unread_weight_and_conditional_singlet_readings ... ok
-128-bit source: coherent exchange, conditional projection, transactional budget
-128-bit source: signed fusion exchange stencils match all pair channels
-256-bit source: coherent exchange, conditional projection, transactional budget
-256-bit source: signed fusion exchange stencils match all pair channels
-512-bit source: coherent exchange, conditional projection, transactional budget
-512-bit source: signed fusion exchange stencils match all pair channels
-1024-bit source: coherent exchange, conditional projection, transactional budget
-1024-bit source: signed fusion exchange stencils match all pair channels
-2048-bit source: coherent exchange, conditional projection, transactional budget
-test anyon_fusion_kernel::tests::coherent_state_projects_and_preserves_budget_failure_at_required_widths ... ok
-2048-bit source: signed fusion exchange stencils match all pair channels
-test anyon_fusion_kernel::tests::fusion_stencils_match_existing_pair_operators_at_all_source_widths ... ok
-
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 221 filtered out; finished in 0.59s
+version https://git-lfs.github.com/spec/v1
+oid sha256:83ae4c3f98c5c17702e2dbe25f23ed60a59c55c5c24c97ccaaf76f78a934b815
+size 1558

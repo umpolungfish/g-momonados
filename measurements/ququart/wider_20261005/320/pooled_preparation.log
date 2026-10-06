@@ -1,12 +1,3 @@
-Traceback (most recent call last):
-  File "/home/mrnob0dy666/imsgct/G-mOMonadOS/prepare_ququart.py", line 190, in <module>
-    main()
-  File "/home/mrnob0dy666/imsgct/G-mOMonadOS/prepare_ququart.py", line 139, in main
-    build = run(["cargo", "build", "--release", "--bin", binary_name,
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/mrnob0dy666/imsgct/G-mOMonadOS/prepare_ququart.py", line 20, in run
-    return subprocess.run(args, cwd=ROOT, check=True, text=True,
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/mrnob0dy666/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/subprocess.py", line 571, in run
-    raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['cargo', 'build', '--release', '--bin', 'ququart_factor_baked', '--bin', 'ququart_verify_readout']' returned non-zero exit status 101.
+version https://git-lfs.github.com/spec/v1
+oid sha256:ad75d0961d8a8e7a05296f5bb63a2d8019e0e759239e6cc1d669cc6ed5aa3206
+size 928

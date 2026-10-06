@@ -1,9 +1,3 @@
-{
-  "title_present": true,
-  "source_and_factor_words_recovered_exactly_from_pdf": true,
-  "unresolved_reference_marks": false,
-  "source_sha256_matches_evidence": true,
-  "pdf_sha256": "82b2d7e2912cc2386f829ecf8b72993a140cfb051b8d386bb5315a05c94d9c0f",
-  "numeral_font": "EversonMono embedded with Unicode mapping",
-  "case_report_comparison": "both terminal reports and verifier logs match"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:47b1f7d9bf1b8e6387a9756bbca1dbfc2ffa5472017a89dfdaad374c0d538aa1
+size 395

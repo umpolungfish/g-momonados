@@ -1,12 +1,3 @@
-
-running 2 tests
-test anyon_ququart::tests::four_phase_digits_keep_leading_zero_and_resolution ... ok
-128-bit semiprime: fixed WH(4), sixteen SIC outcomes, four phase digits
-256-bit semiprime: fixed WH(4), sixteen SIC outcomes, four phase digits
-512-bit semiprime: fixed WH(4), sixteen SIC outcomes, four phase digits
-1024-bit semiprime: fixed WH(4), sixteen SIC outcomes, four phase digits
-2048-bit semiprime: fixed WH(4), sixteen SIC outcomes, four phase digits
-test anyon_ququart::tests::ququart_fixed_sic_and_exchange_at_all_required_source_widths ... ok
-
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 3.28s
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:02943c5c0bd1b68dfaf7fa21bdb660a721d70e2bf82bd8dd51467557b5e490b5
+size 657

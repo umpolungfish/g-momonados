@@ -1,15 +1,3 @@
-   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.15s
-     Running unittests src/lib.rs (target/debug/deps/g_momonados-0b4383bec2bbfbda)
-
-running 2 tests
-128-bit source: three-channel braid relations and outcome 2 retained
-256-bit source: three-channel braid relations and outcome 2 retained
-test sic::qutrit::tests::qutrit_nine_outcome_retraction_and_third_level_readout ... ok
-512-bit source: three-channel braid relations and outcome 2 retained
-1024-bit source: three-channel braid relations and outcome 2 retained
-2048-bit source: three-channel braid relations and outcome 2 retained
-test anyon_qutrit::tests::qutrit_braid_and_three_outcome_readout_at_required_source_widths ... ok
-
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 225 filtered out; finished in 0.32s
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:0418f409f25dc3f207ba2c980bb0077c2bac10a6d29adb3b25c59551e8830d90
+size 874

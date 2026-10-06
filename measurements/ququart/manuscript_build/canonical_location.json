@@ -1,13 +1,3 @@
-{
-  "manuscript_repository": "/home/mrnob0dy666/imsgct/ig-docs",
-  "manuscript_commit": "06351e73",
-  "source": "ququart_membranes.tex",
-  "pdf": "ququart_membranes.pdf",
-  "evidence": "ququart_membranes.evidence.json",
-  "validation": "ququart_membranes.validation.json",
-  "visual_inspection": [
-    "architecture diagram",
-    "canonical numeral witness"
-  ],
-  "sandboxed_build": "font cache write denied; canonical build completed with approved filesystem access"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:ba29510b83dcf4a6ced0474f31ab943ea07e4d8d51969bff6ff10272138472d3
+size 471

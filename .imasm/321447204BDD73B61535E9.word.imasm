@@ -1,14 +1,3 @@
-0x1000	⊢⊞⊡
-0x1006	⊢⊞⊞
-0x100d	⊢⊞⊡⊞
-0x101b	⊢⊤⊞⊤⊡⊡⊞⊞⊤⊞
-0x103c	⊢⊞⊤
-0x1047	⊢⊞⊞⊞⊤⊤⊤⊡⊞⊞⊡⊞⊤⊞⊞⊞
-0x1085	⊢⊡⊡⊤⊞
-0x1097	⊢⊞⊡
-0x10a2	⊢⊞⊞⊞⊡
-0x10b2	⊢⊞
-0x10b8	⊢⊞⊡⊤⊡⊞⊞
-0x10cf	⊢⊞⊡
-0x10d7	⊢⊡⊞⊤⊞
-0x10ec	⊢⊡
+version https://git-lfs.github.com/spec/v1
+oid sha256:2f91fcb408a2a04d7f2a8cefaa1d4c38afe5417ccfbda45588380d47fd28ac4e
+size 325

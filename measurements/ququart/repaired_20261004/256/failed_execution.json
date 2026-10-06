@@ -1,10 +1,3 @@
-{
-  "case": "/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_repaired_256_radix4_20261004",
-  "debugger_exit": 0,
-  "elapsed_seconds": 85.28462613099691,
-  "closure_time_limit_seconds": 90,
-  "factor_report_present": false,
-  "inferior_killed": true,
-  "factor_extraction_verified": false,
-  "bits": 256
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:f5b13bf7a4f9c0e3d7cbe150aa196a4cd4f8bee1709c7e007464465452d6a3df
+size 313

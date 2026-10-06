@@ -1,28 +1,3 @@
-{
-  "scope": "negative verifier checks only, not membrane factor-extraction evidence",
-  "source": "RSA-100",
-  "source_bits": 330,
-  "checks": [
-    {
-      "name": "empty_ledger",
-      "synthetic_readout": true,
-      "rejected": true,
-      "exit_code": 1,
-      "reason": "readout verification failed: recorded measurements do not close factor extraction"
-    },
-    {
-      "name": "zero_phase",
-      "synthetic_readout": true,
-      "rejected": true,
-      "exit_code": 1,
-      "reason": "readout verification failed: recorded measurements do not close factor extraction"
-    },
-    {
-      "name": "wrong_resolution",
-      "synthetic_readout": true,
-      "rejected": true,
-      "exit_code": 1,
-      "reason": "readout verification failed: measured phase resolution differs from compiled schedule"
-    }
-  ]
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:7577541175e399fa17caaa61e5a5a71eefb83f870c29560f2bf2dc305064a696
+size 823

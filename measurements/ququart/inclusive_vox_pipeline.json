@@ -1,15 +1,3 @@
-{
-  "elf": "membranes/ququart_inclusive_native_radix4_128_20261004/membrane",
-  "tools": [
-    "vox imasm",
-    "vox words",
-    "vox glyphs",
-    "vox unglyphs",
-    "vox disasm",
-    "Vox symbol-bounded native decoder"
-  ],
-  "module_roundtrip_exact": true,
-  "module_sha256": "392aae9886b0e935966b19cfcaab9e2554ec2356fd911c2845c536f0938dcd68",
-  "regions": "measurements/ququart/inclusive_vox_regions.json",
-  "glyph_payload": "measurements/ququart/inclusive_native_module.glyphs"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:6a20bf735b2088d8c356aa775f37dde40480cdb2bad02ab6d9632d93e0d6f183
+size 486

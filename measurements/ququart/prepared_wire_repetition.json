@@ -1,5 +1,3 @@
-{
-  "scope": "diagnostic counts of prepared word references; no factor computation",
-  "wire_word_occurrences": 726660,
-  "distinct_wire_words": 259
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:a811c7959a54cff996b8c8a0591e5a53c9c49213410cb8b2cb61309c0f94d1f8
+size 151

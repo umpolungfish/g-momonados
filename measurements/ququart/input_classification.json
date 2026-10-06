@@ -1,32 +1,3 @@
-{
-  "semiprime_128": {
-    "source": "340282366920938460843936948965011886881",
-    "prime_factors": [
-      "18446744073709551557",
-      "18446744073709551533"
-    ],
-    "proof_scope": "both factors below 2^64, verified by deterministic primality testing; these audit factors are not baked into the membrane"
-  },
-  "semiprime_control_129": {
-    "source": "510423550381407695195061911147652317181",
-    "prime_factors": [
-      "3",
-      "170141183460469231731687303715884105727"
-    ],
-    "proof_scope": "3 is prime; M127 Lucas-Lehmer residue after 125 iterations is zero"
-  },
-  "superseded_composite_control": {
-    "divisors": [
-      "3",
-      "61"
-    ],
-    "remaining_factor": "1394599864430075669931863145212164801"
-  },
-  "supplied_composite_447": {
-    "divisors": [
-      "3",
-      "23"
-    ],
-    "remaining_factor": "3351329697936803928771847554411758966955811936411800485294221117599313320306013799343162979976072776040307747262293209508874050517571"
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:2fdcc51eec97051044d611c52cf9eb040ca3975eea6dcfe36b59509ee05b35de
+size 980

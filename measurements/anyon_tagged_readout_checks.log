@@ -1,14 +1,3 @@
-   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.31s
-     Running unittests src/main.rs (target/debug/deps/g_momonados-fbe088ccd249d2d3)
-
-running 2 tests
-test anyon_device::tests::exchange_stream_transports_fusion_readout_for_128_bit_semiprime ... ok
-128-bit source: 264 tagged transport replies accepted; stale, reordered, and untagged replies rejected
-256-bit source: 520 tagged transport replies accepted; stale, reordered, and untagged replies rejected
-512-bit source: 1032 tagged transport replies accepted; stale, reordered, and untagged replies rejected
-1024-bit source: 2056 tagged transport replies accepted; stale, reordered, and untagged replies rejected
-2048-bit source: 4104 tagged transport replies accepted; stale, reordered, and untagged replies rejected
-test anyon_device::tests::phase_tags_bind_readouts_at_all_required_source_widths ... ok
-
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 530 filtered out; finished in 0.08s
+version https://git-lfs.github.com/spec/v1
+oid sha256:65d29c14712e7caa8fea556a0fbd0bb156e29782933685c3b54cdbf04f4753dd
+size 1047

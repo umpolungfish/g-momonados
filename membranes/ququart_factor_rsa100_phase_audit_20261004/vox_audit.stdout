@@ -1,7 +1,0 @@
-/home/mrnob0dy666/imsgct/G-mOMonadOS/membranes/ququart_factor_rsa100_phase_audit_20261004/membrane  elf  entry 0x3de2e0  461714 byte(s) of code
-  1009 function(s), 100695 instruction(s)
-  claimed 90% of the image (418987 of 461714 bytes)
-
-  1009 function(s) by descent, 3448 more by fallback sweep
-  covered 99% of the image (461700 of 461714 bytes)
-  verdicts  T 136   B 907   N 3414   F 0  (F: 0 from descent, 0 from fallback sweep)

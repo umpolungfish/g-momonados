@@ -1,21 +1,3 @@
-{
-  "regions": [
-    {
-      "function": "phase",
-      "start_hex": "0xab55421",
-      "end_hex": "0xab58fb9",
-      "decoder_exit": 0,
-      "decoded_instructions": 3037
-    },
-    {
-      "function": "arithmetic",
-      "start_hex": "0xab65a4e",
-      "end_hex": "0xab66f06",
-      "decoder_exit": 0,
-      "decoded_instructions": 1155
-    }
-  ],
-  "glyph_codec_exact_roundtrip": true,
-  "arithmetic_structure_word_letters": 23,
-  "interpretation": "default CFG word omits arithmetic enum arms; complete module and bounded decoder retain those instructions; no numeric wiring correctness claimed"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:d8031fc8ff6b803dd37a7e3b53de8dfbc37e3c0b0acc5dd3796cfe3b4ca25fda
+size 602

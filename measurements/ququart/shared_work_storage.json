@@ -1,9 +1,3 @@
-{
-  "stage_count": 132,
-  "operation_references": 168960,
-  "distinct_operations": 68096,
-  "prepared_bytes": 179515008,
-  "previous_prepared_bytes": 190585381,
-  "factor_extraction_verified": false,
-  "execution_state": "prepared_not_executed"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:5b82745b2b430fbe0e77d7b15a07c9cc93850c7e22d3ee52e79ac512fd4f8cae
+size 247

@@ -1,6 +1,3 @@
-Certified case 0: 128-bit semiprime
-Certified case 1: 160-bit semiprime
-Certified case 2: 192-bit semiprime
-Certified case 3: 224-bit semiprime
-Certified case 4: 256-bit semiprime
-Generated 5 certified semiprimes in measurements/ququart/increasing_20261004/sources.tsv
+version https://git-lfs.github.com/spec/v1
+oid sha256:892768fa194a6894ea59cbba71e52c118b7f292b96d25d9235149f7409847329
+size 269

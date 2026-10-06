@@ -1,8 +1,0 @@
-{
-  "binary_sha256": "d7fe2987393d11ecac341f2b165cf4f244985b25196073ba2eba5c2a17a0547f",
-  "factor_extraction": true,
-  "p": "85070591730234615865843651857942052861",
-  "q": "3",
-  "shots": 2,
-  "single_terminal_write_no_network_sends": true
-}

@@ -1,8 +1,3 @@
-    Finished `release` profile [optimized] target(s) in 0.02s
-     Running unittests src/lib.rs (target/release/deps/g_momonados-abeafce3b6dd8c30)
-
-running 2 tests
-test factor_routes::tests::duplicate_relations_do_not_grow_the_basis_on_a_128_bit_semiprime ... ok
-test factor_routes::tests::streaming_dependency_closes_on_a_130_bit_semiprime ... ok
-
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 213 filtered out; finished in 0.04s
+version https://git-lfs.github.com/spec/v1
+oid sha256:6ecad0a0afd807ad8641942fd7e26dec39d6df225a47611ad3d9132d66005f59
+size 445

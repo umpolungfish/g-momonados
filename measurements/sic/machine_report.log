@@ -1,13 +1,3 @@
-SIC dimension        : 2
-SIC outcomes         : 4
-SIC normalization    : 0.000000e0
-SIC completeness     : 0.000000e0
-SIC equiangularity   : 1.110223e-16
-SIC split/fuse: || μ_SIC δ_SIC(X) - X || = 3.565268e-16
-SIC positivity       : 9.714451e-17
-SIC projector purity : 1.241267e-16
-SIC duality          : 3.330669e-16
-SIC symmetry         : 2.229103e-16
-WH overlap max error : None
-Exact certificate    : Some(true)
-FOUR assessment      : T
+version https://git-lfs.github.com/spec/v1
+oid sha256:cdc14a160f053851b7f7b68e4952bc1d6e0f4e24e84ff47d50f0268c8cbac0f8
+size 443

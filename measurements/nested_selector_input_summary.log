@@ -1,29 +1,3 @@
-input=9
-gpu_kernel run_nested on device: 24 marks
-  halted: true   ticks: 24
-  stack (bottom..top): [N N N]  depth 3
-  registers: [N N N N F F T F]  engagr false
-  memory[0..4]: [N N N N]
-  matches CPU kernel: true
-input=11
-gpu_kernel run_nested on device: 24 marks
-  halted: true   ticks: 24
-  stack (bottom..top): [N N N]  depth 3
-  registers: [N N N N F F T F]  engagr false
-  memory[0..4]: [N N N N]
-  matches CPU kernel: true
-input=13
-gpu_kernel run_nested on device: 24 marks
-  halted: true   ticks: 24
-  stack (bottom..top): [N N N]  depth 3
-  registers: [N N N N F F T F]  engagr false
-  memory[0..4]: [N N N N]
-  matches CPU kernel: true
-input=15
-gpu_kernel run_nested on device: 24 marks
-  halted: true   ticks: 24
-  stack (bottom..top): [N N N]  depth 3
-  registers: [N N N N T F T F]  engagr false
-  memory[0..4]: [N N N N]
-  matches CPU kernel: true
-distinct words=4; distinct executed states=2
+version https://git-lfs.github.com/spec/v1
+oid sha256:8ebb90615f31e8e696aebaddabb8473ea89b4a25d499095c74fd8c4e49e2ffcf
+size 908
