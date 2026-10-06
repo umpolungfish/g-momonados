@@ -789,22 +789,44 @@ fn arbitrary_anyon_factor(args: &[&str]) -> Result<arbitrary_factor::Extraction,
 #[cfg(feature = "hosted")]
 fn anyon_factor(args: &[&str]) -> Result<String, String> {
     use num_bigint::BigUint;
-    let usage =
-        "usage: g-momonados anyon_factor <N>=128-bit-semiprime <base> <max_shots> <unix_socket>";
-    let n = args.first().ok_or(usage)?.parse::<BigUint>().map_err(|_| usage)?;
-    let base = args.get(1).ok_or(usage)?.parse::<BigUint>().map_err(|_| usage)?;
-    let max_shots = args.get(2).ok_or(usage)?.parse::<u32>().map_err(|_| usage)?;
-    let socket = args.get(3).ok_or(usage)?;
-    if args.len() != 4 || n.bits() < 128 || max_shots == 0 {
+
+    const MAX_TOTAL_SHOTS: u32 = 32;
+    const DEFAULT_SOCKET: &str = "/tmp/g-momonados-fibonacci.sock";
+
+    let usage = "usage: g-momonados anyon_factor <N>=128-bit-semiprime";
+    if args.len() != 1 {
         return Err(usage.into());
     }
-    let device = anyon_device::FibonacciGenerator::connect(socket)?;
-    let result = anyon_braid_cnot::factor_semiprime_with_anyons(
-        &n, &base, max_shots, device, 7, 7, 20_000, 2, 8,
+
+    let n = args[0].parse::<BigUint>().map_err(|_| usage)?;
+    if n.bits() < 128 {
+        return Err(usage.into());
+    }
+
+    let socket = std::env::var("G_MOMONADOS_ANYON_SOCKET")
+        .unwrap_or_else(|_| DEFAULT_SOCKET.to_string());
+    let device = anyon_device::FibonacciGenerator::connect(&socket)?;
+
+    let result = anyon_braid_cnot::factor_n_with_anyons(
+        &n,
+        device,
+        MAX_TOTAL_SHOTS,
+        7,
+        7,
+        20_000,
+        2,
+        8,
     )?;
+
     Ok(format!(
-        "Fibonacci anyon phase closure\nsource={}\nbase={}\norder={}\nfactors={} x {}\nshots={}",
-        result.source, result.base, result.order, result.p, result.q, result.shots,
+        "Fibonacci anyon N-only closure\nsource={}\nbase={}\norder={}\nfactors={} x {}\nshots={}\nproduct_closed={}",
+        result.source,
+        result.base,
+        result.order,
+        result.p,
+        result.q,
+        result.shots,
+        &result.p * &result.q == result.source,
     ))
 }
 

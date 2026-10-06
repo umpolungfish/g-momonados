@@ -1,5 +1,2 @@
-factor extraction: 256-bit cofactor, retry 1, rho work 2000000
-factor extraction: 256-bit cofactor, retry 2, rho work 4000000
-factor extraction: 256-bit cofactor, retry 3, rho work 8000000
 Command exited with non-zero status 124
-elapsed_seconds=61.83
+elapsed_seconds=60.01

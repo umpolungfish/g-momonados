@@ -561,3 +561,10 @@ mod tests {
         assert_eq!(report.factors, vec![(p.to_string(), 1), (q.to_string(), 1)]);
     }
 }
+/// Stubs restored by compilation repair: classical routes were removed but
+/// the prepared membrane still references native_factor_word_pair. Returning
+/// a controlled error keeps the module well-formed; the caller treats it as
+/// "no native factor found" and falls back to the anyon phase device.
+pub fn native_factor_word_pair(_source_word: &str) -> Result<Option<(String,String)>,String> {
+    Err("classical native factor arm removed — use the anyon phase route".into())
+}

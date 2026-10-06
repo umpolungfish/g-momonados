@@ -858,6 +858,105 @@ pub fn try_factor_with_anyons<D: FibonacciAnyonDevice>(
     Ok(None)
 }
 
+
+const N_ONLY_BASES: [u32; 16] =
+    [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53];
+
+/// Factor from N alone over one persistent Fibonacci carrier.
+///
+/// The base schedule and shot policy are internal. No factor, order, phase,
+/// or candidate enters through the command surface. A single carrier remains
+/// alive across base changes so source-bound braid templates and the local
+/// gate net are reused instead of being rebuilt for each trial base.
+#[allow(clippy::too_many_arguments)]
+pub fn factor_n_with_anyons<D: FibonacciAnyonDevice>(
+    n: &BigUint,
+    device: D,
+    max_total_shots: u32,
+    sk_depth: usize,
+    net_depth: usize,
+    max_gates: usize,
+    refinement: usize,
+    minimum_accuracy_bits: usize,
+) -> Result<AnyonicFactorization, String> {
+    if n.bits() < 128 || max_total_shots == 0 {
+        return Err(
+            "N-only anyonic factorization requires N >= 128 bits and a positive internal shot budget"
+                .into(),
+        );
+    }
+
+    let numeral = |value: &BigUint| -> Vec<char> {
+        let bits = value.bits().max(1) as usize;
+        (0..bits)
+            .map(|bit| if value.bit(bit as u64) { EVALF } else { EVALT })
+            .collect()
+    };
+
+    let n_tape = numeral(n);
+    let carrier = CompiledFibonacciCarrier::new(
+        device,
+        sk_depth,
+        net_depth,
+        max_gates,
+        refinement,
+        minimum_accuracy_bits,
+    );
+    let mut executor = g_momonados::recycled_carrier::RecycledCarrierExecutor::new(carrier);
+    let mut total_shots = 0u32;
+
+    while total_shots < max_total_shots {
+        for raw_base in N_ONLY_BASES {
+            if total_shots >= max_total_shots {
+                break;
+            }
+
+            let base = BigUint::from(raw_base);
+            if &base >= n {
+                continue;
+            }
+
+            let base_tape = numeral(&base);
+            let program =
+                vox_core::fixed_point_quantum_membrane::FixedPointQuantumMembrane::from_n_with_base(
+                    &n_tape,
+                    &base_tape,
+                )
+                .and_then(|membrane| membrane.prepare_structural_execution())
+                .map_err(|error| error.to_string())?;
+
+            total_shots = total_shots
+                .checked_add(1)
+                .ok_or("anyon shot counter overflow")?;
+
+            let readout = executor
+                .execute_factor_shot(&program)
+                .map_err(|error| {
+                    format!("anyon phase shot {total_shots} at base {base} failed: {error}")
+                })?;
+
+            if let Some(pair) = readout.result_pair {
+                if &pair.p * &pair.q != *n {
+                    return Err("anyon phase pair failed exact N closure".into());
+                }
+
+                return Ok(AnyonicFactorization {
+                    source: pair.source,
+                    base: pair.base,
+                    order: pair.order,
+                    p: pair.p,
+                    q: pair.q,
+                    shots: total_shots,
+                });
+            }
+        }
+    }
+
+    Err(format!(
+        "N-only anyon phase path did not close a factor pair within {max_total_shots} shots"
+    ))
+}
+
 impl FibonacciBraidCompiler {
     pub fn new(
         source: &BigUint,
@@ -1495,6 +1594,57 @@ mod tests {
             compiler.single_gate_net.as_ref().unwrap().entries.as_ptr(),
             net_address,
             "changing the phase target must reuse the source-bound gate net"
+        );
+    }
+
+    #[test]
+    fn source_bound_compiler_survives_base_changes() {
+        let source =
+            BigUint::parse_bytes(b"296650821743515430283258444261036507151", 10).unwrap();
+        let source_tape = (0..source.bits())
+            .map(|bit| if source.bit(bit) { EVALF } else { EVALT })
+            .collect::<Vec<_>>();
+        let base_two = [EVALT, EVALF];
+        let base_three = [EVALF, EVALF];
+        let logical_qubits = 3 * source.bits() as usize + 4;
+        let phase_bits = 2 * source.bits() as usize + 8;
+        let mut carrier =
+            CompiledFibonacciCarrier::new(ExchangeRecorder::default(), 1, 5, 4096, 0, 0);
+
+        carrier
+            .begin(
+                &source_tape,
+                &base_two,
+                logical_qubits,
+                phase_bits,
+                WorkPreparation::UniformResidues,
+            )
+            .unwrap();
+        carrier.compiler.as_mut().unwrap().cnot_template =
+            Some((vec![1, -1, 2], usize::MAX));
+        carrier.device.finish().unwrap();
+
+        carrier
+            .begin(
+                &source_tape,
+                &base_three,
+                logical_qubits,
+                phase_bits,
+                WorkPreparation::UniformResidues,
+            )
+            .unwrap();
+
+        assert_eq!(
+            carrier
+                .compiler
+                .as_ref()
+                .unwrap()
+                .cnot_template
+                .as_ref()
+                .unwrap()
+                .0,
+            vec![1, -1, 2],
+            "changing only the phase base must retain source-bound braid templates"
         );
     }
 
