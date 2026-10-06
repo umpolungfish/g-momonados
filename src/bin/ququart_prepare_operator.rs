@@ -16,6 +16,21 @@ pub fn signed_word(value: &BigInt) -> String {
 
 fn prepare() -> Result<String, String> {
     let path = std::env::args().nth(1).ok_or("missing preparation file")?;
+    if path == "--numerals" {
+        let mut values = serde_json::Map::new();
+        for raw in std::env::args().skip(2) {
+            if raw.is_empty() || !raw.bytes().all(|b| b.is_ascii_digit()) {
+                return Err("preparation numeral must be a decimal natural".into());
+            }
+            let value = BigUint::parse_bytes(raw.as_bytes(), 10).ok_or("invalid decimal natural")?;
+            values.insert(raw, serde_json::Value::String(word(&value)));
+        }
+        return Ok(serde_json::Value::Object(values).to_string());
+    }
+    if path == "--read-numeral" {
+        let raw = std::env::args().nth(2).ok_or("missing canonical numeral word")?;
+        return Ok(support::numeral(&raw)?.to_string());
+    }
     if path == "--scale-base" || path == "--prepare-powers" {
         let input = std::env::args().nth(2).ok_or("missing source-bound input file")?;
         let prepared: serde_json::Value = serde_json::from_str(
