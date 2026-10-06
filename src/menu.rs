@@ -238,6 +238,7 @@ pub static KERNEL_MENU: &[MenuItem] = &[
 ];
 
 pub static QUANTUM_MENU: &[MenuItem] = &[
+    MenuItem { name: "anyon_factor", cmd: "anyon_factor", desc: "N-only Fibonacci anyon phase factorization; runtime owns base schedule, shot policy, and controller endpoint", example: "anyon_factor 296650821743515430283258444261036507151", submenu: None },
     MenuItem { name: "factor_phase", cmd: "factor_phase", desc: "Exact folded coherent CPU execution and pair measurement over baked IMASM source and quantile", example: "factor_phase", submenu: None },
     MenuItem { name: "anyon_ququart_word", cmd: "anyon_ququart_word", desc: "Compile full Z4 Fourier to a Fibonacci braid and measure computational, leakage, and unitarity residuals", example: "anyon_ququart_word 296650821743515430283258444261036507151", submenu: None },
     MenuItem { name: "fibqc",      cmd: "fibqc",      desc: "Fibonacci anyon QC: verify | compile | jones | knot | winding (see also qc, jp)", example: "fibqc verify", submenu: None },
