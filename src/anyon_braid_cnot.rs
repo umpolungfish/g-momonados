@@ -842,6 +842,91 @@ pub fn try_factor_with_anyons<D: FibonacciAnyonDevice>(
     Ok(None)
 }
 
+
+const N_ONLY_BASES: [u32; 16] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53];
+
+/// Factor from N alone over one persistent Fibonacci carrier. The base schedule
+/// and shot policy are internal; no factor, order, phase, or candidate enters
+/// through the command surface. Reusing one carrier keeps source-bound braid
+/// templates and the single-gate net resident across base changes.
+#[allow(clippy::too_many_arguments)]
+pub fn factor_n_with_anyons<D: FibonacciAnyonDevice>(
+    n: &BigUint,
+    device: D,
+    max_total_shots: u32,
+    sk_depth: usize,
+    net_depth: usize,
+    max_gates: usize,
+    refinement: usize,
+    minimum_accuracy_bits: usize,
+) -> Result<AnyonicFactorization, String> {
+    if n.bits() < 128 || max_total_shots == 0 {
+        return Err("N-only anyonic factorization requires N >= 128 bits and a positive internal shot budget".into());
+    }
+    let numeral = |value: &BigUint| -> Vec<char> {
+        let bits = value.bits().max(1) as usize;
+        (0..bits)
+            .map(|bit| if value.bit(bit as u64) { EVALF } else { EVALT })
+            .collect()
+    };
+    let n_tape = numeral(n);
+    let carrier = CompiledFibonacciCarrier::new(
+        device,
+        sk_depth,
+        net_depth,
+        max_gates,
+        refinement,
+        minimum_accuracy_bits,
+    );
+    let mut executor = g_momonados::recycled_carrier::RecycledCarrierExecutor::new(carrier);
+    let mut total_shots = 0u32;
+
+    while total_shots < max_total_shots {
+        for raw_base in N_ONLY_BASES {
+            if total_shots >= max_total_shots {
+                break;
+            }
+            let base = BigUint::from(raw_base);
+            if &base >= n {
+                continue;
+            }
+            let base_tape = numeral(&base);
+            let program =
+                vox_core::fixed_point_quantum_membrane::FixedPointQuantumMembrane::from_n_with_base(
+                    &n_tape, &base_tape,
+                )
+                .and_then(|membrane| membrane.prepare_structural_execution())
+                .map_err(|error| error.to_string())?;
+
+            total_shots = total_shots
+                .checked_add(1)
+                .ok_or("anyon shot counter overflow")?;
+            let readout = executor
+                .execute_factor_shot(&program)
+                .map_err(|error| format!(
+                    "anyon phase shot {total_shots} at base {base} failed: {error}"
+                ))?;
+            if let Some(pair) = readout.result_pair {
+                if &pair.p * &pair.q != *n {
+                    return Err("anyon phase pair failed exact N closure".into());
+                }
+                return Ok(AnyonicFactorization {
+                    source: pair.source,
+                    base: pair.base,
+                    order: pair.order,
+                    p: pair.p,
+                    q: pair.q,
+                    shots: total_shots,
+                });
+            }
+        }
+    }
+
+    Err(format!(
+        "N-only anyon phase path did not close a factor pair within {max_total_shots} shots"
+    ))
+}
+
 impl FibonacciBraidCompiler {
     pub fn new(
         source: &BigUint,
