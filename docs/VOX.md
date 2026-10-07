@@ -120,6 +120,15 @@ either fusion stage. Temporary entry diagrams exceed 225,000 nodes while
 the retained phase diagram remains near 114,000 nodes. The next target is
 temporary-node creation and reclamation around interval translations.
 
+Temporary-node cleanup drains the operation's existing allocation list as a
+shared work stack and retains its capacity for the following operation.
+Decision-coordinate, slot-reuse, control-correlation, modular-coherence and
+SIC controls pass. The source-bound `source229513_batch_reclaim` membrane
+still reaches the standalone 30-second bound without a completed factor
+readout; its verifier reports `missing completed factor readout`. Vox locates
+the hottest sampled instruction at `0x9b11d` within shared-stack reclamation
+in this ELF. The phase trace remains at three completed digits near 25 seconds.
+
 Vox disassembly maps the shared-mask build's hottest equality sample to
 `Node::equivalent` at `0x99e15`, where the hash-table key's enum tag is compared.
 The branch index stores `(wire,low,high)` separately from exact amplitude leaves.
