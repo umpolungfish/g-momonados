@@ -69,6 +69,11 @@ pub struct SicControlWitness {
     pub masses: [BigUint;16],
     pub digit: QuquartDigit,
 }
+
+pub struct FrobeniusStageWitness {
+    pub height: usize,
+    pub operations: usize,
+}
 pub struct QuquartFoldedWorkDevice {
     source: BigUint,
     format: FixedPointFormat,
@@ -120,6 +125,86 @@ impl QuquartFoldedWorkDevice {
         self
     }
     pub fn sic_witnesses(&self) -> &[SicControlWitness] { &self.sic_witnesses }
+
+    /// Execute every source-bound stage on a correlated complex state, then
+    /// return through the inverse of each adjacent operation. Expected forward
+    /// roots are constructed independently from the modular permutation. Root
+    /// equality compares the complete canonical diagrams, including workspace
+    /// and the fifth fusion channel. This audit emits no measured phase digits.
+    pub fn audit_frobenius_stack(&mut self, base: &BigUint)
+        -> Result<Vec<FrobeniusStageWitness>, String>
+    {
+        if self.active || self.source.bits() < 200 {
+            return Err("stack audit requires an inactive RSA source of at least 200 bits".into());
+        }
+        let schedule = crate::ququart_factor::QuquartPowerSchedule::prepare(&self.source, base)?;
+        if let Some(work) = &self.prepared_work {
+            work.verify_recovery(&self.source, base, self.digit_bits, schedule.powers().len())?;
+        }
+        let arithmetic = ModularMultiply::new(&self.source)?;
+        let mut witnesses = Vec::new();
+        for (height, multiplier) in schedule.powers().iter().enumerate() {
+            self.arena = DecisionArena::new(self.arena.cells);
+            self.roots = self.audit_roots(&BigUint::one());
+            self.active = true;
+            self.measured = None;
+            self.nested_since_fold = 0;
+            self.fold();
+            let operations = if let Some(work) = &self.prepared_work {
+                work.stages[height].1.iter().map(|&id| work.operations[id].clone())
+                    .collect::<Vec<_>>()
+            } else {
+                let mut operations = Vec::new();
+                for (lane, power) in [(0, multiplier.clone()), (1, multiplier * multiplier % &self.source)] {
+                    arithmetic.emit_ququart_nested_radix(&power, lane, self.digit_bits, |operation| {
+                        operations.push(operation);
+                        Ok(())
+                    })?;
+                }
+                operations
+            };
+            // Exercise the production dispatch, including the decoded pool.
+            self.controlled_multiply(multiplier)?;
+            let expected = self.audit_roots(multiplier);
+            if self.roots != expected {
+                return Err(alloc::format!("transformed work differs at stack height {height}"));
+            }
+            // The forward comparison is finished before expected roots can be
+            // reclaimed. Return uses the actual adjacent maps in reverse order.
+            for operation in operations.iter().rev() {
+                self.apply_nested(operation.inverse())?;
+            }
+            self.fold();
+            self.require_clean_workspace()?;
+            let returned = self.audit_roots(&BigUint::one());
+            if self.roots != returned {
+                return Err(alloc::format!("transformed work did not return at stack height {height}"));
+            }
+            witnesses.push(FrobeniusStageWitness { height, operations: operations.len() });
+            self.active = false;
+        }
+        self.abort();
+        Ok(witnesses)
+    }
+
+    fn audit_roots(&mut self, multiplier: &BigUint) -> [usize; 5] {
+        let zero = self.arena.zero();
+        let mut roots = [zero; 5];
+        let residues = [BigUint::one(), &self.source - 1u8, &self.source - 2u8];
+        for (channel, root) in roots.iter_mut().enumerate() {
+            let digit = COMPUTATIONAL_CHANNELS.iter().position(|&c| c == channel);
+            let power = multiplier.modpow(&BigUint::from(digit.unwrap_or(0)), &self.source);
+            for (index, residue) in residues.iter().enumerate() {
+                let image = residue * &power % &self.source;
+                let basis = self.arena.basis(&self.work_address(&image), self.format.scale());
+                let scalar = FixedComplex { re: BigInt::from(3 + 11 * channel + index),
+                    im: -BigInt::from(7 + 13 * channel + 3 * index) };
+                let basis = self.arena.scale(basis, &scalar, &self.format);
+                *root = self.arena.sum(*root, basis);
+            }
+        }
+        roots
+    }
     pub fn new_interleaved(source: BigUint, fourier: PairMatrix, seed: u64) -> Result<Self, String> {
         let mut device = Self::new(source, fourier, seed)?;
         device.interleaved_work = true;

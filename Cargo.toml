@@ -55,6 +55,11 @@ path = "src/bin/anyon_generator.rs"
 required-features = ["hosted"]
 
 [[bin]]
+name = "anyon_stack_audit"
+path = "src/bin/anyon_stack_audit.rs"
+required-features = ["hosted"]
+
+[[bin]]
 name = "ququart_verify_readout"
 path = "src/bin/ququart_verify_readout.rs"
 required-features = ["hosted"]
