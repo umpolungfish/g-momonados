@@ -1,24 +1,10 @@
 #![allow(dead_code)]
-//! fibonacci_shor.rs — Shor's Algorithm on Fibonacci Anyon Topological Quantum Computer
-//! ================================================================================
-//! PROBLEM 3 SOLUTION: Braid compiler integration for Shor.
+//! Exact Shor gate planning and exploratory Fibonacci braid routing.
 //!
-//! Compiles Shor's period-finding circuit (modular exponentiation + inverse QFT)
-//! to Fibonacci anyon braid words using the Solovay-Kitaev gate compiler.
-//!
-//! Fibonacci anyon model: non-Abelian anyons with fusion rule τ⊗τ = 1⊕τ.
-//! Fusion space dimension F_{n-1}: 4 strands→2, 7→8, 11→55, 15→377, 19→2584.
-//!
-//! Architecture:
-//!   - 1 logical qubit = 4 anyons (3 working strands, fusion dim=2)
-//!   - Controlled-U gates use braiding between anyon groups
-//!   - Single-qubit gates: Solovay-Kitaev approximation on SU(2)
-//!   - CNOT: 3-strand braid pattern on 7 anyons (2 qubits)
-//!
-//! For N=15 (4-qubit Shor):
-//!   - 4 qubits × 4 anyons = 16 anyons, 15 strands
-//!   - Fusion space dim = F_14 = 377 (8 logical qubits capacity)
-//!   - Braid word length ~ O(n³) per controlled-U, ~10⁴ total for N=15
+//! The gate plan preserves controlled modular multiplication and signed IQFT
+//! phase denominators. Physical assembly reports a missing calibrated lowering
+//! until every gate's computational action and leakage have been measured.
+//! The standalone seed helpers are exploratory words, not certified gates.
 
 use alloc::vec::Vec;
 use alloc::vec;
@@ -53,7 +39,7 @@ pub fn estimate_braid_length(n_qubits: usize) -> usize {
     // Controlled-U chain: n controlled-U's, each ~ n² * 2 controlled-phase gates
     let cu_count = n * (n * n * 2) * sk_depth;
     // Inverse QFT: n*(n-1)/2 controlled-phase gates
-    let iqft_count = (n * (n - 1) / 2) * sk_depth;
+    let iqft_count = (n * n.saturating_sub(1) / 2) * sk_depth;
     h_count + cu_count + iqft_count
 }
 
@@ -101,7 +87,7 @@ fn fibonacci_dim(strands: usize) -> usize {
     let mut a = 1usize;
     let mut b = 1usize;
     for _ in 2..n {
-        let t = a + b;
+        let t = a.saturating_add(b);
         a = b;
         b = t;
     }
@@ -111,7 +97,7 @@ fn fibonacci_dim(strands: usize) -> usize {
 // ── Fibonacci anyon braid words for Shor gates ────────────────────────
 
 /// Generate the braid word for a Hadamard layer on n qubits.
-/// H = (σ₁σ₂)³ in Fibonacci anyon representation (approximate).
+/// Exploratory seed; its Hadamard action has not been calibrated.
 /// For multiple qubits, H is applied in parallel on independent 3-strand blocks.
 pub fn hadamard_layer_braid(n_qubits: usize) -> Vec<i32> {
     // Single-qubit H: approximate as σ₁⁻¹ σ₂ σ₁ (Fibonacci anyon H)
@@ -129,7 +115,7 @@ pub fn hadamard_layer_braid(n_qubits: usize) -> Vec<i32> {
 }
 
 /// Generate the braid word for a T gate on qubit q.
-/// T = π/8 phase gate. In Fibonacci anyon model, approximated via SK.
+/// Exploratory seed; its T-gate action has not been calibrated.
 pub fn t_gate_braid(qubit: usize) -> Vec<i32> {
     // T gate SK approximation (depth-4 baseline)
     let base = (qubit * 3) as i32;
@@ -140,21 +126,34 @@ pub fn t_gate_braid(qubit: usize) -> Vec<i32> {
     ]
 }
 
-/// Generate the braid word for a controlled-phase gate between qubits c and t.
+/// Route an exploratory two-block seed between qubits c and t.
 /// In the Fibonacci model, this requires braiding anyons from different qubit blocks.
 /// The minimum non-trivial braiding between two 3-strand blocks needs 6 strands.
 pub fn controlled_phase_braid(control: usize, target: usize) -> Vec<i32> {
-    let c_base = (control * 3) as i32;
-    let t_base = (target * 3) as i32;
-    // Cross-block braiding: braid strand c_base+3 with t_base+1
-    // This creates entanglement between the two qubit blocks
-    // The controlled-Z gate requires 3 cross-braidings
-    let cross1 = if c_base < t_base { c_base + 3 } else { t_base + 3 };
-    vec![
+    assert_ne!(control, target, "a two-qubit braid needs distinct blocks");
+    let low = control.min(target);
+    let high = control.max(target);
+    let cross1 = i32::try_from(3 * low + 3).expect("strand index exceeds i32");
+    // Transport the distant block to the boundary, apply the local seed,
+    // then undo transport. Each exchange crosses all nine strand pairs.
+    // This repairs support; the seed still requires gate-action calibration.
+    let mut route = Vec::new();
+    for block in ((low + 1)..high).rev() {
+        let base = i32::try_from(3 * block).expect("strand index exceeds i32");
+        for right in 0..3 {
+            for left in (1..=3).rev() {
+                route.push(base + right + left);
+            }
+        }
+    }
+    let mut word = route.clone();
+    word.extend([
         cross1, -(cross1 + 1), cross1,
-        cross1 + 1, -(cross1), cross1 + 1,
+        cross1 + 1, -cross1, cross1 + 1,
         cross1, -(cross1 + 1), cross1,
-    ]
+    ]);
+    word.extend(route.iter().rev().map(|g| -g));
+    word
 }
 
 /// Inverse QFT braid word for n qubits.
@@ -180,11 +179,20 @@ pub fn inverse_qft_braid(n_qubits: usize) -> Vec<i32> {
     word
 }
 
+pub use crate::fibonacci_shor_plan::ShorGate;
+
+pub fn shor_gate_plan(n_qubits: usize, a: u64, modulus: u64) -> Result<Vec<ShorGate>, &'static str> {
+    crate::fibonacci_shor_plan::shor_gate_plan_for_source(n_qubits,
+        &num_bigint::BigUint::from(a), &num_bigint::BigUint::from(modulus))
+}
+
 // ── Full Shor braid word assembly ─────────────────────────────────────
 
 #[derive(Clone, Debug)]
 pub struct FibonacciShorBraid {
     pub params: ShorCircuitParams,
+    pub gates: Vec<ShorGate>,
+    pub lowering_error: Option<&'static str>,
     pub hadamard_word: Vec<i32>,
     pub mod_exp_word: Vec<i32>,    // Controlled-U chain
     pub iqft_word: Vec<i32>,       // Inverse QFT
@@ -192,50 +200,22 @@ pub struct FibonacciShorBraid {
     pub total_length: usize,
 }
 
-/// Assemble the full Shor braid word.
+/// Plan Shor gates and report whether their physical lowering is available.
 /// Circuit: |0⟩^⊗n → H^⊗n → Controlled-U^{2^i} → IQFT → measure
 pub fn assemble_shor_braid(n_qubits: usize, a: u64, n_val: u64) -> FibonacciShorBraid {
     let params = ShorCircuitParams::new(n_qubits, a, n_val);
 
-    // H-layer: parallel Hadamard on all period qubits
-    let hadamard_word = hadamard_layer_braid(n_qubits);
-
-    // Controlled-U chain: controlled modular multiplication
-    // For N=15: controlled-U^{1}, controlled-U^{2}, controlled-U^{4}, controlled-U^{8}
-    // Each is a modular multiplication by a^{2^k} = 7, 4, 1, 1 mod 15
-    let mut mod_exp_word = Vec::new();
-    for k in 0..n_qubits {
-        let pow = mod_pow(a, 1u64 << k, n_val);
-        if pow != 1 {
-            // Non-trivial controlled-U: apply controlled-phase gates
-            // between the control qubit k and each work qubit
-            let n_work = params.n_work_qubits;
-            for w in 0..n_work {
-                if (pow >> w) & 1 != 0 {
-                    mod_exp_word.extend(controlled_phase_braid(k, n_qubits + w));
-                }
-            }
-        }
-    }
-
-    // Inverse QFT
-    let iqft_word = inverse_qft_braid(n_qubits);
-
-    // Assemble
-    let mut total_word = Vec::new();
-    total_word.extend(&hadamard_word);
-    total_word.extend(&mod_exp_word);
-    total_word.extend(&iqft_word);
-
-    let total_length = total_word.len();
-
+    // Preserve exact requests. The former bit-dependent diagonal seeds did
+    // not implement modular multiplication. No physical word is released until
+    // every requested gate has a calibrated lowering and leakage measurement.
+    let (gates, error) = match shor_gate_plan(n_qubits, a, n_val) {
+        Ok(gates) => (gates, "Shor gate plan is available; calibrated Fibonacci braid lowering is required"),
+        Err(error) => (Vec::new(), error),
+    };
     FibonacciShorBraid {
-        params,
-        hadamard_word,
-        mod_exp_word,
-        iqft_word,
-        total_word,
-        total_length,
+        params, gates, lowering_error: Some(error),
+        hadamard_word: Vec::new(), mod_exp_word: Vec::new(),
+        iqft_word: Vec::new(), total_word: Vec::new(), total_length: 0,
     }
 }
 
@@ -245,9 +225,9 @@ fn mod_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
     let mut result: u64 = 1;
     base %= modulus;
     while exp > 0 {
-        if exp & 1 != 0 { result = (result * base) % modulus; }
+        if exp & 1 != 0 { result = ((result as u128 * base as u128) % modulus as u128) as u64; }
         exp >>= 1;
-        base = (base * base) % modulus;
+        base = ((base as u128 * base as u128) % modulus as u128) as u64;
     }
     result
 }
@@ -326,8 +306,9 @@ mod tests {
     #[test]
     fn test_shor_n15_braid() {
         let b = assemble_shor_braid(4, 7, 15);
-        assert!(b.total_length > 0);
-        assert!(b.total_length < 100_000); // should be computationally feasible
+        assert!(!b.gates.is_empty());
+        assert!(b.lowering_error.is_some());
+        assert!(b.total_word.is_empty());
         assert_eq!(b.params.period, None);
     }
 
@@ -357,6 +338,32 @@ mod tests {
     fn test_t_gate() {
         let word = t_gate_braid(0);
         assert_eq!(word.len(), 10);
+    }
+
+    #[test]
+    fn distant_target_is_transported_and_untransported() {
+        let word = controlled_phase_braid(0, 4);
+        assert_eq!(word.len(), 63);
+        assert_ne!(word, controlled_phase_braid(0, 1));
+        let route_len = (word.len() - 9) / 2;
+        let mut labels: Vec<usize> = (0..15).collect();
+        for g in &word[..route_len] {
+            let i = g.unsigned_abs() as usize - 1;
+            labels.swap(i, i + 1);
+        }
+        assert_eq!(&labels[3..6], &[12, 13, 14]);
+        for g in &word[route_len + 9..] {
+            let i = g.unsigned_abs() as usize - 1;
+            labels.swap(i, i + 1);
+        }
+        assert_eq!(labels, (0..15).collect::<Vec<_>>());
+        assert_eq!(word, controlled_phase_braid(4, 0));
+    }
+
+    #[test]
+    fn modular_power_does_not_overflow() {
+        assert_eq!(mod_pow(u64::MAX - 1, 2, u64::MAX), 1);
+        assert_eq!(estimate_braid_length(0), 0);
     }
 
     #[test]

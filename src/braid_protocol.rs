@@ -132,11 +132,11 @@ pub fn read_tangle(program: &[Token], n_strands: usize, start_depth: i32) -> Res
 
     for tok in program {
         if *tok == Token::Afwd || *tok == Token::Arev {
-            if depth < 2 {
+            if depth <= start_depth {
                 return Err(format!("{} at depth {}: nothing to cross", token_name(tok), depth));
             }
             let sign = if *tok == Token::Afwd { 1 } else { -1 };
-            generators.push(sign * (depth - 1));
+            generators.push(sign * (depth - start_depth));
         }
         depth += stack_delta(tok);
         profile.push(depth);
@@ -165,7 +165,7 @@ pub fn braid_to_imasm(generators: &[i32], start_depth: i32, close: bool) -> Vec<
     let mut prog = Vec::new();
     let mut depth = start_depth;
     for &g in generators {
-        let want = g.abs() + 1;
+        let want = g.abs() + start_depth;
         while depth < want {
             prog.push(Token::Fsplit);
             depth += 1;
@@ -187,6 +187,76 @@ pub fn braid_to_imasm(generators: &[i32], start_depth: i32, close: bool) -> Vec<
         }
     }
     prog
+}
+
+/// Embed a local braid above an existing carrier frame. Parent frames are
+/// protected: local sigma_i crosses at depth frame_depth+i, never below it.
+pub fn braid_to_imasm_in_frame(generators: &[i32], frame_depth: i32) -> Result<Vec<Token>, String> {
+    if frame_depth < 1 { return Err("carrier frame depth must be positive".into()); }
+    for &generator in generators {
+        let index = generator.checked_abs().filter(|index| *index > 0)
+            .ok_or("braid generator must have a positive representable index")?;
+        frame_depth.checked_add(index).ok_or("carrier frame depth overflow")?;
+    }
+    // Relative depths make the token presentation independent of its parent.
+    Ok(braid_to_imasm(generators, frame_depth, true))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FrameRecovery {
+    pub height: i32,
+    pub crossings: usize,
+    pub highest_depth: i32,
+    pub returned_depth: i32,
+}
+
+/// Recover the transformed braid at every supplied height and check every
+/// split/fuse return. This certifies the presentation interface, not the
+/// fusion operator's computational action or its leakage.
+pub fn audit_braid_frames(generators: &[i32], strands: usize, heights: &[i32])
+    -> Result<Vec<FrameRecovery>, String>
+{
+    if generators.is_empty() || heights.is_empty() {
+        return Err("transformed frame audit requires work and stack heights".into());
+    }
+    if generators.iter().any(|g| g.unsigned_abs() as usize >= strands) {
+        return Err("braid generator lies outside its physical strand layout".into());
+    }
+    let program = braid_to_imasm_in_frame(generators, 1)?;
+    let mut reports = Vec::new();
+    for &height in heights {
+        if height < 1 { return Err("carrier frame depth must be positive".into()); }
+        let mut depth = height;
+        let mut highest = height;
+        let mut returned = 0usize;
+        let mut frames: Vec<usize> = Vec::new();
+        for token in &program {
+            match token {
+                Token::Fsplit => frames.push(returned),
+                Token::Ffuse => {
+                    let opened_at = frames.pop().ok_or("fuse escaped the carrier frame")?;
+                    if returned == opened_at { return Err("split/fuse frame carries no transformed work".into()); }
+                }
+                Token::Afwd | Token::Arev => {
+                    let index = depth.checked_sub(height).ok_or("crossing escaped parent frame")?;
+                    let recovered = if *token == Token::Afwd { index } else { -index };
+                    if generators.get(returned) != Some(&recovered) {
+                        return Err(format!("braid recovery changed generator {} at stack height {}", returned,height));
+                    }
+                    returned += 1;
+                }
+                _ => return Err("unexpected opcode in generated braid frame".into()),
+            }
+            depth = depth.checked_add(stack_delta(token)).ok_or("carrier frame depth overflow")?;
+            if depth < height { return Err("transformation consumed a parent frame".into()); }
+            highest = highest.max(depth);
+        }
+        if !frames.is_empty() || depth != height || returned != generators.len() {
+            return Err(format!("transformed frame did not close at height {}",height));
+        }
+        reports.push(FrameRecovery { height, crossings:returned, highest_depth:highest, returned_depth:depth });
+    }
+    Ok(reports)
 }
 
 // ===========================================================================

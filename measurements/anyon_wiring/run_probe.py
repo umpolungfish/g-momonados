@@ -46,11 +46,21 @@ def main():
     kernel = ROOT / "G-mOMonadOS/src/fibonacci_shor.rs"
     binary = HERE / "shor_routing_probe"
     tests = HERE / "shor_constructor_tests"
-    run(["rustc", "+stable", "--edition=2021", "-C", "debuginfo=1", "-C",
-         "opt-level=0", source, "-o", binary])
-    run(["rustc", "+stable", "--edition=2021", "--test", source, "-o", tests])
-    (HERE / "constructor_tests.log").write_text(run([tests]))
-    reading = run([binary])
+    dependencies = ROOT / "G-mOMonadOS/target/release/deps"
+    args = ["rustc", "+stable", "--edition=2021", "-C", "debuginfo=1", "-C",
+            "panic=abort", "-C", "opt-level=0", source, "-L", "dependency=" + str(dependencies), "-o", binary]
+    for crate in ["g_momonados", "num_bigint"]:
+        library = max(dependencies.glob("lib" + crate + "-*.rlib"), key=lambda p: p.stat().st_mtime)
+        args.extend(["--extern", crate + "=" + str(library)])
+    run(args)
+    fixtures = json.loads((ROOT / "Vox/measurements/anyon_wiring/rsa_cases.json").read_text())
+    readings = []
+    for case in fixtures:
+        assert int(case["n"]).bit_length() >= 200
+        reading = run([binary, case["n"]])
+        (HERE / f"rsa_shor_routing_{case['bits']}.jsonl").write_text(reading)
+        readings.append(reading)
+    reading = readings[0]
     (HERE / "shor_routing.jsonl").write_text(reading)
     rows = [json.loads(line) for line in reading.splitlines()]
     parts = ['<svg xmlns="http://www.w3.org/2000/svg" width="960" height="290">',
@@ -62,12 +72,12 @@ def main():
         support = sorted({strand for g in row['word']
                           for strand in [abs(g), abs(g) + 1]})
         requested = f"control {row['control']} to target {row['target']}"
-        emitted = "crossed strands " + ", ".join(map(str, support))
+        emitted = f"crossed strands {min(support)} through {max(support)} ({len(support)} distinct)"
         parts.extend([f'<text x="25" y="{y}">{html.escape(requested)}</text>',
                       f'<path d="M310 {y-6} L460 {y-6}" stroke="#a84232" stroke-width="3"/>',
                       f'<text x="480" y="{y}">{html.escape(emitted)}</text>',
-                      f'<text x="25" y="{y+30}" font-size="14">word {html.escape(str(row["word"]))}</text>'])
-    parts.append('<text x="25" y="270">Bases 2 and 8 modulo 15 emit the same complete braid.</text></g></svg>')
+                      f'<text x="25" y="{y+30}" font-size="14">word {html.escape(str(row["word"][:12]) + (" ..." if len(row["word"]) > 12 else ""))}</text>'])
+    parts.append('<text x="25" y="270">Target routing repaired; exact gate plans differ. Physical lowering remains open.</text></g></svg>')
     figure = HERE / 'routing.svg'
     figure.write_text(''.join(parts))
     run(['rsvg-convert', '-f', 'pdf', '-o', HERE / 'routing.pdf', figure])
@@ -85,8 +95,10 @@ def main():
         "controlled_phase_function": address,
         "target_change_preserved": rows[3]["target_change_preserved"],
         "control_change_preserved": rows[3]["control_change_preserved"],
-        "base_change_preserved_in_full_braid": rows[-1]["base_change_preserved_in_full_braid"],
-        "expected_work_images_of_one": {"base_2_mod_15": 2, "base_8_mod_15": 8},
+        "base_change_preserved_in_gate_plan": rows[-1]["base_change_preserved_in_gate_plan"],
+        "calibrated_braid_available": False,
+        "source_bits": fixtures[0]["bits"],
+        "expected_work_images_of_one": {"base_2": 2, "base_8": 8},
     }
     (HERE / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 
