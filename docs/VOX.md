@@ -142,6 +142,18 @@ execution emits no completed readout, and the verifier reports the missing
 readout. This execution overlapped the control-test build and is not a clean
 timing comparison.
 
+The current candidate is `source229513_fold_batch8`; its comparison baseline
+is `source229513_coordinate_hash`. Nested arithmetic collects temporary nodes
+every eight operations, and multiplication, feedback and measurement boundaries
+still collect immediately. Shared-work correlation, modular coherence and SIC
+controls pass. Vox measures the fourth phase digit at 22.931900 seconds,
+versus three completed digits at the coordinate-hash baseline's 25-second
+bound. At 24.751296 seconds it records four measured digits, 4,112 nested
+operations and 454,995 retained nodes. The superseded batch-reclamation
+membrane binary has been removed; its measurement records remain.
+The standalone 30-second execution reaches its bound without a completed
+factor readout; the separate verifier reports the missing readout.
+
 Vox disassembly maps the shared-mask build's hottest equality sample to
 `Node::equivalent` at `0x99e15`, where the hash-table key's enum tag is compared.
 The branch index stores `(wire,low,high)` separately from exact amplitude leaves.

@@ -46,6 +46,7 @@ pub struct QuquartFoldedWorkDevice {
     digit_bits: usize,
     prepared_work: Option<PreparedModularWork>,
     sic_witnesses: Vec<SicControlWitness>,
+    nested_since_fold: usize,
     pub peak_nodes: usize,
 }
 impl QuquartFoldedWorkDevice {
@@ -71,6 +72,7 @@ impl QuquartFoldedWorkDevice {
             digit_bits: 1,
             prepared_work: None,
             sic_witnesses: Vec::new(),
+            nested_since_fold: 0,
             peak_nodes: 0,
         })
     }
@@ -137,6 +139,7 @@ impl QuquartFoldedWorkDevice {
     }
     fn fold(&mut self) {
         self.arena.fold(&mut self.roots);
+        self.nested_since_fold = 0;
         self.peak_nodes = self.peak_nodes.max(self.arena.retained_nodes());
         VOX_QUQUART_COUNTERS[4].store(self.arena.retained_nodes() as u64, Ordering::Relaxed);
         VOX_QUQUART_COUNTERS[5].store(self.peak_nodes as u64, Ordering::Relaxed);
@@ -267,7 +270,8 @@ impl QuquartFoldedWorkDevice {
                     old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,&work,flag-2),
             };
         }
-        self.fold();
+        self.nested_since_fold += 1;
+        if self.nested_since_fold == 8 { self.fold(); }
         Ok(())
     }
 
