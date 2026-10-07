@@ -230,6 +230,10 @@ fn decode_legacy(p: &Value) -> Result<Vec<(BigUint, Vec<NestedOperation>)>, Stri
 
 pub fn decode(p: &Value) -> Result<g_momonados::ququart_folded_work::PreparedModularWork, String> {
     use g_momonados::ququart_folded_work::PreparedModularWork;
+    let source = number(&p["source_word"])?;
+    let radix = g_momonados::ququart_factor::power_of_two_radix_word(
+        p["radix_word"].as_str().ok_or("missing work radix")?)?;
+    let digit_bits = radix.bits_le().len()-1;
     if p["prepared_work"].is_array() {
         let mut operations = Vec::new();
         let mut stages = Vec::new();
@@ -238,7 +242,9 @@ pub fn decode(p: &Value) -> Result<g_momonados::ququart_folded_work::PreparedMod
             operations.extend(ops);
             stages.push((power, (start..operations.len()).collect()));
         }
-        return Ok(PreparedModularWork { operations, stages });
+        let prepared = PreparedModularWork { source, digit_bits, operations, stages };
+        validate_recovery(p,&prepared)?;
+        return Ok(prepared);
     }
     let work = &p["prepared_work"];
     // Decode the pool through the same operation reader, once. References are
@@ -262,5 +268,65 @@ pub fn decode(p: &Value) -> Result<g_momonados::ququart_folded_work::PreparedMod
         }
         stages.push((number(&stage["multiplier_word"])?, references));
     }
-    Ok(PreparedModularWork { operations, stages })
+    let prepared = PreparedModularWork { source, digit_bits, operations, stages };
+    validate_recovery(p,&prepared)?;
+    Ok(prepared)
+}
+
+/// Compare every reconstructed operation, in order, with the emitter bound to
+/// the source, base, radix and controlled-power schedule. Pool syntax alone
+/// cannot establish recovery of the transformed work carried by each stage.
+fn validate_recovery(p: &Value, prepared: &g_momonados::ququart_folded_work::PreparedModularWork)
+    -> Result<(),String>
+{
+    let source = number(&p["source_word"])?;
+    let base = number(&p["base_word"])?;
+    let radix = g_momonados::ququart_factor::power_of_two_radix_word(
+        p["radix_word"].as_str().ok_or("missing work radix")?)?;
+    let digit_bits = radix.bits_le().len()-1;
+    let powers = p["prepared_operator"]["controlled_power_words"].as_array()
+        .ok_or("missing source-bound controlled powers")?.iter().map(number)
+        .collect::<Result<Vec<_>,_>>()?;
+    let schedule = g_momonados::ququart_factor::QuquartPowerSchedule::from_prepared(&source,&base,powers)?;
+    if number(&p["prepared_operator"]["phase_digits_word"])? != BigUint::from(schedule.powers().len()) {
+        return Err("prepared work height differs from its phase register".into());
+    }
+    prepared.verify_recovery(&source,&base,digit_bits,schedule.powers().len())
+
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn rsa_200_and_256_bit_prepared_work_recovers_every_stack_stage() {
+        for decimal in [
+            "1156514714917773145849996001252587703581994899993461612691909",
+            "101560191607051872909385412079844080615251494997013823952605603214371184345809",
+        ] {
+            let source = BigUint::parse_bytes(decimal.as_bytes(),10).unwrap();
+            assert!(source.bits() >= 200);
+            let base = BigUint::from(2u8);
+            let schedule = g_momonados::ququart_factor::QuquartPowerSchedule::prepare(&source,&base).unwrap();
+            let mut p = json!({"source_word":word(&source),"base_word":word(&base),
+                "radix_word":word(&BigUint::from(16u8)),
+                "prepared_operator":{"controlled_power_words":schedule.powers().iter().map(word).collect::<Vec<_>>(),
+                    "phase_digits_word":word(&BigUint::from(schedule.powers().len()))}});
+            p["prepared_work"] = compile(&p).unwrap();
+            let recovered = decode(&p).unwrap();
+            assert_eq!(recovered.stages.len(),source.bits() as usize+4);
+            let references: usize = recovered.stages.iter().map(|(_,ops)|ops.len()).sum();
+            println!("source_bits={} audited_stages={} operation_references={} unique_operations={}",
+                source.bits(),recovered.stages.len(),references,recovered.operations.len());
+            drop(recovered);
+            let last = p["prepared_work"]["stages"].as_array().unwrap().len()-1;
+            let references = p["prepared_work"]["stages"][last]["operation_words"].as_array_mut().unwrap();
+            assert_ne!(references[0],references[1]);
+            references.swap(0,1);
+            assert!(decode(&p).is_err(),"wrong operation order must not recover at the deepest stage");
+            p["prepared_work"]["stages"][last]["operation_words"].as_array_mut().unwrap().swap(0,1);
+            p["prepared_work"]["stages"].as_array_mut().unwrap().pop();
+            assert!(decode(&p).is_err(),"the deepest stage must not disappear from the stack");
+        }
+    }
 }

@@ -22,9 +22,48 @@ pub static VOX_QUQUART_COUNTERS: [AtomicU64; 8] = [
 ];
 
 pub struct PreparedModularWork {
+    pub source: BigUint,
+    pub digit_bits: usize,
     pub operations: Vec<NestedOperation>,
     pub stages: Vec<(BigUint,Vec<usize>)>,
 }
+impl PreparedModularWork {
+    /// Recover every source-bound operation at every phase-stack stage. This
+    /// checks the executable map, not just the shape of the serialized pool.
+    pub fn verify_recovery(&self, source: &BigUint, base: &BigUint, digit_bits: usize, digits: usize)
+        -> Result<(),String>
+    {
+        if self.source != *source || self.digit_bits != digit_bits || digit_bits == 0 {
+            return Err("prepared work source or radix differs from the resident register".into());
+        }
+        let schedule = crate::ququart_factor::QuquartPowerSchedule::prepare(source,base)?;
+        if self.stages.len() != digits || schedule.powers().len() != digits {
+            return Err("prepared work has incomplete stack height".into());
+        }
+        let arithmetic = ModularMultiply::new(source)?;
+        for (height,((multiplier,references),expected)) in self.stages.iter().zip(schedule.powers()).enumerate() {
+            if multiplier != expected {
+                return Err(alloc::format!("prepared work multiplier changed at stack height {}",height));
+            }
+            let mut position = 0usize;
+            for (lane,power) in [(0,multiplier.clone()),(1,multiplier*multiplier%source)] {
+                arithmetic.emit_ququart_nested_radix(&power,lane,digit_bits,|operation| {
+                    let observed = references.get(position).and_then(|&id|self.operations.get(id));
+                    if observed != Some(&operation) {
+                        return Err(alloc::format!("prepared work recovery changed operation {} at stack height {}",position,height));
+                    }
+                    position += 1;
+                    Ok(())
+                })?;
+            }
+            if position != references.len() {
+                return Err(alloc::format!("prepared work has an extra operation at stack height {}",height));
+            }
+        }
+        Ok(())
+    }
+}
+
 pub struct SicControlWitness {
     pub gram: [(BigInt,BigInt);16],
     pub masses: [BigUint;16],
@@ -108,14 +147,17 @@ impl QuquartFoldedWorkDevice {
     }
     fn require_clean_workspace(&self) -> Result<(),String> {
         let width = self.source.bits() as usize;
-        for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
-            for logical in width+2..=2*width+2 {
+        for (channel,&root) in self.roots.iter().enumerate() {
+            // Check the whole allocated stack: work accumulator, borrow flag,
+            // ripple carries, and control-lowering ancilla. The fifth fusion
+            // channel carries workspace too, even outside the computation.
+            for logical in width+2..self.arena.cells+2 {
                 let wire = self.work_wire(logical)-2;
-                if !self.arena.wire_is_zero(self.roots[channel],wire) {
+                if !self.arena.wire_is_zero(root,wire) {
                     let word = |value:usize| crate::godel_calculus::encode_cell_binary(
                         &crate::godel_calculus::Nat::from_bits_le(
                             (0..usize::BITS).map(|bit| value & (1usize << bit) != 0).collect()));
-                    return Err(alloc::format!("modular cleanup left dirty workspace: digit_word={} wire_word={}",word(digit),word(logical)));
+                    return Err(alloc::format!("modular cleanup left dirty workspace: channel_word={} wire_word={}",word(channel),word(logical)));
                 }
             }
         }
@@ -332,6 +374,9 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         if self.active || source != &self.source || digits == 0 {
             return Err("ququart source differs from prepared register".into());
         }
+        if let Some(work) = &self.prepared_work {
+            work.verify_recovery(source,_base,self.digit_bits,digits)?;
+        }
         VOX_QUQUART_COUNTERS[0].store(source.bits(), Ordering::Relaxed);
         VOX_QUQUART_COUNTERS[1].store(digits as u64, Ordering::Relaxed);
         VOX_QUQUART_COUNTERS[2].store(0, Ordering::Relaxed);
@@ -493,12 +538,79 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
 mod tests {
     use super::*;
     #[test]
-    fn nested_modular_operator_preserves_complex_coherence_and_clean_workspace() {
+    fn rsa_200_and_256_bit_prepared_work_is_checked_before_resident_entry() {
+        let sources: Vec<_> = [
+            "1156514714917773145849996001252587703581994899993461612691909",
+            "101560191607051872909385412079844080615251494997013823952605603214371184345809",
+        ].iter().map(|decimal|BigUint::parse_bytes(decimal.as_bytes(),10).unwrap()).collect();
+        for (index,source) in sources.iter().enumerate() {
+            assert!(source.bits() >= 200);
+            let format = FixedPointFormat::for_modulus(source).unwrap();
+            let base = BigUint::from(2u8);
+            let schedule = crate::ququart_factor::QuquartPowerSchedule::prepare(source,&base).unwrap();
+            for fault in 0..4 {
+                let mut prepared = PreparedModularWork { source:source.clone(),digit_bits:1,
+                    operations:Vec::new(),stages:schedule.powers().iter().map(|power|(power.clone(),Vec::new())).collect() };
+                match fault {
+                    0 => prepared.source = sources[1-index].clone(),
+                    1 => prepared.digit_bits = 4,
+                    2 => { prepared.stages.pop(); },
+                    _ => {} // Correct metadata still cannot admit an empty executable map.
+                }
+                let mut device = QuquartFoldedWorkDevice::new_interleaved(
+                    source.clone(),PairMatrix::identity(&format),1729).unwrap().with_prepared_work(prepared);
+                let random = device.random;
+                assert!(device.begin(source,&base,schedule.powers().len()).is_err());
+                assert!(!device.active);
+                assert_eq!(device.random,random,"invalid prepared work must not enter a measured state");
+            }
+        }
+    }
+
+    #[test]
+    fn rsa_200_and_256_bit_workspace_check_reaches_the_top_of_every_channel() {
         for source in [
-            "229513619370652772473594096727489823787",
-            "1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139",
+            "1156514714917773145849996001252587703581994899993461612691909",
+            "101560191607051872909385412079844080615251494997013823952605603214371184345809",
+        ] {
+            let n = BigUint::parse_bytes(source.as_bytes(),10).unwrap();
+            assert!(n.bits() >= 200);
+            let format = FixedPointFormat::for_modulus(&n).unwrap();
+            for interleaved in [false,true] {
+                let mut device = QuquartFoldedWorkDevice::new(n.clone(),PairMatrix::identity(&format),1729).unwrap();
+                device.interleaved_work = interleaved;
+                let clean = device.arena.basis(&device.work_address(&(&n-1u8)),format.scale());
+                for channel in 0..5 {
+                    device.roots[channel] = clean;
+                }
+                assert!(device.require_clean_workspace().is_ok());
+                // Exercise every workspace height, including the previously
+                // unchecked borrow flag and the top control-lowering ancilla.
+                for logical in n.bits() as usize+2..device.arena.cells+2 {
+                    let dirty_wire = device.work_wire(logical)-2;
+                    let dirty = device.arena.flip(clean,dirty_wire);
+                    for channel in 0..5 {
+                        device.roots[channel] = dirty;
+                        assert!(device.require_clean_workspace().is_err(),
+                            "upper workspace in channel {channel} was not checked");
+                        device.roots[channel] = clean;
+                    }
+                }
+                assert!(device.require_clean_workspace().is_ok());
+            }
+        }
+    }
+
+    #[test]
+    fn rsa_200_and_256_bit_nested_modular_operator_preserves_complex_coherence() {
+        for source in [
+            "1156514714917773145849996001252587703581994899993461612691909",
+            "101560191607051872909385412079844080615251494997013823952605603214371184345809",
         ] {
         let n = BigUint::parse_bytes(source.as_bytes(),10).unwrap();
+        assert!(n.bits() >= 200);
+        for interleaved in [false,true] {
+        for digit_bits in [1,4] {
         let source_word = crate::godel_calculus::encode_cell_binary(
             &crate::godel_calculus::Nat::from_bits_le((0..n.bits()).map(|bit| n.bit(bit)).collect()));
         let reading = crate::godel_calculus::decode(source_word.trim()).unwrap();
@@ -507,6 +619,8 @@ mod tests {
             |value,&bit| (value << 1usize) + u8::from(bit));
         let format = FixedPointFormat::for_modulus(&n).unwrap();
         let mut device = QuquartFoldedWorkDevice::new(n.clone(),PairMatrix::identity(&format),1729).unwrap();
+        device.interleaved_work = interleaved;
+        device.digit_bits = digit_bits;
         device.begin(&n,&BigUint::from(2u8),1).unwrap();
         device.arena = DecisionArena::new(device.arena.cells);
         let z = device.arena.zero();
@@ -514,7 +628,7 @@ mod tests {
         let residues = [&n-1u8,&n-2u8];
         for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
             for (index,residue) in residues.iter().enumerate() {
-                let basis = device.arena.basis(residue,format.scale());
+                let basis = device.arena.basis(&device.work_address(residue),format.scale());
                 let scalar = FixedComplex { re: BigInt::from(3+5*digit+index), im: BigInt::from(7+3*digit+2*index) };
                 let basis = device.arena.scale(basis,&scalar,&format);
                 device.roots[channel] = device.arena.sum(device.roots[channel],basis);
@@ -529,7 +643,7 @@ mod tests {
         for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
             for (index,residue) in residues.iter().enumerate() {
                 let image = residue*&power%&n;
-                assert_eq!(device.arena.amplitude(device.roots[channel],&image),
+                assert_eq!(device.arena.amplitude(device.roots[channel],&device.work_address(&image)),
                     (BigInt::from(3+5*digit+index),BigInt::from(7+3*digit+2*index)));
             }
             // Exact mass at the clean-work addresses exhausts the channel:
@@ -538,6 +652,9 @@ mod tests {
             power = power*multiplier%&n;
         }
         assert!(device.arena.mass(device.roots[LEAKAGE_CHANNEL]).is_zero());
+        println!("source_bits={} interleaved={} digit_bits={} control_channels={} complex_coherence_preserved=true workspace_clean=true",n.bits(),interleaved,digit_bits,COMPUTATIONAL_CHANNELS.len());
+        }
+        }
         }
     }
 
