@@ -76,6 +76,32 @@ not move past that boundary. The observations do not verify a factor pair.
 The next debugging target is growth of the shared decision branches inside
 modular work, rather than reducing source size or phase resolution.
 
+Vox native address sampling of the baked physical 200-bit run, with its
+complete 204-digit schedule and the native producer disabled, identifies
+`DecisionArena::reclaim_pending` in 37.54% of captured samples and `intern`
+in 20.13%. The bounded observation reached four measured phase digits.
+These are address-sample proportions, not hardware cycle measurements.
+The profiled executable and input are bound by `rsa_native_profile_manifest.json`;
+`summarize_native_profile.py` resolves complete sample rows against that ELF.
+
+Support masks now represent value zero without an allocation or atomic
+references. Nonempty masks retain immutable shared storage and copy on mutation.
+Vacant slots use this empty value without changing direct live-node metadata
+access. The qualifying checks also preserve distinct complex amplitudes across
+positive and negative controls and a correlated spectator coordinate, including
+invalid work residues. Applying the inverse modular translation returns the
+entire correlated object exactly in both work layouts. Reused slots retain all
+upper workspace constraints. Eight qualifying invariant checks pass with this
+representation; this does not establish a completed phase shot or factor pair.
+
+`rsa_support_mask_execution.json` records the physical runs after the final
+mask change, with the same sources, base, entropy seed, operators, work radix,
+and full schedules. Both observations reach three measured phase digits.
+A speed improvement is not established by these observations. The earlier
+optional whole-slot storage prototype is retained as historical measurement
+in `rsa_reclamation_after_option_storage.json`; the current source instead
+encodes only empty mask values without allocation.
+
 The end-to-end stack remains under debugging. Completion requires a verified
 factor pair for qualifying RSA-style inputs and closure of the actual maps
 throughout execution, including their composites across stack levels.

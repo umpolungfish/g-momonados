@@ -16,7 +16,8 @@ pub static VOX_MODULAR_COUNTERS: [AtomicU64; 4] = [
 ];
 
 #[cfg(feature = "hosted")]
-type OperationCache<K, V> = std::collections::HashMap<K, V>;
+type OperationCache<K, V> = std::collections::HashMap<K, V,
+    core::hash::BuildHasherDefault<CoordinateHasher>>;
 #[cfg(not(feature = "hosted"))]
 type OperationCache<K, V> = BTreeMap<K, V>;
 
@@ -48,13 +49,18 @@ type BranchCache = BTreeMap<(usize,usize),usize>;
 // Branch lookups use only their three coordinates. Amplitude leaves retain
 // their full exact integers in a separate index instead of inflating every
 // branch hash-table entry with the leaf enum's storage.
+#[cfg(feature = "hosted")]
+type LeafCache = std::collections::HashMap<Node,usize>;
+#[cfg(not(feature = "hosted"))]
+type LeafCache = BTreeMap<Node,usize>;
+
 struct NodeIndex {
     branches: Vec<BranchCache>,
-    leaves: OperationCache<Node,usize>,
+    leaves: LeafCache,
 }
 impl NodeIndex {
     fn new() -> Self {
-        Self { branches: Vec::new(), leaves: OperationCache::new() }
+        Self { branches: Vec::new(), leaves: LeafCache::default() }
     }
     fn get(&self, node: &Node) -> Option<&usize> {
         match node {
@@ -99,32 +105,153 @@ mod tests {
     use num_traits::One;
 
     #[test]
-    fn reclaimed_support_masks_share_empty_storage_without_mutating_live_masks() {
-        let mut arena = DecisionArena::new(400);
-        let z = arena.zero();
-        let address = (BigUint::one() << 399usize) + 3u8;
-        let root = arena.basis(&address, BigInt::from(7));
-        let mut roots = [root,z,z,z,z];
-        let created_capacity = arena.created.capacity();
-        arena.fold(&mut roots);
-        assert!(arena.created.is_empty());
-        assert!(arena.created.capacity() >= created_capacity);
-        assert_eq!(arena.amplitude(root,&address), (BigInt::from(7),BigInt::zero()));
-        assert!(arena.empty_fixed.zero.is_zero());
-        assert!(arena.empty_fixed.one.is_zero());
-        roots = [z;5];
-        arena.fold(&mut roots);
-        assert!(!arena.free.is_empty());
-        for &id in &arena.free {
-            assert!(arena.nodes[id].is_none());
-            assert!(arena.fixed[id].empty);
-            assert!(Arc::ptr_eq(&arena.fixed[id].zero,&arena.empty_fixed.zero));
-            assert!(Arc::ptr_eq(&arena.fixed[id].one,&arena.empty_fixed.one));
+    fn rsa_200_and_256_bit_modular_translation_preserves_coherent_amplitudes() {
+        for decimal in [
+            "1156514714917773145849996001252587703581994899993461612691909",
+            "101560191607051872909385412079844080615251494997013823952605603214371184345809",
+        ] {
+            let n = BigUint::parse_bytes(decimal.as_bytes(),10).unwrap();
+            assert!(n.bits() >= 200);
+            let width = n.bits() as usize + 1;
+            let mut arena = DecisionArena::new(width + 1);
+            let z = arena.zero();
+            let scale = BigInt::one() << (2 * n.bits() + 16) as usize;
+            let values = [BigUint::zero(),BigUint::one(),&n-BigUint::one(),n.clone(),&n+BigUint::one()];
+            let mut root = z;
+            let mut inputs = Vec::new();
+            for enabled in [false,true] {
+                for (index,value) in values.iter().enumerate() {
+                    let address = if enabled { value | (BigUint::one() << width) } else { value.clone() };
+                    let re = &scale * (index+1);
+                    let im = -&scale * (index+2);
+                    let mut basis = arena.intern(Node::Leaf(re.clone(),im.clone()));
+                    for wire in (0..arena.cells).rev() {
+                        basis = if address.bit(wire as u64) { arena.branch(wire,z,basis) }
+                            else { arena.branch(wire,basis,z) };
+                    }
+                    root = arena.sum(root,basis);
+                    inputs.push((enabled,value.clone(),re,im));
+                }
+            }
+            let mut roots = [root,z,z,z,z];
+            arena.fold(&mut roots);
+            let mass = arena.mass(root);
+            let register: Vec<_> = (0..width).collect();
+            for constant in [BigUint::from(2u8),BigUint::from(8u8),&n-BigUint::from(2u8)] {
+                roots[1] = arena.modular_add(root,&register,&constant,&n,&[(width,true)]);
+                arena.fold(&mut roots);
+                for (enabled,input,re,im) in &inputs {
+                    let output = if *enabled && input < &n { (input+&constant)%&n } else { input.clone() };
+                    let address = if *enabled { output | (BigUint::one()<<width) } else { output };
+                    assert_eq!(arena.amplitude(roots[1],&address),(re.clone(),im.clone()));
+                }
+                assert_eq!(arena.mass(roots[1]),mass,"unitary modular translation preserves mass");
+            }
         }
-        let root = arena.basis(&address, BigInt::from(11));
-        assert_eq!(arena.amplitude(root,&address), (BigInt::from(11),BigInt::zero()));
-        assert!(arena.empty_fixed.zero.is_zero());
-        assert!(arena.empty_fixed.one.is_zero());
+    }
+
+    #[test]
+    fn rsa_200_and_256_bit_modular_translation_closes_on_correlated_spectators() {
+        for decimal in [
+            "1156514714917773145849996001252587703581994899993461612691909",
+            "101560191607051872909385412079844080615251494997013823952605603214371184345809",
+        ] {
+            let n = BigUint::parse_bytes(decimal.as_bytes(),10).unwrap();
+            assert!(n.bits() >= 200);
+            let width = n.bits() as usize + 1;
+            for interleaved in [false,true] {
+                let cells = if interleaved { 2*width+1 } else { width+2 };
+                let register: Vec<usize> = (0..width).map(|bit|
+                    if interleaved { 2*bit+1 } else { bit+1 }).collect();
+                let spectator = cells-1;
+                let address = |value:&BigUint, enabled:bool, tag:bool| {
+                    let mut address = BigUint::from(u8::from(enabled));
+                    for (bit,&wire) in register.iter().enumerate() {
+                        address.set_bit(wire as u64,value.bit(bit as u64));
+                    }
+                    address.set_bit(spectator as u64,tag);
+                    address
+                };
+                let mut arena = DecisionArena::new(cells);
+                let z = arena.zero();
+                let values = [BigUint::zero(),BigUint::one(),&n-1u8,n.clone(),&n+1u8,
+                              (BigUint::one()<<width)-1u8];
+                let mut root = z;
+                let mut inputs = Vec::new();
+                for enabled in [false,true] {
+                    for tag in [false,true] {
+                        for (index,value) in values.iter().enumerate() {
+                            let re = BigInt::from(1+index+13*usize::from(enabled)+29*usize::from(tag));
+                            let im = -BigInt::from(7+3*index+17*usize::from(enabled)+31*usize::from(tag));
+                            let location = address(value,enabled,tag);
+                            let mut basis = arena.intern(Node::Leaf(re.clone(),im.clone()));
+                            for wire in (0..cells).rev() {
+                                basis = if location.bit(wire as u64) {arena.branch(wire,z,basis)}
+                                    else {arena.branch(wire,basis,z)};
+                            }
+                            root = arena.sum(root,basis);
+                            inputs.push((value.clone(),enabled,tag,re,im));
+                        }
+                    }
+                }
+                let mut roots = [root,z,z,z,z];
+                arena.fold(&mut roots);
+                let mass = arena.mass(root);
+                for value in [BigUint::from(2u8),&n/2u8,&n-2u8] {
+                    let controls = [(0,true),(spectator,false)];
+                    roots[1] = arena.modular_add(root,&register,&value,&n,&controls);
+                    for (input,enabled,tag,re,im) in &inputs {
+                        let output = if *enabled && !*tag && input < &n {(input+&value)%&n}
+                            else {input.clone()};
+                        assert_eq!(arena.amplitude(roots[1],&address(&output,*enabled,*tag)),
+                            (re.clone(),im.clone()));
+                    }
+                    assert_eq!(arena.mass(roots[1]),mass);
+                    roots[2] = arena.modular_add(roots[1],&register,&(&n-&value),&n,&controls);
+                    assert_eq!(roots[2],root,"transformed correlated object must return exactly");
+                    arena.fold(&mut roots);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn rsa_200_and_256_bit_reclamation_releases_masks_without_changing_live_support() {
+        for decimal in [
+            "1156514714917773145849996001252587703581994899993461612691909",
+            "101560191607051872909385412079844080615251494997013823952605603214371184345809",
+        ] {
+            let n = BigUint::parse_bytes(decimal.as_bytes(),10).unwrap();
+            assert!(n.bits() >= 200);
+            let mut arena = DecisionArena::new(3*n.bits() as usize+3);
+            let z = arena.zero();
+            let address = &n-1u8;
+            let root = arena.basis(&address, BigInt::from(7));
+            let mut roots = [root,z,z,z,z];
+            let created_capacity = arena.created.capacity();
+            arena.fold(&mut roots);
+            assert!(arena.created.is_empty());
+            assert!(arena.created.capacity() >= created_capacity);
+            assert_eq!(arena.amplitude(root,&address), (BigInt::from(7),BigInt::zero()));
+            assert!(arena.empty_fixed.zero.is_zero());
+            assert!(arena.empty_fixed.one.is_zero());
+            roots = [z;5];
+            arena.fold(&mut roots);
+            assert!(!arena.free.is_empty());
+            for &id in &arena.free {
+                assert!(arena.nodes[id].is_none());
+                assert!(arena.fixed[id].empty);
+                assert!(arena.fixed[id].zero.0.is_none(),"vacant node retained zero-mask references");
+                assert!(arena.fixed[id].one.0.is_none(),"vacant node retained one-mask references");
+            }
+            let root = arena.basis(&address, BigInt::from(11));
+            assert_eq!(arena.amplitude(root,&address), (BigInt::from(11),BigInt::zero()));
+            assert!(arena.empty_fixed.zero.is_zero());
+            assert!(arena.empty_fixed.one.is_zero());
+            for wire in n.bits() as usize..arena.cells {
+                assert!(arena.wire_is_zero(root,wire),"reused slot lost an upper workspace constraint");
+            }
+        }
     }
 
     #[test]
@@ -211,15 +338,38 @@ mod tests {
 }
 /// Bits fixed on every basis state with a nonzero complex amplitude.
 /// This is exact support information, independent of amplitude magnitude.
+// Empty support masks are value zero, with no allocation or atomic references.
+// Nonempty masks still share immutable storage and copy on mutation.
+#[derive(Clone)]
+struct SupportMask(Option<Arc<BigUint>>);
+impl core::ops::Deref for SupportMask {
+    type Target = BigUint;
+    fn deref(&self) -> &BigUint {
+        self.0.as_deref().unwrap_or(&BigUint::ZERO)
+    }
+}
+impl SupportMask {
+    fn intersection(&self, other: &Self) -> Self {
+        let (Some(left),Some(right)) = (&self.0,&other.0) else { return Self(None); };
+        if Arc::ptr_eq(left,right) { return self.clone(); }
+        let value = &**left & &**right;
+        if value.is_zero() { Self(None) } else { Self(Some(Arc::new(value))) }
+    }
+    fn set_bit(&mut self, wire: u64) {
+        let storage = self.0.get_or_insert_with(|| Arc::new(BigUint::zero()));
+        Arc::make_mut(storage).set_bit(wire,true);
+    }
+}
+
 #[derive(Clone)]
 struct FixedBits {
     empty: bool,
-    zero: Arc<BigUint>,
-    one: Arc<BigUint>,
+    zero: SupportMask,
+    one: SupportMask,
 }
 impl FixedBits {
     fn leaf(empty: bool) -> Self {
-        Self { empty, zero: Arc::new(BigUint::zero()), one: Arc::new(BigUint::zero()) }
+        Self { empty, zero: SupportMask(None), one: SupportMask(None) }
     }
 }
 pub struct DecisionArena {
@@ -277,18 +427,16 @@ impl DecisionArena {
                     },
                     (false, false) => FixedBits {
                         empty: false,
-                        zero: if Arc::ptr_eq(&low.zero, &high.zero) { low.zero.clone() }
-                              else { Arc::new(&*low.zero & &*high.zero) },
-                        one: if Arc::ptr_eq(&low.one, &high.one) { low.one.clone() }
-                             else { Arc::new(&*low.one & &*high.one) },
+                        zero: low.zero.intersection(&high.zero),
+                        one: low.one.intersection(&high.one),
                     },
                 };
                 if !fixed.empty {
                     if high.empty {
-                        Arc::make_mut(&mut fixed.zero).set_bit(*wire as u64, true);
+                        fixed.zero.set_bit(*wire as u64);
                     }
                     if low.empty {
-                        Arc::make_mut(&mut fixed.one).set_bit(*wire as u64, true);
+                        fixed.one.set_bit(*wire as u64);
                     }
                 }
                 fixed
@@ -332,6 +480,7 @@ impl DecisionArena {
                 continue;
             };
             self.unique.remove(&node);
+            // Empty support carries no reference-counted mask storage.
             self.fixed[id] = self.empty_fixed.clone();
             self.free.push(id);
             if let Node::Branch { low, high, .. } = node {
@@ -407,7 +556,7 @@ impl DecisionArena {
             memo.insert(id, r);
             r
         }
-        visit(self, id, scalar, format, &mut OperationCache::new())
+        visit(self, id, scalar, format, &mut OperationCache::default())
     }
     pub fn sum(&mut self, a: usize, b: usize) -> usize {
         if let Node::Leaf(re, im) = self.node(a) {
@@ -453,7 +602,7 @@ impl DecisionArena {
             memo.insert((a, b), r);
             r
         }
-        visit(self, a, b, &mut OperationCache::new())
+        visit(self, a, b, &mut OperationCache::default())
     }
     pub fn flip(&mut self, id: usize, target: usize) -> usize {
         fn visit(
@@ -477,7 +626,7 @@ impl DecisionArena {
             memo.insert(id, r);
             r
         }
-        visit(self, id, target, &mut OperationCache::new())
+        visit(self, id, target, &mut OperationCache::default())
     }
     /// Apply a controlled work-bit permutation directly to shared branches.
     /// Constant subtrees remain unchanged, including every zero subtree.
@@ -531,7 +680,7 @@ impl DecisionArena {
             memo.insert((id, at), r);
             r
         }
-        visit(self, root, target, &controls, 0, &mut OperationCache::new())
+        visit(self, root, target, &controls, 0, &mut OperationCache::default())
     }
     pub fn conditional(&mut self, a: usize, b: usize, controls: &[usize]) -> usize {
         fn visit(
@@ -573,7 +722,7 @@ impl DecisionArena {
             memo.insert((a, b, at), r);
             r
         }
-        visit(self, a, b, controls, 0, &mut OperationCache::new())
+        visit(self, a, b, controls, 0, &mut OperationCache::default())
     }
 
     pub fn controls_possible(&self, root: usize, controls: &[(usize, bool)]) -> bool {
@@ -614,7 +763,7 @@ impl DecisionArena {
             memo.insert((left,right,depth),value.clone());
             value
         }
-        let mut memo = OperationCache::new();
+        let mut memo = OperationCache::default();
         core::array::from_fn(|index| visit(self,roots[index/4],roots[index%4],0,&mut memo))
     }
 
@@ -657,7 +806,7 @@ impl DecisionArena {
             memo.insert((a,b,at),result);
             result
         }
-        visit(self,a,b,controls,0,&mut OperationCache::new())
+        visit(self,a,b,controls,0,&mut OperationCache::default())
     }
 
     /// Reversible constant addition as a shared dyadic split/fuse transducer.
@@ -692,7 +841,7 @@ impl DecisionArena {
         // retain their original amplitudes and never enter the transducer.
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
-        let changed = visit(self,enabled,register,value,0,false,&mut OperationCache::new());
+        let changed = visit(self,enabled,register,value,0,false,&mut OperationCache::default());
         self.conditional_literals(root,changed,controls)
     }
 
@@ -733,7 +882,7 @@ impl DecisionArena {
             memo.insert((id,at,less),result);
             result
         }
-        visit(self,root,register,value,0,false,zero,&mut OperationCache::new())
+        visit(self,root,register,value,0,false,zero,&mut OperationCache::default())
     }
 
     // Compare the remaining support interval with the remaining threshold.
@@ -818,7 +967,7 @@ impl DecisionArena {
         // Nested digit arms share cofactor answers. Nodes are immutable and
         // none are reclaimed until this arithmetic operation has returned.
         let changed = visit(self,enabled,register,digit,0,&BigUint::zero(),value,modulus,
-            &mut OperationCache::new());
+            &mut OperationCache::default());
         self.conditional_literals(root,changed,controls)
     }
 
@@ -880,7 +1029,7 @@ impl DecisionArena {
         }
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
-        let changed = visit(self,enabled,register,value,0,false,flag,&mut OperationCache::new());
+        let changed = visit(self,enabled,register,value,0,false,flag,&mut OperationCache::default());
         self.conditional_literals(root,changed,controls)
     }
     pub fn mass(&self, root: usize) -> BigUint {
@@ -905,7 +1054,7 @@ impl DecisionArena {
             memo.insert((id, depth), r.clone());
             r
         }
-        visit(self, root, 0, &mut OperationCache::new())
+        visit(self, root, 0, &mut OperationCache::default())
     }
     pub fn normalize(&mut self, root: usize, norm: &BigInt, scale: &BigInt) -> usize {
         fn visit(
@@ -929,7 +1078,7 @@ impl DecisionArena {
             memo.insert(id, r);
             r
         }
-        visit(self, root, norm, scale, &mut OperationCache::new())
+        visit(self, root, norm, scale, &mut OperationCache::default())
     }
     /// Pin the new roots, release only unreachable branches, and reuse slots.
     /// No complete diagram copy or node-count/heap cutoff is involved.
