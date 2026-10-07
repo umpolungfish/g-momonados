@@ -1,5 +1,5 @@
-I remove support mask allocation churn from the resident ququart arena
+I compact branch interning from the Vox instruction trace
 
-I share immutable empty masks and preserve copy-on-write live support.
-I restore codec-generated arithmetic test sources and check exact complex coordinates.
-I rebuild the named source membrane and record the remaining interning bottleneck.
+I separate branch coordinates from exact amplitude leaf keys.
+I check complex-coordinate and shared-work controls and rebuild the source membrane.
+I record Vox live PCs, disassembly and the remaining lookup bottleneck.
