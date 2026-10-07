@@ -99,6 +99,27 @@ The rebuilt membrane is retained in
 The new Vox profile still concentrates in node interning, equality lookup and
 reclamation. Those operations remain the next measured bottleneck.
 
+The per-wire branch index membrane is retained in
+`measurements/ququart/source229513_wire_index`. Vox disassembly resolves
+the source-digit modular translation at address `0x94b14` and reclamation
+at `0x9ae92` in that ELF. Its native counter trace records three completed
+phase digits out of 132 at 24.595771 seconds, with 114,068 retained nodes
+and 4,096 nested operations. The separate unprofiled execution reaches its
+30-second bound before emitting a completed readout. The retained trace is
+`Vox/measurements/ququart_source229513_wire_index_profile.ququart.tsv`.
+The next debugging target is the growth of the shared modular-work diagram
+during the following phase digit.
+
+The modular-stage trace for `source229513_modular_trace` separates completed
+addition boundaries (stage 0), source interval partitioning (stage 1),
+low-interval translation (stage 2), high-interval translation (stage 3),
+interval fusion (stage 4) and invalid-arm fusion (stage 5). In the bounded
+Vox execution, 1,978 samples land between additions, 161 in low translation,
+163 in high translation and two in partitioning. No sampled stop lands in
+either fusion stage. Temporary entry diagrams exceed 225,000 nodes while
+the retained phase diagram remains near 114,000 nodes. The next target is
+temporary-node creation and reclamation around interval translations.
+
 Vox disassembly maps the shared-mask build's hottest equality sample to
 `Node::equivalent` at `0x99e15`, where the hash-table key's enum tag is compared.
 The branch index stores `(wire,low,high)` separately from exact amplitude leaves.

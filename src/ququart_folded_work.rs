@@ -11,6 +11,15 @@ use crate::reversible_modular::ElementaryGate;
 use alloc::{string::String, vec::Vec};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
+use core::sync::atomic::{AtomicU64, Ordering};
+
+// Read by Vox while the native process is stopped. These counters observe the
+// resident execution; they neither supply work values nor emit a readout.
+#[no_mangle]
+pub static VOX_QUQUART_COUNTERS: [AtomicU64; 8] = [
+    AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
+    AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
+];
 
 pub struct PreparedModularWork {
     pub operations: Vec<NestedOperation>,
@@ -129,6 +138,8 @@ impl QuquartFoldedWorkDevice {
     fn fold(&mut self) {
         self.arena.fold(&mut self.roots);
         self.peak_nodes = self.peak_nodes.max(self.arena.retained_nodes());
+        VOX_QUQUART_COUNTERS[4].store(self.arena.retained_nodes() as u64, Ordering::Relaxed);
+        VOX_QUQUART_COUNTERS[5].store(self.peak_nodes as u64, Ordering::Relaxed);
     }
     #[cfg(test)]
     fn apply_gate(&mut self, gate: ElementaryGate) -> Result<(), String> {
@@ -170,6 +181,7 @@ impl QuquartFoldedWorkDevice {
     }
 
     fn apply_nested(&mut self, operation: NestedOperation) -> Result<(), String> {
+        VOX_QUQUART_COUNTERS[3].fetch_add(1, Ordering::Relaxed);
         let map_register = |r: Vec<usize>| r.into_iter().map(|wire| self.work_wire(wire)).collect();
         let map_controls = |c: Vec<(usize,bool)>| c.into_iter()
             .map(|(wire,value)| (self.work_wire(wire),value)).collect();
@@ -316,6 +328,11 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         if self.active || source != &self.source || digits == 0 {
             return Err("ququart source differs from prepared register".into());
         }
+        VOX_QUQUART_COUNTERS[0].store(source.bits(), Ordering::Relaxed);
+        VOX_QUQUART_COUNTERS[1].store(digits as u64, Ordering::Relaxed);
+        VOX_QUQUART_COUNTERS[2].store(0, Ordering::Relaxed);
+        VOX_QUQUART_COUNTERS[3].store(0, Ordering::Relaxed);
+        VOX_QUQUART_COUNTERS[6].fetch_add(1, Ordering::Relaxed);
         let register = crate::anyon_fusion_kernel::PreparedRegister::uniform(source, |bytes| {
             Self::entropy(&mut self.random, bytes)
         })?;
@@ -435,6 +452,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         self.sic_witnesses.push(SicControlWitness { gram, masses:sic_masses, digit });
         self.measured = Some(digit);
         self.count += 1;
+        VOX_QUQUART_COUNTERS[2].store(self.count as u64, Ordering::Relaxed);
         self.fold();
         Ok(digit)
     }
@@ -454,6 +472,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         if !self.active || self.measured.is_some() || self.count != self.expected {
             return Err("ququart phase measurements are incomplete".into());
         }
+        VOX_QUQUART_COUNTERS[7].fetch_add(1, Ordering::Relaxed);
         self.abort();
         Ok(())
     }

@@ -1,5 +1,5 @@
-I compact branch interning from the Vox instruction trace
+I trace modular-work expansion through native Vox counters
 
-I separate branch coordinates from exact amplitude leaf keys.
-I check complex-coordinate and shared-work controls and rebuild the source membrane.
-I record Vox live PCs, disassembly and the remaining lookup bottleneck.
+I index branch coordinates per wire and expose phase and modular-stage counters.
+I preserve exact complex arithmetic and check decision and shared-work controls.
+I record the source-bound translation and reclamation frontier in my Vox notes.

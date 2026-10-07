@@ -6,6 +6,14 @@ use alloc::{sync::Arc, vec::Vec};
 use alloc::collections::BTreeMap;
 use num_bigint::{BigInt, BigUint};
 use num_traits::Zero;
+use core::sync::atomic::{AtomicU64, Ordering};
+
+// Native Vox reads these while the process is stopped. They do not enter
+// arithmetic, evidence, or the terminal readout.
+#[no_mangle]
+pub static VOX_MODULAR_COUNTERS: [AtomicU64; 4] = [
+    AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
+];
 
 #[cfg(feature = "hosted")]
 type OperationCache<K, V> = std::collections::HashMap<K, V>;
@@ -16,28 +24,35 @@ type OperationCache<K, V> = BTreeMap<K, V>;
 // their full exact integers in a separate index instead of inflating every
 // branch hash-table entry with the leaf enum's storage.
 struct NodeIndex {
-    branches: OperationCache<(usize,usize,usize),usize>,
+    branches: Vec<OperationCache<(usize,usize),usize>>,
     leaves: OperationCache<Node,usize>,
 }
 impl NodeIndex {
     fn new() -> Self {
-        Self { branches: OperationCache::new(), leaves: OperationCache::new() }
+        Self { branches: Vec::new(), leaves: OperationCache::new() }
     }
     fn get(&self, node: &Node) -> Option<&usize> {
         match node {
-            Node::Branch { wire, low, high } => self.branches.get(&(*wire,*low,*high)),
+            Node::Branch { wire, low, high } => self.branches.get(*wire)?.get(&(*low,*high)),
             Node::Leaf(..) => self.leaves.get(node),
         }
     }
     fn insert(&mut self, node: Node, id: usize) {
         match node {
-            Node::Branch { wire, low, high } => { self.branches.insert((wire,low,high),id); }
+            Node::Branch { wire, low, high } => {
+                if self.branches.len() <= wire {
+                    self.branches.resize_with(wire+1, OperationCache::new);
+                }
+                self.branches[wire].insert((low,high),id);
+            }
             Node::Leaf(..) => { self.leaves.insert(node,id); }
         }
     }
     fn remove(&mut self, node: &Node) {
         match node {
-            Node::Branch { wire, low, high } => { self.branches.remove(&(*wire,*low,*high)); }
+            Node::Branch { wire, low, high } => {
+                if let Some(index) = self.branches.get_mut(*wire) { index.remove(&(*low,*high)); }
+            }
             Node::Leaf(..) => { self.leaves.remove(node); }
         }
     }
@@ -784,17 +799,27 @@ impl DecisionArena {
         if !self.controls_possible(root,controls) { return root; }
         let value = value % modulus;
         if value.is_zero() { return root; }
+        VOX_MODULAR_COUNTERS[0].fetch_add(1,Ordering::Relaxed);
+        VOX_MODULAR_COUNTERS[1].store(1,Ordering::Relaxed);
+        VOX_MODULAR_COUNTERS[2].store(self.retained_nodes() as u64,Ordering::Relaxed);
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
         let (valid,invalid) = self.partition_less(enabled,register,modulus);
         let threshold = modulus - &value;
         let (low,high) = self.partition_less(valid,register,&threshold);
+        VOX_MODULAR_COUNTERS[1].store(2,Ordering::Relaxed);
         let low = self.add_constant(low,register,&value,&[]);
+        VOX_MODULAR_COUNTERS[1].store(3,Ordering::Relaxed);
         let radix = BigUint::from(1u8) << register.len();
         let high = self.add_constant(high,register,&(radix-threshold),&[]);
+        VOX_MODULAR_COUNTERS[1].store(4,Ordering::Relaxed);
         let changed = self.sum(low,high);
+        VOX_MODULAR_COUNTERS[1].store(5,Ordering::Relaxed);
         let changed = self.sum(changed,invalid);
-        self.conditional_literals(root,changed,controls)
+        let result = self.conditional_literals(root,changed,controls);
+        VOX_MODULAR_COUNTERS[3].store(self.retained_nodes() as u64,Ordering::Relaxed);
+        VOX_MODULAR_COUNTERS[1].store(0,Ordering::Relaxed);
+        result
     }
 
     /// XOR a high flag with the exact less-than predicate on a register.
