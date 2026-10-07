@@ -80,7 +80,10 @@ mod tests {
         let address = (BigUint::one() << 399usize) + 3u8;
         let root = arena.basis(&address, BigInt::from(7));
         let mut roots = [root,z,z,z,z];
+        let created_capacity = arena.created.capacity();
         arena.fold(&mut roots);
+        assert!(arena.created.is_empty());
+        assert!(arena.created.capacity() >= created_capacity);
         assert_eq!(arena.amplitude(root,&address), (BigInt::from(7),BigInt::zero()));
         assert!(arena.empty_fixed.zero.is_zero());
         assert!(arena.empty_fixed.one.is_zero());
@@ -293,7 +296,9 @@ impl DecisionArena {
         }
     }
     fn reclaim(&mut self, id: usize) {
-        let mut pending = alloc::vec![id];
+        self.reclaim_pending(alloc::vec![id]);
+    }
+    fn reclaim_pending(&mut self, mut pending: Vec<usize>) -> Vec<usize> {
         while let Some(id) = pending.pop() {
             if self.references[id] != 0 {
                 continue;
@@ -313,6 +318,7 @@ impl DecisionArena {
                 }
             }
         }
+        pending
     }
     pub fn zero(&mut self) -> usize {
         self.intern(Node::Leaf(BigInt::zero(), BigInt::zero()))
@@ -912,11 +918,10 @@ impl DecisionArena {
             }
         }
         let created = core::mem::take(&mut self.created);
-        for id in created {
-            if self.references[id] == 0 {
-                self.reclaim(id);
-            }
-        }
+        // Drain the operation's existing allocation list as one work stack.
+        // Reclaimed children and already released slots are checked in the
+        // same pass, without allocating a fresh stack for each temporary root.
+        self.created = self.reclaim_pending(created);
     }
     pub fn retained_nodes(&self) -> usize {
         self.nodes.len() - self.free.len()
