@@ -78,6 +78,12 @@ disassembler, and the word does not read it.
 
 ## Source-bound ququart extraction debugging
 
+The timed-out ququart debug binaries have been removed. Their source words,
+preparations and measurement records remain. The current retained native
+membrane is `Vox/measurements/native_factor_current/membrane` under the
+shared project root; it carries the 208-bit source and takes no runtime input.
+References to ququart case binaries below describe the recorded experiments.
+
 Only the current candidate and its immediate comparison membrane are kept.
 Superseded shared-mask, branch-index, per-wire and modular-trace binaries and
 generated disassemblies have been removed. Preparation manifests, source words,
