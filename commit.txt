@@ -1,4 +1,6 @@
-I clean superseded ququart membranes and retain measurement records
+I measure target-wire loss in the Fibonacci-Shor constructor
 
-I remove the timed-out debug binaries and generated disassemblies.
-I preserve source preparations and measurements and point to the retained native membrane.
+I compile the canonical constructor into a reproducible routing probe,
+compare target and control perturbations, and compare distinct modular
+operands through the full emitted braid. I retain the native atlas,
+function SVG, returned words, source hashes, and constructor controls.
