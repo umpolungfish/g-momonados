@@ -78,6 +78,12 @@ disassembler, and the word does not read it.
 
 ## Source-bound ququart extraction debugging
 
+Only the current candidate and its immediate comparison membrane are kept.
+Superseded shared-mask, branch-index, per-wire and modular-trace binaries and
+generated disassemblies have been removed. Preparation manifests, source words,
+validation records and native sample traces remain in their case directories.
+Historical ELF addresses below refer to the recorded builds, not current files.
+
 The baked source `229513619370652772473594096727489823787` passes native
 composite screening and preparation validation. Vox native instruction samples
 and the baked ELF's IMASM symbol map locate the stalled extraction in decision
@@ -128,6 +134,13 @@ still reaches the standalone 30-second bound without a completed factor
 readout; its verifier reports `missing completed factor readout`. Vox locates
 the hottest sampled instruction at `0x9b11d` within shared-stack reclamation
 in this ELF. The phase trace remains at three completed digits near 25 seconds.
+
+The current `source229513_coordinate_hash` candidate uses a mixed internal
+child-coordinate hash with exact pair equality; amplitude-leaf indexing is
+unchanged. All decision and shared-work controls pass. Its bounded 30-second
+execution emits no completed readout, and the verifier reports the missing
+readout. This execution overlapped the control-test build and is not a clean
+timing comparison.
 
 Vox disassembly maps the shared-mask build's hottest equality sample to
 `Node::equivalent` at `0x99e15`, where the hash-table key's enum tag is compared.

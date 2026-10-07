@@ -1,5 +1,5 @@
-I batch temporary branch reclamation from the Vox trace
+I specialize branch-coordinate hashing and clean superseded membranes
 
-I drain and reuse the operation's allocation stack for temporary branch cleanup.
-I verify exact coordinates, shared-work coherence and retained stack capacity.
-I rebuild the source membrane and retain its Vox trace and bounded execution.
+I retain exact child equality with a mixed internal coordinate hash.
+I verify decision and shared-work controls and execute the rebuilt source.
+I remove superseded binaries and generated disassemblies while preserving measurements.
