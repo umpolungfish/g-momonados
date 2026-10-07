@@ -46,58 +46,11 @@ fn ratio(n: &BigInt, d: &BigInt) -> f64 {
     (n >> shift).to_f64().unwrap_or(0.0) / (d >> shift).to_f64().unwrap_or(1.0)
 }
 
-pub fn contract(prepared: &serde_json::Value) -> Result<(BigUint, PairMatrix, Metrics), String> {
-    let raw = prepared["source_word"].as_str().ok_or("missing source word")?;
-    let n = numeral(raw)?;
-    if let Some(operator) = prepared.get("prepared_operator") {
-        let format = g_momonados::phase_unbraid::FixedPointFormat::for_modulus(&n)?;
-        if numeral(operator["w_bits_word"].as_str().ok_or("missing precision word")?)?.to_u64() != Some(format.w_bits) {
-            return Err("prepared operator precision differs from its source".into());
-        }
-        let entries = operator["matrix"].as_array().ok_or("missing prepared operator entries")?;
-        let mut values = Vec::new();
-        for entry in entries {
-            let coordinate = |field: &str| -> Result<BigInt, String> {
-                signed_numeral(entry[field].as_str().ok_or_else(|| format!("missing operator {field}"))?)
-            };
-            values.push(g_momonados::phase_unbraid::FixedComplex {
-                re: coordinate("re_word")?, im: coordinate("im_word")?,
-            });
-        }
-        let matrix = PairMatrix(values.try_into().map_err(|_| "prepared operator must contain all five fusion channels")?);
-        let integer = |field: &str| -> Result<BigUint, String> {
-            numeral(operator[field].as_str().ok_or_else(|| format!("missing prepared {field}"))?)
-        };
-        let metric = |field: &str| -> Result<f64, String> {
-            let value = f64::from_bits(integer(field)?.to_u64().ok_or("invalid diagnostic word")?);
-            if value.is_finite() && value >= 0.0 { Ok(value) }
-            else { Err(format!("invalid prepared {field}")) }
-        };
-        let metrics = Metrics { computational: metric("computational_word")?, leakage: metric("leakage_word")?,
-            closure: metric("closure_word")?, exchanges: integer("exchanges_word")?.to_usize()
-                .ok_or("invalid prepared exchange count")? };
-        return Ok((n, matrix, metrics));
-    }
-    let word: Vec<i32> = if let Some(exchanges) = prepared["exchange_words"].as_array() {
-        exchanges.iter().map(|value| {
-            let generator = signed_numeral(value.as_str().ok_or("exchange must be an IMASM word")?)?
-                .to_i32().ok_or("invalid exchange word")?;
-            if !(1..=5).contains(&generator.unsigned_abs()) {
-                return Err("exchange word is outside the six-strand braid".into());
-            }
-            Ok(generator)
-        }).collect::<Result<_, String>>()?
-    } else {
-        return Err("Fourier preparation requires IMASM exchange words".into());
-    };
-    if word.is_empty() { return Err("Fourier preparation has no exchange words".into()); }
-    let accuracy = numeral(prepared["accuracy_word"].as_str().ok_or("missing accuracy word")?)?
-        .to_u64().ok_or("invalid accuracy word")?;
-    let exponent = i32::try_from(accuracy).map_err(|_| "accuracy overflow")?;
-    let pair = FibonacciPair::new(&n)?;
-    let physical = pair.evaluate(&word)?;
-    let observed = pair.in_pair_channels(&physical);
-    let scale = pair.format().scale();
+// Recompute the action of the exact coordinates entering resident execution.
+// Saved diagnostics describe preparation; they cannot authorize a changed map.
+fn matrix_metrics(observed: &PairMatrix, format: &g_momonados::phase_unbraid::FixedPointFormat,
+                  exchanges: usize) -> Result<Metrics, String> {
+    let scale = format.scale();
     let mut overlap = (0.0f64, 0.0f64);
     for (k, &row) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
         for (l, &col) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
@@ -123,15 +76,92 @@ pub fn contract(prepared: &serde_json::Value) -> Result<(BigUint, PairMatrix, Me
         }
     }
     let leakage = ratio(&BigInt::from(observed.leakage()), &scale);
+    let adjoint = observed.adjoint();
+    let closure = identity_residual(&adjoint.multiply(observed, format), format)
+        .max(identity_residual(&observed.multiply(&adjoint, format), format));
+    Ok(Metrics { computational, leakage, closure, exchanges })
+}
+
+fn identity_residual(returned: &PairMatrix, format: &g_momonados::phase_unbraid::FixedPointFormat) -> f64 {
+    let identity = PairMatrix::identity(format);
+    let scale = format.scale();
+    returned.0.iter().zip(identity.0.iter()).map(|(a, b)| {
+        ratio(&(&a.re - &b.re).abs().max((&a.im - &b.im).abs()), &scale)
+    }).fold(0.0f64, f64::max)
+}
+
+fn check_accuracy(metrics: &Metrics, exponent: i32) -> Result<(), String> {
+    if !metrics.computational.is_finite() || !metrics.leakage.is_finite() || !metrics.closure.is_finite()
+        || metrics.computational.max(metrics.leakage).max(metrics.closure) > 2.0f64.powi(-exponent) {
+        return Err(format!("Fourier membrane residual: computational={:.8e} leakage={:.8e} return={:.8e}",
+            metrics.computational, metrics.leakage, metrics.closure));
+    }
+    Ok(())
+}
+
+pub fn contract(prepared: &serde_json::Value) -> Result<(BigUint, PairMatrix, Metrics), String> {
+    let raw = prepared["source_word"].as_str().ok_or("missing source word")?;
+    let n = numeral(raw)?;
+    let accuracy = numeral(prepared["accuracy_word"].as_str().ok_or("missing accuracy word")?)?
+        .to_u64().ok_or("invalid accuracy word")?;
+    let exponent = i32::try_from(accuracy).map_err(|_| "accuracy overflow")?;
+    if let Some(operator) = prepared.get("prepared_operator") {
+        let format = g_momonados::phase_unbraid::FixedPointFormat::for_modulus(&n)?;
+        if numeral(operator["w_bits_word"].as_str().ok_or("missing precision word")?)?.to_u64() != Some(format.w_bits) {
+            return Err("prepared operator precision differs from its source".into());
+        }
+        let entries = operator["matrix"].as_array().ok_or("missing prepared operator entries")?;
+        let mut values = Vec::new();
+        for entry in entries {
+            let coordinate = |field: &str| -> Result<BigInt, String> {
+                signed_numeral(entry[field].as_str().ok_or_else(|| format!("missing operator {field}"))?)
+            };
+            values.push(g_momonados::phase_unbraid::FixedComplex {
+                re: coordinate("re_word")?, im: coordinate("im_word")?,
+            });
+        }
+        let matrix = PairMatrix(values.try_into().map_err(|_| "prepared operator must contain all five fusion channels")?);
+        let integer = |field: &str| -> Result<BigUint, String> {
+            numeral(operator[field].as_str().ok_or_else(|| format!("missing prepared {field}"))?)
+        };
+        let metric = |field: &str| -> Result<f64, String> {
+            let value = f64::from_bits(integer(field)?.to_u64().ok_or("invalid diagnostic word")?);
+            if value.is_finite() && value >= 0.0 { Ok(value) }
+            else { Err(format!("invalid prepared {field}")) }
+        };
+        // Retain the physical inverse-word diagnostic, and additionally check
+        // the loaded matrix in both directions at this representation boundary.
+        metric("computational_word")?;
+        metric("leakage_word")?;
+        let physical_closure = metric("closure_word")?;
+        let exchanges = integer("exchanges_word")?.to_usize()
+            .ok_or("invalid prepared exchange count")?;
+        if exchanges == 0 { return Err("prepared Fourier operator has no exchanges".into()); }
+        let mut metrics = matrix_metrics(&matrix, &format, exchanges)?;
+        metrics.closure = metrics.closure.max(physical_closure);
+        check_accuracy(&metrics, exponent)?;
+        return Ok((n, matrix, metrics));
+    }
+    let word: Vec<i32> = if let Some(exchanges) = prepared["exchange_words"].as_array() {
+        exchanges.iter().map(|value| {
+            let generator = signed_numeral(value.as_str().ok_or("exchange must be an IMASM word")?)?
+                .to_i32().ok_or("invalid exchange word")?;
+            if !(1..=5).contains(&generator.unsigned_abs()) {
+                return Err("exchange word is outside the six-strand braid".into());
+            }
+            Ok(generator)
+        }).collect::<Result<_, String>>()?
+    } else {
+        return Err("Fourier preparation requires IMASM exchange words".into());
+    };
+    if word.is_empty() { return Err("Fourier preparation has no exchange words".into()); }
+    let pair = FibonacciPair::new(&n)?;
+    let physical = pair.evaluate(&word)?;
+    let observed = pair.in_pair_channels(&physical);
     let inverse: Vec<_> = word.iter().rev().map(|g| -*g).collect();
     let returned = pair.evaluate(&inverse)?.multiply(&physical, pair.format());
-    let identity = PairMatrix::identity(pair.format());
-    let closure = returned.0.iter().zip(identity.0.iter()).map(|(a,b)| {
-        ratio(&(&a.re - &b.re).abs().max((&a.im - &b.im).abs()), &scale)
-    }).fold(0.0f64, f64::max);
-    if !computational.is_finite() || !leakage.is_finite() || !closure.is_finite()
-        || computational.max(leakage).max(closure) > 2.0f64.powi(-exponent) {
-        return Err(format!("Fourier membrane residual: computational={computational:.8e} leakage={leakage:.8e} return={closure:.8e}"));
-    }
-    Ok((n, observed, Metrics { computational, leakage, closure, exchanges: word.len() }))
+    let mut metrics = matrix_metrics(&observed, pair.format(), word.len())?;
+    metrics.closure = metrics.closure.max(identity_residual(&returned, pair.format()));
+    check_accuracy(&metrics, exponent)?;
+    Ok((n, observed, metrics))
 }
