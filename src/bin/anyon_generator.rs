@@ -1,11 +1,10 @@
 //! anyon_generator.rs — Unix-socket anyon generator speaking the
 //! g-momonados/fibonacci-anyons-v2 protocol.
 //!
-//! Each shot is a compile: the client streams `exchange` messages that are
-//! the braid word, one generator per call. The server accumulates them and
-//! writes the compiled braid to disk at `finish`. That file is the compiled
-//! binary. The fusion readout is emitted only so the client's protocol can
-//! complete; it does not affect the artifact.
+//! The client streams `exchange` messages that form the compiled braid.
+//! The server saves that braid and its source metadata. Fusion measurement
+//! requires an execution backend; this compiler reports its absence instead
+//! of supplying synthetic phase bits.
 //!
 //! Output path: <out-dir>/shot-<shot_id>.braid
 //!   Each line is one exchange generator, in the order received.
@@ -14,22 +13,10 @@
 //!
 //! Usage: anyon_generator <unix-socket-path> <out-dir>
 
-use num_bigint::BigUint;
-use num_traits::{One, Zero};
 use std::fs::{create_dir_all, File};
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::PathBuf;
-
-fn bits_le_to_biguint(bits: &str) -> BigUint {
-    let mut v = BigUint::zero();
-    for (i, c) in bits.chars().enumerate() {
-        if c == '1' {
-            v |= BigUint::one() << i;
-        }
-    }
-    v
-}
 
 struct Shot {
     shot_id: u64,
@@ -40,20 +27,6 @@ struct Shot {
     work_preparation: String,
     // The compiled braid, appended to on each exchange.
     exchanges: Vec<i32>,
-    // Ideal period used only to produce a plausible fusion readout.
-    period: u64,
-}
-
-fn fake_period(n: &BigUint, a: &BigUint) -> u64 {
-    let low_n = n.to_u64_digits().first().copied().unwrap_or(0);
-    let low_a = a.to_u64_digits().first().copied().unwrap_or(0);
-    let mut h = low_n
-        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
-        .wrapping_add(low_a.wrapping_mul(0xBF58_476D_1CE4_E5B9));
-    h ^= h >> 33;
-    h = h.wrapping_mul(0xFF51_AFD7_ED55_8CCD);
-    h ^= h >> 33;
-    (h % 4080) + 16
 }
 
 fn write_compiled(out_dir: &PathBuf, shot: &Shot) -> std::io::Result<PathBuf> {
@@ -107,6 +80,15 @@ fn handle(mut stream: UnixStream, out_dir: PathBuf) -> std::io::Result<()> {
 
         let op = v.get("op").and_then(|x| x.as_str()).unwrap_or("");
         match op {
+            "status" => {
+                writeln!(stream, "{}", serde_json::json!({
+                    "ok": true,
+                    "protocol": "g-momonados/fibonacci-anyons-v2",
+                    "backend": "braid_compiler",
+                    "fusion_readout_available": false,
+                }))?;
+                stream.flush()?;
+            }
             "begin" => {
                 let shot_id = v.get("shot_id").and_then(|x| x.as_u64()).unwrap_or(0);
                 let source_bits = v.get("source").and_then(|x| x.as_str()).unwrap_or("").to_string();
@@ -122,10 +104,6 @@ fn handle(mut stream: UnixStream, out_dir: PathBuf) -> std::io::Result<()> {
                     .unwrap_or("")
                     .to_string();
 
-                let n = bits_le_to_biguint(&source_bits);
-                let a = bits_le_to_biguint(&base_bits);
-                let period = fake_period(&n, &a);
-
                 shot = Some(Shot {
                     shot_id,
                     source_bits,
@@ -134,7 +112,6 @@ fn handle(mut stream: UnixStream, out_dir: PathBuf) -> std::io::Result<()> {
                     phase_bits,
                     work_preparation,
                     exchanges: Vec::new(),
-                    period,
                 });
                 let _ = writeln!(stream, "{{\"ok\":true,\"shot_id\":{}}}", shot_id);
                 let _ = stream.flush();
@@ -169,19 +146,14 @@ fn handle(mut stream: UnixStream, out_dir: PathBuf) -> std::io::Result<()> {
                     let _ = stream.flush();
                     continue;
                 }
-                let bit: u64 = if s.period == 0 || phase_index >= s.phase_bits {
-                    0
-                } else {
-                    let k = shot_id % s.period;
-                    let phase_val = ((k as u128) << s.phase_bits) / s.period as u128;
-                    ((phase_val >> phase_index) & 1) as u64
-                };
-                let _ = writeln!(
-                    stream,
-                    "{{\"shot_id\":{},\"phase_index\":{},\"fusion_bit\":{}}}",
-                    shot_id, phase_index, bit
-                );
-                let _ = stream.flush();
+                let path = write_compiled(&out_dir, s)?;
+                writeln!(stream, "{}", serde_json::json!({
+                    "shot_id": shot_id,
+                    "phase_index": phase_index,
+                    "error": "fusion execution backend is not configured",
+                    "compiled_braid": path,
+                }))?;
+                stream.flush()?;
             }
             "finish" => {
                 let shot_id = v.get("shot_id").and_then(|x| x.as_u64()).unwrap_or(0);
@@ -219,7 +191,6 @@ fn main() {
     }
     let path = &args[1];
     let out_dir = PathBuf::from(&args[2]);
-    let _ = std::fs::remove_file(path);
     let listener = match UnixListener::bind(path) {
         Ok(l) => l,
         Err(e) => {
