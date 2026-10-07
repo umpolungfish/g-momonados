@@ -165,6 +165,7 @@ pub mod abc_iutt;
 pub mod abc_certificate;
 mod belnap_shor_factors;
 mod fibonacci_shor;
+mod fibonacci_shor_plan;
 mod belnap_ring_shor;
 mod belnap_phase_shor;
 mod phase_unbraid;
@@ -775,13 +776,11 @@ fn arbitrary_anyon_factor(args: &[&str]) -> Result<arbitrary_factor::Extraction,
         return Err("arbitrary anyonic extraction requires base >= 2 and a positive shot budget".into());
     }
     arbitrary_factor::extract_with_anyons(args[0], |source| {
-        let device = anyon_device::FibonacciGenerator::connect(args[3])?;
-        let result = anyon_braid_cnot::try_factor_with_anyons(
-            source, &base, shots, device, 7, 7, 20_000, 2, 8,
-        )?;
+        let mut service = anyon_device::FibonacciGenerator::connect(args[3])?;
+        let result = service.factor_source(source, &base, shots)?;
         Ok(result.map(|readout| arbitrary_factor::AnyonCandidate {
             factor: readout.p,
-            detail: format!("base={} order={} shots={}", readout.base, readout.order, readout.shots),
+            detail: format!("base={} order={} shots={}", base, readout.order, readout.shots),
         }))
     })
 }
@@ -805,28 +804,19 @@ fn anyon_factor(args: &[&str]) -> Result<String, String> {
 
     let socket = std::env::var("G_MOMONADOS_ANYON_SOCKET")
         .unwrap_or_else(|_| DEFAULT_SOCKET.to_string());
-    let device = anyon_device::FibonacciGenerator::connect(&socket)?;
-
-    let result = anyon_braid_cnot::factor_n_with_anyons(
-        &n,
-        device,
-        MAX_TOTAL_SHOTS,
-        7,
-        7,
-        20_000,
-        2,
-        8,
-    )?;
+    let mut service = anyon_device::FibonacciGenerator::connect(&socket)?;
+    let result = service.factor_source(&n, &BigUint::from(2u8), MAX_TOTAL_SHOTS)?
+        .ok_or("factor service exhausted its shot budget")?;
 
     Ok(format!(
         "Fibonacci anyon N-only closure\nsource={}\nbase={}\norder={}\nfactors={} x {}\nshots={}\nproduct_closed={}",
-        result.source,
-        result.base,
+        n,
+        2,
         result.order,
         result.p,
         result.q,
         result.shots,
-        &result.p * &result.q == result.source,
+        &result.p * &result.q == n,
     ))
 }
 
