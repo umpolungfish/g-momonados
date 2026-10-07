@@ -1,6 +1,3 @@
-I measure target-wire loss in the Fibonacci-Shor constructor
+I create my local anyon socket and remove synthetic fusion replies
 
-I compile the canonical constructor into a reproducible routing probe,
-compare target and control perturbations, and compare distinct modular
-operands through the full emitted braid. I retain the native atlas,
-function SVG, returned words, source hashes, and constructor controls.
+My braid compiler accepts local socket connections and records the streamed braid. Fusion requests preserve the braid and return an explicit backend error instead of hash-derived phase bits. My launcher preserves existing files, starts the listener, and checks transport using the 200-bit and 256-bit sources.
