@@ -20,11 +20,36 @@ type OperationCache<K, V> = std::collections::HashMap<K, V>;
 #[cfg(not(feature = "hosted"))]
 type OperationCache<K, V> = BTreeMap<K, V>;
 
+// Only internal arena coordinates use this index. Equality still compares both
+// child IDs; hashing never decides whether two coherent branches are equal.
+#[cfg(feature = "hosted")]
+#[derive(Default)]
+struct CoordinateHasher(u64);
+#[cfg(feature = "hosted")]
+impl core::hash::Hasher for CoordinateHasher {
+    fn finish(&self) -> u64 { self.0 }
+    fn write(&mut self, bytes: &[u8]) {
+        for &byte in bytes { self.write_u64(byte as u64); }
+    }
+    fn write_usize(&mut self, value: usize) { self.write_u64(value as u64); }
+    fn write_u64(&mut self, value: u64) {
+        let mut mixed = value.wrapping_add(self.0).wrapping_add(0x9e3779b97f4a7c15);
+        mixed = (mixed ^ (mixed >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+        mixed = (mixed ^ (mixed >> 27)).wrapping_mul(0x94d049bb133111eb);
+        self.0 = mixed ^ (mixed >> 31);
+    }
+}
+#[cfg(feature = "hosted")]
+type BranchCache = std::collections::HashMap<(usize,usize),usize,
+    core::hash::BuildHasherDefault<CoordinateHasher>>;
+#[cfg(not(feature = "hosted"))]
+type BranchCache = BTreeMap<(usize,usize),usize>;
+
 // Branch lookups use only their three coordinates. Amplitude leaves retain
 // their full exact integers in a separate index instead of inflating every
 // branch hash-table entry with the leaf enum's storage.
 struct NodeIndex {
-    branches: Vec<OperationCache<(usize,usize),usize>>,
+    branches: Vec<BranchCache>,
     leaves: OperationCache<Node,usize>,
 }
 impl NodeIndex {
@@ -41,7 +66,7 @@ impl NodeIndex {
         match node {
             Node::Branch { wire, low, high } => {
                 if self.branches.len() <= wire {
-                    self.branches.resize_with(wire+1, OperationCache::new);
+                    self.branches.resize_with(wire+1, BranchCache::default);
                 }
                 self.branches[wire].insert((low,high),id);
             }
