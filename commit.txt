@@ -1,5 +1,5 @@
-I trace modular-work expansion through native Vox counters
+I batch temporary branch reclamation from the Vox trace
 
-I index branch coordinates per wire and expose phase and modular-stage counters.
-I preserve exact complex arithmetic and check decision and shared-work controls.
-I record the source-bound translation and reclamation frontier in my Vox notes.
+I drain and reuse the operation's allocation stack for temporary branch cleanup.
+I verify exact coordinates, shared-work coherence and retained stack capacity.
+I rebuild the source membrane and retain its Vox trace and bounded execution.
