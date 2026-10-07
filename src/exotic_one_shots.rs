@@ -338,6 +338,7 @@ impl FixedPointOneShot for TypeConvergence {
 /// off-lattice test — the residual-to-tenths test below is the same one
 /// `fibqc readout` itself decides its T/B verdict on, not a second one.
 pub struct PhasesOffLattice {
+    pub lowering_error: Option<&'static str>,
     pub a: u64,
     pub n_val: u64,
     pub winding_num: i64,
@@ -349,8 +350,13 @@ pub struct PhasesOffLattice {
 
 impl PhasesOffLattice {
     pub fn compute(a: u64, n_val: u64) -> Self {
-        let n = { let mut bits = 0usize; let mut v = n_val - 1; while v > 0 { bits += 1; v >>= 1; } bits.max(2) };
+        let n = { let mut bits = 0usize; let mut v = n_val.saturating_sub(1); while v > 0 { bits += 1; v >>= 1; } bits.max(2) };
         let braid = crate::fibonacci_shor::assemble_shor_braid(n, a, n_val);
+        if let Some(error) = braid.lowering_error {
+            return Self { lowering_error: Some(error), a, n_val,
+                winding_num: 0, winding_den: 1, residual: f64::NAN,
+                off_lattice: false, period: None };
+        }
         let word = &braid.mod_exp_word;
         let strands = word.iter().map(|g| g.unsigned_abs() as usize).max().unwrap_or(0) + 1;
         let v = crate::fibonacci_qc::jones_polynomial(strands, word);
@@ -360,7 +366,7 @@ impl PhasesOffLattice {
         let d = 10.0_f64;   // the model's own generator lattice (fibonacci_qc::LATTICE_DEN)
         let residual = libm::fabs(turns - libm::round(turns * d) / d);
         Self {
-            a, n_val,
+            lowering_error: None, a, n_val,
             winding_num: w.num, winding_den: w.den,
             residual,
             off_lattice: residual > 1e-9,   // fibonacci_qc::LATTICE_EPS
@@ -373,9 +379,12 @@ impl FixedPointOneShot for PhasesOffLattice {
     fn description(&self) -> &str {
         "Live Jones-invariant phase for a real ModExp braid, read against the kernel's own lattice snap"
     }
-    fn is_one_shot(&self) -> bool { true }
+    fn is_one_shot(&self) -> bool { self.lowering_error.is_none() }
     fn structural_fixed_point(&self) -> bool { self.off_lattice }
     fn to_report(&self) -> String {
+        if let Some(error) = self.lowering_error {
+            return format!("One-Shot #7: unavailable: {}", error);
+        }
         format!(
             "One-Shot #7: {} — a={}, N={}, winding={}/{}, residual={:.2e}, off_lattice={}, period={:?}",
             self.description(), self.a, self.n_val,
@@ -408,9 +417,12 @@ impl FixedPointOneShot for SolovayKitaevFloor {
     fn description(&self) -> &str {
         "The live off-lattice phase behind the SK floor (not the full recursive compile)"
     }
-    fn is_one_shot(&self) -> bool { true }
+    fn is_one_shot(&self) -> bool { self.off_lattice.lowering_error.is_none() }
     fn structural_fixed_point(&self) -> bool { self.off_lattice.off_lattice }
     fn to_report(&self) -> String {
+        if let Some(error) = self.off_lattice.lowering_error {
+            return format!("One-Shot #8: unavailable: {}", error);
+        }
         format!(
             "One-Shot #8: {} — winding={}/{}, off_lattice={} ⇒ no finite braid word lands on it exactly, which is the floor",
             self.description(), self.off_lattice.winding_num, self.off_lattice.winding_den,

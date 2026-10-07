@@ -2327,6 +2327,10 @@ pub fn repl_readout(a: u64, n_val: u64) {
         bits.max(2) as usize
     };
     let braid = crate::fibonacci_shor::assemble_shor_braid(n, a, n_val);
+    if let Some(error) = braid.lowering_error {
+        sprintln!("Shor braid unavailable: {}", error);
+        return;
+    }
     let word = &braid.mod_exp_word;
     let strands = word.iter().map(|g| g.unsigned_abs() as usize).max().unwrap_or(0) + 1;
     head!("one-shot topological readout");
@@ -2417,6 +2421,10 @@ pub fn repl_alkahest(a_str: &str, n_str: &str) {
             bits.max(2) as usize
         };
         let braid = crate::fibonacci_shor::assemble_shor_braid(n, a, n_val);
+        if let Some(error) = braid.lowering_error {
+            sprintln!("Shor braid unavailable: {}", error);
+            return;
+        }
         let word = &braid.mod_exp_word;
         let strands = word.iter().map(|g| g.unsigned_abs() as usize).max().unwrap_or(0) + 1;
         if strands > 20 {

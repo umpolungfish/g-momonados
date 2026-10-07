@@ -104,3 +104,35 @@ fn an_open_braid_declares_itself_open() {
     let read = read_tangle(&prog, 8, 1).expect("readable");
     assert!(!read.closes, "an unclosed braid reported itself closed");
 }
+
+#[test]
+fn rsa_200_and_256_bit_frame_recovery_preserves_transformed_work_at_every_height() {
+    use crate::braid_protocol::{audit_braid_frames, braid_to_imasm_in_frame};
+    use num_bigint::BigUint;
+    for decimal in [
+        "1156514714917773145849996001252587703581994899993461612691909",
+        "101560191607051872909385412079844080615251494997013823952605603214371184345809",
+    ] {
+        let source = BigUint::parse_bytes(decimal.as_bytes(),10).unwrap();
+        assert!(source.bits() >= 200);
+        let heights: alloc::vec::Vec<i32> = (1..=(crate::reversible_modular::ModularMultiply::new(&source).unwrap().elementary_qubits()+1) as i32).collect();
+        let word = [1,-5,2,-1,4,5,-3,1];
+        for &height in &heights {
+            let program = braid_to_imasm_in_frame(&word,height).unwrap();
+            let recovered = read_tangle(&program,6,height).unwrap();
+            assert_eq!(recovered.generators,word);
+            assert!(recovered.closes);
+            assert!(recovered.depth_profile.iter().all(|depth| *depth >= height));
+        }
+        let reports = audit_braid_frames(&word,6,&heights).unwrap();
+        assert_eq!(reports.len(),heights.len());
+        for report in reports {
+            assert_eq!(report.returned_depth,report.height);
+            assert_eq!(report.crossings,word.len());
+            assert!(report.highest_depth>report.height);
+        }
+        assert!(audit_braid_frames(&word,5,&heights).is_err());
+        assert!(braid_to_imasm_in_frame(&[0],1).is_err());
+        assert!(braid_to_imasm_in_frame(&[1],i32::MAX).is_err());
+    }
+}

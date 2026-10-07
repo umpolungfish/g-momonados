@@ -1,28 +1,27 @@
-//! Execute the canonical Fibonacci-Shor constructor with separated target controls.
+//! Wire and operand perturbations bound to >=200-bit RSA-style sources.
 extern crate alloc;
-
+pub use g_momonados::fibonacci_shor_plan;
 #[path = "../../src/fibonacci_shor.rs"]
 mod fibonacci_shor;
+use num_bigint::BigUint;
+use fibonacci_shor_plan::shor_gate_plan_for_source;
 
 fn main() {
+    let input = std::env::args().nth(1).unwrap_or_else(||
+        "1156514714917773145849996001252587703581994899993461612691909".into());
+    let n = BigUint::parse_bytes(input.as_bytes(), 10).unwrap();
+    assert!(n.bits() >= 200);
+    let target = 2 * n.bits() as usize;
     let near = fibonacci_shor::controlled_phase_braid(0, 1);
-    let far = fibonacci_shor::controlled_phase_braid(0, 4);
-    let moved_control = fibonacci_shor::controlled_phase_braid(1, 4);
-    println!("{{\"control\":0,\"target\":1,\"word\":{near:?}}}");
-    println!("{{\"control\":0,\"target\":4,\"word\":{far:?}}}");
-    println!("{{\"control\":1,\"target\":4,\"word\":{moved_control:?}}}");
-    println!("{{\"target_change_preserved\":{},\"control_change_preserved\":{}}}",
-        near != far, near != moved_control);
-
-    // Keep N and the register widths fixed, change only the modular operand.
-    for base in [2, 8] {
-        let braid = fibonacci_shor::assemble_shor_braid(4, base, 15);
-        println!("{{\"base\":{base},\"modulus\":15,\"modexp\":{:?},\"iqft\":{:?},\"period\":{}}}",
-            braid.mod_exp_word, braid.iqft_word,
-            braid.params.period.map(|x| x.to_string()).unwrap_or_else(|| "null".into()));
-    }
-    let a = fibonacci_shor::assemble_shor_braid(4, 2, 15);
-    let b = fibonacci_shor::assemble_shor_braid(4, 8, 15);
-    println!("{{\"base_change_preserved_in_modexp\":{},\"base_change_preserved_in_full_braid\":{}}}",
-        a.mod_exp_word != b.mod_exp_word, a.total_word != b.total_word);
+    let far = fibonacci_shor::controlled_phase_braid(0, target);
+    let moved = fibonacci_shor::controlled_phase_braid(1, target);
+    println!("{{\"source_bits\":{},\"control\":0,\"target\":1,\"word\":{near:?}}}", n.bits());
+    println!("{{\"source_bits\":{},\"control\":0,\"target\":{target},\"word\":{far:?}}}", n.bits());
+    println!("{{\"source_bits\":{},\"control\":1,\"target\":{target},\"word\":{moved:?}}}", n.bits());
+    assert_ne!(near, far);
+    println!("{{\"target_change_preserved\":{},\"control_change_preserved\":{}}}", near != far, near != moved);
+    let a = shor_gate_plan_for_source(target, &BigUint::from(2u8), &n).unwrap();
+    let b = shor_gate_plan_for_source(target, &BigUint::from(8u8), &n).unwrap();
+    assert_ne!(a, b);
+    println!("{{\"base_change_preserved_in_gate_plan\":true,\"calibrated_braid_available\":false}}");
 }

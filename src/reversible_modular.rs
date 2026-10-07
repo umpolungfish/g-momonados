@@ -26,6 +26,25 @@ pub enum NestedOperation {
     Compare { register: Vec<usize>, value: BigUint, controls: Vec<(usize, bool)>, flag: usize },
 }
 
+impl NestedOperation {
+    /// Adjacent return map on the same register and controls.
+    pub fn inverse(&self) -> Self {
+        match self {
+            Self::Toggle(_) | Self::Compare { .. } => self.clone(),
+            Self::Add { register, value, controls } => {
+                let radix = BigUint::one() << register.len();
+                let value = (radix.clone() - value % &radix) % radix;
+                Self::Add { register: register.clone(), value, controls: controls.clone() }
+            }
+            Self::ModularAdd { register, digit, value, modulus, controls } => {
+                let value = (modulus - value % modulus) % modulus;
+                Self::ModularAdd { register: register.clone(), digit: digit.clone(), value,
+                    modulus: modulus.clone(), controls: controls.clone() }
+            }
+        }
+    }
+}
+
 /// Elementary reversible gates with at most two controls.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ElementaryGate {

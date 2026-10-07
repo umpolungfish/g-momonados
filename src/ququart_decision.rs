@@ -104,6 +104,40 @@ mod tests {
     use super::*;
     use num_traits::One;
 
+    fn rsa_arena() -> DecisionArena {
+        let source = BigUint::parse_bytes(
+            b"1156514714917773145849996001252587703581994899993461612691909", 10).unwrap();
+        assert!(source.bits() >= 200);
+        DecisionArena::new(source.bits() as usize + 2)
+    }
+
+    #[test]
+    #[should_panic(expected = "transformed source arms did not recover")]
+    fn rsa_source_fuse_rejects_an_arm_with_its_source_still_attached() {
+        let mut arena = rsa_arena();
+        let low = arena.basis(&BigUint::zero(), BigInt::from(3));
+        let high = arena.basis(&BigUint::one(), BigInt::from(7));
+        arena.fuse_source_arms(low, high, 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "transformed interval arms did not recover")]
+    fn rsa_interval_fuse_rejects_overlapping_transformed_arms() {
+        let mut arena = rsa_arena();
+        let arm = arena.basis(&BigUint::one(), BigInt::from(11));
+        let register: Vec<_> = (0..arena.cells).collect();
+        arena.fuse_interval_arms(arm, arm, &register, &BigUint::from(2u8));
+    }
+
+    #[test]
+    #[should_panic(expected = "split/fuse child escaped")]
+    fn rsa_wire_fuse_rejects_a_child_above_its_parent() {
+        let mut arena = rsa_arena();
+        let child = arena.basis(&BigUint::one(), BigInt::from(11));
+        let zero = arena.zero();
+        arena.branch(1, child, zero);
+    }
+
     #[test]
     fn rsa_200_and_256_bit_modular_translation_preserves_coherent_amplitudes() {
         for decimal in [
@@ -498,6 +532,10 @@ impl DecisionArena {
         self.intern(Node::Leaf(BigInt::zero(), BigInt::zero()))
     }
     fn branch(&mut self, wire: usize, low: usize, high: usize) -> usize {
+        assert!(wire < self.cells, "split/fuse wire exceeds its register");
+        assert!(self.top(low).is_none_or(|child| child > wire)
+            && self.top(high).is_none_or(|child| child > wire),
+            "split/fuse child escaped the parent wire ordering");
         if low == high {
             low
         } else {
@@ -938,6 +976,25 @@ impl DecisionArena {
 
     /// Split only live source-digit arms, translate each complete digit once,
     /// and fuse their disjoint source coordinates without a candidate table.
+    fn fuse_source_arms(&mut self, low: usize, high: usize, wire: usize) -> usize {
+        let fused = self.conditional_literals(low, high, &[(wire, true)]);
+        let recovered = self.source_cofactors(fused, wire, &mut OperationCache::default());
+        assert_eq!(recovered, (low, high),
+            "transformed source arms did not recover at wire {wire}");
+        fused
+    }
+
+    /// The two transformed intervals retain their exact complex amplitudes.
+    /// Recover both arms through the output cut before the parent can return.
+    fn fuse_interval_arms(&mut self, low: usize, high: usize,
+        register: &[usize], cut: &BigUint) -> usize {
+        let fused = self.sum(low, high);
+        let recovered = self.partition_less(fused, register, cut);
+        assert_eq!(recovered, (low, high),
+            "transformed interval arms did not recover at their output cut");
+        fused
+    }
+
     pub fn modular_digit_add(&mut self, root: usize, register: &[usize], digit: &[usize],
         value: &BigUint, modulus: &BigUint, controls: &[(usize,bool)]) -> usize {
         if !self.controls_possible(root,controls) { return root; }
@@ -960,7 +1017,7 @@ impl DecisionArena {
             // Source and work coordinates are disjoint. Restore the removed
             // source wire in diagram order, including earlier work branches
             // changed by the translation, rather than adding masked roots.
-            arena.conditional_literals(low,high,&[(digit[at],true)])
+            arena.fuse_source_arms(low, high, digit[at])
         }
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
@@ -993,9 +1050,11 @@ impl DecisionArena {
         let radix = BigUint::from(1u8) << register.len();
         let high = self.add_constant(high,register,&(radix-threshold),&[]);
         VOX_MODULAR_COUNTERS[1].store(4,Ordering::Relaxed);
-        let changed = self.sum(low,high);
+        // The wrapped interval lands below value; the unwrapped interval
+        // lands above it. Recovery therefore uses the transformed cut.
+        let changed = self.fuse_interval_arms(high, low, register, &value);
         VOX_MODULAR_COUNTERS[1].store(5,Ordering::Relaxed);
-        let changed = self.sum(changed,invalid);
+        let changed = self.fuse_interval_arms(changed, invalid, register, modulus);
         let result = self.conditional_literals(root,changed,controls);
         VOX_MODULAR_COUNTERS[3].store(self.retained_nodes() as u64,Ordering::Relaxed);
         VOX_MODULAR_COUNTERS[1].store(0,Ordering::Relaxed);

@@ -1870,6 +1870,16 @@ pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
         ));
     }
 
+    // The generated word must recover through transformed split/fuse frames
+    // at every register height before the compiler can release it. This is
+    // the presentation boundary; residual/leakage checks above certify the
+    // separate computational operator boundary.
+    let stack_height = g_momonados::reversible_modular::ModularMultiply::new(&source)?
+        .elementary_qubits().checked_add(1).ok_or("stack height overflow")?;
+    let stack_height = i32::try_from(stack_height).map_err(|_| "stack height exceeds depth indexing")?;
+    let heights: Vec<i32> = (1..=stack_height).collect();
+    let frame_recovery = crate::braid_protocol::audit_braid_frames(&word,6,&heights)?;
+
     if native {
         let native_word = |value: &BigUint| g_momonados::godel_calculus::encode_cell_binary(
             &g_momonados::godel_calculus::Nat::from_bits_le((0..value.bits()).map(|bit| value.bit(bit)).collect()));
@@ -1880,6 +1890,7 @@ pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
             "component": "ququart_fourier", "source_word": raw_source,
             "source_bits_word": scalar(source.bits()), "inverse_word": scalar(u64::from(inverse)),
             "exchanges_word": native_word(&BigUint::from(word.len())),
+            "frame_recovery_heights_word": native_word(&BigUint::from(frame_recovery.len())),
             "computational_word": scalar(computational.to_bits()),
             "leakage_word": scalar(leakage.to_bits()),
             "unitarity_word": scalar(unitarity.to_bits()),
@@ -1887,10 +1898,11 @@ pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
         }).to_string());
     }
     let mut report = format!(
-        "Z4 Fourier Fibonacci braid\nsource_bits={} inverse={} physical_word_length={}\ncomputational={computational:.8e} leakage={leakage:.8e} unitarity={unitarity:.8e}\nword=",
+        "Z4 Fourier Fibonacci braid\nsource_bits={} inverse={} physical_word_length={} frame_recovery_heights={}\ncomputational={computational:.8e} leakage={leakage:.8e} unitarity={unitarity:.8e}\nword=",
         source.bits(),
         inverse,
-        word.len()
+        word.len(),
+        frame_recovery.len()
     );
     for (i, g) in word.iter().enumerate() {
         if i > 0 {
