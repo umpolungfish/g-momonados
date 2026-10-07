@@ -30,6 +30,32 @@ mod tests {
     use num_traits::One;
 
     #[test]
+    fn reclaimed_support_masks_share_empty_storage_without_mutating_live_masks() {
+        let mut arena = DecisionArena::new(400);
+        let z = arena.zero();
+        let address = (BigUint::one() << 399usize) + 3u8;
+        let root = arena.basis(&address, BigInt::from(7));
+        let mut roots = [root,z,z,z,z];
+        arena.fold(&mut roots);
+        assert_eq!(arena.amplitude(root,&address), (BigInt::from(7),BigInt::zero()));
+        assert!(arena.empty_fixed.zero.is_zero());
+        assert!(arena.empty_fixed.one.is_zero());
+        roots = [z;5];
+        arena.fold(&mut roots);
+        assert!(!arena.free.is_empty());
+        for &id in &arena.free {
+            assert!(arena.nodes[id].is_none());
+            assert!(arena.fixed[id].empty);
+            assert!(Arc::ptr_eq(&arena.fixed[id].zero,&arena.empty_fixed.zero));
+            assert!(Arc::ptr_eq(&arena.fixed[id].one,&arena.empty_fixed.one));
+        }
+        let root = arena.basis(&address, BigInt::from(11));
+        assert_eq!(arena.amplitude(root,&address), (BigInt::from(11),BigInt::zero()));
+        assert!(arena.empty_fixed.zero.is_zero());
+        assert!(arena.empty_fixed.one.is_zero());
+    }
+
+    #[test]
     fn nested_arithmetic_preserves_every_complex_basis_coordinate() {
         let mut arena = DecisionArena::new(7);
         let z = arena.zero();
@@ -132,6 +158,7 @@ pub struct DecisionArena {
     created: Vec<usize>,
     pinned: Option<[usize; 5]>,
     unique: NodeIndex,
+    empty_fixed: FixedBits,
     pub cells: usize,
 }
 impl DecisionArena {
@@ -144,6 +171,7 @@ impl DecisionArena {
             created: Vec::new(),
             pinned: None,
             unique: NodeIndex::new(),
+            empty_fixed: FixedBits::leaf(true),
             cells,
         }
     }
@@ -155,12 +183,16 @@ impl DecisionArena {
             return *id;
         }
         let fixed = match &node {
-            Node::Leaf(re, im) => FixedBits::leaf(re.is_zero() && im.is_zero()),
+            Node::Leaf(re, im) => FixedBits {
+                empty: re.is_zero() && im.is_zero(),
+                zero: self.empty_fixed.zero.clone(),
+                one: self.empty_fixed.one.clone(),
+            },
             Node::Branch { wire, low, high } => {
                 let low = &self.fixed[*low];
                 let high = &self.fixed[*high];
                 let mut fixed = match (low.empty, high.empty) {
-                    (true, true) => FixedBits::leaf(true),
+                    (true, true) => self.empty_fixed.clone(),
                     (false, true) => FixedBits {
                         empty: false,
                         zero: low.zero.clone(),
@@ -173,8 +205,10 @@ impl DecisionArena {
                     },
                     (false, false) => FixedBits {
                         empty: false,
-                        zero: Arc::new(&*low.zero & &*high.zero),
-                        one: Arc::new(&*low.one & &*high.one),
+                        zero: if Arc::ptr_eq(&low.zero, &high.zero) { low.zero.clone() }
+                              else { Arc::new(&*low.zero & &*high.zero) },
+                        one: if Arc::ptr_eq(&low.one, &high.one) { low.one.clone() }
+                             else { Arc::new(&*low.one & &*high.one) },
                     },
                 };
                 if !fixed.empty {
@@ -224,7 +258,7 @@ impl DecisionArena {
                 continue;
             };
             self.unique.remove(&node);
-            self.fixed[id] = FixedBits::leaf(true);
+            self.fixed[id] = self.empty_fixed.clone();
             self.free.push(id);
             if let Node::Branch { low, high, .. } = node {
                 for child in [low, high] {
