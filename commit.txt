@@ -1,3 +1,3 @@
-I create my local anyon socket and remove synthetic fusion replies
+I route source-bound factor requests through the measured phase executor
 
-My braid compiler accepts local socket connections and records the streamed braid. Fusion requests preserve the braid and return an explicit backend error instead of hash-derived phase bits. My launcher preserves existing files, starts the listener, and checks transport using the 200-bit and 256-bit sources.
+I replace synthetic fusion replies with source-only requests to the contracted Fibonacci ququart executor. The service derives and verifies the complete source, base, radix, and phase-work stack before running each shot, checks clean workspace at the multiplication boundaries, and reports measured phase and live node progress. I add a runner for the qualifying 200-bit and 256-bit RSA semiprimes.

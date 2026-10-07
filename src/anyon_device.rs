@@ -91,6 +91,97 @@ impl FibonacciGenerator<std::os::unix::net::UnixStream, std::os::unix::net::Unix
             .map_err(|error| format!("cannot open anyon generator read channel: {error}"))?;
         Ok(Self::new(reader, stream))
     }
+
+    /// Ask the local source-only factor service to execute a complete
+    /// contracted-Fibonacci phase shot and return a product-closed pair.
+    pub fn factor_source(
+        &mut self,
+        source: &num_bigint::BigUint,
+        base: &num_bigint::BigUint,
+        max_shots: u32,
+    ) -> Result<Option<SocketFactorReadout>, String> {
+        if source.bits() < 200 {
+            return Err("socket factor execution requires a source of at least 200 bits".into());
+        }
+        self.send(
+            &serde_json::json!({"op":"factor","source":source.to_str_radix(10),
+                "base":base.to_str_radix(10),"max_shots":max_shots}),
+            true,
+        )?;
+        let mut started = false;
+        let mut last_shot = 0u64;
+        loop {
+            let response = self.response()?;
+            if response.get("source").and_then(serde_json::Value::as_str)
+                .is_some_and(|value| value != source.to_str_radix(10))
+            {
+                return Err("socket factor event belongs to a different source".into());
+            }
+            match response.get("event").and_then(serde_json::Value::as_str) {
+                Some("started") => {
+                    if response.get("backend").and_then(serde_json::Value::as_str)
+                        != Some("contracted_fibonacci_ququart")
+                    {
+                        return Err("socket selected an unexpected phase backend".into());
+                    }
+                    started = true;
+                    eprintln!("anyon_factor_started bits={}", source.bits());
+                }
+                Some("shot_started") => {
+                    last_shot = response.get("shot").and_then(serde_json::Value::as_u64)
+                        .ok_or("factor service omitted shot number")?;
+                    eprintln!("anyon_factor_shot_started shot={last_shot}");
+                }
+                Some("phase_measured") => {
+                    let completed = response["phase_digits_completed"].as_u64()
+                        .ok_or("factor service omitted phase progress")?;
+                    let total = response["phase_digits_total"].as_u64()
+                        .ok_or("factor service omitted phase width")?;
+                    if completed % 16 == 0 || completed == total {
+                        eprintln!("anyon_factor_phase shot={last_shot} digits={completed}/{total}");
+                    }
+                }
+                Some("shot_completed") => {
+                    if response["phase_digits_completed"].as_u64()
+                        != response["phase_digits_total"].as_u64()
+                    {
+                        return Err("factor service closed an incomplete phase stack".into());
+                    }
+                    eprintln!("anyon_factor_shot_closed shot={last_shot}");
+                }
+                Some("retrying_shot") => {
+                    eprintln!("anyon_factor_retry_after_nonclosing_shot");
+                }
+                Some("nonclosing_budget") => return Ok(None),
+                Some("factored") => {
+                    if !started || response.get("product_closed").and_then(serde_json::Value::as_bool) != Some(true) {
+                        return Err("factor service did not close its source product".into());
+                    }
+                    let p = response["p"].as_str().ok_or("factor service omitted p")?
+                        .parse::<num_bigint::BigUint>().map_err(|_| "invalid p")?;
+                    let q = response["q"].as_str().ok_or("factor service omitted q")?
+                        .parse::<num_bigint::BigUint>().map_err(|_| "invalid q")?;
+                    if p <= num_bigint::BigUint::from(1u8)
+                        || q <= num_bigint::BigUint::from(1u8) || &p * &q != *source
+                    {
+                        return Err("socket factor pair failed exact source multiplication".into());
+                    }
+                    let order = response["order"].as_str().ok_or("factor service omitted order")?
+                        .parse::<num_bigint::BigUint>().map_err(|_| "invalid order")?;
+                    return Ok(Some(SocketFactorReadout { p, q, order, shots:last_shot }));
+                }
+                Some(event) => return Err(format!("unexpected factor service event: {event}")),
+                None => return Err("factor service response omitted event type".into()),
+            }
+        }
+    }
+}
+
+pub struct SocketFactorReadout {
+    pub p: num_bigint::BigUint,
+    pub q: num_bigint::BigUint,
+    pub order: num_bigint::BigUint,
+    pub shots: u64,
 }
 
 impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {
