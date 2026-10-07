@@ -35,6 +35,7 @@ pub mod gpu_rho_ml;
 pub mod native_numeral;
 pub mod phase_unbraid;
 pub mod reversible_modular;
+pub mod fibonacci_shor_plan;
 pub mod recycled_carrier;
 pub mod anyon_local;
 pub mod anyon_pair;

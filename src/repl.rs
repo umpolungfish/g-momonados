@@ -6404,7 +6404,7 @@ fn print_classify(k: &Kernel, arg: &str) {
             Ok(t) => sprintln!("{}", Classification::classify_tuple(&t).display()),
             // from_glyphs reuses its error pair for a length fault, where the
             // second field is a message rather than a glyph. Say which it is.
-            Err((i, g)) if g.starts_with("expected") => sprintln!("classify: {}", g),
+            Err((_i, g)) if g.starts_with("expected") => sprintln!("classify: {}", g),
             Err((i, g)) => sprintln!("classify: slot {} is not a primitive: `{}`", i, g),
         }
         return;
@@ -6717,6 +6717,10 @@ fn print_shor_fib(n_val: u64, a_val: u64) {
     };
     sprintln!("══ Fibonacci Shor: N={}, a={}, n={} ══", n_val, a_val, n);
     let braid = assemble_shor_braid(n, a_val, n_val);
+    if let Some(error) = braid.lowering_error {
+        sprintln!("Shor braid unavailable: {}", error);
+        return;
+    }
     sprintln!("  strands={}  fusion_dim={}", braid.params.strands, braid.params.fusion_dim);
     sprintln!("  period={:?}  braid_len={}", braid.params.period, braid.total_length);
     sprintln!("  H-layer: {} gens  ModExp: {} gens  IQFT: {} gens",
