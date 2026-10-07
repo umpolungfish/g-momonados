@@ -75,3 +75,26 @@ Operand detail. `vox lift` synthesises an operand string only where the glyph
 depends on it: a direct branch target, a memory destination, or the absence of
 an immediate target that makes a branch indirect. Anything finer would be a
 disassembler, and the word does not read it.
+
+## Source-bound ququart extraction debugging
+
+The baked source `229513619370652772473594096727489823787` passes native
+composite screening and preparation validation. Vox native instruction samples
+and the baked ELF's IMASM symbol map locate the stalled extraction in decision
+node interning, support-mask destruction and slot reclamation. The samples are
+in Vox's `measurements/ququart_source229513_profile.samples.tsv`; the symbol
+map and disassembly are retained alongside the original membrane and in Vox's
+measurement directory. Each profile is a bounded observation of a live extraction.
+
+The decision arena shares immutable empty support masks across leaves and
+reclaimed slots. Equal shared child masks reuse storage; copy-on-write still
+protects live masks when setting branch bits. Exact complex-coordinate, slot
+reuse, shared control correlation, modular arithmetic and SIC controls pass.
+The modular test generates its canonical numeral words through the codec
+instead of depending on missing historical membrane files.
+
+The rebuilt membrane is retained in
+`measurements/ququart/source229513_shared_masks`. Its bounded extraction reaches
+120 seconds with no completed readout, which the separate verifier rejects.
+The new Vox profile still concentrates in node interning, equality lookup and
+reclamation. Those operations remain the next measured bottleneck.
