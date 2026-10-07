@@ -98,3 +98,13 @@ The rebuilt membrane is retained in
 120 seconds with no completed readout, which the separate verifier rejects.
 The new Vox profile still concentrates in node interning, equality lookup and
 reclamation. Those operations remain the next measured bottleneck.
+
+Vox disassembly maps the shared-mask build's hottest equality sample to
+`Node::equivalent` at `0x99e15`, where the hash-table key's enum tag is compared.
+The branch index stores `(wire,low,high)` separately from exact amplitude leaves.
+The rebuilt executable's sampled hot reclaim instruction is the compact-key
+comparison at `0x9ad94`. Exact coordinate and shared-work controls pass; its
+120-second source-bound extraction still ends without a completed readout.
+The next inspection is branch-key lookup and deletion, following the new live PCs.
+Vox keeps both full disassemblies and bounded native register traces under
+`measurements/ququart_source229513_{shared_masks,branch_index}_*`.

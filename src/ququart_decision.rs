@@ -12,7 +12,36 @@ type OperationCache<K, V> = std::collections::HashMap<K, V>;
 #[cfg(not(feature = "hosted"))]
 type OperationCache<K, V> = BTreeMap<K, V>;
 
-type NodeIndex = OperationCache<Node, usize>;
+// Branch lookups use only their three coordinates. Amplitude leaves retain
+// their full exact integers in a separate index instead of inflating every
+// branch hash-table entry with the leaf enum's storage.
+struct NodeIndex {
+    branches: OperationCache<(usize,usize,usize),usize>,
+    leaves: OperationCache<Node,usize>,
+}
+impl NodeIndex {
+    fn new() -> Self {
+        Self { branches: OperationCache::new(), leaves: OperationCache::new() }
+    }
+    fn get(&self, node: &Node) -> Option<&usize> {
+        match node {
+            Node::Branch { wire, low, high } => self.branches.get(&(*wire,*low,*high)),
+            Node::Leaf(..) => self.leaves.get(node),
+        }
+    }
+    fn insert(&mut self, node: Node, id: usize) {
+        match node {
+            Node::Branch { wire, low, high } => { self.branches.insert((wire,low,high),id); }
+            Node::Leaf(..) => { self.leaves.insert(node,id); }
+        }
+    }
+    fn remove(&mut self, node: &Node) {
+        match node {
+            Node::Branch { wire, low, high } => { self.branches.remove(&(*wire,*low,*high)); }
+            Node::Leaf(..) => { self.leaves.remove(node); }
+        }
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Node {
