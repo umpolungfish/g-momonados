@@ -471,10 +471,13 @@ mod tests {
     use super::*;
     #[test]
     fn nested_modular_operator_preserves_complex_coherence_and_clean_workspace() {
-        for source_word in [
-            include_str!("../membranes/ququart_factor_semiprime_128_20261004/source.imasm"),
-            include_str!("../membranes/ququart_factor_rsa100_native_words_20261004/source.imasm"),
+        for source in [
+            "229513619370652772473594096727489823787",
+            "1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139",
         ] {
+        let n = BigUint::parse_bytes(source.as_bytes(),10).unwrap();
+        let source_word = crate::godel_calculus::encode_cell_binary(
+            &crate::godel_calculus::Nat::from_bits_le((0..n.bits()).map(|bit| n.bit(bit)).collect()));
         let reading = crate::godel_calculus::decode(source_word.trim()).unwrap();
         assert_eq!(crate::godel_calculus::encode_cell_binary(&reading.value),source_word.trim());
         let n = reading.value.bits_le().iter().rev().fold(BigUint::zero(),
