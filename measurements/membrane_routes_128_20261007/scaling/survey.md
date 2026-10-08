@@ -25,6 +25,8 @@ The current G membrane runs accept canonical IMASM numeral words and carry their
 
 The balanced controls use generated factors of equal width from `cases.json`. The radix-four lift reached its 200,000-node cap without a pair at 256, 512, or 1048 bits. The fixed-word aggregate route exhausted its 25,000-step frontier and one-curve ECM continuation without a pair at each width. ECM with B1=1000, B2=3000, and eight curves also returned no pair on those balanced controls. These are the hard controls for the witness results above.
 
+The depth-three fixed-word route, with its corrected wiring and 25,000-step frontier, ran on the balanced 256-bit control for 120 seconds without emitting a pair; the run record is `256/membrane_fixed_nested_balanced_after_wiring.log`.
+
 A second witness set uses the 31-bit prime factor 2147483647, with the cofactor sized to make each product 256, 512, or 1048 bits. The updated fixed-word membrane continues into ECM with B1=5000, B2=50000, and 100 curves after its 25,000-step fixed-word frontier.
 
 | Route | 256-bit | 512-bit | 1048-bit |
