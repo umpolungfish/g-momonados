@@ -7,6 +7,9 @@
 use core::cmp::Ordering;
 use crate::{add, cmp, divmod, from_u32, is_zero, mul, sub, Big};
 
+const ECM_WORD: &str = "⊢⊙∈≻∈⊞∋⋈∋⊡⊣";
+const ECM_SCALAR_WORD: &str = "⊢≻⋈⊣";
+
 #[derive(Clone)]
 struct Point { x: Big, z: Big }
 
@@ -125,6 +128,52 @@ fn scalar_mul(p: &Point, scalar: u32, a24: &Big, n: &Big) -> Point {
     r0
 }
 
+/// Advance one scalar and inspect its projective denominator through the
+/// nested scalar-step word.
+fn scalar_step(
+    point: &Point,
+    scalar: u32,
+    a24: &Big,
+    n: &Big,
+) -> (Point, Option<(Big, Big)>) {
+    let mut result = point.clone();
+    let mut factor = None;
+    for mark in ECM_SCALAR_WORD.chars() {
+        match mark {
+            '≻' => result = scalar_mul(&result, scalar, a24, n),
+            '⋈' => factor = proper_factor(gcd(&result.z, n), n),
+            _ => {}
+        }
+    }
+    (result, factor)
+}
+
+fn stage_one(point: &mut Point, a24: &Big, n: &Big, b1: u32) -> Option<(Big, Big)> {
+    for p in 2..=b1 {
+        if !is_prime_small(p) { continue; }
+        let (next, factor) = scalar_step(point, largest_prime_power(p, b1), a24, n);
+        *point = next;
+        if factor.is_some() { return factor; }
+    }
+    None
+}
+
+fn stage_two(
+    point: &mut Point,
+    a24: &Big,
+    n: &Big,
+    b1: u32,
+    b2: u32,
+) -> Option<(Big, Big)> {
+    for p in b1.saturating_add(1)..=b2 {
+        if !is_prime_small(p) { continue; }
+        let (next, factor) = scalar_step(point, p, a24, n);
+        *point = next;
+        if factor.is_some() { return factor; }
+    }
+    None
+}
+
 fn is_prime_small(v: u32) -> bool {
     if v < 2 { return false; }
     let mut d = 2u32;
@@ -144,21 +193,46 @@ fn largest_prime_power(p: u32, bound: u32) -> u32 {
 pub fn factor(n: &Big, b1: u32, b2: u32, curves: u32) -> Option<(Big, Big)> {
     if !n.is_odd() { return proper_factor(two(), n); }
     for sigma in 6..6u32.saturating_add(curves) {
-        let (mut point, a24) = match start_curve(n, sigma) {
-            CurveStart::Factor(p, q) => return Some((p, q)),
-            CurveStart::Retry => continue,
-            CurveStart::Ready(point, a24) => (point, a24),
-        };
-        for p in 2..=b1 {
-            if !is_prime_small(p) { continue; }
-            point = scalar_mul(&point, largest_prime_power(p, b1), &a24, n);
-            if let Some(pair) = proper_factor(gcd(&point.z, n), n) { return Some(pair); }
-        }
-        if b2 > b1 {
-            for p in b1.saturating_add(1)..=b2 {
-                if !is_prime_small(p) { continue; }
-                let stage_two = scalar_mul(&point, p, &a24, n);
-                if let Some(pair) = proper_factor(gcd(&stage_two.z, n), n) { return Some(pair); }
+        let mut point = None;
+        let mut a24 = None;
+        let mut candidate = None;
+        for mark in ECM_WORD.chars() {
+            match mark {
+                '⊢' => {
+                    point = None;
+                    a24 = None;
+                    candidate = None;
+                }
+                '⊙' => match start_curve(n, sigma) {
+                    CurveStart::Factor(p, q) => candidate = Some((p, q)),
+                    CurveStart::Retry => {}
+                    CurveStart::Ready(start, coefficient) => {
+                        point = Some(start);
+                        a24 = Some(coefficient);
+                    }
+                },
+                '≻' if candidate.is_none() => {
+                    if let (Some(point), Some(a24)) = (point.as_mut(), a24.as_ref()) {
+                        candidate = stage_one(point, a24, n, b1);
+                    }
+                }
+                '⊞' if candidate.is_none() && b2 > b1 => {
+                    if let (Some(point), Some(a24)) = (point.as_mut(), a24.as_ref()) {
+                        candidate = stage_two(point, a24, n, b1, b2);
+                    }
+                }
+                '⋈' if candidate.is_none() => {
+                    if let Some(point) = point.as_ref() {
+                        candidate = proper_factor(gcd(&point.z, n), n);
+                    }
+                }
+                '⊡' => {
+                    if let Some((p, q)) = candidate.as_ref() {
+                        if mul(p, q) != *n { candidate = None; }
+                    }
+                }
+                '⊣' => if candidate.is_some() { return candidate; },
+                _ => {}
             }
         }
     }
