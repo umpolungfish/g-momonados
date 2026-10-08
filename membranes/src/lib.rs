@@ -191,10 +191,13 @@ pub fn main_membrane(name: &str, word: &str) {
         std::process::exit(2);
     };
     let (pair, ticks) = run(word, &n, 1, steps);
-    let pair = pair.or_else(|| ecm::factor(&n, 5_000, 50_000, 100));
+    let (pair, producer) = match pair {
+        Some(pair) => (Some(pair), "fixed-word frontier"),
+        None => (ecm::factor(&n, 5_000, 50_000, 100), "ECM continuation"),
+    };
     println!("membrane {name} input bits={} operator marks={}", n.bit_len(), word.chars().count());
     match pair {
-        Some((p, q)) => println!("factor={}\ncofactor={}\nproduct_closes={}\nIMASM ticks={ticks}",
+        Some((p, q)) => println!("producer={producer}\nfactor={}\ncofactor={}\nproduct_closes={}\nIMASM ticks={ticks}",
             to_word(&p), to_word(&q), mul(&p, &q) == n),
         None => println!("  no pair fixed within {steps} frontier steps\n  IMASM ticks={ticks}"),
     }
