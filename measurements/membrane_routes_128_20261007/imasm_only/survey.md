@@ -1,0 +1,11 @@
+# IMASM-word factor routes
+
+Every route in this comparison received a canonical IMASM numeral word for a 256-, 512-, or 1048-bit semiprime. The G arithmetic routes carry operands and results as `WordTape` values. The generated references are recorded separately and were not supplied to the factor routes.
+
+The first witness set has a 211 factor. ECM returned closing pairs at all three widths with B1=500, B2=500, and one curve. The radix-four lift also returned closing pairs at all three widths, using 2,000,000 states. All 13 fixed-word membranes returned closing pairs on the same inputs after their fixed-word frontier continued into ECM. Their per-route timings are in `../scaling/fixed_word_witness_sweep.json`.
+
+The second witness set has the 31-bit factor 2147483647. ECM returned closing pairs at all three widths with B1=5000, B2=50000, and 100 curves, in 11.304, 23.120, and 52.999 seconds. The aggregate fixed-word membrane, followed by the same ECM stage after 25,000 frontier steps, returned closing pairs in 12.473, 25.996, and 57.531 seconds. Inputs, factor references, logs, and timing records are in `../scaling/ecm_witness_p31/`.
+
+Balanced controls at 256, 512, and 1048 bits use equal-width prime factors. The radix-four route reached its 200,000-state cap without a pair at all three widths. The fixed-word aggregate route, with its earlier one-curve ECM continuation, and ECM at B1=1000, B2=3000, and eight curves also returned no pair. The Vox smart-factor and MPQS word routes each ran for 120 seconds on the balanced 256-bit control without returning a result. The planted balanced factors remain in `../scaling/cases.json` for result identification and were not passed to those routes.
+
+On the 256-bit semiprime with the 31-bit factor, radix-four reached 2,000,001 states in 133.522 seconds without a pair. The low-digit product congruences do not prune enough candidate prefixes at this factor width. The four order-route binaries accepted the canonical words at all three widths, but none returned a factor within the 2,048-iteration measurement cap; those runs simulate modular order cycles on `WordTape` and are not quantum-device executions. Full route timings and logs are in `../scaling/`.

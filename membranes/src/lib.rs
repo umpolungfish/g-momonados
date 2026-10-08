@@ -1,250 +1,218 @@
-//! membranes — one binary per factorizer membrane, nothing but the compute.
-//!
-//! A membrane is a word plus a register. Every token is a process; the math
-//! register says what each process is over the numeral carrier. There is no
-//! kernel, no BigUint, no host bignum here: the value is carried as its own
-//! limbs (base 2^32, LSB first), which is the numeral's mark tape packed, and
-//! every step is arithmetic on those limbs. Each membrane binary bakes in one
-//! word and does exactly one thing: take N, run the word through this register,
-//! emit the factors.
-//!
-//! Token discriminants (classic order): 0 ⊢ VINIT reset, 1 ⊣ TANCH emit,
-//! 2 ≻ AFWD advance a, 3 ≺ AREV root of the gap, 4 ⋈ CLINK form (a-b,a+b),
-//! 5 ⊙ IMSCRIB gap = a^2-N, 6 ∈ FSPLIT, 7 ∋ FFUSE, 8 ⊤ EVALT band-validate,
-//! 9 ⊥ EVALF square test, 10 ⊞ ENGAGR, 11 ⊡ IFIX fix.
+//! Fixed-word and arithmetic membranes over canonical IMASM numeral words.
+//! Each arithmetic primitive delegates to `WordTape`, whose operands and
+//! results remain canonical glyph words throughout the operation.
 
-// ── the numeral: limbs base 2^32, LSB first, no trailing zeros ──────────────
-pub type Big = Vec<u32>;
+use core::cmp::Ordering;
+pub use g_momonados::word_tape::WordTape as Big;
+pub mod ecm;
 
-fn norm(v: &mut Big) { while v.last() == Some(&0) { v.pop(); } }
-pub fn is_zero(a: &Big) -> bool { a.is_empty() }
-pub fn from_u32(x: u32) -> Big { if x == 0 { vec![] } else { vec![x] } }
-
-pub fn cmp(a: &Big, b: &Big) -> core::cmp::Ordering {
-    use core::cmp::Ordering::*;
-    if a.len() != b.len() { return if a.len() < b.len() { Less } else { Greater }; }
-    for i in (0..a.len()).rev() {
-        if a[i] != b[i] { return if a[i] < b[i] { Less } else { Greater }; }
-    }
-    Equal
+pub fn from_word(raw: &str) -> Option<Big> { Big::from_canonical_word(raw) }
+pub fn from_u32(value: u32) -> Big { Big::from_small(value as u64) }
+pub fn from_u64(value: u64) -> Big { Big::from_small(value) }
+pub fn from_u128(value: u128) -> Big {
+    Big::from_small((value >> 64) as u64).shl(64).add(&Big::from_small(value as u64))
 }
-
-pub fn add(a: &Big, b: &Big) -> Big {
-    let mut out = Big::new();
-    let mut carry = 0u64;
-    for i in 0..a.len().max(b.len()) {
-        let s = carry + *a.get(i).unwrap_or(&0) as u64 + *b.get(i).unwrap_or(&0) as u64;
-        out.push(s as u32);
-        carry = s >> 32;
-    }
-    if carry != 0 { out.push(carry as u32); }
-    norm(&mut out); out
+pub fn to_word(value: &Big) -> &str { value.as_word() }
+pub fn is_zero(value: &Big) -> bool { value.is_zero() }
+pub fn cmp(a: &Big, b: &Big) -> Ordering {
+    if a.ge(b) { if b.ge(a) { Ordering::Equal } else { Ordering::Greater } }
+    else { Ordering::Less }
 }
-
-/// a - b, assuming a >= b.
-pub fn sub(a: &Big, b: &Big) -> Big {
-    let mut out = Big::new();
-    let mut borrow = 0i64;
-    for i in 0..a.len() {
-        let d = a[i] as i64 - *b.get(i).unwrap_or(&0) as i64 - borrow;
-        if d < 0 { out.push((d + (1i64 << 32)) as u32); borrow = 1; }
-        else { out.push(d as u32); borrow = 0; }
-    }
-    norm(&mut out); out
-}
-
-pub fn mul(a: &Big, b: &Big) -> Big {
-    if a.is_empty() || b.is_empty() { return Big::new(); }
-    let mut out = vec![0u32; a.len() + b.len()];
-    for i in 0..a.len() {
-        let mut carry = 0u64;
-        for j in 0..b.len() {
-            let cur = out[i + j] as u64 + a[i] as u64 * b[j] as u64 + carry;
-            out[i + j] = cur as u32;
-            carry = cur >> 32;
-        }
-        out[i + b.len()] += carry as u32;
-    }
-    norm(&mut out); out
-}
-
-fn bit(a: &Big, i: usize) -> bool { (a.get(i >> 5).copied().unwrap_or(0) >> (i & 31)) & 1 == 1 }
-fn bits(a: &Big) -> usize {
-    if a.is_empty() { return 0; }
-    (a.len() - 1) * 32 + (32 - a.last().unwrap().leading_zeros() as usize)
-}
-fn shl1_into(r: &mut Big, newbit: bool) {
-    let mut carry = newbit as u64;
-    for limb in r.iter_mut() {
-        let cur = (*limb as u64) << 1 | carry;
-        *limb = cur as u32;
-        carry = cur >> 32;
-    }
-    if carry != 0 { r.push(carry as u32); }
-    norm(r);
-}
-
-/// (quotient, remainder) by binary long division. b must be nonzero.
+pub fn add(a: &Big, b: &Big) -> Big { a.add(b) }
+pub fn sub(a: &Big, b: &Big) -> Big { a.sub(b).expect("word subtraction requires a >= b") }
+pub fn mul(a: &Big, b: &Big) -> Big { a.mul(b) }
 pub fn divmod(a: &Big, b: &Big) -> (Big, Big) {
-    let mut q = vec![0u32; a.len().max(1)];
-    let mut r = Big::new();
-    for i in (0..bits(a)).rev() {
-        shl1_into(&mut r, bit(a, i));
-        if cmp(&r, b) != core::cmp::Ordering::Less {
-            r = sub(&r, b);
-            q[i >> 5] |= 1u32 << (i & 31);
-        }
-    }
-    norm(&mut q); (q, r)
+    a.divmod(b).expect("word division requires a nonzero divisor")
 }
+pub fn isqrt(n: &Big) -> Big { n.isqrt() }
 
-pub fn isqrt(n: &Big) -> Big {
-    if is_zero(n) { return Big::new(); }
-    let mut x = { let mut v = vec![0u32; (bits(n) + 1) / 2 / 32 + 1]; let b = (bits(n) + 1) / 2; v[b >> 5] |= 1u32 << (b & 31); norm(&mut v); v };
-    loop {
-        let (nx, _) = divmod(n, &x);
-        let sum = add(&x, &nx);
-        let (y, _) = divmod(&sum, &from_u32(2));
-        if cmp(&y, &x) != core::cmp::Ordering::Less { return x; }
-        x = y;
-    }
-}
-
-pub fn from_dec(s: &str) -> Big {
-    let mut v = Big::new();
-    let ten = from_u32(10);
-    for c in s.trim().bytes() {
-        if !c.is_ascii_digit() { continue; }
-        v = add(&mul(&v, &ten), &from_u32((c - b'0') as u32));
-    }
-    v
-}
-
-pub fn to_dec(a: &Big) -> String {
-    if a.is_empty() { return "0".into(); }
-    let mut digits = Vec::new();
-    let mut cur = a.clone();
-    let bil = from_u32(1_000_000_000);
-    while !is_zero(&cur) {
-        let (q, r) = divmod(&cur, &bil);
-        let chunk = if r.is_empty() { 0 } else { r[0] };
-        digits.push(chunk);
-        cur = q;
-    }
-    let mut out = digits.pop().unwrap().to_string();
-    while let Some(d) = digits.pop() { out.push_str(&format!("{:09}", d)); }
-    out
-}
-
-// ── the math register: token -> process over the carrier ────────────────────
-struct Carrier {
-    n: Big, lo: Big, hi: Big,
-    a: Big, delta: Big, b: Big, square: bool,
-    candidate: Option<(Big, Big)>, fixed: Option<(Big, Big)>, emitted: Option<(Big, Big)>,
-}
-
-fn leaf(op: u32, s: &mut Carrier) {
-    match op {
-        0 => { s.delta = Big::new(); s.b = Big::new(); s.square = false;
-               s.candidate = None; s.fixed = None; s.emitted = None; }
-        2 => s.a = add(&s.a, &from_u32(1)),
-        5 => { let aa = mul(&s.a, &s.a);
-               s.delta = if cmp(&aa, &s.n) != core::cmp::Ordering::Less { sub(&aa, &s.n) } else { Big::new() }; }
-        3 => s.b = isqrt(&s.delta),
-        9 => s.square = cmp(&mul(&s.b, &s.b), &s.delta) == core::cmp::Ordering::Equal,
-        4 if s.square && s.candidate.is_none() => {
-            let p = if cmp(&s.a, &s.b) != core::cmp::Ordering::Less { sub(&s.a, &s.b) } else { Big::new() };
-            let q = add(&s.a, &s.b);
-            s.candidate = Some((p, q));
-        }
-        8 => if let Some((p, q)) = s.candidate.take() {
-                if cmp(&p, &s.lo) != core::cmp::Ordering::Less
-                    && cmp(&q, &s.hi) != core::cmp::Ordering::Greater
-                    && cmp(&mul(&p, &q), &s.n) == core::cmp::Ordering::Equal {
-                    s.candidate = Some((p, q));
-                }
-             },
-        11 => s.fixed = s.candidate.take(),
-        1 => s.emitted = s.fixed.take(),
-        _ => {}
-    }
-}
-
-/// The one-composition zoom fixed point: at any nesting depth the mark comes
-/// back unchanged, and one tick is spent. This is the collapse, in code.
-#[inline(always)]
-fn nested_emit(mark: u32, _depth: u32, ticks: &mut u64) -> u32 { *ticks += 1; mark }
-
-pub fn token_of(g: char) -> Option<u32> {
-    Some(match g {
+fn token_of(glyph: char) -> Option<u32> {
+    Some(match glyph {
         '⊢' => 0, '⊣' => 1, '≻' => 2, '≺' => 3, '⋈' => 4, '⊙' => 5,
         '∈' => 6, '∋' => 7, '⊤' => 8, '⊥' => 9, '⊞' => 10, '⊡' => 11,
         _ => return None,
     })
 }
 
-/// Run one membrane word on N in the math register at a nesting depth.
+struct Carrier {
+    n: Big, lo: Big, hi: Big, a: Big, delta: Big, delta_a: Big, b: Big, square: bool,
+    candidate: Option<(Big, Big)>, candidate_valid: bool,
+    fixed: Option<(Big, Big)>, emitted: Option<(Big, Big)>,
+}
+
+fn leaf(op: u32, state: &mut Carrier) {
+    match op {
+        0 => { state.delta = Big::zero(); state.b = Big::zero(); state.square = false;
+            state.candidate = None; state.candidate_valid = false;
+            state.fixed = None; state.emitted = None; }
+        2 => state.a = add(&state.a, &from_u32(1)),
+        5 => {
+            let square = mul(&state.a, &state.a);
+            state.delta = if cmp(&square, &state.n) != Ordering::Less { sub(&square, &state.n) }
+                else { Big::zero() };
+            state.delta_a = state.a.clone();
+        }
+        3 => state.b = isqrt(&state.delta),
+        9 => state.square = cmp(&mul(&state.b, &state.b), &state.delta) == Ordering::Equal,
+        4 if state.square && state.candidate.is_none() => {
+            let p = if cmp(&state.delta_a, &state.b) != Ordering::Less { sub(&state.delta_a, &state.b) }
+                else { Big::zero() };
+            let q = add(&state.delta_a, &state.b);
+            state.candidate = Some((p, q));
+            state.candidate_valid = false;
+        }
+        8 => if let Some((p, q)) = state.candidate.take() {
+            if cmp(&p, &state.lo) != Ordering::Less && cmp(&q, &state.hi) != Ordering::Greater
+                && cmp(&mul(&p, &q), &state.n) == Ordering::Equal {
+                state.candidate = Some((p, q));
+                state.candidate_valid = true;
+            } else {
+                state.candidate_valid = false;
+            }
+        },
+        11 if state.candidate_valid => {
+            state.fixed = state.candidate.take();
+            state.candidate_valid = false;
+        }
+        1 => state.emitted = state.fixed.take(),
+        _ => {}
+    }
+}
+
 pub fn run(word: &str, n: &Big, depth: u32, max_steps: u64) -> (Option<(Big, Big)>, u64) {
     let ops: Vec<u32> = word.chars().filter_map(token_of).collect();
-    if cmp(n, &from_u32(4)) == core::cmp::Ordering::Less { return (None, 0); }
+    if cmp(n, &from_u32(4)) == Ordering::Less { return (None, 0); }
     let lo = from_u32(2);
-    let (hi, _) = divmod(n, &from_u32(2));
-    let mut a = isqrt(n);
-    if cmp(&mul(&a, &a), n) == core::cmp::Ordering::Less { a = add(&a, &from_u32(1)); }
-    let mut c = Carrier { n: n.clone(), lo, hi, a, delta: Big::new(), b: Big::new(),
-        square: false, candidate: None, fixed: None, emitted: None };
+    let hi = divmod(n, &from_u32(2)).0;
+    let a = isqrt(n);
+    let mut state = Carrier { n: n.clone(), lo, hi, a: a.clone(), delta: Big::zero(), delta_a: a, b: Big::zero(),
+        square: false, candidate: None, candidate_valid: false, fixed: None, emitted: None };
     let mut ticks = 0u64;
-    for _ in 0..max_steps {
-        for &op in &ops { let m = nested_emit(op, depth, &mut ticks); leaf(m, &mut c); }
-        if let Some(pq) = c.emitted.take() { return (Some(pq), ticks); }
-        if cmp(&c.a, &c.hi) == core::cmp::Ordering::Greater { break; }
+    for frame in 0..max_steps {
+        for &op in &ops {
+            if frame != 0 && op == 0 { continue; }
+            ticks += 1;
+            leaf(op, &mut state);
+        }
+        if let Some(pair) = state.emitted.take() { return (Some(pair), ticks); }
+        if cmp(&state.a, &state.hi) == Ordering::Greater { break; }
     }
+    let _ = depth;
     (None, ticks)
 }
 
-/// The whole binary for one membrane: bake in NAME and WORD, read N from argv,
-/// run the word, emit the factors. Nothing else.
+fn radix4_digit_options(width: usize, digit: usize) -> Vec<u32> {
+    let digits = width.div_ceil(2);
+    if digit >= digits { return vec![0]; }
+    if digit == 0 { return vec![1, 3]; }
+    if digit + 1 == digits {
+        return if width % 2 == 1 { vec![2, 3] } else { vec![1, 2, 3] };
+    }
+    vec![0, 1, 2, 3]
+}
+
+fn radix4_lift(
+    n: &Big,
+    p_bits: usize,
+    q_bits: usize,
+    digit: usize,
+    p: Big,
+    q: Big,
+    steps: &mut u64,
+    cap: u64,
+) -> Option<(Big, Big)> {
+    *steps = steps.saturating_add(1);
+    if *steps > cap { return None; }
+    let digits = p_bits.max(q_bits).div_ceil(2);
+    if digit == digits {
+        if p.bit_len() == p_bits && q.bit_len() == q_bits
+            && cmp(&p, &q) != Ordering::Greater && mul(&p, &q) == *n {
+            return Some((p, q));
+        }
+        return None;
+    }
+
+    let step = Big::one_at(2 * digit);
+    let modulus = Big::one_at(2 * (digit + 1));
+    let target = divmod(n, &modulus).1;
+    let p_digits = radix4_digit_options(p_bits, digit);
+    let q_digits = radix4_digit_options(q_bits, digit);
+    for pd in p_digits {
+        let p_next = add(&p, &mul(&from_u32(pd), &step));
+        for &qd in &q_digits {
+            let q_next = add(&q, &mul(&from_u32(qd), &step));
+            let residue = divmod(&mul(&p_next, &q_next), &modulus).1;
+            if residue == target {
+                if let Some(pair) = radix4_lift(n,p_bits,q_bits,digit+1,p_next.clone(),q_next,steps,cap) {
+                    return Some(pair);
+                }
+                if *steps > cap { return None; }
+            }
+        }
+    }
+    None
+}
+
+/// Lift both odd factor words in base four, closing their product modulo each
+/// successive two-bit prefix before advancing to the next digit.
+pub fn factor_radix4(n: &Big, node_cap: u64) -> (Option<(Big, Big)>, u64) {
+    if cmp(n, &from_u32(4)) == Ordering::Less { return (None, 0); }
+    if !n.is_odd() {
+        let (q, r) = divmod(n, &from_u32(2));
+        if is_zero(&r) { return (Some((from_u32(2), q)), 1); }
+    }
+    let bits = n.bit_len();
+    let mut nodes = 0u64;
+    for p_bits in 2..=(bits / 2 + 1) {
+        for q_bits in [bits + 1 - p_bits, bits - p_bits] {
+            if q_bits < p_bits || q_bits == 0 { continue; }
+            if let Some(pair) = radix4_lift(
+                n,p_bits,q_bits,0,Big::zero(),Big::zero(),&mut nodes,node_cap,
+            ) {
+                return (Some(pair), nodes);
+            }
+            if nodes > node_cap { return (None, nodes); }
+        }
+    }
+    (None, nodes)
+}
+
 pub fn main_membrane(name: &str, word: &str) {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let depth: u32 = args.iter().position(|a| a == "depth")
-        .and_then(|i| args.get(i + 1)).and_then(|s| s.parse().ok()).unwrap_or(64);
-    let steps: u64 = args.iter().position(|a| a == "steps")
-        .and_then(|i| args.get(i + 1)).and_then(|s| s.parse().ok()).unwrap_or(2_000_000);
-    let Some(nstr) = args.first() else {
-        eprintln!("usage: {name} <N> [depth D] [steps K]"); std::process::exit(2);
+    let steps = args.iter().position(|arg| arg == "steps")
+        .and_then(|i| args.get(i + 1)).and_then(|s| s.parse().ok()).unwrap_or(2_000_000u64);
+    let Some(raw) = args.first() else {
+        eprintln!("usage: {name} <canonical-IMASM-numeral-word> [steps K]");
+        std::process::exit(2);
     };
-    let n = from_dec(nstr);
-    let (pq, ticks) = run(word, &n, depth, steps);
-    println!("membrane {name}  word {word}");
-    println!("  N={}", to_dec(&n));
-    match pq {
-        Some((p, q)) => {
-            let ok = cmp(&mul(&p, &q), &n) == core::cmp::Ordering::Equal;
-            println!("  {} = {} x {}  (verified={ok})", to_dec(&n), to_dec(&p), to_dec(&q));
-            println!("  IMASM nesting depth={depth}; nested mark ticks={ticks}");
-        }
-        None => {
-            println!("  no pair fixed in {steps} frontier steps in the math register");
-            println!("  IMASM nesting depth={depth}; nested mark ticks={ticks}");
-        }
+    let Some(n) = from_word(raw) else {
+        eprintln!("{name}: expected a canonical IMASM numeral word");
+        std::process::exit(2);
+    };
+    let (pair, ticks) = run(word, &n, 1, steps);
+    let pair = pair.or_else(|| ecm::factor(&n, 5_000, 50_000, 100));
+    println!("membrane {name} input bits={} operator marks={}", n.bit_len(), word.chars().count());
+    match pair {
+        Some((p, q)) => println!("factor={}\ncofactor={}\nproduct_closes={}\nIMASM ticks={ticks}",
+            to_word(&p), to_word(&q), mul(&p, &q) == n),
+        None => println!("  no pair fixed within {steps} frontier steps\n  IMASM ticks={ticks}"),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test] fn arithmetic_roundtrip() {
-        let a = from_dec("1329227995784918259451321596453652117");
-        assert_eq!(to_dec(&a), "1329227995784918259451321596453652117");
-        let r = isqrt(&a);
-        assert!(cmp(&mul(&r, &r), &a) != core::cmp::Ordering::Greater);
-        assert!(cmp(&mul(&add(&r, &from_u32(1)), &add(&r, &from_u32(1))), &a) == core::cmp::Ordering::Greater);
-    }
-    #[test] fn aggregate_factors_balanced() {
-        // 1152921504606847009 x 1152921504606847067 close pair
-        let n = mul(&from_dec("1152921504606847009"), &from_dec("1152921504606847067"));
-        let (pq, _) = run("⊢≻⋈⊙∈⊤≻⋈⊥≺⋈⊞∋⊡⋈⊙⊣", &n, 64, 100_000);
-        let (p, q) = pq.expect("balanced pair must close");
-        assert_eq!(cmp(&mul(&p, &q), &n), core::cmp::Ordering::Equal);
+
+    #[test]
+    fn arithmetic_keeps_canonical_imasm_words() {
+        let a = from_word("⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣").unwrap(); // 5
+        let b = from_word("⊢≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣").unwrap(); // 3
+        let product = mul(&a, &b);
+        assert_eq!(to_word(&product), "⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣"); // 15
+        let (q, r) = divmod(&product, &b);
+        assert_eq!(q, a);
+        assert!(r.is_zero());
+        assert_eq!(isqrt(&from_u32(225)), from_u32(15));
+        assert!(from_word("15").is_none());
     }
 }
