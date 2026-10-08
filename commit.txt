@@ -1,5 +1,4 @@
-I share the IMASM order-cycle route
+I complete the 256/512/1048-bit order-cycle sweep
 
-I consolidate the Shor-order, squaring-cycle, and quantum-phase binaries on one
-WordTape implementation, keep instant-read as its own route, and retain the
-256-bit order-path measurement.
+I run the shared WordTape order route on the 31-bit-factor IMASM inputs, retain
+each result, and update the route timing record.
