@@ -1,5 +1,5 @@
-I profile radix-four branch growth on balanced controls
+I return one factor from the radix-four membrane
 
-I allocate half the search cap to balanced widths and report per-digit frame
-attempts and closures. The 256, 512, and 1048-bit profiles show where the
-balanced prefix tree begins branching.
+I keep the cofactor prefix as a product-closure constraint, recover the
+cofactor by exact WordTape division at the leaf, and print only the factor
+with its divisibility closure.
