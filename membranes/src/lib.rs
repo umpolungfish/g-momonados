@@ -5,6 +5,7 @@
 use core::cmp::Ordering;
 pub use g_momonados::word_tape::WordTape as Big;
 pub mod ecm;
+pub mod order_cycle;
 
 pub fn from_word(raw: &str) -> Option<Big> { Big::from_canonical_word(raw) }
 pub fn from_u32(value: u32) -> Big { Big::from_small(value as u64) }
