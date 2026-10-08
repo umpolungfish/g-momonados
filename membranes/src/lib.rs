@@ -191,8 +191,14 @@ fn radix4_lift(
     q: Big,
     steps: &mut u64,
     cap: u64,
+    stats: &mut Radix4Stats,
+    balanced_probe: bool,
 ) -> Option<(Big, Big)> {
     *steps = steps.saturating_add(1);
+    stats.recursive_entries[digit] = stats.recursive_entries[digit].saturating_add(1);
+    if balanced_probe {
+        stats.balanced_entries[digit] = stats.balanced_entries[digit].saturating_add(1);
+    }
     if *steps > cap { return None; }
     let digits = p_bits.max(q_bits).div_ceil(2);
     if digit == digits {
@@ -210,10 +216,20 @@ fn radix4_lift(
     let q_digits = radix4_digit_options(q_bits, digit);
     for pd in p_digits {
         for qd in &q_digits {
+            stats.prefix_frames[digit] = stats.prefix_frames[digit].saturating_add(1);
+            if balanced_probe {
+                stats.balanced_frames[digit] = stats.balanced_frames[digit].saturating_add(1);
+            }
             if let Some((p_next, q_next)) = radix4_prefix_frame(
                 &p, &q, &pd, qd, &step, &target, prefix_bits, p_bits, q_bits,
             ) {
-                if let Some(pair) = radix4_lift(n,p_bits,q_bits,digit+1,p_next,q_next,steps,cap) {
+                stats.prefix_closures[digit] = stats.prefix_closures[digit].saturating_add(1);
+                if balanced_probe {
+                    stats.balanced_closures[digit] = stats.balanced_closures[digit].saturating_add(1);
+                }
+                if let Some(pair) = radix4_lift(
+                    n,p_bits,q_bits,digit+1,p_next,q_next,steps,cap,stats,balanced_probe,
+                ) {
                     return Some(pair);
                 }
                 if *steps > cap { return None; }
@@ -223,18 +239,43 @@ fn radix4_lift(
     None
 }
 
+#[derive(Default)]
+pub struct Radix4Stats {
+    pub recursive_entries: Vec<u64>,
+    pub prefix_frames: Vec<u64>,
+    pub prefix_closures: Vec<u64>,
+    pub balanced_entries: Vec<u64>,
+    pub balanced_frames: Vec<u64>,
+    pub balanced_closures: Vec<u64>,
+}
+
 /// Lift both odd factor words in base four, closing their product modulo each
 /// successive two-bit prefix before advancing to the next digit.
-pub fn factor_radix4(n: &Big, node_cap: u64) -> (Option<(Big, Big)>, u64) {
-    if cmp(n, &from_u32(4)) == Ordering::Less { return (None, 0); }
+pub fn factor_radix4_with_stats(
+    n: &Big,
+    node_cap: u64,
+) -> (Option<(Big, Big)>, u64, Radix4Stats) {
+    if cmp(n, &from_u32(4)) == Ordering::Less {
+        return (None, 0, Radix4Stats::default());
+    }
     if !n.is_odd() {
         let (q, r) = divmod(n, &from_u32(2));
-        if is_zero(&r) { return (Some((from_u32(2), q)), 1); }
+        if is_zero(&r) { return (Some((from_u32(2), q)), 1, Radix4Stats::default()); }
     }
     let bits = n.bit_len();
     let mut nodes = 0u64;
+    let mut stats = Radix4Stats {
+        recursive_entries: vec![0; bits.div_ceil(2) + 1],
+        prefix_frames: vec![0; bits.div_ceil(2)],
+        prefix_closures: vec![0; bits.div_ceil(2)],
+        balanced_entries: vec![0; bits.div_ceil(2) + 1],
+        balanced_frames: vec![0; bits.div_ceil(2)],
+        balanced_closures: vec![0; bits.div_ceil(2)],
+    };
     let balanced_p_bits = bits / 2;
-    let balanced_probe_cap = (node_cap / 64).max(1).min(node_cap);
+    // Balanced semiprimes are the dominant hard shape. Give their two width
+    // splits half the shared cap before opening the remaining-width arm.
+    let balanced_probe_cap = (node_cap / 2).max(1).min(node_cap);
     for q_bits in [bits - balanced_p_bits, bits + 1 - balanced_p_bits] {
         if q_bits < balanced_p_bits { continue; }
         if let Some(pair) = radix4_lift(
@@ -246,8 +287,10 @@ pub fn factor_radix4(n: &Big, node_cap: u64) -> (Option<(Big, Big)>, u64) {
             Big::zero(),
             &mut nodes,
             balanced_probe_cap,
+            &mut stats,
+            true,
         ) {
-            return (Some(pair), nodes);
+            return (Some(pair), nodes, stats);
         }
     }
     for p_bits in 2..=(bits / 2 + 1) {
@@ -255,14 +298,19 @@ pub fn factor_radix4(n: &Big, node_cap: u64) -> (Option<(Big, Big)>, u64) {
         for q_bits in [bits + 1 - p_bits, bits - p_bits] {
             if q_bits < p_bits || q_bits == 0 { continue; }
             if let Some(pair) = radix4_lift(
-                n,p_bits,q_bits,0,Big::zero(),Big::zero(),&mut nodes,node_cap,
+                n,p_bits,q_bits,0,Big::zero(),Big::zero(),&mut nodes,node_cap,&mut stats,false,
             ) {
-                return (Some(pair), nodes);
+                return (Some(pair), nodes, stats);
             }
-            if nodes > node_cap { return (None, nodes); }
+            if nodes > node_cap { return (None, nodes, stats); }
         }
     }
-    (None, nodes)
+    (None, nodes, stats)
+}
+
+pub fn factor_radix4(n: &Big, node_cap: u64) -> (Option<(Big, Big)>, u64) {
+    let (pair, nodes, _) = factor_radix4_with_stats(n, node_cap);
+    (pair, nodes)
 }
 
 pub fn main_membrane(name: &str, word: &str) {
