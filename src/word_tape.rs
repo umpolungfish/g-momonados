@@ -164,7 +164,7 @@ impl WordTape {
     /// Low `k` bit-cells — x mod 2^k — read from the value's own word, not a
     /// conversion to another numeral system. `k` past the bit length returns
     /// the value unchanged (its low bits are all of it).
-    pub(crate) fn truncate(&self, k: usize) -> Self {
+    pub fn truncate(&self, k: usize) -> Self {
         let bits = self.bits_low_first();
         let k = k.min(bits.len());
         Self::from_bits(&bits[..k])
