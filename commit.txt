@@ -1,4 +1,5 @@
-I record the nested Vox carrier scaling
+I profile radix-four branch growth on balanced controls
 
-I add the 256, 512, and 1048-bit carrier results and their wiring artifact to
-the route survey.
+I allocate half the search cap to balanced widths and report per-digit frame
+attempts and closures. The 256, 512, and 1048-bit profiles show where the
+balanced prefix tree begins branching.
