@@ -1,3 +1,4 @@
-I clarify the nested route wiring audit
+I record the nested Vox carrier scaling
 
-I label the IMASM trace field that records register-cycle closure and remove superseded route records from the current survey.
+I add the 256, 512, and 1048-bit carrier results and their wiring artifact to
+the route survey.
