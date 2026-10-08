@@ -7,6 +7,9 @@ edition = "2021"
 name = "membranes"
 path = "src/lib.rs"
 
+[dependencies]
+g-momonados = { path = ".." }
+
 [profile.release]
 opt-level = 3
 lto = true
@@ -71,3 +74,19 @@ path = "src/bin/instant_read.rs"
 [[bin]]
 name = "membrane_squaring_cycle"
 path = "src/bin/squaring_cycle.rs"
+
+[[bin]]
+name = "membrane_shor_order"
+path = "src/bin/shor_order.rs"
+
+[[bin]]
+name = "membrane_quantum_phase"
+path = "src/bin/quantum_phase.rs"
+
+[[bin]]
+name = "membrane_ecm_extract"
+path = "src/bin/ecm_extract.rs"
+
+[[bin]]
+name = "membrane_radix4_factor"
+path = "src/bin/radix4_factor.rs"

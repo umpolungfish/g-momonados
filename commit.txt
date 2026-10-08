@@ -1,6 +1,6 @@
-I retain my produced 200-bit prime factor pair
+I run the IMASM factor membranes at 256, 512, and 1048 bits
 
-I run Vox's shape-routed factor engine on my retained source and obtain
-1052452944372616320151665525701 and 1098875461465110610298129540609.
-Their product equals the complete source and PARI proves both factors prime.
-I retain the actual producer, terminal output, and executable hash.
+I carry ECM, radix-four, fixed-word, and order-route operands as canonical
+WordTape numerals. I widen the fixed-word continuation to the 100-curve ECM
+stage, then measure its factors on all three widths. I keep the generated
+semiprime words, factor references, route output, and scaling results.

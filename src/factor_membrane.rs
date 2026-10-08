@@ -27,6 +27,7 @@ use crate::native_numeral::{
 
 };
 use num_bigint::BigInt;
+use crate::word_tape::WordTape;
 
 pub const WORD: &str = "⊢∈⊞≺∋⊡⊣";
 
@@ -195,6 +196,210 @@ fn prime_indecomposable(n: &BigUint) -> bool {
     is_prime_miller_rabin(n).0
 }
 
+/// Signed Hensel carry held as an IMASM magnitude word plus its orientation.
+#[derive(Clone)]
+struct SignedWord { negative: bool, magnitude: WordTape }
+
+impl SignedWord {
+    fn zero() -> Self { Self { negative: false, magnitude: WordTape::zero() } }
+    fn negative(magnitude: WordTape) -> Self {
+        let negative = !magnitude.is_zero();
+        Self { negative, magnitude }
+    }
+    fn is_zero(&self) -> bool { self.magnitude.is_zero() }
+    fn add_magnitude(&self, value: &WordTape) -> Self {
+        if self.negative {
+            if self.magnitude.ge(value) {
+                let magnitude = self.magnitude.sub(value).unwrap();
+                let negative = !magnitude.is_zero();
+                Self { negative, magnitude }
+            } else {
+                Self { negative: false, magnitude: value.sub(&self.magnitude).unwrap() }
+            }
+        } else {
+            Self { negative: false, magnitude: self.magnitude.add(value) }
+        }
+    }
+    fn halve_even(&self) -> Self {
+        debug_assert!(!self.magnitude.is_odd());
+        let magnitude = self.magnitude.shr1();
+        let negative = self.negative && !magnitude.is_zero();
+        Self { negative, magnitude }
+    }
+}
+
+fn hensel_unbraid_word(
+    n: &WordTape, p_bits: usize, q_bits: usize, k: usize,
+    p: WordTape, q: WordTape, carry: SignedWord,
+    nodes: &mut u64, cap: u64,
+) -> Option<(WordTape, WordTape)> {
+    *nodes = nodes.saturating_add(1);
+    if *nodes > cap { return None; }
+    let short = p_bits.min(q_bits);
+    let long = p_bits.max(q_bits);
+    if k == long {
+        return if carry.is_zero() && p.mul(&q) == *n { Some((p, q)) } else { None };
+    }
+    let c_parity = carry.magnitude.is_odd() as u8;
+    let p_open = k < p_bits;
+    let q_open = k < q_bits;
+    let step = WordTape::one_at(k);
+    if k < short {
+        for p_bit in [0u8, 1] {
+            let q_bit = (c_parity + p_bit) % 2;
+            let new_p = if p_bit == 1 { p.add(&step) } else { p.clone() };
+            let new_q = if q_bit == 1 { q.add(&step) } else { q.clone() };
+            let mut contribution = WordTape::zero();
+            if p_bit == 1 { contribution = contribution.add(&q); }
+            if q_bit == 1 { contribution = contribution.add(&p); }
+            if p_bit == 1 && q_bit == 1 { contribution = contribution.add(&step); }
+            let new_carry = carry.add_magnitude(&contribution).halve_even();
+            if let Some(pair) = hensel_unbraid_word(n, p_bits, q_bits, k+1, new_p, new_q, new_carry, nodes, cap) {
+                return Some(pair);
+            }
+            if *nodes > cap { return None; }
+        }
+        None
+    } else {
+        let bit = c_parity;
+        let (new_p, new_q, contribution) = if p_open {
+            (if bit == 1 { p.add(&step) } else { p.clone() }, q.clone(), if bit == 1 { q.clone() } else { WordTape::zero() })
+        } else if q_open {
+            (p.clone(), if bit == 1 { q.add(&step) } else { q.clone() }, if bit == 1 { p.clone() } else { WordTape::zero() })
+        } else {
+            return if carry.is_zero() && p.mul(&q) == *n { Some((p, q)) } else { None };
+        };
+        let new_carry = carry.add_magnitude(&contribution).halve_even();
+        hensel_unbraid_word(n, p_bits, q_bits, k+1, new_p, new_q, new_carry, nodes, cap)
+    }
+}
+
+fn range_prune_unbraid_word(
+    n: &WordTape, p_bits: usize, q_bits: usize, pos: i64,
+    p: WordTape, q: WordTape, nodes: &mut u64, cap: u64,
+) -> Option<(WordTape, WordTape)> {
+    *nodes = nodes.saturating_add(1);
+    if *nodes > cap { return None; }
+    if pos < 0 { return if p.mul(&q) == *n { Some((p, q)) } else { None }; }
+    let span = WordTape::one_at((pos as usize)+1).sub(&WordTape::one()).unwrap();
+    let p_max = p.add(&span);
+    let q_max = q.add(&span);
+    if p.mul(&q).gt(n) || n.gt(&p_max.mul(&q_max)) { return None; }
+    let p_free = (pos as usize) < p_bits.saturating_sub(1) && pos > 0;
+    let q_free = (pos as usize) < q_bits.saturating_sub(1) && pos > 0;
+    let choices = |free: bool| -> &'static [u8] { if free { &[0,1] } else if pos == 0 { &[1] } else { &[0] } };
+    let step = WordTape::one_at(pos as usize);
+    for &pb in choices(p_free) {
+        let p_next = if pb == 1 { p.add(&step) } else { p.clone() };
+        for &qb in choices(q_free) {
+            let q_next = if qb == 1 { q.add(&step) } else { q.clone() };
+            if let Some(pair) = range_prune_unbraid_word(n, p_bits, q_bits, pos-1, p_next.clone(), q_next, nodes, cap) {
+                return Some(pair);
+            }
+            if *nodes > cap { return None; }
+        }
+    }
+    None
+}
+
+/// Factor search with every value and every intermediate arithmetic result
+/// kept as its canonical IMASM numeral word.
+fn propagate_word_states_imasm(n: &WordTape) -> Option<(WordTape, WordTape)> {
+    let one = WordTape::one();
+    if n.is_zero() || n.is_one() { return None; }
+    if !n.is_odd() {
+        let (q, r) = n.divmod(&WordTape::from_small(2))?;
+        if r.is_zero() { return Some((WordTape::from_small(2), q)); }
+        return None;
+    }
+    let total_bits = n.bit_len();
+    let n_minus_one = n.sub(&one)?;
+    let (carry0, _) = n_minus_one.divmod(&WordTape::from_small(2))?;
+    for p_bits in (2..=(total_bits/2+1)).rev() {
+        for q_bits in [total_bits+1-p_bits, total_bits-p_bits] {
+            if q_bits < p_bits || q_bits == 0 { continue; }
+            let mut nodes = 0u64;
+            let carry = SignedWord::negative(carry0.clone());
+            if let Some(pair) = hensel_unbraid_word(n,p_bits,q_bits,1,one.clone(),one.clone(),carry,&mut nodes,u64::MAX) {
+                return Some(pair);
+            }
+            let mut nodes = 0u64;
+            let start_pos = p_bits.max(q_bits) as i64 - 2;
+            let p_hi = WordTape::one_at(p_bits-1);
+            let q_hi = WordTape::one_at(q_bits-1);
+            if let Some(pair) = range_prune_unbraid_word(n,p_bits,q_bits,start_pos,p_hi,q_hi,&mut nodes,u64::MAX) {
+                return Some(pair);
+            }
+        }
+    }
+    None
+}
+
+fn modpow_word(base: &WordTape, exponent: &WordTape, modulus: &WordTape) -> WordTape {
+    let mut power = base.divmod(modulus).map(|x| x.1).unwrap_or_else(WordTape::zero);
+    let mut exp = exponent.clone();
+    let mut result = WordTape::one();
+    while !exp.is_zero() {
+        if exp.is_odd() { result = result.mul(&power).divmod(modulus).unwrap().1; }
+        exp = exp.shr1();
+        if !exp.is_zero() { power = power.mul(&power).divmod(modulus).unwrap().1; }
+    }
+    result
+}
+
+fn prime_word(n: &WordTape) -> bool {
+    let two = WordTape::from_small(2);
+    if !n.ge(&two) { return false; }
+    for small in [2u64,3,5,7,11,13,17,19,23,29,31,37] {
+        let p = WordTape::from_small(small);
+        if *n == p { return true; }
+        if n.divmod(&p).map(|x| x.1.is_zero()).unwrap_or(false) { return false; }
+    }
+    let one = WordTape::one();
+    let n_minus_one = n.sub(&one).unwrap();
+    let mut d = n_minus_one.clone();
+    let mut s = 0usize;
+    while !d.is_odd() { d = d.shr1(); s += 1; }
+    for witness in [2u64,3,5,7,11,13,17,19,23,29,31,37] {
+        let a = WordTape::from_small(witness);
+        let a = if a.ge(n) { a.divmod(n).unwrap().1 } else { a };
+        if a.is_zero() || a.is_one() { continue; }
+        let mut x = modpow_word(&a, &d, n);
+        if x.is_one() || x == n_minus_one { continue; }
+        let mut passed = false;
+        for _ in 1..s {
+            x = x.mul(&x).divmod(n).unwrap().1;
+            if x == n_minus_one { passed = true; break; }
+            if x.is_one() { break; }
+        }
+        if !passed { return false; }
+    }
+    true
+}
+
+fn coevolve_factor_tree_word(value: &WordTape, depth: usize, out: &mut String, budget: &mut u32) {
+    let indent = "  ".repeat(depth);
+    if *budget == 0 { out.push_str(&format!("{}... (node budget reached)\n", indent)); return; }
+    *budget -= 1;
+    let (seed_p, seed_q) = value.deinterlace();
+    let seed_roundtrip = seed_p.interlace(&seed_q) == *value;
+    if value.is_zero() || value.is_one() {
+        out.push_str(&format!("{}{} UNIT\n", indent, value.as_word()));
+    } else if prime_word(value) {
+        out.push_str(&format!("{}{} PRIME [Γ(Λ(W))==W:{}]\n", indent, value.as_word(), seed_roundtrip));
+    } else if let Some((p,q)) = propagate_word_states_imasm(value) {
+        let pair_word = p.interlace(&q);
+        let (p_back,q_back) = pair_word.deinterlace();
+        let closes = p.mul(&q) == *value && p_back == p && q_back == q;
+        out.push_str(&format!("{}{} = {} × {} [μ closes:{}; ΓΛ closes:{}]\n", indent,
+            value.as_word(), p.as_word(), q.as_word(), p.mul(&q)==*value, closes));
+        coevolve_factor_tree_word(&p,depth+1,out,budget);
+        coevolve_factor_tree_word(&q,depth+1,out,budget);
+    } else {
+        out.push_str(&format!("{}{} UNFACTORED [Γ(Λ(W))==W:{}]\n", indent, value.as_word(), seed_roundtrip));
+    }
+}
+
 
 fn canonical_numeral_word(raw: &str) -> Option<String> {
     let raw = raw.trim();
@@ -286,109 +491,95 @@ fn coevolve_factor_tree(value: &BigUint, prefix: &str, out: &mut String, budget:
 pub fn repl_factor_membrane(args: &[&str]) -> String {
     if args.is_empty() || args[0] == "help" {
         return String::from(
-"factor_membrane — every numeric operand accepts DECIMAL or canonical NATIVE-WORD\n\
- factor <x>       factor x, then require encode/Γ/Λ/μ syzygy closure\n\
- cross <x>        canonical Λ split of x\n\
- separate <x>     same canonical Λ split, named as membrane separation\n\
- word <p> <q>     Γ-interlace p and q; each may be decimal or native-word\n\
- recurse <x>      two-arm co-evolution tree: δ seeds, μ closes, both branches descend to primes\n\
- encode <x>       decimal encodes; native-word canonicalizes idempotently\n\
- All public paths use native_numeral::encode as the single representation."
+"factor_membrane — every numeric operand is a canonical IMASM numeral word\n\
+ factor <word>       factor with word-state propagation and close Γ/Λ/μ on words\n\
+ cross <word>        deinterlace and multiply the two word lanes\n\
+ separate <word>     cross, named as membrane separation\n\
+ word <p-word> <q-word>  Γ-interlace and multiply two numeral words\n\
+ recurse <word>      two-arm co-evolution tree over numeral words\n\
+ encode <word>       read a canonical word and return it unchanged\n\
+ Decimal operands are not accepted by the membrane."
         );
     }
 
     match args[0] {
         "encode" => {
-            if args.len() < 2 { return String::from("usage: factor_membrane encode <decimal|native-word>"); }
+            if args.len() != 2 { return String::from("usage: factor_membrane encode <canonical-native-word>"); }
             let raw = args[1..].join(" ");
-            let w = match canonical_numeral_word(&raw) {
+            let w = match WordTape::from_canonical_word(&raw) {
                 Some(w) => w,
-                None => return String::from("expected decimal or canonical native_numeral word"),
+                None => return String::from("expected a canonical native_numeral word"),
             };
-            let n = numeral_decode(&w).unwrap();
-            let back = numeral_encode(&n.to_string()) == w && numeral_decode(&w).map(|x| x == n).unwrap_or(false);
-            format!("{}  (canonical native_numeral; value={} idempotent={})", w, n, back)
+            format!("{}  (canonical native_numeral; idempotent=true)", w.as_word())
         }
 
         "word" => {
-            if args.len() < 3 { return String::from("usage: factor_membrane word <decimal|native-word P> <decimal|native-word Q>"); }
-            let (p, q) = match (membrane_value(args[1]), membrane_value(args[2])) {
-                (Some(a), Some(b)) => (a, b), _ => return String::from("bad P/Q: each must be decimal or canonical native word"),
+            if args.len() != 3 { return String::from("usage: factor_membrane word <P-native-word> <Q-native-word>"); }
+            let (p, q) = match (WordTape::from_canonical_word(args[1]), WordTape::from_canonical_word(args[2])) {
+                (Some(a), Some(b)) => (a, b), _ => return String::from("bad P/Q: each must be a canonical native word"),
             };
-            let n = &p * &q;
-            let w = match canonical_pair_word(&p, &q) {
-                Some(w) => w,
-                None => return String::from("interlace failed"),
-            };
-            let syz = syzygy_preserves(&n, &p, &q);
-            format!("{}  (P={} Q={} N=P*Q={} syzygy_preserves={})", w, p, q, n, syz)
+            let n = p.mul(&q);
+            let w = p.interlace(&q);
+            let (p_back,q_back) = w.deinterlace();
+            format!("{}  (P={} Q={} μ(P,Q)={} Λ(Γ(P,Q))==(P,Q):{})",
+                w.as_word(), p.as_word(), q.as_word(), n.as_word(), p_back == p && q_back == q)
         }
 
         "cross" | "separate" => {
-            if args.len() < 2 { return String::from("usage: factor_membrane cross <encode-word|N>"); }
+            if args.len() != 2 { return String::from("usage: factor_membrane cross <canonical-native-word>"); }
             let raw = args[1..].join(" ");
-            let w = match canonical_numeral_word(&raw) {
+            let w = match WordTape::from_canonical_word(&raw) {
                 Some(w) => w,
-                None => return String::from("expected decimal N or canonical native_numeral encode word"),
+                None => return String::from("expected a canonical native_numeral word"),
             };
-            let full = numeral_decode(&w).unwrap();
-            let (pw, qw) = match deinterlace_word(&w) {
-                Ok(v) => v,
-                Err(e) => return format!("cross failed: {}", e),
-            };
-            let p = numeral_decode(&pw).unwrap();
-            let q = numeral_decode(&qw).unwrap();
-            let lane_n = &p * &q;
-            let roundtrip = interlace_words(&pw, &qw).map(|x| x == w).unwrap_or(false);
-            // Γ∘Λ=id is only the representation round-trip.  The factor
-            // syzygy is stronger: μ(p,q) must close on THIS parent value.
-            let parent_syzygy = syzygy_preserves(&full, &p, &q);
+            let (p,q) = w.deinterlace();
+            let lane_n = p.mul(&q);
+            let roundtrip = p.interlace(&q) == w;
             format!(
-                "W={}\nΛ(W).p={}\nΛ(W).q={}\np={}\nq={}\nΓ(Λ(W))==W: {}\nfull decode(W)={}\nμ(p,q)={}\nμ(p,q)==decode(W): {}\nsyzygy preserves [parent; Γ; Λ; μ]: {}",
-                w, pw, qw, p, q, roundtrip, full, lane_n, lane_n == full, parent_syzygy
+                "W={}\nΛ(W).p={}\nΛ(W).q={}\nΓ(Λ(W))==W: {}\nμ(p,q)={}\nμ(p,q)==W: {}",
+                w.as_word(), p.as_word(), q.as_word(), roundtrip, lane_n.as_word(), lane_n == w
             )
         }
 
         "factor" => {
-            if args.len() < 2 { return String::from("usage: factor_membrane factor <encode-word|N>"); }
+            if args.len() != 2 { return String::from("usage: factor_membrane factor <canonical-native-word>"); }
             let raw = args[1..].join(" ");
-            let n_word = match canonical_numeral_word(&raw) {
+            let n = match WordTape::from_canonical_word(&raw) {
                 Some(w) => w,
-                None => return String::from("INVALID: expected decimal N or canonical native_numeral encode word"),
+                None => return String::from("INVALID: expected a canonical native_numeral word"),
             };
-            let n = numeral_decode(&n_word).unwrap();
-            if n == BigUint::zero() || n == BigUint::one() {
-                return format!("N={}\nencode(N)={}\nUNIT: no two-factor descent exists", n, n_word);
+            if n.is_zero() || n.is_one() {
+                return format!("N={}\nUNIT: no two-factor descent exists", n.as_word());
             }
-            match propagate_word_states(&n) {
+            match propagate_word_states_imasm(&n) {
                 Some((p, q)) => {
-                    if !syzygy_preserves(&n, &p, &q) {
-                        return format!("INTERNAL SYZYGY FAILURE after factor_membrane factor N={}", n);
+                    let d = p.interlace(&q);
+                    let (p_back, q_back) = d.deinterlace();
+                    let product_closes = p.mul(&q) == n;
+                    let representation_closes = p_back == p && q_back == q;
+                    if !product_closes || !representation_closes {
+                        return format!("IMASM closure failed for N={}", n.as_word());
                     }
-                    let d = canonical_pair_word(&p, &q).unwrap();
-                    let (pw, qw) = deinterlace_word(&d).unwrap();
                     format!(
-                        "N={}\nencode(N)={}\nCOMPOSITE-found\np={}\nq={}\nΓ(encode(p),encode(q))={}\nΛ.p={}\nΛ.q={}\np*q==N: {}\nsyzygy preserves [encode; Γ; Λ; μ]: true",
-                        n, n_word, p, q, d, pw, qw, multiply_via_word(&p, &q) == n
+                        "N={}\nCOMPOSITE-found\np={}\nq={}\nΓ(p,q)={}\nΛ.p={}\nΛ.q={}\nμ(p,q)==N: true\nΛ(Γ(p,q))==(p,q): true",
+                        n.as_word(), p.as_word(), q.as_word(), d.as_word(), p_back.as_word(), q_back.as_word()
                     )
                 }
-                None if prime_indecomposable(&n) => format!("N={}\nencode(N)={}\nPRIME-INDECOMPOSABLE: exhaustive word-state propagation closed with no daughter pair; no two-factor unbraid exists", n, n_word),
-                None => format!("N={}\nencode(N)={}\nPRIME-INDECOMPOSABLE: exhaustive word-state propagation closed with no daughter pair", n, n_word),
+                None => format!("N={}\nno factor pair emitted by the two-arm word-state propagation", n.as_word()),
             }
         }
 
         "recurse" => {
-            if args.len() < 2 { return String::from("usage: factor_membrane recurse <decimal|native-word>"); }
+            if args.len() != 2 { return String::from("usage: factor_membrane recurse <canonical-native-word>"); }
             let raw = args[1..].join(" ");
-            let w = match canonical_numeral_word(&raw) {
+            let value = match WordTape::from_canonical_word(&raw) {
                 Some(w) => w,
-                None => return String::from("INVALID: expected decimal or canonical native_numeral word"),
+                None => return String::from("INVALID: expected a canonical native_numeral word"),
             };
-            let value = numeral_decode(&w).unwrap();
             let mut out = String::from(
-                "two-arm co-evolution tree — δ seeds both lanes, μ closes on the value, both branches descend:\n");
+                "two-arm co-evolution tree — δ seeds, μ closes, both branches descend:\n");
             let mut budget = 4096u32;
-            coevolve_factor_tree(&value, "  ", &mut out, &mut budget);
+            coevolve_factor_tree_word(&value, 1, &mut out, &mut budget);
             out
         }
 
@@ -457,11 +648,11 @@ pub fn repl_factor_membrane(args: &[&str]) -> String {
         assert!(syzygy_preserves(&n, &p, &q));
     }
 
-    #[test] fn public_factor_accepts_native_encode_word_and_requires_syzygy() {
+    #[test] fn public_factor_runs_from_word_and_closes_factor_diagram() {
         let w = numeral_encode("91");
         let report = repl_factor_membrane(&["factor", &w]);
-        assert!(report.contains("p*q==N: true"));
-        assert!(report.contains("syzygy preserves [encode; Γ; Λ; μ]: true"));
+        assert!(report.contains("μ(p,q)==N: true"));
+        assert!(report.contains("Λ(Γ(p,q))==(p,q): true"));
     }
 
     #[test] fn public_cross_is_gamma_lambda_identity_on_canonical_words() {
@@ -472,45 +663,39 @@ pub fn repl_factor_membrane(args: &[&str]) -> String {
         let p = big("13");
         let q = big("17");
         let d = canonical_pair_word(&p, &q).unwrap();
-        assert_eq!(numeral_decode(&d).unwrap(), big("595"));
         let report = repl_factor_membrane(&["cross", &d]);
         assert!(report.contains("Γ(Λ(W))==W: true"));
-        assert!(report.contains("μ(p,q)==decode(W): false"));
-        assert!(report.contains("syzygy preserves [parent; Γ; Λ; μ]: false"));
+        assert!(report.contains("μ(p,q)==W: false"));
     }
-    #[test] fn every_public_option_accepts_decimal_and_native_word() {
+    #[test] fn every_public_option_requires_canonical_native_words() {
         let w91 = numeral_encode("91");
         let w13 = numeral_encode("13");
         let w17 = numeral_encode("17");
 
-        for x in ["91", w91.as_str()] {
-            assert!(!repl_factor_membrane(&["encode", x]).contains("expected decimal"));
-            assert!(!repl_factor_membrane(&["cross", x]).contains("expected decimal"));
-            assert!(!repl_factor_membrane(&["separate", x]).contains("expected decimal"));
-            assert!(!repl_factor_membrane(&["factor", x]).contains("expected decimal"));
-            assert!(!repl_factor_membrane(&["recurse", x]).contains("expected decimal"));
+        for op in ["encode", "cross", "separate", "factor", "recurse"] {
+            assert!(repl_factor_membrane(&[op, "91"]).contains("canonical native_numeral word"));
         }
-
-        assert!(!repl_factor_membrane(&["word", "13", "17"]).contains("bad P/Q"));
         assert!(!repl_factor_membrane(&["word", &w13, &w17]).contains("bad P/Q"));
-        assert!(!repl_factor_membrane(&["word", "13", &w17]).contains("bad P/Q"));
-        assert!(!repl_factor_membrane(&["word", &w13, "17"]).contains("bad P/Q"));
+        assert!(repl_factor_membrane(&["word", "13", &w17]).contains("bad P/Q"));
+        assert!(repl_factor_membrane(&["word", &w13, "17"]).contains("bad P/Q"));
+        assert!(repl_factor_membrane(&["word", "13", "17"]).contains("bad P/Q"));
+        assert!(repl_factor_membrane(&["factor", &w91]).contains("COMPOSITE-found"));
     }
 
     #[test] fn recurse_is_two_arm_tree_both_branches_descend() {
-        // 15959 is prime: the tree is a single PRIME leaf and Γ∘δ=id holds
-        // on the dyadic seed. No factorization line, no children.
-        let report = repl_factor_membrane(&["recurse", "15959"]);
-        assert!(report.contains("15959 PRIME"));
-        assert!(report.contains("Γ∘δ=id:true"));
-        assert!(!report.contains("15959 = "));
+        let prime = numeral_encode("15959");
+        let report = repl_factor_membrane(&["recurse", &prime]);
+        assert!(report.contains("PRIME"));
         // 91 = 7 × 13: μ closes on 91, and BOTH children are recursed to
         // prime leaves. Following only the even lane would drop one of them;
         // here both 7 and 13 appear as PRIME leaves.
-        let report91 = repl_factor_membrane(&["recurse", "91"]);
+        let w91 = numeral_encode("91");
+        let w7 = numeral_encode("7");
+        let w13 = numeral_encode("13");
+        let report91 = repl_factor_membrane(&["recurse", &w91]);
         assert!(report91.contains("μ closes:true"));
-        assert!(report91.contains("7 PRIME"));
-        assert!(report91.contains("13 PRIME"));
+        assert!(report91.contains(&format!("{} PRIME", w7)));
+        assert!(report91.contains(&format!("{} PRIME", w13)));
     }
 
     #[test] fn propagator_closes_large_composite_through_membrane() {
@@ -519,16 +704,17 @@ pub fn repl_factor_membrane(args: &[&str]) -> String {
         let (px, qx) = propagate_word_states(&n).unwrap();
         assert_eq!(multiply_via_word(&px, &qx), n);
         assert!(syzygy_preserves(&n, &px, &qx));
-        let report = repl_factor_membrane(&["factor", "100160063"]);
+        let w = numeral_encode("100160063");
+        let report = repl_factor_membrane(&["factor", &w]);
         assert!(report.contains("COMPOSITE-found"));
-        assert!(report.contains("syzygy preserves [encode; Γ; Λ; μ]: true"));
+        assert!(report.contains("μ(p,q)==N: true"));
     }
 
     #[test] fn cross_distinguishes_lane_roundtrip_from_parent_factor_syzygy() {
-        let report = repl_factor_membrane(&["cross", "15959"]);
+        let word = numeral_encode("15959");
+        let report = repl_factor_membrane(&["cross", &word]);
         assert!(report.contains("Γ(Λ(W))==W: true"));
-        assert!(report.contains("μ(p,q)==decode(W): false"));
-        assert!(report.contains("syzygy preserves [parent; Γ; Λ; μ]: false"));
+        assert!(report.contains("μ(p,q)==W: false"));
     }
 
 }
