@@ -348,9 +348,19 @@ fn run_pipeline(st: &mut GnfsState) -> Result<(), String> {
 
 /// Run the full GNFS pipeline for N.
 pub fn run_factor(n_str: &str, b: u64) -> String {
-    let n: BigUint = match n_str.trim().parse() {
-        Ok(v) => v,
-        Err(_) => return format!("gpu_gnfs: '{n_str}' not an integer"),
+    let input = n_str.trim();
+    let word_input = input.starts_with('⊢');
+    let n: BigUint = if word_input {
+        match crate::native_numeral::decode(input) {
+            Some(value) if crate::native_numeral::encode(&value.to_string()) == input => value,
+            None => return String::from("gpu_gnfs: malformed canonical IMASM numeral word"),
+            Some(_) => return String::from("gpu_gnfs: numeral word is not canonical"),
+        }
+    } else {
+        match input.parse() {
+            Ok(value) => value,
+            Err(_) => return format!("gpu_gnfs: '{n_str}' not an integer or canonical IMASM numeral word"),
+        }
     };
     if n.is_zero() || n.is_one() {
         return format!("gpu_gnfs: N={n} is not a composite target");
@@ -390,6 +400,23 @@ pub fn run_factor(n_str: &str, b: u64) -> String {
                     .unwrap_or_default();
                 let nrel = st.relations.len();
                 let ndep = st.deps.len();
+                if word_input {
+                    let factor_word = crate::native_numeral::encode(&f.to_string());
+                    let cofactor_word = crate::native_numeral::encode(&cof.to_string());
+                    return format!(
+                        "gpu_gnfs input_bits={} factor_word={} cofactor_word={} product_closes=true{} relations={} deps={} B={} gpu={} device={} gpu_ms={}",
+                        st.n.bits(),
+                        factor_word,
+                        cofactor_word,
+                        poly_note,
+                        nrel,
+                        ndep,
+                        st.b,
+                        st.sieve.as_ref().map(|s| s.used_gpu).unwrap_or(false),
+                        st.sieve.as_ref().map(|s| s.device).unwrap_or(0),
+                        st.sieve.as_ref().map(|s| s.gpu_ms).unwrap_or(0)
+                    );
+                }
                 return format!(
                     "gpu_gnfs {}: factor {}  cofactor {}  (divides: true)  [⊣]{} relations={} deps={} B={} gpu={} device={} gpu_ms={}",
                     st.n,
@@ -415,7 +442,7 @@ pub fn run_factor(n_str: &str, b: u64) -> String {
 
 pub fn help() -> String {
     String::from(
-        "gpu_gnfs <n> [B] | poly <n> [d] | soak [secs] [B] | blueprint | help\n\
+        "gpu_gnfs <n-word|decimal> [B] | poly <n-word|decimal> [d] | soak [secs] [B] | blueprint | help\n\
          Grammar-native GNFS on GPU — word ⊢⊙≻∈⊤⊥⊞⊡≺⋈≻∋⊤⊣ from the GNFS ob3ect.\n\
          B = factor-base bound (0 → auto from bit-length). GNFS_GPU=0|1 selects device.\n\
          soak = keep the device under load for secs (default 10) so nvidia-smi -l 1 sees it.\n\
