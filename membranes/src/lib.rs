@@ -7,6 +7,8 @@ pub use g_momonados::word_tape::WordTape as Big;
 pub mod ecm;
 pub mod order_cycle;
 
+const RADIX4_WORD: &str = "⊢∈≻⊤∈≺⊥⋈∋⋈∋⊡⊣";
+
 pub fn from_word(raw: &str) -> Option<Big> { Big::from_canonical_word(raw) }
 pub fn from_u32(value: u32) -> Big { Big::from_small(value as u64) }
 pub fn from_u64(value: u64) -> Big { Big::from_small(value) }
@@ -102,14 +104,82 @@ pub fn run(word: &str, n: &Big, depth: u32, max_steps: u64) -> (Option<(Big, Big
     (None, ticks)
 }
 
-fn radix4_digit_options(width: usize, digit: usize) -> Vec<u32> {
+fn radix4_digit_options(width: usize, digit: usize) -> Vec<Big> {
     let digits = width.div_ceil(2);
-    if digit >= digits { return vec![0]; }
-    if digit == 0 { return vec![1, 3]; }
+    if digit >= digits { return vec![Big::zero()]; }
+    if digit == 0 { return vec![from_u32(1), from_u32(3)]; }
     if digit + 1 == digits {
-        return if width % 2 == 1 { vec![2, 3] } else { vec![1, 2, 3] };
+        return if width % 2 == 1 {
+            vec![from_u32(2), from_u32(3)]
+        } else {
+            vec![from_u32(1), from_u32(2), from_u32(3)]
+        };
     }
-    vec![0, 1, 2, 3]
+    vec![from_u32(0), from_u32(1), from_u32(2), from_u32(3)]
+}
+
+/// Execute one nested radix-four prefix frame over canonical numeral words.
+/// The outer pair holds the low factor prefix; its inner pair advances the
+/// second prefix and checks their product before the frame fixes.
+fn radix4_prefix_frame(
+    p: &Big,
+    q: &Big,
+    pd: &Big,
+    qd: &Big,
+    step: &Big,
+    target: &Big,
+    prefix_bits: usize,
+    p_bits: usize,
+    q_bits: usize,
+) -> Option<(Big, Big)> {
+    let mut depth = 0u8;
+    let mut p_next = p.clone();
+    let mut q_next = q.clone();
+    let mut p_valid = false;
+    let mut q_valid = false;
+    let mut inner_valid = false;
+    let mut candidate_valid = false;
+    let mut fixed = None;
+
+    for mark in RADIX4_WORD.chars() {
+        match mark {
+            '⊢' => {
+                depth = 0;
+                p_next = p.clone();
+                q_next = q.clone();
+                p_valid = false;
+                q_valid = false;
+                inner_valid = false;
+                candidate_valid = false;
+                fixed = None;
+            }
+            '∈' => depth += 1,
+            '≻' if depth == 1 => {
+                p_next = add(p, &mul(pd, step));
+            }
+            '⊤' if depth == 1 => p_valid = p_next.bit_len() <= p_bits,
+            '≺' if depth == 2 => {
+                q_next = add(q, &mul(qd, step));
+            }
+            '⊥' if depth == 2 => q_valid = q_next.bit_len() <= q_bits,
+            '⋈' if depth == 2 => {
+                inner_valid = p_valid && q_valid
+                    && mul(&p_next, &q_next).truncate(prefix_bits) == *target;
+            }
+            '∋' if depth == 2 => {
+                depth = 1;
+                candidate_valid = inner_valid;
+            }
+            '⋈' if depth == 1 => {
+                candidate_valid = candidate_valid && p_valid && q_valid;
+            }
+            '∋' if depth == 1 => depth = 0,
+            '⊡' if candidate_valid => fixed = Some((p_next.clone(), q_next.clone())),
+            '⊣' => break,
+            _ => {}
+        }
+    }
+    fixed
 }
 
 fn radix4_lift(
@@ -139,12 +209,11 @@ fn radix4_lift(
     let p_digits = radix4_digit_options(p_bits, digit);
     let q_digits = radix4_digit_options(q_bits, digit);
     for pd in p_digits {
-        let p_next = add(&p, &mul(&from_u32(pd), &step));
-        for &qd in &q_digits {
-            let q_next = add(&q, &mul(&from_u32(qd), &step));
-            let residue = mul(&p_next, &q_next).truncate(prefix_bits);
-            if residue == target {
-                if let Some(pair) = radix4_lift(n,p_bits,q_bits,digit+1,p_next.clone(),q_next,steps,cap) {
+        for qd in &q_digits {
+            if let Some((p_next, q_next)) = radix4_prefix_frame(
+                &p, &q, &pd, qd, &step, &target, prefix_bits, p_bits, q_bits,
+            ) {
+                if let Some(pair) = radix4_lift(n,p_bits,q_bits,digit+1,p_next,q_next,steps,cap) {
                     return Some(pair);
                 }
                 if *steps > cap { return None; }
