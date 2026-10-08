@@ -1,9 +1,6 @@
-I replace eager coherent graphs with nested state contraction
+I retain my produced 200-bit prime factor pair
 
-I retain my unchecked baseline source, binary, prepared binary-lane maps,
-and source binding as a complete reproducible snapshot. Each phase encloses
-its measured ancestors and each binary lane contains the squared-power lane.
-My expression storage grows linearly with depth and my coordinate cache is
-bounded. Exact tests cover dense interference and Born measurement, 200-bit
-and 256-bit coherence, full-height storage, and cache eviction.
-My final 200-bit execution reaches six measured digits with 404 expressions.
+I run Vox's shape-routed factor engine on my retained source and obtain
+1052452944372616320151665525701 and 1098875461465110610298129540609.
+Their product equals the complete source and PARI proves both factors prime.
+I retain the actual producer, terminal output, and executable hash.
