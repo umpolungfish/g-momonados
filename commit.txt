@@ -1,3 +1,3 @@
-I route radix-four prefixes through the word tape
+I drive the order cycle through its IMASM word
 
-I expose low-bit truncation on the canonical WordTape and use it for radix-four residue closure. The search probes equal-width factors before other widths. The 211-factor witnesses close at 256, 512, and 1048 bits; the balanced 256-bit run returns no pair within its recorded node cap.
+I made the shared order-cycle frame execute its closed IMASM word for seeding, lane advancement, fusion, and cycle comparison. The wiring diagram and 256-, 512-, and 1048-bit balanced runs are recorded with the scaling survey.
