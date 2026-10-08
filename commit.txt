@@ -1,5 +1,5 @@
-I route canonical numeral words through G GNFS
+I share the IMASM order-cycle route
 
-I accept and validate canonical IMASM inputs at the direct GNFS command, and
-emit factor pairs as canonical numeral words. I retain balanced 256-bit host
-fallback measurements and the sieve-bound sweep.
+I consolidate the Shor-order, squaring-cycle, and quantum-phase binaries on one
+WordTape implementation, keep instant-read as its own route, and retain the
+256-bit order-path measurement.
