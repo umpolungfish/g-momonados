@@ -1,5 +1,5 @@
-I return one factor from the radix-four membrane
+I run IMASM ECM on cooperative GPU curves
 
-I keep the cofactor prefix as a product-closure constraint, recover the
-cofactor by exact WordTape division at the leaf, and print only the factor
-with its divisibility closure.
+I use parity-arm Montgomery arithmetic, warp carry propagation, retained CUDA contexts, and a default batch of 256 Suyama curves. I extract one factor and discard singular curves. I include the release binary, matched CPU/GPU benchmarks, wiring diagrams, and the accumulated local factoring work.
+
+My release build completes the 256-curve benchmark in 0.494 seconds versus 26.208 seconds on CPU. Warm factor extraction is faster on the 256-, 512-, and 1048-bit witnesses.

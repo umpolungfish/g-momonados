@@ -43,7 +43,7 @@ fn powmod(a: &Big, exponent: &Big, n: &Big) -> Big {
     result
 }
 
-fn factor_from_order_multiple(a: &Big, order_multiple: &Big, n: &Big) -> Option<(Big, Big)> {
+fn factor_from_order_multiple(a: &Big, order_multiple: &Big, n: &Big) -> Option<Big> {
     let two = from_u32(2);
     let n_minus_one = sub(n, &one());
     let mut exponent = order_multiple.clone();
@@ -57,7 +57,7 @@ fn factor_from_order_multiple(a: &Big, order_multiple: &Big, n: &Big) -> Option<
                 {
                     let (cofactor, remainder) = divmod(n, &factor);
                     if is_zero(&remainder) && mul(&factor, &cofactor) == *n {
-                        return Some((factor, cofactor));
+                        return Some(factor);
                     }
                 }
             }
@@ -175,11 +175,10 @@ pub fn run(name: &str, args: &[String], default_cap: u64) {
     }
     let order_multiple = mul(&power_of_two, &sub(&power_of_two, &one()));
     match factor_from_order_multiple(&base, &order_multiple, &n) {
-        Some((p, q)) => println!(
-            "  factor_word={} cofactor_word={} product_closes=true",
-            to_word(&p),
-            to_word(&q)
-        ),
+        Some(factor) => {
+            let (_, remainder) = divmod(&n, &factor);
+            println!("  factor_word={} product_closes={}", to_word(&factor), is_zero(&remainder));
+        }
         None => println!(
             "  R=2^{steps}·(2^{steps}-1) produced no nontrivial gcd"
         ),
