@@ -87,20 +87,14 @@ def main() -> None:
         "ecm_scalar_step": constant(SOURCE / "ecm.rs", "ECM_SCALAR_WORD"),
         "order_cycle_frame": constant(SOURCE / "order_cycle.rs", "ORDER_WORD"),
         "fixed_nested": fixed_word(3),
+        "radix4_prefix_frame": constant(SOURCE / "lib.rs", "RADIX4_WORD"),
     }
     report = {name: measure(name, word) for name, word in words.items()}
-    report["radix4"] = {
-        "operator_word": None,
-        "implementation": "factor_radix4 recursively lifts WordTape digit prefixes",
-        "diagram": None,
-    }
     path = SCALE / "route_word_diagram_audit.json"
     path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
     for name, result in report.items():
         if "imasm" in result:
             print(name, result["imasm"]["verdict"], result["topology"]["total_pairs"], result["diagram"])
-        else:
-            print(name, "no operator word", result["implementation"])
 
 
 if __name__ == "__main__":
