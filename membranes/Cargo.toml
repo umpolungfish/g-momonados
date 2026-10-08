@@ -90,3 +90,7 @@ path = "src/bin/ecm_extract.rs"
 [[bin]]
 name = "membrane_radix4_factor"
 path = "src/bin/radix4_factor.rs"
+
+[[bin]]
+name = "membrane_fixed_nested"
+path = "src/bin/fixed_nested.rs"

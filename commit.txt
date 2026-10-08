@@ -1,4 +1,3 @@
-I complete the 256/512/1048-bit order-cycle sweep
+I nest fixed-word factor vessels and report the producer
 
-I run the shared WordTape order route on the 31-bit-factor IMASM inputs, retain
-each result, and update the route timing record.
+I changed the fixed-word route to nest each vessel at the previous IMSCRIB site, adding one split-fuse pair per level. I report whether the fixed-word frontier or ECM continuation produced each factor. The 256-, 512-, and 1048-bit witnesses close through ECM, with the wiring diagrams and canonical factor words retained.
