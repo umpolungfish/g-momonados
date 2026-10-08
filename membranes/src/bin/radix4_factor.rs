@@ -26,7 +26,7 @@ fn main() {
     match factor {
         Some(p) => {
             let (_, remainder) = divmod(&n, &p);
-            println!("factor={}\ndivides={}\nnodes={nodes}",
+            println!("factor={}\nproduct_closes={}\nnodes={nodes}",
                 to_word(&p), is_zero(&remainder));
         }
         None => println!("no factor within {nodes} radix-four states (cap={cap})"),
