@@ -134,15 +134,15 @@ fn radix4_lift(
     }
 
     let step = Big::one_at(2 * digit);
-    let modulus = Big::one_at(2 * (digit + 1));
-    let target = divmod(n, &modulus).1;
+    let prefix_bits = 2 * (digit + 1);
+    let target = n.truncate(prefix_bits);
     let p_digits = radix4_digit_options(p_bits, digit);
     let q_digits = radix4_digit_options(q_bits, digit);
     for pd in p_digits {
         let p_next = add(&p, &mul(&from_u32(pd), &step));
         for &qd in &q_digits {
             let q_next = add(&q, &mul(&from_u32(qd), &step));
-            let residue = divmod(&mul(&p_next, &q_next), &modulus).1;
+            let residue = mul(&p_next, &q_next).truncate(prefix_bits);
             if residue == target {
                 if let Some(pair) = radix4_lift(n,p_bits,q_bits,digit+1,p_next.clone(),q_next,steps,cap) {
                     return Some(pair);
@@ -164,7 +164,25 @@ pub fn factor_radix4(n: &Big, node_cap: u64) -> (Option<(Big, Big)>, u64) {
     }
     let bits = n.bit_len();
     let mut nodes = 0u64;
+    let balanced_p_bits = bits / 2;
+    let balanced_probe_cap = (node_cap / 64).max(1).min(node_cap);
+    for q_bits in [bits - balanced_p_bits, bits + 1 - balanced_p_bits] {
+        if q_bits < balanced_p_bits { continue; }
+        if let Some(pair) = radix4_lift(
+            n,
+            balanced_p_bits,
+            q_bits,
+            0,
+            Big::zero(),
+            Big::zero(),
+            &mut nodes,
+            balanced_probe_cap,
+        ) {
+            return (Some(pair), nodes);
+        }
+    }
     for p_bits in 2..=(bits / 2 + 1) {
+        if p_bits == balanced_p_bits { continue; }
         for q_bits in [bits + 1 - p_bits, bits - p_bits] {
             if q_bits < p_bits || q_bits == 0 { continue; }
             if let Some(pair) = radix4_lift(

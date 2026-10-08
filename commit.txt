@@ -1,3 +1,3 @@
-I record the balanced control for the nested fixed-word route
+I route radix-four prefixes through the word tape
 
-I recorded the balanced 256-bit run of the corrected depth-three fixed-word carrier. It reached its 120-second cap without emitting a pair.
+I expose low-bit truncation on the canonical WordTape and use it for radix-four residue closure. The search probes equal-width factors before other widths. The 211-factor witnesses close at 256, 512, and 1048 bits; the balanced 256-bit run returns no pair within its recorded node cap.
