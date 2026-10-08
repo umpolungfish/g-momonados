@@ -46,6 +46,8 @@ The order routes are classical word-level order-cycle attempts, not executions o
 
 The shared G order route now executes the closed IMASM frame `⊢⊙⊙∈⊤≻⊥≻≻∋⊡⋈⊣`: it seeds both lanes, advances the tortoise once and the hare twice, fuses the lanes, then checks and fixes the cycle step. The wiring diagram reports one split-fuse pair and a closed walk. On the balanced 256-, 512-, and 1048-bit inputs, the word-driven route completed 2,048 steps without a collision in 0.122, 0.228, and 0.448 seconds.
 
+The G ECM route now executes the nested stage word `⊢⊙∈≻∈⊞∋⋈∋⊡⊣`; each prime-scalar update executes `⊢≻⋈⊣` to advance the Montgomery point and check its denominator. Both wiring diagrams report closed walks. On the 31-bit-factor witnesses, ECM returned 2,147,483,647 with closing products at 256, 512, and 1048 bits in 11.800, 24.397, and 56.115 seconds. `ecm_word_sweep.json` and each `membrane_ecm_word.log` retain the canonical factor words and timings.
+
 The G GNFS entry point accepts a canonical IMASM numeral word and returns factor and cofactor words. Its balanced 256-bit run used the automatic B=200000 bound. CUDA was unavailable, so the host fallback collected 19 of 36,167 required relations in 576 of 400,000 sieve blocks before the 300-second cap. Bounds 2,000 and 5,000 finished with zero relations in 19.4 and 99.5 seconds; bound 10,000 reached its 120-second cap with zero relations. The route's input boundary is word-native, while the GNFS kernel converts the numeral to `BigUint` internally.
 
 Inputs, logs, and timing records are in the matching size directories. `cases.json` retains the balanced control factors; `ecm_witness_cases.json` retains the generated witness factors. The reference factors were not passed to any tested route.
