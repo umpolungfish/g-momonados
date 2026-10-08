@@ -1,8 +1,9 @@
-I enforce transformed split/fuse recovery across my anyon stack
+I replace eager coherent graphs with nested state contraction
 
-I recover transformed source and interval arms at runtime and verify every
-phase stage and inverse return for the 200-bit and 256-bit sources. I bind
-the native wiring for eleven executables to their ELF hashes and retain
-the physical braid probes, mutation controls, and current measurement records.
-
-I preserve the current project tree and documentation migration in this snapshot.
+I retain my unchecked baseline source, binary, prepared binary-lane maps,
+and source binding as a complete reproducible snapshot. Each phase encloses
+its measured ancestors and each binary lane contains the squared-power lane.
+My expression storage grows linearly with depth and my coordinate cache is
+bounded. Exact tests cover dense interference and Born measurement, 200-bit
+and 256-bit coherence, full-height storage, and cache eviction.
+My final 200-bit execution reaches six measured digits with 404 expressions.
