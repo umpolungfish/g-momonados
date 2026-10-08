@@ -74,7 +74,7 @@ def measure(name: str, word: str) -> dict:
         "imasm": {
             "verdict": verdict["verdict"],
             "verdict_reading": verdict["verdict_reading"],
-            "closed": verdict["closed"],
+            "register_closed": verdict["closed"],
         },
         "diagram": f"256/{name}_wiring.svg",
     }
