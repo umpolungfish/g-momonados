@@ -8,7 +8,7 @@ use core::cmp::Ordering;
 use crate::{add, cmp, divmod, from_u32, is_zero, mul, sub, Big};
 
 const ECM_WORD: &str = "⊢⊙∈≻∈⊞∋⋈∋⊡⊣";
-const ECM_SCALAR_WORD: &str = "⊢≻⋈⊣";
+const ECM_SCALAR_WORD: &str = "⊢∈≻∈⊤⋈⊥⋈∋⋈∋⊡⊣";
 
 #[derive(Clone)]
 struct Point { x: Big, z: Big }
@@ -128,8 +128,8 @@ fn scalar_mul(p: &Point, scalar: u32, a24: &Big, n: &Big) -> Point {
     r0
 }
 
-/// Advance one scalar and inspect its projective denominator through the
-/// nested scalar-step word.
+/// Advance one scalar inside the outer carrier, then require the two nested
+/// denominator arms to agree before fixing the factor pair.
 fn scalar_step(
     point: &Point,
     scalar: u32,
@@ -137,11 +137,54 @@ fn scalar_step(
     n: &Big,
 ) -> (Point, Option<(Big, Big)>) {
     let mut result = point.clone();
+    let mut depth = 0u8;
+    let mut active_arm = None;
+    let mut arm_factors: [Option<(Big, Big)>; 2] = [None, None];
     let mut factor = None;
     for mark in ECM_SCALAR_WORD.chars() {
         match mark {
-            '≻' => result = scalar_mul(&result, scalar, a24, n),
-            '⋈' => factor = proper_factor(gcd(&result.z, n), n),
+            '⊢' => {
+                result = point.clone();
+                depth = 0;
+                active_arm = None;
+                arm_factors = [None, None];
+                factor = None;
+            }
+            '∈' => {
+                depth += 1;
+                if depth == 2 {
+                    arm_factors = [None, None];
+                    active_arm = Some(0);
+                }
+            }
+            '≻' if depth == 1 => result = scalar_mul(&result, scalar, a24, n),
+            '⊤' if depth == 2 => active_arm = Some(0),
+            '⊥' if depth == 2 => active_arm = Some(1),
+            '⋈' if depth == 2 => {
+                if let Some(arm) = active_arm {
+                    arm_factors[arm] = proper_factor(gcd(&result.z, n), n);
+                }
+            }
+            '⋈' if depth == 1 => {
+                factor = if arm_factors[0] == arm_factors[1] {
+                    arm_factors[0].clone()
+                } else {
+                    None
+                };
+                if let Some((p, q)) = factor.as_ref() {
+                    if mul(p, q) != *n { factor = None; }
+                }
+            }
+            '∋' => {
+                depth = depth.saturating_sub(1);
+                active_arm = None;
+            }
+            '⊡' => {
+                if let Some((p, q)) = factor.as_ref() {
+                    if mul(p, q) != *n { factor = None; }
+                }
+            }
+            '⊣' => break,
             _ => {}
         }
     }
