@@ -193,7 +193,7 @@ fn radix4_lift(
     cap: u64,
     stats: &mut Radix4Stats,
     balanced_probe: bool,
-) -> Option<(Big, Big)> {
+) -> Option<Big> {
     *steps = steps.saturating_add(1);
     stats.recursive_entries[digit] = stats.recursive_entries[digit].saturating_add(1);
     if balanced_probe {
@@ -203,8 +203,11 @@ fn radix4_lift(
     let digits = p_bits.max(q_bits).div_ceil(2);
     if digit == digits {
         if p.bit_len() == p_bits && q.bit_len() == q_bits
-            && cmp(&p, &q) != Ordering::Greater && mul(&p, &q) == *n {
-            return Some((p, q));
+            && cmp(&p, &q) != Ordering::Greater {
+            let (cofactor, remainder) = divmod(n, &p);
+            if is_zero(&remainder) && cofactor == q {
+                return Some(p);
+            }
         }
         return None;
     }
@@ -227,10 +230,10 @@ fn radix4_lift(
                 if balanced_probe {
                     stats.balanced_closures[digit] = stats.balanced_closures[digit].saturating_add(1);
                 }
-                if let Some(pair) = radix4_lift(
+                if let Some(factor) = radix4_lift(
                     n,p_bits,q_bits,digit+1,p_next,q_next,steps,cap,stats,balanced_probe,
                 ) {
-                    return Some(pair);
+                    return Some(factor);
                 }
                 if *steps > cap { return None; }
             }
@@ -249,18 +252,19 @@ pub struct Radix4Stats {
     pub balanced_closures: Vec<u64>,
 }
 
-/// Lift both odd factor words in base four, closing their product modulo each
-/// successive two-bit prefix before advancing to the next digit.
+/// Lift one factor word in base four. Its cofactor prefix is carried only as
+/// the product-closure constraint and is recovered by exact word division at
+/// the leaf.
 pub fn factor_radix4_with_stats(
     n: &Big,
     node_cap: u64,
-) -> (Option<(Big, Big)>, u64, Radix4Stats) {
+) -> (Option<Big>, u64, Radix4Stats) {
     if cmp(n, &from_u32(4)) == Ordering::Less {
         return (None, 0, Radix4Stats::default());
     }
     if !n.is_odd() {
-        let (q, r) = divmod(n, &from_u32(2));
-        if is_zero(&r) { return (Some((from_u32(2), q)), 1, Radix4Stats::default()); }
+        let (_, r) = divmod(n, &from_u32(2));
+        if is_zero(&r) { return (Some(from_u32(2)), 1, Radix4Stats::default()); }
     }
     let bits = n.bit_len();
     let mut nodes = 0u64;
@@ -278,7 +282,7 @@ pub fn factor_radix4_with_stats(
     let balanced_probe_cap = (node_cap / 2).max(1).min(node_cap);
     for q_bits in [bits - balanced_p_bits, bits + 1 - balanced_p_bits] {
         if q_bits < balanced_p_bits { continue; }
-        if let Some(pair) = radix4_lift(
+        if let Some(factor) = radix4_lift(
             n,
             balanced_p_bits,
             q_bits,
@@ -290,17 +294,17 @@ pub fn factor_radix4_with_stats(
             &mut stats,
             true,
         ) {
-            return (Some(pair), nodes, stats);
+            return (Some(factor), nodes, stats);
         }
     }
     for p_bits in 2..=(bits / 2 + 1) {
         if p_bits == balanced_p_bits { continue; }
         for q_bits in [bits + 1 - p_bits, bits - p_bits] {
             if q_bits < p_bits || q_bits == 0 { continue; }
-            if let Some(pair) = radix4_lift(
+            if let Some(factor) = radix4_lift(
                 n,p_bits,q_bits,0,Big::zero(),Big::zero(),&mut nodes,node_cap,&mut stats,false,
             ) {
-                return (Some(pair), nodes, stats);
+                return (Some(factor), nodes, stats);
             }
             if nodes > node_cap { return (None, nodes, stats); }
         }
@@ -308,9 +312,9 @@ pub fn factor_radix4_with_stats(
     (None, nodes, stats)
 }
 
-pub fn factor_radix4(n: &Big, node_cap: u64) -> (Option<(Big, Big)>, u64) {
-    let (pair, nodes, _) = factor_radix4_with_stats(n, node_cap);
-    (pair, nodes)
+pub fn factor_radix4(n: &Big, node_cap: u64) -> (Option<Big>, u64) {
+    let (factor, nodes, _) = factor_radix4_with_stats(n, node_cap);
+    (factor, nodes)
 }
 
 pub fn main_membrane(name: &str, word: &str) {
