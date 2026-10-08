@@ -34,7 +34,7 @@ const TANCH: char = '⊣';
 
 /// A numeral held as its own IMASM word.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct WordTape(pub(crate) String);
+pub struct WordTape(pub(crate) String);
 
 // ── entry/exit: the only two places BigUint appears ──────────────────────
 fn biguint_to_bits(n: &BigUint) -> Vec<bool> {
@@ -69,9 +69,42 @@ fn trim(bits: &[bool]) -> &[bool] {
 }
 
 impl WordTape {
-    pub(crate) fn zero() -> Self { Self(String::from("⊢⊙⊡⊣")) }
-    pub(crate) fn one() -> Self { Self::from_small(1) }
-    pub(crate) fn from_small(n: u64) -> Self { Self::from_biguint(&BigUint::from(n)) }
+    fn vox_tape(&self) -> Vec<char> {
+        self.bits_low_first().into_iter().map(|bit| if bit { EVALF } else { EVALT }).collect()
+    }
+
+    fn from_vox_tape(tape: &[char]) -> Self {
+        let bits: Vec<bool> = tape.iter().map(|mark| *mark == EVALF).collect();
+        Self::from_bits(&bits)
+    }
+
+    pub fn zero() -> Self { Self(String::from("⊢⊙⊡⊣")) }
+    pub fn one() -> Self { Self::from_bits(&[true]) }
+    pub fn from_small(mut n: u64) -> Self {
+        let mut bits = Vec::new();
+        while n != 0 { bits.push(n & 1 == 1); n >>= 1; }
+        Self::from_bits(&bits)
+    }
+    /// Enter directly from the canonical IMASM numeral word. This boundary
+    /// checks the word's own cells and never decodes through a host integer.
+    pub fn from_canonical_word(word: &str) -> Option<Self> {
+        let c: Vec<char> = word.chars().collect();
+        if c == ['⊢', '⊙', '⊡', '⊣'] { return Some(Self(word.into())); }
+        if c.len() < 9 || c[0] != VINIT || c[c.len()-3..] != [IMSCRIB, IFIX, TANCH] {
+            return None;
+        }
+        let body = &c[1..c.len()-3];
+        if body.is_empty() || body.len() % 5 != 0 { return None; }
+        let mut bits = Vec::with_capacity(body.len()/5);
+        for cell in body.chunks(5) {
+            if cell[0] != AFWD || cell[1] != CLINK || cell[2] != FSPLIT || cell[4] != FFUSE {
+                return None;
+            }
+            match cell[3] { EVALT => bits.push(false), EVALF => bits.push(true), _ => return None }
+        }
+        if !bits.last().copied().unwrap_or(false) { return None; }
+        Some(Self(word.into()))
+    }
     pub(crate) fn from_biguint(n: &BigUint) -> Self {
         if n.is_zero() { return Self::zero(); }
         let bits = biguint_to_bits(n);
@@ -80,7 +113,9 @@ impl WordTape {
     pub(crate) fn to_biguint(&self) -> BigUint {
         bits_to_biguint(&self.bits_low_first())
     }
-    pub(crate) fn is_zero(&self) -> bool { self.0 == "⊢⊙⊡⊣" }
+    pub fn is_zero(&self) -> bool { self.0 == "⊢⊙⊡⊣" }
+    pub fn is_one(&self) -> bool { self.0 == "⊢≻⋈∈⊥∋⊙⊡⊣" }
+    pub fn as_word(&self) -> &str { &self.0 }
 
     /// Walk the word's bit cells (⊢ prefix and ⊙⊡⊣ suffix dropped) and read
     /// each parity arm: ⊥ → true, ⊤ → false. Least-significant bit first.
@@ -116,8 +151,14 @@ impl WordTape {
         Self(w)
     }
 
-    pub(crate) fn bit_len(&self) -> usize {
+    pub fn bit_len(&self) -> usize {
         self.bits_low_first().len()
+    }
+    pub fn is_odd(&self) -> bool {
+        self.bits_low_first().first().copied().unwrap_or(false)
+    }
+    pub fn bit_at(&self, i: usize) -> bool {
+        self.bits_low_first().get(i).copied().unwrap_or(false)
     }
 
     /// Low `k` bit-cells — x mod 2^k — read from the value's own word, not a
@@ -127,6 +168,25 @@ impl WordTape {
         let bits = self.bits_low_first();
         let k = k.min(bits.len());
         Self::from_bits(&bits[..k])
+    }
+    pub(crate) fn interlace(&self, other: &Self) -> Self {
+        let a = self.bits_low_first();
+        let b = other.bits_low_first();
+        let mut bits = Vec::with_capacity(a.len().max(b.len()) * 2);
+        for i in 0..a.len().max(b.len()) {
+            bits.push(a.get(i).copied().unwrap_or(false));
+            bits.push(b.get(i).copied().unwrap_or(false));
+        }
+        Self::from_bits(&bits)
+    }
+    pub(crate) fn deinterlace(&self) -> (Self, Self) {
+        let bits = self.bits_low_first();
+        let mut a = Vec::with_capacity((bits.len()+1)/2);
+        let mut b = Vec::with_capacity(bits.len()/2);
+        for (i, bit) in bits.into_iter().enumerate() {
+            if i % 2 == 0 { a.push(bit); } else { b.push(bit); }
+        }
+        (Self::from_bits(&a), Self::from_bits(&b))
     }
 }
 
@@ -250,41 +310,43 @@ fn bits_isqrt(a: &[bool]) -> Vec<bool> {
 
 // ── arithmetic: word-walks over the cell bits ────────────────────────────
 impl WordTape {
-    pub(crate) fn add(&self, b: &Self) -> Self {
-        Self::from_bits(&bits_add(&self.bits_low_first(), &b.bits_low_first()))
+    pub fn add(&self, b: &Self) -> Self {
+        Self::from_vox_tape(&vox_core::morphism_factor::add(&self.vox_tape(), &b.vox_tape()))
     }
-    pub(crate) fn sub(&self, b: &Self) -> Option<Self> {
-        bits_sub(&self.bits_low_first(), &b.bits_low_first()).map(|r| Self::from_bits(&r))
+    pub fn sub(&self, b: &Self) -> Option<Self> {
+        if !self.ge(b) { return None; }
+        Some(Self::from_vox_tape(&vox_core::morphism_factor::sub(&self.vox_tape(), &b.vox_tape())))
     }
-    pub(crate) fn mul(&self, b: &Self) -> Self {
-        Self::from_bits(&bits_mul(&self.bits_low_first(), &b.bits_low_first()))
+    pub fn mul(&self, b: &Self) -> Self {
+        Self::from_vox_tape(&vox_core::morphism_factor::mul(&self.vox_tape(), &b.vox_tape()))
     }
-    pub(crate) fn divmod(&self, b: &Self) -> Option<(Self, Self)> {
-        bits_divmod(&self.bits_low_first(), &b.bits_low_first())
-            .map(|(q, r)| (Self::from_bits(&q), Self::from_bits(&r)))
+    pub fn divmod(&self, b: &Self) -> Option<(Self, Self)> {
+        if b.is_zero() { return None; }
+        let (q, r) = vox_core::morphism_factor::divmod(&self.vox_tape(), &b.vox_tape());
+        Some((Self::from_vox_tape(&q), Self::from_vox_tape(&r)))
     }
-    pub(crate) fn ge(&self, b: &Self) -> bool {
-        bits_cmp(&self.bits_low_first(), &b.bits_low_first()) != core::cmp::Ordering::Less
+    pub fn ge(&self, b: &Self) -> bool {
+        vox_core::morphism_factor::cmp(&self.vox_tape(), &b.vox_tape()) != core::cmp::Ordering::Less
     }
-    pub(crate) fn gt(&self, b: &Self) -> bool {
-        bits_cmp(&self.bits_low_first(), &b.bits_low_first()) == core::cmp::Ordering::Greater
+    pub fn gt(&self, b: &Self) -> bool {
+        vox_core::morphism_factor::cmp(&self.vox_tape(), &b.vox_tape()) == core::cmp::Ordering::Greater
     }
 
     /// Shift left: insert n empty low bit-cells before the existing ones.
-    pub(crate) fn shl(&self, bits: usize) -> Self {
+    pub fn shl(&self, bits: usize) -> Self {
         let mut v = self.bits_low_first();
         let mut out = vec![false; bits];
         out.append(&mut v);
         Self::from_bits(&out)
     }
     /// Shift right one: drop the least-significant bit-cell.
-    pub(crate) fn shr1(&self) -> Self {
+    pub fn shr1(&self) -> Self {
         let v = self.bits_low_first();
         if v.is_empty() { return Self::zero(); }
         Self::from_bits(&v[1..])
     }
     /// A one-hot bit at a binary depth.
-    pub(crate) fn one_at(bit: usize) -> Self {
+    pub fn one_at(bit: usize) -> Self {
         let mut v = vec![false; bit + 1];
         v[bit] = true;
         Self::from_bits(&v)
@@ -298,8 +360,8 @@ impl WordTape {
     }
 
     /// Newton square root, entirely on the word.
-    pub(crate) fn isqrt(&self) -> Self {
-        Self::from_bits(&bits_isqrt(&self.bits_low_first()))
+    pub fn isqrt(&self) -> Self {
+        Self::from_vox_tape(&vox_core::morphism_factor::isqrt(&self.vox_tape()))
     }
     /// Concavity-bounded Newton continuation from a lower floor root.
     pub(crate) fn isqrt_from(&self, lower: &Self) -> Self {
@@ -399,6 +461,17 @@ mod tests {
             // canonical zero is the bare word, everything else has cells
             if v == 0 { assert_eq!(t.0, "⊢⊙⊡⊣"); }
         }
+    }
+
+    #[test]
+    fn canonical_input_stays_in_imasm_word_form() {
+        let w = "⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣";
+        let n = WordTape::from_canonical_word(w).unwrap();
+        assert_eq!(n.as_word(), w);
+        assert_eq!(n.bit_len(), 7);
+        assert_eq!(n.mul(&WordTape::from_small(1)).as_word(), w);
+        assert!(WordTape::from_canonical_word("91").is_none());
+        assert!(WordTape::from_canonical_word("⊢≻⋈∈⊤∋⊙⊡⊣").is_none());
     }
 
     #[test]

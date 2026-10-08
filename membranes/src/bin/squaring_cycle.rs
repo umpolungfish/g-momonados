@@ -3,7 +3,7 @@
 // A collision a^(2^i) == a^(2^j) means 2^i ≡ 2^j (mod r), so r | 2^j·(2^(i-j) - 1).
 // The tail gives the 2-adic part, the loop gives the odd part. Reconstruct a
 // multiple R of the order from (i, j) and factor by gcd(a^(R/2)±1, N).
-use membranes::{Big, from_dec, to_dec, mul, sub, add, divmod, from_u32, cmp, is_zero};
+use membranes::{Big, from_word, to_word, mul, sub, add, divmod, from_u32, cmp, is_zero};
 use core::cmp::Ordering::*;
 fn one() -> Big { from_u32(1) }
 fn mulmod(a: &Big, b: &Big, n: &Big) -> Big { divmod(&mul(a, b), n).1 }
@@ -36,16 +36,20 @@ fn try_factor(a: &Big, r_mult: &Big, n: &Big) -> Option<(Big, Big)> {
 }
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let n = from_dec(&args[0]);
+    if args.is_empty() || args.len() > 2 {
+        eprintln!("usage: membrane_squaring_cycle <canonical-IMASM-N> [squaring-cap]");
+        std::process::exit(2);
+    }
+    let n = from_word(&args[0]).unwrap_or_else(|| { eprintln!("expected canonical IMASM numeral word"); std::process::exit(2) });
+    let cap = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(200_000u64);
     let a = from_u32(2);
     // Floyd on the squaring map
     let mut t = sq(&a, &n);          // a^(2^1)
     let mut h = sq(&t, &n);          // a^(2^2)
     let mut steps: u64 = 1;
-    let cap: u64 = 200_000;
     let mut met = false;
     while steps < cap { t = sq(&t, &n); h = sq(&sq(&h, &n), &n); steps += 1; if cmp(&t,&h)==Equal { met = true; break; } }
-    println!("squaring_cycle  N={}", to_dec(&n));
+    println!("squaring_cycle input bits={}", n.bit_len());
     if !met { println!("  no squaring-cycle collision within {cap} steps"); return; }
     println!("  squaring map cycled after {steps} squarings (tortoise 2^{steps} == hare 2^{})", 2*steps);
     // collision at exponents 2^steps and 2^(2*steps): r | (2^(2steps) - 2^steps) = 2^steps*(2^steps - 1)
@@ -55,7 +59,7 @@ fn main() {
     let odd = sub(&pow2, &one());                                          // 2^steps - 1
     let r_mult = mul(&pow2, &odd);                                         // multiple of r
     match try_factor(&a, &r_mult, &n) {
-        Some((p,q)) => println!("  {} = {} x {}", to_dec(&n), to_dec(&p), to_dec(&q)),
+        Some((p,q)) => println!("  {} = {} x {}", to_word(&n), to_word(&p), to_word(&q)),
         None => println!("  R = 2^{steps}·(2^{steps}-1) did not yield a nontrivial gcd (order not built from this collision)"),
     }
 }

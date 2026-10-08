@@ -1,0 +1,41 @@
+# IMASM semiprime scaling
+
+The sweep covers 256, 512, 1024, and 1048 bits. Each Vox route received the canonical IMASM numeral word. `factor_one` received that same word baked into its build. The factorizer paths operate on Vox `Tape` numerals; output rendering may display decimal text.
+
+The table records wall time and whether the route returned a factor pair. Operator routes exited normally but exhausted their moat budgets with a composite core, so those are not successful factorizations. The per-run caps were 30 seconds at 256 bits, 45 seconds at 512 bits, and 30 seconds for the corrected 1024-bit rerun. The malformed initial NINE_ARM invocation at 512 and 1024 was discarded and rerun with the actual `NINE_ARM` word.
+
+| Route | 256-bit | 512-bit | 1024-bit |
+|---|---|---|---|
+| Vox `factor` / `smart_factor` | 30 s timeout | 45 s timeout | 30 s timeout |
+| Vox `factor-membrane` / `smart_factor` | 30 s timeout | 45 s timeout | 30 s timeout |
+| Vox `morphism-factor` | 30 s timeout | 45 s timeout | 30 s timeout |
+| Vox operator `resolve` | 1.72 s, no factor | 3.04 s, no factor | 5.68 s, no factor |
+| Vox operator `full` | 1.73 s, no factor | 3.04 s, no factor | 5.96 s, no factor |
+| Vox `factor-with` / NINE_ARM | 30 s timeout | 30 s timeout | 30 s timeout |
+| Vox `factor_one` | 30 s timeout | 45 s timeout | 30 s timeout |
+
+The current G membrane runs accept canonical IMASM numeral words and carry their arithmetic through `WordTape`. The radix-four lift and ECM extractor each return closing pairs at all three requested widths on the generated witness inputs. The witness factors are 211 and a large prime, so these runs measure arbitrary-width word arithmetic and the ECM/radix-four continuation on a semiprime with a small factor.
+
+| G route | 256-bit | 512-bit | 1048-bit |
+|---|---:|---:|---:|
+| ECM extractor, B1=500, B2=500, one curve | 0.063 s, pair closes | 0.132 s, pair closes | 0.338 s, pair closes |
+| Radix-four lift, 2,000,000-node cap | 3.060 s, pair closes | 11.940 s, pair closes | 46.618 s, pair closes |
+| 13 fixed-word membranes, 25,000 frontier steps then one ECM curve | 1.04–1.75 s, all close | 1.87–3.29 s, all close | 3.75–6.44 s, all close |
+| Instant-read, squaring-cycle, Shor-order, and quantum-phase order routes, 2,048 iterations | 0.125–1.056 s, no pair | 0.239–2.016 s, no pair | 0.483–4.081 s, no pair |
+
+The balanced controls use generated factors of equal width from `cases.json`. The radix-four lift reached its 200,000-node cap without a pair at 256, 512, or 1048 bits. The fixed-word aggregate route exhausted its 25,000-step frontier and one-curve ECM continuation without a pair at each width. ECM with B1=1000, B2=3000, and eight curves also returned no pair on those balanced controls. These are the hard controls for the witness results above.
+
+A second witness set uses the 31-bit prime factor 2147483647, with the cofactor sized to make each product 256, 512, or 1048 bits. The updated fixed-word membrane continues into ECM with B1=5000, B2=50000, and 100 curves after its 25,000-step fixed-word frontier.
+
+| Route | 256-bit | 512-bit | 1048-bit |
+|---|---:|---:|---:|
+| ECM, B1=5000, B2=50000, 100 curves | 11.304 s, pair closes | 23.120 s, pair closes | 52.999 s, pair closes |
+| Aggregate fixed-word then ECM | 12.473 s, pair closes | 25.996 s, pair closes | 57.531 s, pair closes |
+| Radix-four lift, 200,000 nodes | 13.126 s, no pair | not run on this witness | not run on this witness |
+| Radix-four lift, 2,000,000 nodes | 133.522 s, no pair | not run on this witness | not run on this witness |
+
+The radix-four 256-bit run with the 31-bit factor reached 2,000,001 states without a pair. Its lift therefore does not reach this factor width at a reasonable cost under the measured state caps. The ECM and aggregate fixed-word results returned the 31-bit factor and a cofactor whose product closes to the input. Factor values and raw outputs are retained in `ecm_witness_p31/`.
+
+The order routes are classical word-level order-cycle attempts, not executions on a quantum device. They accept the same canonical words, but none returned factors at the tested iteration cap. The Vox 256-bit balanced smart-factor and MPQS word routes each reached their 120-second test cap without output. The Vox factor routes continue through the same `smart_factor` implementation, so their entry points are not independent algorithms.
+
+Inputs, logs, and timing records are in the matching size directories. `cases.json` retains the balanced control factors; `ecm_witness_cases.json` retains the generated witness factors. The reference factors were not passed to any tested route.

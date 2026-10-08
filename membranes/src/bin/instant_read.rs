@@ -3,7 +3,7 @@
 // ∋ fuses the collision into the order (difference of accumulated exponents);
 // ⊡ fixes it. Random large jumps a^{s_i} give a birthday collision in O(sqrt r),
 // O(1) memory — not the O(r) single-arm walk. Factor by gcd(a^{r/2}±1, N).
-use membranes::{Big, from_dec, to_dec, mul, sub, add, divmod, from_u32, cmp, is_zero};
+use membranes::{Big, from_word, to_word, from_u64, mul, sub, add, divmod, from_u32, cmp, is_zero};
 use core::cmp::Ordering::*;
 fn one() -> Big { from_u32(1) }
 fn mulmod(a: &Big, b: &Big, n: &Big) -> Big { divmod(&mul(a, b), n).1 }
@@ -25,45 +25,49 @@ fn powmod(a: &Big, e: &Big, n: &Big) -> Big {
     }
     r
 }
-fn low(b: &Big) -> u64 { b.iter().rev().take(2).fold(0u64, |acc, &l| (acc << 32) | l as u64) }
+fn low(b: &Big) -> u64 { (0..64).filter(|&i| b.bit_at(i)).fold(0u64, |v, i| v | (1u64 << i)) }
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let n = from_dec(&args[0]);
+    if args.is_empty() || args.len() > 2 {
+        eprintln!("usage: membrane_instant_read <canonical-IMASM-N> [leap-cap]");
+        std::process::exit(2);
+    }
+    let n = from_word(&args[0]).unwrap_or_else(|| { eprintln!("expected canonical IMASM numeral word"); std::process::exit(2) });
+    let cap = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(1u64 << 34);
     let a = from_u32(2);
     const B: usize = 64;
     let mut seed: u64 = 0x2545F4914F6CDD1D;
-    let mut jexp = vec![0u64; B];
+    let mut jexp = vec![one(); B];
     let mut jump = vec![one(); B];
     for i in 0..B {
         seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
         let s = (seed >> 1) | 1;
-        jexp[i] = s;
-        jump[i] = powmod(&a, &from_dec(&s.to_string()), &n);
+        jexp[i] = from_u64(s);
+        jump[i] = powmod(&a, &from_u64(s), &n);
     }
     let bucket = |x: &Big| -> usize { (low(x) % (B as u64)) as usize };
-    let (mut tx, mut te) = (a.clone(), 1u128);
-    let (mut hx, mut he) = (a.clone(), 1u128);
+    let (mut tx, mut te) = (a.clone(), one());
+    let (mut hx, mut he) = (a.clone(), one());
     let mut ticks: u64 = 0;
-    let mut order: Option<u128> = None;
+    let mut order: Option<Big> = None;
     loop {
         ticks += 1;
-        let b = bucket(&tx); tx = mulmod(&tx, &jump[b], &n); te += jexp[b] as u128;
-        for _ in 0..2 { let b = bucket(&hx); hx = mulmod(&hx, &jump[b], &n); he += jexp[b] as u128; }
+        let b = bucket(&tx); tx = mulmod(&tx, &jump[b], &n); te = add(&te, &jexp[b]);
+        for _ in 0..2 { let b = bucket(&hx); hx = mulmod(&hx, &jump[b], &n); he = add(&he, &jexp[b]); }
         if cmp(&tx, &hx) == Equal {
-            let d = if te > he { te - he } else { he - te };
-            if d > 0 { order = Some(d); }
+            let d = if cmp(&te, &he) == Greater { sub(&te, &he) } else { sub(&he, &te) };
+            if !is_zero(&d) { order = Some(d); }
             break;
         }
-        if ticks > (1u64 << 34) { break; }
+        if ticks >= cap { break; }
     }
-    println!("instant_read ⊣⊣⊙∈≻⊤≺⊥⊞⋈∋⊡  N={}", to_dec(&n));
+    println!("instant_read input bits={}", n.bit_len());
     match order {
         Some(r) => {
-            println!("  collision at {ticks} leaps -> r*k = {r}  (a^(r*k) = 1 mod N)");
-            let rb = from_dec(&r.to_string());
-            let mut divs = vec![rb.clone()];
+            println!("  collision at {ticks} leaps -> order multiple word={}", to_word(&r));
+            let mut divs = vec![r.clone()];
             let two = from_u32(2);
-            let mut t = rb.clone();
+            let mut t = r;
             loop {
                 let (q, rem) = divmod(&t, &two);
                 if is_zero(&rem) { t = q; divs.push(t.clone()); } else { break; }
@@ -75,13 +79,13 @@ fn main() {
                     let g = gcd(&pm, &n);
                     if cmp(&g, &one()) == Greater && cmp(&g, &n) == Less {
                         let (co, _) = divmod(&n, &g);
-                        println!("  {} = {} x {}", to_dec(&n), to_dec(&g), to_dec(&co));
+                        println!("  {} = {} x {}", to_word(&n), to_word(&g), to_word(&co));
                         return;
                     }
                 }
             }
             println!("  order multiple found but gcd trivial for base 2 -- needs another base");
         }
-        None => println!("  no collision within leap budget ({ticks} leaps)"),
+        None => println!("  no collision within leap budget ({ticks}/{cap} leaps)"),
     }
 }

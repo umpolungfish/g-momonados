@@ -3,7 +3,7 @@
 // Once collision found at 2^i == 2^j (mod r), we have r | 2^j*(2^(i-j) - 1).
 // Then gcd(a^(R/2) ± 1, N) yields factors if r is even and a^(R/2) ≠ ±1 mod N.
 
-use membranes::{Big, from_dec, to_dec, mul, sub, add, divmod, from_u32, cmp, is_zero};
+use membranes::{Big, from_word, to_word, mul, sub, add, divmod, from_u32, cmp, is_zero};
 use core::cmp::Ordering::*;
 
 fn one() -> Big { from_u32(1) }
@@ -49,14 +49,18 @@ fn try_factor(a: &Big, r_mult: &Big, n: &Big) -> Option<(Big, Big)> {
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let n = from_dec(&args[0]);
+    if args.is_empty() || args.len() > 2 {
+        eprintln!("usage: membrane_shor_order <canonical-IMASM-N> [squaring-cap]");
+        std::process::exit(2);
+    }
+    let n = from_word(&args[0]).unwrap_or_else(|| { eprintln!("expected canonical IMASM numeral word"); std::process::exit(2) });
+    let cap = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(500_000u64);
     let a = from_u32(2); // base
     
     // Floyd cycle detection on squaring map
     let mut t = sq(&a, &n);  // a^(2^1)
     let mut h = sq(&t, &n);  // a^(2^2)
     let mut steps: u64 = 1;
-    let cap: u64 = 500_000;
     let mut met = false;
     
     while steps < cap {
@@ -66,7 +70,7 @@ fn main() {
         if cmp(&t, &h) == Equal { met = true; break; }
     }
     
-    println!("shor_order  N={}", to_dec(&n));
+    println!("shor_order input bits={}", n.bit_len());
     if !met { 
         println!("  no cycle within {cap} squarings"); 
         return; 
@@ -82,7 +86,7 @@ fn main() {
     let r_mult = mul(&pow2, &odd);
     
     match try_factor(&a, &r_mult, &n) {
-        Some((p, q)) => println!("  {} = {} x {}  (order-based factorization)", to_dec(&n), to_dec(&p), to_dec(&q)),
+        Some((p, q)) => println!("  {} = {} x {}  (order-based factorization)", to_word(&n), to_word(&p), to_word(&q)),
         None => println!("  R=2^{steps}·(2^{steps}-1) failed to yield nontrivial gcd"),
     }
 }
