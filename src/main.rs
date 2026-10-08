@@ -582,9 +582,21 @@ fn main() {
     }
     let argv: Vec<String> = std::env::args().skip(1).collect();
     if !argv.is_empty() {
-        // Direct CLI: `g-momonados factor_membrane factor <N> ...` runs the
-        // membrane without entering the interactive REPL.
+        // Direct CLI: word-valued factoring routes bypass the REPL line reader.
         let head = argv[0].as_str();
+        if matches!(head, "gpu_gnfs" | "gpu-gnfs") {
+            if argv.len() < 2 || argv[1] == "help" {
+                println!("{}", gpu_gnfs::help());
+                return;
+            }
+            if argv[1] == "blueprint" {
+                println!("{}", gpu_gnfs::blueprint());
+                return;
+            }
+            let bound = argv.get(2).and_then(|value| value.parse().ok()).unwrap_or(0);
+            println!("{}", gpu_gnfs::run_factor(&argv[1], bound));
+            return;
+        }
         if matches!(head, "factor_membrane" | "membrane" | "fmembrane") {
             let refs: Vec<&str> = argv[1..].iter().map(|x| x.as_str()).collect();
             println!("{}", factor_membrane::repl_factor_membrane(&refs));
