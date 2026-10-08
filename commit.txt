@@ -1,3 +1,3 @@
-I drive the order cycle through its IMASM word
+I drive ECM through nested IMASM words
 
-I made the shared order-cycle frame execute its closed IMASM word for seeding, lane advancement, fusion, and cycle comparison. The wiring diagram and 256-, 512-, and 1048-bit balanced runs are recorded with the scaling survey.
+I route ECM stages and scalar updates through their IMASM words, retain the closed wiring diagrams, and record witness factor runs at 256, 512, and 1048 bits.
