@@ -832,26 +832,24 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                     _ => sprintln!("gpu16_3 verify [n] [device]  -- batch SIXTEEN_3 register gates on GPU, verified against scalar path"),
                 }
             }
-            "gpu_ecm" => {
+            "gpu_ecm" | "membrane_ecm_extract" => {
+                let mut parts=line.split_whitespace().skip(1);
                 let arg = parts.next().unwrap_or("").trim();
-                if arg == "verify" {
-                    let rest: Vec<&str> = parts.collect();
-                    let limbs: usize = rest.get(0).and_then(|s| s.parse().ok()).unwrap_or(8);
-                    let cnt: usize = rest.get(1).and_then(|s| s.parse().ok()).unwrap_or(4096);
-                    sprintln!("{}", crate::gpu_ecm::verify_width(limbs, cnt, 1, 0));
+                if arg == "check" {
+                    let n=parts.next().unwrap_or("");
+                    let device:usize=parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+                    sprintln!("{}",crate::gpu_ecm_word::check(n,device));
                 } else if arg == "bsgs" {
-                    let n = parts.next().unwrap_or("").trim();
-                    let b1: u64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(250000);
-                    if n.is_empty() {
-                        sprintln!("gpu_ecm bsgs <n> [B1]  -- per-block BSGS stage-2 ECM (deep stage 2)");
-                    } else {
-                        sprintln!("{}", crate::gpu_ecm::run_bsgs(n, b1));
-                    }
+                    sprintln!("gpu_ecm: the limb-based BSGS command is unavailable on the IMASM word path; use gpu_ecm <canonical-word> [B1] [B2] [curves] [sigma] [device]");
                 } else if arg.is_empty() {
-                    sprintln!("gpu_ecm <n> [B1] | bsgs <n> [B1] | verify <limbs> [cnt]  -- elliptic-curve factorization on GPU");
+                    sprintln!("gpu_ecm <canonical-word> [B1] [B2] [curves] [sigma] [device] | check <canonical-word> [device] -- IMASM word ECM on GPU");
                 } else {
                     let b1: u64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(50000);
-                    sprintln!("{}", crate::gpu_ecm::run_factor(arg, b1, 0));
+                    let b2: u64=parts.next().and_then(|s| s.parse().ok()).unwrap_or(b1.saturating_mul(50));
+                    let curves:u32=parts.next().and_then(|s| s.parse().ok()).unwrap_or(256);
+                    let sigma:u64=parts.next().and_then(|s| s.parse().ok()).unwrap_or(6);
+                    let device:usize=parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+                    sprintln!("{}",crate::gpu_ecm_word::run(arg,b1,b2,device,sigma,curves));
                 }
             }
             "gpu_gnfs" => {

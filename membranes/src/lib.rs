@@ -130,7 +130,6 @@ fn radix4_prefix_frame(
     target: &Big,
     prefix_bits: usize,
     p_bits: usize,
-    q_bits: usize,
 ) -> Option<(Big, Big)> {
     let mut depth = 0u8;
     let mut p_next = p.clone();
@@ -161,7 +160,7 @@ fn radix4_prefix_frame(
             '≺' if depth == 2 => {
                 q_next = add(q, &mul(qd, step));
             }
-            '⊥' if depth == 2 => q_valid = q_next.bit_len() <= q_bits,
+            '⊥' if depth == 2 => q_valid = q_next.bit_len() <= prefix_bits,
             '⋈' if depth == 2 => {
                 inner_valid = p_valid && q_valid
                     && mul(&p_next, &q_next).truncate(prefix_bits) == *target;
@@ -185,7 +184,6 @@ fn radix4_prefix_frame(
 fn radix4_lift(
     n: &Big,
     p_bits: usize,
-    q_bits: usize,
     digit: usize,
     p: Big,
     q: Big,
@@ -200,14 +198,11 @@ fn radix4_lift(
         stats.balanced_entries[digit] = stats.balanced_entries[digit].saturating_add(1);
     }
     if *steps > cap { return None; }
-    let digits = p_bits.max(q_bits).div_ceil(2);
+    let digits = p_bits.div_ceil(2);
     if digit == digits {
-        if p.bit_len() == p_bits && q.bit_len() == q_bits
-            && cmp(&p, &q) != Ordering::Greater {
-            let (cofactor, remainder) = divmod(n, &p);
-            if is_zero(&remainder) && cofactor == q {
-                return Some(p);
-            }
+        if p.bit_len() == p_bits {
+            let (_, remainder) = divmod(n, &p);
+            if is_zero(&remainder) { return Some(p); }
         }
         return None;
     }
@@ -216,7 +211,11 @@ fn radix4_lift(
     let prefix_bits = 2 * (digit + 1);
     let target = n.truncate(prefix_bits);
     let p_digits = radix4_digit_options(p_bits, digit);
-    let q_digits = radix4_digit_options(q_bits, digit);
+    let q_digits = if digit == 0 {
+        vec![from_u32(1), from_u32(3)]
+    } else {
+        vec![from_u32(0), from_u32(1), from_u32(2), from_u32(3)]
+    };
     for pd in p_digits {
         for qd in &q_digits {
             stats.prefix_frames[digit] = stats.prefix_frames[digit].saturating_add(1);
@@ -224,14 +223,14 @@ fn radix4_lift(
                 stats.balanced_frames[digit] = stats.balanced_frames[digit].saturating_add(1);
             }
             if let Some((p_next, q_next)) = radix4_prefix_frame(
-                &p, &q, &pd, qd, &step, &target, prefix_bits, p_bits, q_bits,
+                &p, &q, &pd, qd, &step, &target, prefix_bits, p_bits,
             ) {
                 stats.prefix_closures[digit] = stats.prefix_closures[digit].saturating_add(1);
                 if balanced_probe {
                     stats.balanced_closures[digit] = stats.balanced_closures[digit].saturating_add(1);
                 }
                 if let Some(factor) = radix4_lift(
-                    n,p_bits,q_bits,digit+1,p_next,q_next,steps,cap,stats,balanced_probe,
+                    n,p_bits,digit+1,p_next,q_next,steps,cap,stats,balanced_probe,
                 ) {
                     return Some(factor);
                 }
@@ -252,9 +251,8 @@ pub struct Radix4Stats {
     pub balanced_closures: Vec<u64>,
 }
 
-/// Lift one factor word in base four. Its cofactor prefix is carried only as
-/// the product-closure constraint and is recovered by exact word division at
-/// the leaf.
+/// Lift one factor word in base four. The complementary low-digit word is a
+/// product-prefix constraint only; one exact division closes the factor leaf.
 pub fn factor_radix4_with_stats(
     n: &Big,
     node_cap: u64,
@@ -277,37 +275,30 @@ pub fn factor_radix4_with_stats(
         balanced_closures: vec![0; bits.div_ceil(2)],
     };
     let balanced_p_bits = bits / 2;
-    // Balanced semiprimes are the dominant hard shape. Give their two width
-    // splits half the shared cap before opening the remaining-width arm.
+    // The balanced factor width receives half the budget; the remainder
+    // continues down the smaller factor widths.
     let balanced_probe_cap = (node_cap / 2).max(1).min(node_cap);
-    for q_bits in [bits - balanced_p_bits, bits + 1 - balanced_p_bits] {
-        if q_bits < balanced_p_bits { continue; }
-        if let Some(factor) = radix4_lift(
-            n,
-            balanced_p_bits,
-            q_bits,
-            0,
-            Big::zero(),
-            Big::zero(),
-            &mut nodes,
-            balanced_probe_cap,
-            &mut stats,
-            true,
-        ) {
-            return (Some(factor), nodes, stats);
-        }
+    if let Some(factor) = radix4_lift(
+        n,
+        balanced_p_bits,
+        0,
+        Big::zero(),
+        Big::zero(),
+        &mut nodes,
+        balanced_probe_cap,
+        &mut stats,
+        true,
+    ) {
+        return (Some(factor), nodes, stats);
     }
     for p_bits in 2..=(bits / 2 + 1) {
         if p_bits == balanced_p_bits { continue; }
-        for q_bits in [bits + 1 - p_bits, bits - p_bits] {
-            if q_bits < p_bits || q_bits == 0 { continue; }
-            if let Some(factor) = radix4_lift(
-                n,p_bits,q_bits,0,Big::zero(),Big::zero(),&mut nodes,node_cap,&mut stats,false,
-            ) {
-                return (Some(factor), nodes, stats);
-            }
-            if nodes > node_cap { return (None, nodes, stats); }
+        if let Some(factor) = radix4_lift(
+            n,p_bits,0,Big::zero(),Big::zero(),&mut nodes,node_cap,&mut stats,false,
+        ) {
+            return (Some(factor), nodes, stats);
         }
+        if nodes > node_cap { return (None, nodes, stats); }
     }
     (None, nodes, stats)
 }
@@ -329,16 +320,19 @@ pub fn main_membrane(name: &str, word: &str) {
         eprintln!("{name}: expected a canonical IMASM numeral word");
         std::process::exit(2);
     };
-    let (pair, ticks) = run(word, &n, 1, steps);
-    let (pair, producer) = match pair {
-        Some(pair) => (Some(pair), "fixed-word frontier"),
+    let (candidate, ticks) = run(word, &n, 1, steps);
+    let (factor, producer) = match candidate {
+        Some((factor, _)) => (Some(factor), "fixed-word frontier"),
         None => (ecm::factor(&n, 5_000, 50_000, 100), "ECM continuation"),
     };
     println!("membrane {name} input bits={} operator marks={}", n.bit_len(), word.chars().count());
-    match pair {
-        Some((p, q)) => println!("producer={producer}\nfactor={}\ncofactor={}\nproduct_closes={}\nIMASM ticks={ticks}",
-            to_word(&p), to_word(&q), mul(&p, &q) == n),
-        None => println!("  no pair fixed within {steps} frontier steps\n  IMASM ticks={ticks}"),
+    match factor {
+        Some(factor) => {
+            let (_, remainder) = divmod(&n, &factor);
+            println!("producer={producer}\nfactor={}\nproduct_closes={}\nIMASM ticks={ticks}",
+                to_word(&factor), is_zero(&remainder));
+        }
+        None => println!("  no factor fixed within {steps} frontier steps\n  IMASM ticks={ticks}"),
     }
 }
 

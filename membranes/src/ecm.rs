@@ -15,7 +15,7 @@ struct Point { x: Big, z: Big }
 
 enum CurveStart {
     Ready(Point, Big),
-    Factor(Big, Big),
+    Factor(Big),
     Retry,
 }
 
@@ -41,10 +41,10 @@ fn gcd(a: &Big, b: &Big) -> Big {
     x
 }
 
-fn proper_factor(g: Big, n: &Big) -> Option<(Big, Big)> {
+fn proper_factor(g: Big, n: &Big) -> Option<Big> {
     if cmp(&g, &one()) != Ordering::Greater || cmp(&g, n) != Ordering::Less { return None; }
     let (q, r) = divmod(n, &g);
-    if is_zero(&r) && mul(&g, &q) == *n { Some((g, q)) } else { None }
+    if is_zero(&r) && mul(&g, &q) == *n { Some(g) } else { None }
 }
 
 /// Inverse by Euclid with both Bézout residues carried modulo N.
@@ -78,12 +78,13 @@ fn start_curve(n: &Big, sigma: u32) -> CurveStart {
     let denominator = mulm(&mulm(&from_u32(4), &u3, n), &v, n);
     let g = gcd(&denominator, n);
     let denominator_is_unit = g == one();
-    if let Some((p, q)) = proper_factor(g, n) { return CurveStart::Factor(p, q); }
+    if let Some(factor) = proper_factor(g, n) { return CurveStart::Factor(factor); }
     if !denominator_is_unit { return CurveStart::Retry; }
     let Some(inv) = inverse_mod(&denominator, n) else { return CurveStart::Retry; };
-    let a = mulm(&numerator, &inv, n);
+    // Suyama's ratio is A + 2, so A24 is this ratio divided by four.
+    let a_plus_two = mulm(&numerator, &inv, n);
     let Some(inv_four) = inverse_mod(&from_u32(4), n) else { return CurveStart::Retry; };
-    let a24 = mulm(&addm(&a, &two(), n), &inv_four, n);
+    let a24 = mulm(&a_plus_two, &inv_four, n);
     CurveStart::Ready(Point { x: u3, z: v3 }, a24)
 }
 
@@ -129,17 +130,17 @@ fn scalar_mul(p: &Point, scalar: u32, a24: &Big, n: &Big) -> Point {
 }
 
 /// Advance one scalar inside the outer carrier, then require the two nested
-/// denominator arms to agree before fixing the factor pair.
+/// denominator arms to agree before fixing one factor.
 fn scalar_step(
     point: &Point,
     scalar: u32,
     a24: &Big,
     n: &Big,
-) -> (Point, Option<(Big, Big)>) {
+) -> (Point, Option<Big>) {
     let mut result = point.clone();
     let mut depth = 0u8;
     let mut active_arm = None;
-    let mut arm_factors: [Option<(Big, Big)>; 2] = [None, None];
+    let mut arm_factors: [Option<Big>; 2] = [None, None];
     let mut factor = None;
     for mark in ECM_SCALAR_WORD.chars() {
         match mark {
@@ -171,8 +172,9 @@ fn scalar_step(
                 } else {
                     None
                 };
-                if let Some((p, q)) = factor.as_ref() {
-                    if mul(p, q) != *n { factor = None; }
+                if let Some(p) = factor.as_ref() {
+                    let (q, r) = divmod(n, p);
+                    if !is_zero(&r) || mul(p, &q) != *n { factor = None; }
                 }
             }
             '∋' => {
@@ -180,8 +182,9 @@ fn scalar_step(
                 active_arm = None;
             }
             '⊡' => {
-                if let Some((p, q)) = factor.as_ref() {
-                    if mul(p, q) != *n { factor = None; }
+                if let Some(p) = factor.as_ref() {
+                    let (q, r) = divmod(n, p);
+                    if !is_zero(&r) || mul(p, &q) != *n { factor = None; }
                 }
             }
             '⊣' => break,
@@ -191,7 +194,7 @@ fn scalar_step(
     (result, factor)
 }
 
-fn stage_one(point: &mut Point, a24: &Big, n: &Big, b1: u32) -> Option<(Big, Big)> {
+fn stage_one(point: &mut Point, a24: &Big, n: &Big, b1: u32) -> Option<Big> {
     for p in 2..=b1 {
         if !is_prime_small(p) { continue; }
         let (next, factor) = scalar_step(point, largest_prime_power(p, b1), a24, n);
@@ -207,7 +210,7 @@ fn stage_two(
     n: &Big,
     b1: u32,
     b2: u32,
-) -> Option<(Big, Big)> {
+) -> Option<Big> {
     for p in b1.saturating_add(1)..=b2 {
         if !is_prime_small(p) { continue; }
         let (next, factor) = scalar_step(point, p, a24, n);
@@ -233,9 +236,13 @@ fn largest_prime_power(p: u32, bound: u32) -> u32 {
     power
 }
 
-pub fn factor(n: &Big, b1: u32, b2: u32, curves: u32) -> Option<(Big, Big)> {
+pub fn factor(n: &Big, b1: u32, b2: u32, curves: u32) -> Option<Big> {
+    factor_from_sigma(n, b1, b2, curves, 6)
+}
+
+pub fn factor_from_sigma(n: &Big, b1: u32, b2: u32, curves: u32, first_sigma: u32) -> Option<Big> {
     if !n.is_odd() { return proper_factor(two(), n); }
-    for sigma in 6..6u32.saturating_add(curves) {
+    for sigma in first_sigma..first_sigma.saturating_add(curves) {
         let mut point = None;
         let mut a24 = None;
         let mut candidate = None;
@@ -247,7 +254,7 @@ pub fn factor(n: &Big, b1: u32, b2: u32, curves: u32) -> Option<(Big, Big)> {
                     candidate = None;
                 }
                 '⊙' => match start_curve(n, sigma) {
-                    CurveStart::Factor(p, q) => candidate = Some((p, q)),
+                    CurveStart::Factor(factor) => candidate = Some(factor),
                     CurveStart::Retry => {}
                     CurveStart::Ready(start, coefficient) => {
                         point = Some(start);
@@ -270,8 +277,9 @@ pub fn factor(n: &Big, b1: u32, b2: u32, curves: u32) -> Option<(Big, Big)> {
                     }
                 }
                 '⊡' => {
-                    if let Some((p, q)) = candidate.as_ref() {
-                        if mul(p, q) != *n { candidate = None; }
+                    if let Some(p) = candidate.as_ref() {
+                        let (q, r) = divmod(n, p);
+                        if !is_zero(&r) || mul(p, &q) != *n { candidate = None; }
                     }
                 }
                 '⊣' => if candidate.is_some() { return candidate; },

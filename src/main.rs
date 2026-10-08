@@ -81,6 +81,8 @@ mod gpu_rho_ml;
 #[cfg(feature = "hosted")]
 mod gpu_ecm;
 #[cfg(feature = "hosted")]
+mod gpu_ecm_word;
+#[cfg(feature = "hosted")]
 mod gpu_trilattice;
 #[cfg(feature = "hosted")]
 mod gpu_abc;

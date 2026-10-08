@@ -598,12 +598,7 @@ pub fn verify_width(limbs: usize, count: usize, seed: u64, device: usize) -> Str
 }
 
 pub fn run_factor(n_str: &str, b1: u64, device: usize) -> String {
-    let n: BigUint = match n_str.trim().parse() { Ok(v)=>v, Err(_)=>return format!("gpu_ecm: '{}' not an integer", n_str) };
-    let b2 = b1.saturating_mul(50);
-    match factor_once_b2(&n, b1, b2, device) {
-        Some(f) => format!("gpu_ecm factor {} (B1={}, B2={}): found factor {}  (divides: {})", n, b1, b2, f, (&n % &f).is_zero()),
-        None => format!("gpu_ecm factor {} (B1={}, B2={}): no factor within curve budget", n, b1, b2),
-    }
+    crate::gpu_ecm_word::run(n_str,b1,b1.saturating_mul(50),device,6,256)
 }
 
 /// Per-block BSGS stage-2 ECM verb. B2 defaults to 100*B1, the deep stage-2
