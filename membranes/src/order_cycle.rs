@@ -3,7 +3,7 @@
 use crate::{add, cmp, divmod, from_u32, from_word, is_zero, mul, sub, to_word, Big};
 use core::cmp::Ordering;
 
-const ORDER_WORD: &str = "⊢⊙⊙∈⊤≻⊥≻≻∋⊡⋈⊣";
+const ORDER_WORD: &str = "⊢⊙⊙∈⊙∈⊤≻⊥≻≻∋⊡⋈⊙∋⊣";
 
 fn one() -> Big {
     from_u32(1)
@@ -84,6 +84,7 @@ fn advance_order_word(
     let mut hare_lane = None;
     let mut active_hare_lane = None;
     let mut collision = false;
+    let mut depth = 0u8;
 
     for mark in ORDER_WORD.chars() {
         match mark {
@@ -100,13 +101,16 @@ fn advance_order_word(
                 seed_stage += 1;
             }
             '∈' => {
-                *seeded = true;
-                tortoise_lane = Some(tortoise.clone());
-                hare_lane = Some(hare.clone());
+                depth += 1;
+                if depth == 2 {
+                    *seeded = true;
+                    tortoise_lane = Some(tortoise.clone());
+                    hare_lane = Some(hare.clone());
+                }
             }
-            '⊤' => active_hare_lane = Some(false),
-            '⊥' => active_hare_lane = Some(true),
-            '≻' => match active_hare_lane {
+            '⊤' if depth == 2 => active_hare_lane = Some(false),
+            '⊥' if depth == 2 => active_hare_lane = Some(true),
+            '≻' if depth == 2 => match active_hare_lane {
                 Some(false) => {
                     let lane = tortoise_lane.as_mut().expect("order T lane is open");
                     *lane = square_mod(lane, n);
@@ -118,9 +122,12 @@ fn advance_order_word(
                 None => {}
             },
             '∋' => {
-                *tortoise = tortoise_lane.take().expect("order T lane reaches its fuse");
-                *hare = hare_lane.take().expect("order F lane reaches its fuse");
-                active_hare_lane = None;
+                if depth == 2 {
+                    *tortoise = tortoise_lane.take().expect("order T lane reaches its fuse");
+                    *hare = hare_lane.take().expect("order F lane reaches its fuse");
+                    active_hare_lane = None;
+                }
+                depth = depth.saturating_sub(1);
             }
             '⊡' => *steps += 1,
             '⋈' => collision = tortoise == hare,
