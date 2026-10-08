@@ -59,7 +59,7 @@
 <line x1="0.0" y1="640.0" x2="1362.0" y2="640.0" stroke="#333333" stroke-width="0.4" opacity="0.3"></line>
 <line x1="0.0" y1="680.0" x2="1362.0" y2="680.0" stroke="#333333" stroke-width="0.4" opacity="0.3"></line>
 <text x="681.0" y="26.0" fill="#ffffff" font-size="13" text-anchor="middle" font-family="monospace" font-weight="bold">order cycle frame</text>
-<text x="681.0" y="41.0" fill="#ffffff" font-size="7" text-anchor="middle" font-family="monospace">⊢⊙⊙∈⊤≻⊥≻≻∋⊡⋈⊣</text>
+<text x="681.0" y="41.0" fill="#ffffff" font-size="7" text-anchor="middle" font-family="monospace">Executable operator word from order_cycle_frame</text>
 <text x="66.0" y="190.0" fill="#ffffff" font-size="7" text-anchor="start" font-family="monospace">T-lane</text>
 <text x="66.0" y="135.0" fill="#ffffff" font-size="7" text-anchor="start" font-family="monospace">T[d1]</text>
 <text x="66.0" y="470.0" fill="#ffffff" font-size="7" text-anchor="start" font-family="monospace">F-lane</text>
@@ -270,6 +270,8 @@
 <text x="14.0" y="458.0" fill="#ffffff" font-size="4.5" text-anchor="start" font-family="monospace">T=proven F=refuted</text>
 <text x="14.0" y="465.0" fill="#ffffff" font-size="4.5" text-anchor="start" font-family="monospace">t=accept. f=reject.</text>
 <text x="14.0" y="472.0" fill="#ffffff" font-size="4.5" text-anchor="start" font-family="monospace">N=∅ A=full(TtFf)</text>
+<text x="681.0" y="708.0" fill="#ffffff" font-size="7" text-anchor="middle" font-family="monospace">Ouroboricity: O₂dag</text>
 <path d="M 235.0,330.0 L 235.0,10.0 L 1221.0,10.0 L 1221.0,338.0" fill="none" stroke="#ffffff" stroke-width="1.2"></path>
 <polygon points="1221.0,330.0 1217.8,322.0 1224.2,322.0" fill="#ffffff"></polygon>
+<text x="728.0" y="12.0" fill="#ffffff" font-size="7" text-anchor="middle" font-family="monospace">O₂dag</text>
 </svg>
