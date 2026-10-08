@@ -1,6 +1,5 @@
-I run the IMASM factor membranes at 256, 512, and 1048 bits
+I route canonical numeral words through G GNFS
 
-I carry ECM, radix-four, fixed-word, and order-route operands as canonical
-WordTape numerals. I widen the fixed-word continuation to the 100-curve ECM
-stage, then measure its factors on all three widths. I keep the generated
-semiprime words, factor references, route output, and scaling results.
+I accept and validate canonical IMASM inputs at the direct GNFS command, and
+emit factor pairs as canonical numeral words. I retain balanced 256-bit host
+fallback measurements and the sieve-bound sweep.

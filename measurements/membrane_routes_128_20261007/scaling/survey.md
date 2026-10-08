@@ -38,4 +38,6 @@ The radix-four 256-bit run with the 31-bit factor reached 2,000,001 states witho
 
 The order routes are classical word-level order-cycle attempts, not executions on a quantum device. They accept the same canonical words, but none returned factors at the tested iteration cap. The Vox 256-bit balanced smart-factor and MPQS word routes each reached their 120-second test cap without output. The Vox factor routes continue through the same `smart_factor` implementation, so their entry points are not independent algorithms.
 
+The G GNFS entry point accepts a canonical IMASM numeral word and returns factor and cofactor words. Its balanced 256-bit run used the automatic B=200000 bound. CUDA was unavailable, so the host fallback collected 19 of 36,167 required relations in 576 of 400,000 sieve blocks before the 300-second cap. Bounds 2,000 and 5,000 finished with zero relations in 19.4 and 99.5 seconds; bound 10,000 reached its 120-second cap with zero relations. The route's input boundary is word-native, while the GNFS kernel converts the numeral to `BigUint` internally.
+
 Inputs, logs, and timing records are in the matching size directories. `cases.json` retains the balanced control factors; `ecm_witness_cases.json` retains the generated witness factors. The reference factors were not passed to any tested route.
