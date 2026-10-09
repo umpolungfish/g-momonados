@@ -195,6 +195,27 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
                              ' a=' + lifted_correction + ' signed-residual=' +
                              transported_sign + transported_residual +
                              ' initial-empty-cells=' + str(transported_zeros) + '\n')
+                left_return = operate(lifted_root, 'sub', lifted_correction)
+                left_sign = '+'
+                if left_return is None:
+                    left_return = operate(lifted_correction, 'sub', lifted_root)
+                    left_sign = '-'
+                left_magnitude = field(left_return, 'result')
+                right_return = field(operate(lifted_root, 'add', lifted_correction), 'result')
+                for value in (left_magnitude, right_return):
+                    read(value)
+                returned_product = field(operate(left_magnitude, 'mul', right_return), 'result')
+                reconstructed = operate(source, 'add' if transported_sign == '+' else 'sub',
+                                        transported_residual)
+                if reconstructed is None:
+                    assert left_sign == '-'
+                    reconstructed = operate(transported_residual, 'sub', source)
+                else:
+                    assert left_sign == '+'
+                assert field(reconstructed, 'result') == returned_product
+                record.write('SIGNED OPERAND RETURN p=' + left_sign + left_magnitude +
+                             ' q=+' + right_return + ' exact-source-residual=PASS\n')
+                print(source, label, 'operand signs', left_sign + '+')
                 if transported_residual == '0':
                     factor_left = field(operate(lifted_root, 'sub', lifted_correction), 'result')
                     factor_right = field(operate(lifted_root, 'add', lifted_correction), 'result')
