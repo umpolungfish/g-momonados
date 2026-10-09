@@ -1,5 +1,7 @@
 # Exact source factor goal
 
+High-first repeated-composition continuation: `hex_geometric_composition.py --higher-first` reads the independently certified alternate source from its preserved record. The complete maximal-chain census contains 730 observed equal/alternating compositions at whole-hex boundaries. Every expanded dictionary reconstructs that source exactly; none consumes the entire source. The least residual is 198 terms at displacement 12 with opposite polarity and two copies. Longer repeated groups do not absorb that residual within this literal family. Among placements at least 100 cells wide, the selected collection has 208 residual terms at displacement 148, opposite polarity, and two copies with 50 payload terms. The full census is retained in `hex_geometric_composition_higher_first.md`; the unconsumed contributions remain the next symbolic input.
+
 The complete source is in `source.txt`. Its native Gödel encoding has 895 cells; its ordered hexadecimal spelling has 224 complete motifs. Completion requires proper factors whose exact product equals this source, produced through its Gödel and `tfactor read` relationships. No proper factors have been produced in this record.
 
 Verified on this source:
