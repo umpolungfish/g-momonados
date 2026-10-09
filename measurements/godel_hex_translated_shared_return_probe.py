@@ -55,6 +55,7 @@ with (ROOT / 'measurements' / ('godel_hex_translated_shared_return_' + SOURCE + 
         out = run(['./godel', 'product', n, a, b])
         assert 'relation.exact-product     PASS' in out
 
+    run(['python3', 'measurements/godel_hex_ordered_word_probe.py', SOURCE])
     run(['python3', 'measurements/godel_hex_translated_lane_probe.py', SOURCE])
     translated_log = (ROOT / 'measurements' / ('godel_hex_translated_lane_' + SOURCE + '.log')).read_text()
     returns = re.findall(r'PARTIAL TRANSLATED RETURN n=(\d+) payload=(\d+) cofactor=(\d+) residual=([+-])(\d+) EXACT PASS', translated_log)
