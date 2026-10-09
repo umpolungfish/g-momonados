@@ -150,6 +150,10 @@ with (ROOT / 'measurements' / ('godel_hex_unequal_composition_' + SOURCE + '.log
         product(SOURCE, upper, quotient)
         proper = upper not in {'0', '1', SOURCE} and quotient not in {'0', '1', SOURCE}
         print(SOURCE, 'upper-frame product', upper, quotient, 'proper-factor PASS' if proper else 'unit return')
+        if not proper and encode(SOURCE)[0] == FILLED and encode(upper)[0] == FILLED:
+            record.flush()
+            followed = run(['python3', 'measurements/godel_hex_unequal_prefix_probe.py', SOURCE])
+            print(followed.rstrip())
         sys.exit(0)
     # The next multiple of the output supplies a correction from its actual remainder.
     square_correction = field(operate(upper, 'sub', remainder), 'result')
@@ -165,6 +169,10 @@ with (ROOT / 'measurements' / ('godel_hex_unequal_composition_' + SOURCE + '.log
         record.write('FOLLOW RETAINED OUTPUT, REMAINDER AND SQUARE PREFIXES; no factor certificate\n')
         print(SOURCE, 'unequal composition retained', 'correction-square=' + square_correction,
               'target-square=' + corrected, 'roots=' + str((correction_root, target_root)))
+        if encode(SOURCE)[0] == FILLED and encode(upper)[0] == FILLED:
+            record.flush()
+            followed = run(['python3', 'measurements/godel_hex_unequal_prefix_probe.py', SOURCE])
+            print(followed.rstrip())
         sys.exit(0)
     left = field(operate(target_root, 'sub', correction_root), 'result')
     right = field(operate(target_root, 'add', correction_root), 'result')
