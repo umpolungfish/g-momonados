@@ -59,6 +59,24 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
         print(SOURCE, label, a, b, 'proper-factor PASS' if proper else 'unit return')
         return proper
 
+    def shared_pair_return(value):
+        unbraided = run(['./godel', 'unbraid', value])
+        gamma = next(line[len('Γ lane'):].strip() for line in unbraided.splitlines()
+                     if line.startswith('Γ lane '))
+        lam = next(line[len('Λ lane'):].strip() for line in unbraided.splitlines()
+                   if line.startswith('Λ lane '))
+        if gamma != lam or gamma == '0':
+            record.write('SHARED PAIR RETAINED: unequal positioned lanes\n')
+            return None
+        lane = cells(field(unbraided, 'Γ.word'))
+        positioned = decode([part for cell in lane for part in (cell, EMPTY)])
+        payload_pair = decode([FILLED, FILLED])
+        product(value, payload_pair, positioned)
+        read(positioned)
+        record.write('SHARED PAIR RETURN ' + value + ' = ' + payload_pair +
+                     ' * ' + positioned + ' lane=' + gamma + '\n')
+        return payload_pair, positioned
+
     source = SOURCE
     source_parts = read(source)
     correction_parts = source_parts[4:8]
@@ -273,15 +291,21 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
                             source_product(operand, cofactor, 'lifted residual collection')
                         else:
                             read(collected_remainder)
-                            coupled_return = operate(collected_remainder, 'divmod', cofactor)
-                            coupled_remainder = field(coupled_return, 'remainder')
+                            paired = shared_pair_return(collected_remainder)
+                            if paired is not None and paired[0] == cofactor:
+                                coupled_quotient, coupled_remainder = paired[1], '0'
+                                record.write('COFACTOR COLLECTS THROUGH SHARED HEX/LANE PAYLOAD\n')
+                            else:
+                                coupled_return = operate(collected_remainder, 'divmod', cofactor)
+                                coupled_quotient = field(coupled_return, 'result')
+                                coupled_remainder = field(coupled_return, 'remainder')
                             record.write('PARTIAL REMAINDER/COFACTOR cofactor=' + cofactor +
-                                         ' quotient=' + field(coupled_return, 'result') +
+                                         ' quotient=' + coupled_quotient +
                                          ' remainder=' + coupled_remainder + '\n')
                             if coupled_remainder == '0':
                                 collected_operand = field(operate(operand,
                                     'sub' if transported_sign == '+' else 'add',
-                                    field(coupled_return, 'result')), 'result')
+                                    coupled_quotient), 'result')
                                 source_product(cofactor, collected_operand, 'partial cofactor collection')
                     print(source, label, 'positive operand collection checked')
                 print(source, label, 'operand signs', left_sign + '+')

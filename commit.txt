@@ -1,3 +1,3 @@
-I collect source factors through a shifted hex correction and its remainder
+I connect shared frames and hex lanes through residual payload collection
 
-I verify the low-5/D correction shift, source-only 21 and 341 products and the boundary crossing from D to 1A. I collect the 213 remainder into 3 times 71 and retain its complete source return.
+I expose the 213 remainder's factor through equal positioned lanes and repeated two-cell payloads. I verify the source product without remainder/cofactor division on that branch and replay both large-source records.
