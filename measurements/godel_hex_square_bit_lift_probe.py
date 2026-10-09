@@ -107,6 +107,20 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
     low_parts = parts[:4]
     low_parts += [EMPTY] * (4 - len(low_parts))
     low = decode(low_parts)
+    if low not in {'0', '1', '4', '9'} and low_source == '3' and FILLED in correction_parts:
+        first_occupied = correction_parts.index(FILLED)
+        record.write('LOW HEX CONSTRAINT SELECTS FIRST OCCUPIED SECOND-MOTIF SLOT ' +
+                     str(first_occupied) + ' -> truth; retain one occupied unit\n')
+        run(['python3', 'measurements/godel_hex_ordered_word_probe.py', source])
+        correction_parts = [FILLED]
+        payload = decode(correction_parts)
+        read(payload)
+        square = field(operate(payload, 'mul', payload), 'result')
+        correction = field(operate(source, 'add', square), 'result')
+        parts = read(correction)
+        low_parts = parts[:4]
+        low_parts += [EMPTY] * (4 - len(low_parts))
+        low = decode(low_parts)
     if low not in {'0', '1', '4', '9'}:
         record.write('SQUARE RETURN REFUTED: corrected low hex value ' + low +
                      ' lies outside the verified square image {0,1,4,9}\n')
