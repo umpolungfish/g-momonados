@@ -159,6 +159,49 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
             record.write('PLACED RESIDUAL ' + sign + residual + ' = ' +
                          sign + quotient + ' * ' + placement +
                          ' initial-empty-cells=' + str(residual_zeros) + '\n')
+            correction_zeros = 0
+            for cell in encode(payload):
+                if cell != EMPTY:
+                    break
+                correction_zeros += 1
+            root_zeros = initial_empty // 2
+            assert residual_zeros >= 2 * max(root_zeros, correction_zeros) + 3
+            root_increment = decode([EMPTY] * (residual_zeros - root_zeros - 1) + [FILLED])
+            correction_increment = decode([EMPTY] * (residual_zeros - correction_zeros - 1) + [FILLED])
+            changed_root = field(operate(restored, 'add', root_increment), 'result')
+            changed_correction = field(operate(payload, 'add', correction_increment), 'result')
+            for label, lifted_root, lifted_correction in (
+                    ('root', changed_root, payload),
+                    ('correction', restored, changed_correction)):
+                lifted_square = field(operate(lifted_root, 'mul', lifted_root), 'result')
+                lifted_correction_square = field(operate(lifted_correction, 'mul', lifted_correction), 'result')
+                target_square = field(operate(source, 'add', lifted_correction_square), 'result')
+                transported = operate(lifted_square, 'sub', target_square)
+                transported_sign = '+'
+                if transported is None:
+                    transported = operate(target_square, 'sub', lifted_square)
+                    transported_sign = '-'
+                transported_residual = field(transported, 'result')
+                transported_parts = encode(transported_residual)
+                transported_zeros = 0
+                for cell in transported_parts:
+                    if cell != EMPTY:
+                        break
+                    transported_zeros += 1
+                assert transported_residual == '0' or transported_zeros > residual_zeros
+                for value in (lifted_root, lifted_correction, transported_residual):
+                    read(value)
+                record.write('CORRELATED LIFT ' + label + ' H=' + lifted_root +
+                             ' a=' + lifted_correction + ' signed-residual=' +
+                             transported_sign + transported_residual +
+                             ' initial-empty-cells=' + str(transported_zeros) + '\n')
+                if transported_residual == '0':
+                    factor_left = field(operate(lifted_root, 'sub', lifted_correction), 'result')
+                    factor_right = field(operate(lifted_root, 'add', lifted_correction), 'result')
+                    product(source, factor_left, factor_right)
+                    print(source, 'correlated source product', factor_left, factor_right, 'PASS')
+                print(source, label, 'lift repairs source bit', residual_zeros,
+                      'new initial empty cells', transported_zeros)
             for candidate, counterpart in ((left, right), (right, left)):
                 collected = operate(residual, 'divmod', candidate)
                 rem = field(collected, 'remainder')

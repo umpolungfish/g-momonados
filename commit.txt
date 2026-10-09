@@ -1,3 +1,3 @@
-I retain paired root residuals with their exact shifted coefficients
+I verify correlated root and correction cell transports
 
-I verify the large-source product differences, their shifted coefficient returns and the relation between each coefficient pair. I preserve the operand collection remainders and the verified 8051 extraction.
+I let higher correction cells participate in the one-bit source return. I verify both root and correction increments on each large-source endpoint and retain their distinct full words and signed residuals.
