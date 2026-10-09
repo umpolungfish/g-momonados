@@ -1,4 +1,5 @@
 """Collect a common lane payload across translated output and residual."""
+from godel_hex_record_name import record_name, read_record
 from pathlib import Path
 import re
 import subprocess
@@ -16,7 +17,7 @@ def cells(word):
 
 SOURCE = sys.argv[1] if len(sys.argv) > 1 else '117'
 
-with (ROOT / 'measurements' / ('godel_hex_translated_shared_return_' + SOURCE + '.log')).open('a') as record:
+with (ROOT / 'measurements' / ('godel_hex_translated_shared_return_' + record_name(SOURCE) + '.log')).open('a') as record:
     def run(args, allow_underflow=False):
         out = subprocess.run(args, cwd=ROOT, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -57,7 +58,7 @@ with (ROOT / 'measurements' / ('godel_hex_translated_shared_return_' + SOURCE + 
 
     run(['python3', 'measurements/godel_hex_ordered_word_probe.py', SOURCE])
     run(['python3', 'measurements/godel_hex_translated_lane_probe.py', SOURCE])
-    translated_log = (ROOT / 'measurements' / ('godel_hex_translated_lane_' + SOURCE + '.log')).read_text()
+    translated_log = read_record(ROOT / 'measurements' / ('godel_hex_translated_lane_' + record_name(SOURCE) + '.log'))
     returns = re.findall(r'DUAL ANCHOR RETURN n=(\d+) payload=(\d+) cofactor=(\d+) remainder=(\d+) EXACT PASS', translated_log)
     if not returns or returns[-1][0] != SOURCE:
         raise RuntimeError('No dual-anchor translated return for this source')

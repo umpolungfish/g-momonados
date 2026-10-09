@@ -1,4 +1,5 @@
 """Retain the product defect of a source-derived hex operator exchange."""
+from godel_hex_record_name import record_name
 from pathlib import Path
 import re
 import subprocess
@@ -18,7 +19,7 @@ def spell(parts):
 def cells(word):
     return [word[1:-3][i:i + 5] for i in range(0, len(word[1:-3]), 5)]
 
-with (ROOT / 'measurements' / ('godel_hex_product_transport_' + SOURCE + '.log')).open('a') as record:
+with (ROOT / 'measurements' / ('godel_hex_product_transport_' + record_name(SOURCE) + '.log')).open('a') as record:
     def run(args):
         result = subprocess.run(args, cwd=ROOT, text=True,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

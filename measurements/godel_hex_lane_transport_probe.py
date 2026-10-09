@@ -1,4 +1,5 @@
 """Verify hex operator exchanges through Gödel's positioned lane braid."""
+from godel_hex_record_name import record_name
 from pathlib import Path
 import re
 import subprocess
@@ -18,7 +19,7 @@ def cells(word):
     return [word[1:-3][i:i + 5] for i in range(0, len(word[1:-3]), 5)]
 
 for source in sys.argv[1:]:
-    path = ROOT / 'measurements' / ('godel_hex_lane_transport_' + source + '.log')
+    path = ROOT / 'measurements' / ('godel_hex_lane_transport_' + record_name(source) + '.log')
     with path.open('a') as record:
         def run(args):
             out = subprocess.run(args, cwd=ROOT, text=True,
