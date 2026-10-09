@@ -20,6 +20,8 @@ Verified on this source:
 
 - The target-sized factor-sum control `S=N+1` passes the repaired low-prefix condition and the complete discriminant-square equation, returning `1*N`. The prefix repairs do not determine the proper factor sum. The frame-selected high sum cells remain candidate choices; their selection has not been derived from the proper factors. Control: `factor_sum_unit_control.log.gz`.
 
+- The `godel` entry point now dispatches its advertised `factor`, `frame`, `shiab` and `separate` commands to `godel_product::command`. Previously they fell through to the numeral decoder despite appearing in help. The rebuilt local executable reaches the factor handler on the unit control. The exact target is running through `godel factor`; `correlation_factor.log` preserves the rejected pre-fix command, the post-fix control and the active source command. The source-only factor route invokes the linked bitregister product-correlation graph, retaining unknown factor cells and exact multiplication/carry constraints. Factor output still requires the independent full-source product check.
+
 Implementation corrections: bounded source labels prevent filesystem filename overflow; repeated prefix transport follows each newly exposed failure; division/remainder transport avoids the slower subtraction certificate. Python spells and indexes words and orchestrates calls; source arithmetic remains in `godel`. Full logs are stored losslessly as gzip archives and can be loaded through `read_record`.
 
 The source goal remains active. These checks are research results, not a factor certificate.
