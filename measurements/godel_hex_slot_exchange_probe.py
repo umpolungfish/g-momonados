@@ -131,6 +131,18 @@ with RECORD.open('a') as record:
                 closure = run(['./godel', 'product', SOURCE, quotient, collected])
                 assert 'relation.exact-product     PASS' in closure
                 print('output collection', quotient, collected, 'PASS')
+            positioned = field(operate(placement, 'mul', quotient), 'result')
+            whole = operate(positioned, 'divmod', remainder)
+            print('positioned-output/remainder',
+                  'quotient=' + field(whole, 'result'),
+                  'remainder=' + field(whole, 'remainder'))
+            if field(whole, 'remainder') == '0' and remainder != '1':
+                collected = field(operate(field(whole, 'result'), 'add', '1'),
+                                  'result')
+                closure = run(['./godel', 'product', SOURCE, remainder, collected])
+                assert 'relation.exact-product     PASS' in closure
+                print('positioned remainder collection', remainder, collected,
+                      'PASS')
             if field(coupled, 'remainder') == '0' and remainder != '1':
                 collected = field(operate(placement, 'mul',
                                           field(coupled, 'result')), 'result')
