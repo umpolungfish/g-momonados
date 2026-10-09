@@ -1,4 +1,4 @@
-"""Follow unequal full hex blocks through their retained difference and output remainder."""
+"""Follow a failed unequal composition through its source-selected square residue and prefix slot."""
 from pathlib import Path
 import re
 import subprocess
@@ -16,7 +16,7 @@ def cells(word):
 
 SOURCE = sys.argv[1] if len(sys.argv) > 1 else '213'
 
-with (ROOT / 'measurements' / ('godel_hex_unequal_composition_' + SOURCE + '.log')).open('a') as record:
+with (ROOT / 'measurements' / ('godel_hex_unequal_prefix_' + SOURCE + '.log')).open('a') as record:
     def run(args, allow_underflow=False):
         out = subprocess.run(args, cwd=ROOT, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -119,67 +119,105 @@ with (ROOT / 'measurements' / ('godel_hex_unequal_composition_' + SOURCE + '.log
 
     run(['python3', 'measurements/godel_hex_ordered_word_probe.py', SOURCE])
     source_parts = read(SOURCE)
-    motif_count = (len(source_parts) + 3) // 4
-    if motif_count < 2:
-        record.write('SINGLE MOTIF: retain complete word for a different frame choice\n')
+    width = 4 * (((len(source_parts) + 3) // 4) // 2)
+    if width == 0:
         print(SOURCE, 'single motif retained')
         sys.exit(0)
-    frame_width = 4 * (motif_count // 2)
-    lower = decode(source_parts[:frame_width])
-    upper = decode(source_parts[frame_width:])
-    multiplier = decode([EMPTY] * frame_width + [FILLED])
-    payload = decode([FILLED] + [EMPTY] * (frame_width - 1) + [FILLED])
-    read(lower)
-    read(upper)
-    read(payload)
-    delta = operate(lower, 'sub', upper)
-    sign = '+'
-    if delta is None:
-        delta = operate(upper, 'sub', lower)
-        sign = '-'
-    difference = field(delta, 'result')
-    read(difference)
-    positioned = field(operate(payload, 'mul', upper), 'result')
-    assert field(operate(positioned, 'add' if sign == '+' else 'sub', difference), 'result') == SOURCE
-    record.write('UNEQUAL FULL COMPOSITION n=' + SOURCE + ' frame-cells=' + str(frame_width) +
-                 ' lower=' + lower + ' upper=' + upper + ' payload=' + payload +
-                 ' difference=' + sign + difference + ' EXACT PASS\n')
+    upper = decode(source_parts[width:])
+    upper_parts = read(upper)
+    if source_parts[0] != FILLED or upper_parts[0] != FILLED:
+        record.write('RETAIN EVEN SOURCE OR EVEN UPPER BLOCK FOR ITS VALUATION FRAME\n')
+        print(SOURCE, 'even source or upper block retained')
+        sys.exit(0)
+    low_source = decode(source_parts[:4])
+    desired = {'1':'1', '3':'4', '5':'9', '7':'0', '9':'9', '11':'4', '13':'1', '15':'0'}[low_source]
+    # Lift the inverse of the odd upper motif one positioned unit at a time.
+    inverse_parts = [FILLED]
+    for position in range(1, 4):
+        inverse = decode(inverse_parts)
+        inverted = field(operate(upper, 'mul', inverse), 'result')
+        parts = encode(inverted)
+        parts += [EMPTY] * max(0, position + 1 - len(parts))
+        inverse_parts += [EMPTY] * (position + 1 - len(inverse_parts))
+        if parts[position] == FILLED:
+            inverse_parts[position] = FILLED
+        inverse = decode(inverse_parts)
+        inverted = field(operate(upper, 'mul', inverse), 'result')
+        parts = encode(inverted)
+        parts += [EMPTY] * max(0, position + 1 - len(parts))
+        assert parts[:position + 1] == [FILLED] + [EMPTY] * position
+        record.write('ODD UPPER MOTIF INVERSE position=' + str(position) + ' inverse=' + inverse + ' PASS\n')
+    if desired == '0':
+        product('0', inverse, '0')
+        selected_low = '0'
+    else:
+        selected_product = field(operate(desired, 'mul', inverse), 'result')
+        selected_low = decode(encode(selected_product)[:4])
     returned = operate(SOURCE, 'divmod', upper)
-    quotient, remainder = field(returned, 'result'), field(returned, 'remainder')
-    if remainder == '0':
-        product(SOURCE, upper, quotient)
-        proper = upper not in {'0', '1', SOURCE} and quotient not in {'0', '1', SOURCE}
-        print(SOURCE, 'upper-frame product', upper, quotient, 'proper-factor PASS' if proper else 'unit return')
-        if not proper and encode(SOURCE)[0] == FILLED and encode(upper)[0] == FILLED:
-            record.flush()
-            followed = run(['python3', 'measurements/godel_hex_unequal_prefix_probe.py', SOURCE])
-            print(followed.rstrip())
+    original = field(operate(field(returned, 'result'), 'add', '1'), 'result')
+    read(original)
+    coefficient_parts = encode(original)
+    coefficient_parts += [EMPTY] * max(0, 4 - len(coefficient_parts))
+    low_parts = encode(selected_low)
+    low_parts += [EMPTY] * (4 - len(low_parts))
+    coefficient_parts[:4] = low_parts
+    coefficient = decode(coefficient_parts)
+    if operate(coefficient, 'sub', original) is None:
+        coefficient = field(operate(coefficient, 'add', decode([EMPTY] * 4 + [FILLED])), 'result')
+    read(coefficient)
+    target = field(operate(coefficient, 'mul', upper), 'result')
+    correction = field(operate(target, 'sub', SOURCE), 'result')
+    assert decode(encode(target)[:4]) == desired
+    assert decode(encode(correction)[:4]) in {'0', '1', '4', '9'}
+    record.write('SOURCE HEX SELECTED COEFFICIENT source-low=' + low_source + ' target-low=' + desired +
+                 ' coefficient-low=' + selected_low + ' coefficient=' + coefficient + '\n')
+    def prefix_slot(value):
+        if value == '0':
+            return None
+        parts = encode(value)
+        zeros = 0
+        for cell in parts:
+            if cell != EMPTY:
+                break
+            zeros += 1
+        if zeros % 2:
+            return zeros
+        tail = parts[zeros:]
+        tail += [EMPTY] * max(0, 3 - len(tail))
+        for index in (1, 2):
+            if tail[index] == FILLED:
+                return zeros + index
+        return None
+    failures = [(slot, label) for label, value in (('TARGET', target), ('CORRECTION', correction))
+                if (slot := prefix_slot(value)) is not None]
+    if failures:
+        slot, label = min(failures)
+        assert slot >= 4
+        unit = decode([EMPTY] * slot + [FILLED])
+        increment = field(operate(upper, 'mul', unit), 'result')
+        coefficient = field(operate(coefficient, 'add', unit), 'result')
+        next_target = field(operate(coefficient, 'mul', upper), 'result')
+        assert field(operate(target, 'add', increment), 'result') == next_target
+        correction = field(operate(correction, 'add', increment), 'result')
+        target = next_target
+        slots = ('truth ⊤', 'falsity ⊥', 'information ⊞', 'fork ∈/⋈/∋')
+        record.write('ONE PREFIX SELECTED UNIT label=' + label + ' source-cell=' + str(slot) +
+                     ' operator-slot=' + slots[slot % 4] + ' coefficient=' + coefficient + '\n')
+    assert field(operate(SOURCE, 'add', correction), 'result') == target
+    record.write('REPAIRED UNEQUAL RETURN n=' + SOURCE + ' correction-square=' + correction +
+                 ' target-square=' + target + ' EXACT PASS\n')
+    read(coefficient)
+    a, h = exact_root(correction, 'CORRECTION'), exact_root(target, 'TARGET')
+    if a is None or h is None:
+        record.write('RETAIN REPAIRED WORDS AND THEIR NEW PREFIX PATTERN\n')
+        print(SOURCE, 'source-selected unequal repair', 'coefficient=' + coefficient,
+              'roots=' + str((a, h)))
         sys.exit(0)
-    # The next multiple of the output supplies a correction from its actual remainder.
-    square_correction = field(operate(upper, 'sub', remainder), 'result')
-    next_quotient = field(operate(quotient, 'add', '1'), 'result')
-    corrected = field(operate(upper, 'mul', next_quotient), 'result')
-    assert field(operate(SOURCE, 'add', square_correction), 'result') == corrected
-    record.write('OUTPUT-REMAINDER CORRECTION upper=' + upper + ' quotient=' + quotient +
-                 ' remainder=' + remainder + ' correction-square=' + square_correction +
-                 ' target-square=' + corrected + ' EXACT PASS\n')
-    correction_root = exact_root(square_correction, 'CORRECTION')
-    target_root = exact_root(corrected, 'TARGET')
-    if correction_root is None or target_root is None:
-        record.write('FOLLOW RETAINED OUTPUT, REMAINDER AND SQUARE PREFIXES; no factor certificate\n')
-        print(SOURCE, 'unequal composition retained', 'correction-square=' + square_correction,
-              'target-square=' + corrected, 'roots=' + str((correction_root, target_root)))
-        if encode(SOURCE)[0] == FILLED and encode(upper)[0] == FILLED:
-            record.flush()
-            followed = run(['python3', 'measurements/godel_hex_unequal_prefix_probe.py', SOURCE])
-            print(followed.rstrip())
-        sys.exit(0)
-    left = field(operate(target_root, 'sub', correction_root), 'result')
-    right = field(operate(target_root, 'add', correction_root), 'result')
+    left = field(operate(h, 'sub', a), 'result')
+    right = field(operate(h, 'add', a), 'result')
     product(SOURCE, left, right)
     proper = left not in {'0', '1', SOURCE} and right not in {'0', '1', SOURCE}
     read(left)
     read(right)
-    record.write('UNEQUAL COMPOSITION SOURCE PRODUCT left=' + left + ' right=' + right +
-                 ' exact=PASS proper=' + str(proper) + '\n')
-    print(SOURCE, 'unequal composition factors', left, right, 'proper-factor PASS' if proper else 'unit return')
+    record.write('REPAIRED SOURCE PRODUCT left=' + left + ' right=' + right + ' exact=PASS proper=' + str(proper) + '\n')
+    print(SOURCE, 'repaired unequal factors', left, right, 'proper-factor PASS' if proper else 'unit return')

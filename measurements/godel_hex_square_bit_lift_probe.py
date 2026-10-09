@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EMPTY, FILLED = '≻⋈∈⊤∋', '≻⋈∈⊥∋'
 SOURCE = sys.argv[1] if len(sys.argv) > 1 else '8051'
 SINGLE_PRESENCE = '--single-presence' in sys.argv[2:]
+SOURCE_UPPER = '--upper-frame' in sys.argv[2:]
 
 def field(out, label):
     return next(line.split(None, 1)[1] for line in out.splitlines()
@@ -16,7 +17,7 @@ def field(out, label):
 def cells(word):
     return [word[1:-3][i:i + 5] for i in range(0, len(word[1:-3]), 5)]
 
-with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).open('a') as record:
+with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + ('_upper_frame' if SOURCE_UPPER else '') + '.log')).open('a') as record:
     def run(args, allow_underflow=False):
         out = subprocess.run(args, cwd=ROOT, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -99,6 +100,16 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
     elif low_source in {'5', '13'}:
         if correction_parts[0] == FILLED and correction_parts[1] == EMPTY:
             correction_parts = [EMPTY] + correction_parts
+    if SOURCE_UPPER:
+        run(['python3', 'measurements/godel_hex_ordered_word_probe.py', source])
+        frame_width = 4 * (((len(source_parts) + 3) // 4) // 2)
+        correction_parts = source_parts[frame_width:]
+        low_anchor = {'1':'0', '3':'1', '5':'2', '7':'3', '9':'0', '11':'3', '13':'2', '15':'1'}[low_source]
+        low_cells = encode(low_anchor)
+        low_cells += [EMPTY] * (3 - len(low_cells))
+        correction_parts[:3] = low_cells
+        record.write('FULL SOURCE UPPER ANCHOR frame-cells=' + str(frame_width) +
+                     ' compatible-low-three=' + low_anchor + '\n')
     if SINGLE_PRESENCE and FILLED in correction_parts:
         first = correction_parts.index(FILLED)
         correction_parts = [EMPTY] * first + [FILLED]
@@ -112,6 +123,37 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
     square = field(operate(payload, 'mul', payload), 'result')
     correction = field(operate(source, 'add', square), 'result')
     parts = read(correction)
+    if SOURCE_UPPER:
+        initial_target_zeros = 0
+        for cell in parts:
+            if cell != EMPTY:
+                break
+            initial_target_zeros += 1
+        failed_cell = initial_target_zeros if initial_target_zeros % 2 else None
+        if failed_cell is None:
+            tail_prefix = parts[initial_target_zeros:]
+            tail_prefix += [EMPTY] * max(0, 3 - len(tail_prefix))
+            for index in (1, 2):
+                if tail_prefix[index] == FILLED:
+                    failed_cell = initial_target_zeros + index
+                    break
+        anchor_zeros = 0
+        for cell in encode(payload):
+            if cell != EMPTY:
+                break
+            anchor_zeros += 1
+        if failed_cell is not None and failed_cell >= 2 * anchor_zeros + 3:
+            unit_position = failed_cell - anchor_zeros - 1
+            old_parts = parts
+            payload = field(operate(payload, 'add', decode([EMPTY] * unit_position + [FILLED])), 'result')
+            correction_parts = encode(payload)
+            square = field(operate(payload, 'mul', payload), 'result')
+            correction = field(operate(source, 'add', square), 'result')
+            parts = read(correction)
+            assert old_parts[:failed_cell] == parts[:failed_cell]
+            assert old_parts[failed_cell] != parts[failed_cell]
+            record.write('FULL UPPER ANCHOR PREFIX UNIT failed-target-cell=' + str(failed_cell) +
+                         ' anchor-unit-cell=' + str(unit_position) + ' repaired-prefix=PASS\n')
     low_parts = parts[:4]
     low_parts += [EMPTY] * (4 - len(low_parts))
     low = decode(low_parts)
@@ -358,7 +400,7 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
         record.write('FINITE ROOT WIDTH REACHED WITHOUT EXACT SQUARE RETURN\n')
         print(source, 'correction', payload, 'bit-lift prefixes closed through',
               position, 'retained final roots', current, opposite)
-        if not SINGLE_PRESENCE and not any(proper_certificates) and low_source in {'5', '13'} and correction_parts.count(FILLED) > 1:
+        if not SOURCE_UPPER and not SINGLE_PRESENCE and not any(proper_certificates) and low_source in {'5', '13'} and correction_parts.count(FILLED) > 1:
             record.write('RETAIN FULL RETURN; FOLLOW FIRST OCCUPIED SECOND-MOTIF PRESENCE ONCE\n')
             record.flush()
             out = run(['python3', 'measurements/godel_hex_square_bit_lift_probe.py', source, '--single-presence'])

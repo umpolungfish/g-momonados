@@ -102,3 +102,8 @@ with (ROOT / 'measurements' / ('godel_hex_repeated_composition_' + SOURCE + '.lo
                  ' exact=PASS proper=' + str(proper) + '\n')
     print(SOURCE, 'repeated hex composition factors', block, payload,
           'proper-factor PASS' if proper else 'unit return')
+    if not proper:
+        record.write('UNIT REPEATED RETURN SELECTS UNEQUAL COMPOSITION\n')
+        record.flush()
+        followed = run(['python3', 'measurements/godel_hex_unequal_composition_probe.py', SOURCE])
+        print(followed.rstrip())
