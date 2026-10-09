@@ -1,3 +1,3 @@
-I follow a residual obstruction through exact partial-copy completion
+I enforce the source low-pole constraint on the collected operands
 
-I retain the missing poles and their opposite correction while collecting an observed partial translated payload. I verify the changed full-source equation with Gödel and preserve all 42 carry transports and complete hex readings. The nonzero residual remains explicit.
+I move the observed empty prefix into the cofactor and use the residual low pole to fix a zero-displacement completion. Gödel certifies the full odd-operand return, with the corrected residual first occupied at cell three. I retain all missing terms and carry transports.
