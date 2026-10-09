@@ -1,3 +1,3 @@
-I verify correlated root and correction cell transports
+I retain signed operand words for each correlated source lift
 
-I let higher correction cells participate in the one-bit source return. I verify both root and correction increments on each large-source endpoint and retain their distinct full words and signed residuals.
+I verify all eight operand products against their source-plus-residual equations. I retain five positive operand pairs and three signed product returns with complete hex words.
