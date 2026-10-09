@@ -1,5 +1,3 @@
-I run IMASM ECM on cooperative GPU curves
+I extend signed collection through transported operand rewrites
 
-I use parity-arm Montgomery arithmetic, warp carry propagation, retained CUDA contexts, and a default batch of 256 Suyama curves. I extract one factor and discard singular curves. I include the release binary, matched CPU/GPU benchmarks, wiring diagrams, and the accumulated local factoring work.
-
-My release build completes the 256-curve benchmark in 0.494 seconds versus 26.208 seconds on CPU. Warm factor extraction is faster on the 256-, 512-, and 1048-bit witnesses.
+I preserve the source-derived symbolic probes and their complete Markdown records. Operand rewrites followed by collection and cancellation reach 22 and 39 residual terms, with each accepted move replayed exactly. I retain the internal relation probe and the cooperative GPU ECM measurement alongside the research snapshot.
