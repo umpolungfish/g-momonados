@@ -16,12 +16,14 @@ def cells(word):
     return [word[1:-3][i:i + 5] for i in range(0, len(word[1:-3]), 5)]
 
 with (ROOT / 'measurements' / ('godel_hex_source_square_collection_' + SOURCE + '.log')).open('a') as record:
-    def run(args):
+    def run(args, allow_underflow=False):
         out = subprocess.run(args, cwd=ROOT, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         record.write('COMMAND ' + repr(args) + '\n' + out.stdout +
                      '\nEXIT ' + str(out.returncode) + '\n\n')
         if out.returncode:
+            if allow_underflow and 'frame subtraction underflow' in out.stdout:
+                return None
             raise RuntimeError(out.stdout)
         return out.stdout
 
@@ -43,7 +45,7 @@ with (ROOT / 'measurements' / ('godel_hex_source_square_collection_' + SOURCE + 
         width = max(2, len(left), len(right))
         composed = decode(left + [EMPTY] * (2 * width - len(left)) + right)
         return run(['./godel', 'frame-op', composed, str(width), '0', op,
-                    str(2 * width), '1'])
+                    str(2 * width), '1'], allow_underflow=(op == 'sub'))
 
     def product(n, a, b):
         out = run(['./godel', 'product', n, a, b])
@@ -61,18 +63,35 @@ with (ROOT / 'measurements' / ('godel_hex_source_square_collection_' + SOURCE + 
                 continue
             sums[side] = frame if sums[side] == '0' else field(
                 operate(sums[side], 'add', frame), 'result')
+        base = decode([EMPTY] * width + [FILLED])
+        factor = field(operate(base, 'add', '1'), 'result')
         if sums[0] != sums[1]:
             record.write('RETAINED UNBALANCED FRAMES width=' + str(width) +
                          ' frames=' + repr(frame_values) + ' sums=' + repr(sums) + '\n')
-            print(SOURCE, 'retained unbalanced frames at width', width,
-                  'sums', sums)
-            sys.exit(0)
-        base = decode([EMPTY] * width + [FILLED])
-        factor = field(operate(base, 'add', '1'), 'result')
+            difference = operate(sums[0], 'sub', sums[1])
+            sign = '+'
+            if difference is None:
+                difference = operate(sums[1], 'sub', sums[0])
+                sign = '-'
+            magnitude = field(difference, 'result')
+            read(magnitude)
+            folded = operate(magnitude, 'divmod', factor)
+            if field(folded, 'remainder') != '0':
+                print(SOURCE, 'retained fold width', width, 'sums', sums,
+                      'signed imbalance', sign + magnitude,
+                      'factor', factor, 'remainder', field(folded, 'remainder'))
+                sys.exit(0)
+            record.write('IMBALANCE COLLECTS ' + sign + magnitude + ' = ' +
+                         sign + field(folded, 'result') + ' * ' + factor + '\n')
+            product(magnitude, factor, field(folded, 'result'))
+            print(SOURCE, 'collected fold imbalance', sign + magnitude,
+                  'through factor', factor)
         out = operate(value, 'divmod', factor)
         assert field(out, 'remainder') == '0'
         quotient = field(out, 'result')
         product(value, factor, quotient)
+        record.write('COMPOSED FOLD RETURN ' + value + ' = ' + factor +
+                     ' * ' + quotient + '\n')
         return factor, quotient
 
     source = SOURCE

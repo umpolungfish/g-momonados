@@ -1,3 +1,3 @@
-I extract 8051 factors through its source-inscribed square correction
+I collect nonzero fold imbalances through their frame factor
 
-I return the corrected source as a square through paired alternating frame factors and collect 83 times 97. I verify every intermediate product with Godel and retain the same branch's unbalanced large-source frames.
+I retain signed alternating imbalances and verify their factor returns before collecting the whole corrected source. I return the 200-bit correction through factor 5 and retain its next residual alongside the verified 8051 extraction.
