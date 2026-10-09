@@ -1,3 +1,3 @@
-I retain signed operand words for each correlated source lift
+I collect residual quotients into the lifted operand words
 
-I verify all eight operand products against their source-plus-residual equations. I retain five positive operand pairs and three signed product returns with complete hex words.
+I verify ten partial source products with their smaller signed remainders. I retain each returned cofactor and test its coupled remainder return with Godel.
