@@ -1,4 +1,5 @@
 """Follow a failed unequal composition through its source-selected square residue and prefix slot."""
+from godel_hex_record_name import record_name
 from pathlib import Path
 import re
 import subprocess
@@ -16,7 +17,7 @@ def cells(word):
 
 SOURCE = sys.argv[1] if len(sys.argv) > 1 else '213'
 
-with (ROOT / 'measurements' / ('godel_hex_unequal_prefix_' + SOURCE + '.log')).open('a') as record:
+with (ROOT / 'measurements' / ('godel_hex_unequal_prefix_' + record_name(SOURCE) + '.log')).open('a') as record:
     def run(args, allow_underflow=False):
         out = subprocess.run(args, cwd=ROOT, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

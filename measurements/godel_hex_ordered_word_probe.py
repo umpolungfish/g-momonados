@@ -1,4 +1,5 @@
 """Recover positioned native cells from complete ordered canonical hex words."""
+from godel_hex_record_name import record_name
 from pathlib import Path
 import re
 import subprocess
@@ -6,7 +7,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 EMPTY, FILLED = '≻⋈∈⊤∋', '≻⋈∈⊥∋'
 for source in sys.argv[1:]:
-    with (ROOT / 'measurements' / ('godel_hex_ordered_word_' + source + '.log')).open('a') as record:
+    with (ROOT / 'measurements' / ('godel_hex_ordered_word_' + record_name(source) + '.log')).open('a') as record:
         def run(args):
             result = subprocess.run(args, cwd=ROOT, capture_output=True, text=True)
             record.write('COMMAND ' + repr(args) + '\n' + result.stdout + result.stderr + '\n')
