@@ -215,6 +215,49 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
                 assert field(reconstructed, 'result') == returned_product
                 record.write('SIGNED OPERAND RETURN p=' + left_sign + left_magnitude +
                              ' q=+' + right_return + ' exact-source-residual=PASS\n')
+                if left_sign == '+' and transported_residual != '0':
+                    for operand, other in ((left_magnitude, right_return),
+                                           (right_return, left_magnitude)):
+                        division = operate(transported_residual, 'divmod', operand)
+                        collected_quotient = field(division, 'result')
+                        collected_remainder = field(division, 'remainder')
+                        record.write('LIFTED RESIDUAL COLLECTION ' + label +
+                                     ' operand=' + operand + ' quotient=' +
+                                     collected_quotient + ' remainder=' +
+                                     collected_remainder + '\n')
+                        cofactor = field(operate(other, 'sub' if transported_sign == '+' else 'add',
+                                                 collected_quotient), 'result')
+                        partial_product = field(operate(operand, 'mul', cofactor), 'result')
+                        if collected_remainder == '0':
+                            recovered = partial_product
+                        else:
+                            recovered = field(operate(partial_product,
+                                                      'sub' if transported_sign == '+' else 'add',
+                                                      collected_remainder), 'result')
+                        assert recovered == source
+                        read(cofactor)
+                        record.write('PARTIAL SOURCE COLLECTION n=' + source +
+                                     ' operand=' + operand + ' cofactor=' + cofactor +
+                                     ' residual-sign=' + transported_sign +
+                                     ' remainder=' + collected_remainder + ' EXACT PASS\n')
+                        if collected_remainder == '0':
+                            product(source, operand, cofactor)
+                            print(source, 'lifted residual source product', operand, cofactor, 'PASS')
+                        else:
+                            read(collected_remainder)
+                            coupled_return = operate(collected_remainder, 'divmod', cofactor)
+                            coupled_remainder = field(coupled_return, 'remainder')
+                            record.write('PARTIAL REMAINDER/COFACTOR cofactor=' + cofactor +
+                                         ' quotient=' + field(coupled_return, 'result') +
+                                         ' remainder=' + coupled_remainder + '\n')
+                            if coupled_remainder == '0':
+                                collected_operand = field(operate(operand,
+                                    'sub' if transported_sign == '+' else 'add',
+                                    field(coupled_return, 'result')), 'result')
+                                product(source, cofactor, collected_operand)
+                                print(source, 'partial cofactor source product', cofactor,
+                                      collected_operand, 'PASS')
+                    print(source, label, 'positive operand collection checked')
                 print(source, label, 'operand signs', left_sign + '+')
                 if transported_residual == '0':
                     factor_left = field(operate(lifted_root, 'sub', lifted_correction), 'result')
