@@ -1,3 +1,3 @@
-I check both updated operands against the complete source
+I retain the high-first source cancellation and its payload collections
 
-I correct the inference from fixed-operand checks on the earlier pair by checking the actual operands after the shared-unit return. I preserve both complete signed equations, product checks, pole traces and hex readings.
+I construct the alternate signed source directly from native run endpoints and certify its complete return before collection. I preserve three source-selected payload collections with their residuals, rewrite traces and hex readings.
