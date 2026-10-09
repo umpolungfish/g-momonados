@@ -1,3 +1,3 @@
-I constrain square correction words by their source hex operators
+I certify source square corrections through positioned one-bit lifts
 
-I verify the complete hex square image with Godel and retain the resulting correction-slot constraints. I refute the two incompatible large-source square branches while preserving their component returns and the verified 8051 extraction.
+I reproduce the 8051 factor return by lifting one square cell at a time. I retain the compatible large-source correction words, every closed prefix and both terminal root words at the complete width check.
