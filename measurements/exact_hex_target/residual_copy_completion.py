@@ -51,8 +51,11 @@ def op(a,operator,b):
 def normalize(terms):
     terms=dict(terms)
     moves=[]
+    # Carry can extend the highest input cell by at most the logarithm of
+    # total coefficient magnitude; operand transport may exceed 1200 cells.
+    ceiling=max(terms,default=0)+sum(abs(c) for c in terms.values()).bit_length()+3
     position=0
-    while position<=max(terms,default=0):
+    while position<=ceiling:
         incoming=terms.get(position,0)
         output=(0 if incoming%2==0 else
                 1 if (incoming+2*terms.get(position+1,0))%4==1 else -1)
@@ -64,7 +67,7 @@ def normalize(terms):
             if not terms[position+1]:del terms[position+1]
             moves.append((position,incoming,output,carry))
         position+=1
-        assert position<1200
+    assert max(terms,default=0)<=ceiling
     return terms,moves
 
 
