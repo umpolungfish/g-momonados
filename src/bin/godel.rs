@@ -249,7 +249,7 @@ fn dispatch(args: &[&str]) -> Result<String, String> {
         "analyze" => analyze_with_kernel(args),
         "frame-op" => frame_operation_with_kernel(args),
         "lte2" => godel_analyzer::command(args),
-        "product" => godel_product::command(args),
+        "product" | "frame" | "shiab" | "separate" | "factor" => godel_product::command(args),
         "selftest" | "verify" => {
             let mut out = godel_calculus::selftest_report()?;
             out.push_str(&godel_analyzer::selftest_report()?);
