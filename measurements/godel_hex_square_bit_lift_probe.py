@@ -186,9 +186,6 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
             root_zeros = initial_empty // 2
             if residual_zeros < 2 * max(root_zeros, correction_zeros) + 3:
                 record.write('CO-LIFT RETAINED: residual cell below simultaneous-toggle bound\n')
-                print(source, 'retained signed endpoint', original_left_sign + left,
-                      right, 'residual cell', residual_zeros, 'below co-lift bound')
-                continue
             root_increment = decode([EMPTY] * (residual_zeros - root_zeros - 1) + [FILLED])
             correction_increment = decode([EMPTY] * (residual_zeros - correction_zeros - 1) + [FILLED])
             changed_root = field(operate(restored, 'add', root_increment), 'result')
@@ -196,6 +193,12 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
             for label, lifted_root, lifted_correction in (
                     ('root', changed_root, payload),
                     ('correction', restored, changed_correction)):
+                applicable_valuation = root_zeros if label == 'root' else correction_zeros
+                if residual_zeros < 2 * applicable_valuation + 3:
+                    record.write('INDIVIDUAL LIFT RETAINED ' + label +
+                                 ': residual cell below its valuation bound\n')
+                    print(source, label, 'retained below individual lift bound')
+                    continue
                 lifted_square = field(operate(lifted_root, 'mul', lifted_root), 'result')
                 lifted_correction_square = field(operate(lifted_correction, 'mul', lifted_correction), 'result')
                 target_square = field(operate(source, 'add', lifted_correction_square), 'result')
@@ -285,7 +288,8 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
                     source_product(factor_left, factor_right, 'correlated collection')
                 print(source, label, 'lift repairs source bit', residual_zeros,
                       'new initial empty cells', transported_zeros)
-            for candidate, counterpart in ((left, right), (right, left)):
+            for candidate, counterpart in (((left, right), (right, left))
+                                           if original_left_sign == '+' else ()):
                 collected = operate(residual, 'divmod', candidate)
                 rem = field(collected, 'remainder')
                 record.write('RESIDUAL/PAYLOAD ' + candidate + ' remainder=' + rem + '\n')
