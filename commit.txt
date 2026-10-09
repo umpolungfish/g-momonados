@@ -1,3 +1,3 @@
-I collect unequal source lanes through their signed difference
+I select translated lane payloads from their source positions
 
-I return 213 directly as 3 times 71 through restored lanes and their difference. I preserve the large-source signed folds, empty-lane identities and the unit control.
+I verify source-selected payloads 9 and 33 and their proper source products. I retain the 200-bit source's translation, payload 33 and signed residual alongside the unit control.
