@@ -1,3 +1,3 @@
-I collect a shared hex-lane payload across output and residual
+I match the retained residual word to either payload factor
 
-I verify the source-only composed extraction 117 = 3 * 39 and retain the large translated returns with their unit common-payload certificates.
+I verify a constructed source-only control returning 11 * 3053443 and retain the 117 shared-lane extraction.
