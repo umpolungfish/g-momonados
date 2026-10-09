@@ -58,10 +58,22 @@ with (ROOT / 'measurements' / ('godel_hex_translated_shared_return_' + SOURCE + 
     run(['python3', 'measurements/godel_hex_ordered_word_probe.py', SOURCE])
     run(['python3', 'measurements/godel_hex_translated_lane_probe.py', SOURCE])
     translated_log = (ROOT / 'measurements' / ('godel_hex_translated_lane_' + SOURCE + '.log')).read_text()
-    returns = re.findall(r'PARTIAL TRANSLATED RETURN n=(\d+) payload=(\d+) cofactor=(\d+) residual=([+-])(\d+) EXACT PASS', translated_log)
+    returns = re.findall(r'DUAL ANCHOR RETURN n=(\d+) payload=(\d+) cofactor=(\d+) remainder=(\d+) EXACT PASS', translated_log)
     if not returns or returns[-1][0] != SOURCE:
-        raise RuntimeError('No partial translated return for this source')
-    _, payload, placement, sign, residual = returns[-1]
+        raise RuntimeError('No dual-anchor translated return for this source')
+    _, payload, placement, residual = returns[-1]
+    sign = '+'
+    if residual == '0':
+        product(SOURCE, payload, placement)
+        proper = payload not in {'0', '1', SOURCE} and placement not in {'0', '1', SOURCE}
+        record.write('DUAL ANCHOR SOURCE PRODUCT exact=PASS proper=' + str(proper) + '\n')
+        print(SOURCE, 'dual anchor factors', payload, placement, 'proper-factor PASS' if proper else 'unit return')
+        sys.exit(0)
+    if encode(residual).count(FILLED) == 1:
+        assert encode(payload)[0] == FILLED
+        record.write('DUAL ANCHOR UNIT CERTIFICATE odd payload, power-of-two remainder\n')
+        print(SOURCE, 'dual anchor odd payload', payload, 'remainder', residual, 'unit common component PASS')
+        sys.exit(0)
     out = run(['python3', 'measurements/godel_hex_lane_residual_probe.py', payload])
     match = re.search(r'lane residual collection (\d+) (\d+) proper-factor PASS', out)
     if match is None:

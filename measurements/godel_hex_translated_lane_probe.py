@@ -92,6 +92,29 @@ with (ROOT / 'measurements' / ('godel_hex_translated_lane_' + SOURCE + '.log')).
                  ' payload=' + payload + ' placement=' + a + ' residual=' +
                  sign + positioned + '\n')
     read(positioned)
+    # Anchor on the normalized second lane: n = K*B - D.
+    # Collect D directly, retaining its unscaled source-word remainder.
+    if magnitude == '0':
+        dual_cofactor, dual_remainder = b, '0'
+    else:
+        dual_collection = operate(magnitude, 'divmod', payload)
+        dual_quotient = field(dual_collection, 'result')
+        dual_remainder = field(dual_collection, 'remainder')
+        dual_cofactor = field(operate(b, 'sub' if sign == '+' else 'add', dual_quotient), 'result')
+        if sign == '+' and dual_remainder != '0':
+            dual_cofactor = field(operate(dual_cofactor, 'sub', '1'), 'result')
+            dual_remainder = field(operate(payload, 'sub', dual_remainder), 'result')
+    if dual_cofactor == '0':
+        product('0', payload, '0')
+        dual_product = '0'
+    else:
+        dual_product = field(operate(payload, 'mul', dual_cofactor), 'result')
+    assert field(operate(dual_product, 'add', dual_remainder), 'result') == SOURCE
+    read(dual_cofactor)
+    read(dual_remainder)
+    record.write('DUAL ANCHOR RETURN n=' + SOURCE + ' payload=' + payload +
+                 ' cofactor=' + dual_cofactor + ' remainder=' + dual_remainder + ' EXACT PASS\n')
+    print(SOURCE, 'dual anchor payload', payload, 'remainder', dual_remainder)
     if magnitude == '0':
         cofactor = a
     else:
