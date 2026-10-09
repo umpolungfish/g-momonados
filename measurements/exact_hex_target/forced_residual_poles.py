@@ -10,6 +10,8 @@ import argparse
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--exchange',action='store_true')
+parser.add_argument('--shared-unit',action='store_true',
+                    help='check the operands after the recorded shared-unit return')
 options=parser.parse_args()
 
 HERE=Path(__file__).resolve().parent
@@ -30,18 +32,30 @@ normalize,word,op=state['normalize'],state['word'],state['op']
 call,field=state['call'],state['field']
 logs=state['logs']
 native=state['native']
-if options.exchange:
-    prior=(HERE/'forced_residual_poles.md').read_text()
-    prior_a=re.search(r'Payload: `([0-9]+)`',prior).group(1)
-    prior_q=re.search(r'Unique bounded cofactor: `([0-9]+)`',prior).group(1)
+if options.exchange or options.shared_unit:
+    if options.shared_unit:
+        prior=(HERE/'coupled_unit_return.md').read_text()
+        prior_a=re.search(r'left operand: `([0-9]+)`',prior).group(1)
+        prior_q=re.search(r'right operand: `([0-9]+)`',prior).group(1)
+        residual_label='Retained new residual'
+    else:
+        prior=(HERE/'forced_residual_poles.md').read_text()
+        prior_a=re.search(r'Payload: `([0-9]+)`',prior).group(1)
+        prior_q=re.search(r'Unique bounded cofactor: `([0-9]+)`',prior).group(1)
+        residual_label='Final retained residual'
     def support(value):
         encoded=field(call('encode',value),'word')
         cells=encoded[1:-3]
         return {i//5:1 for i in range(0,len(cells),5)
                 if cells[i:i+5]==state['FILLED']}
-    A=support(prior_q)
-    B=support(prior_a)
-    R=dict(ast.literal_eval(re.search(r'Final retained residual: (\[.*\])',prior).group(1)))
+    A=support(prior_q if options.exchange else prior_a)
+    B=support(prior_a if options.exchange else prior_q)
+    R=dict(ast.literal_eval(re.search(residual_label+r': (\[.*\])',prior).group(1)))
+    # Verify the recorded pair and correction before extending this return.
+    recorded_product=op(word(A),'mul',word(B))
+    recorded_rp=word(i for i,c in R.items() if c>0)
+    recorded_rn=word(i for i,c in R.items() if c<0)
+    assert op(native,'add',recorded_rn)==op(recorded_product,'add',recorded_rp)
 assert min(A)==0 and abs(A[0])==1
 sign_a=1 if A[max(A)]>0 else -1
 ap=word(i for i,c in A.items() if c>0)
@@ -100,6 +114,7 @@ a_value=field(call('decode',a_word),'value')
 q_value=field(call('decode',q_word),'value')
 report=['# Forced residual-pole return for the exposed odd payload','',
         'Operand roles exchanged: '+str(options.exchange)+'.','',
+        'Shared-unit operand record used: '+str(options.shared_unit)+'.','',
         'This is deterministic cofactor arithmetic on one already exposed '
         'operand. It does not enumerate factor supports or supply a new '
         'factor-producing algorithm. Prefix agreement alone is never '
@@ -136,7 +151,8 @@ for label,value in read_values:
     hex_word=next(line.split(':',1)[1].strip() for line in clean.splitlines()
                   if 'hex-digit word' in line)
     report.extend(['',label+' ordered hex word:','',hex_word])
-record_name='forced_residual_poles'+('_exchange' if options.exchange else '')
+record_name=('forced_residual_poles'+('_shared_unit' if options.shared_unit else '')
+             +('_exchange' if options.exchange else ''))
 (HERE/(record_name+'.md')).write_text('\n'.join(report)+'\n')
 with gzip.open(HERE/(record_name+'.log.gz'),'wt') as out:
     out.write('\n'.join(logs))
