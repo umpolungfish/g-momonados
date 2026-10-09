@@ -1,3 +1,3 @@
-I collect nonzero fold imbalances through their frame factor
+I constrain square correction words by their source hex operators
 
-I retain signed alternating imbalances and verify their factor returns before collecting the whole corrected source. I return the 200-bit correction through factor 5 and retain its next residual alongside the verified 8051 extraction.
+I verify the complete hex square image with Godel and retain the resulting correction-slot constraints. I refute the two incompatible large-source square branches while preserving their component returns and the verified 8051 extraction.

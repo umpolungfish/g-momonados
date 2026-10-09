@@ -104,6 +104,14 @@ with (ROOT / 'measurements' / ('godel_hex_source_square_collection_' + SOURCE + 
     square = field(operate(payload, 'mul', payload), 'result')
     correction = field(operate(source, 'add', square), 'result')
     parts = read(correction)
+    low_parts = parts[:4]
+    low_parts += [EMPTY] * (4 - len(low_parts))
+    low = decode(low_parts)
+    if low not in {'0', '1', '4', '9'}:
+        record.write('SQUARE RETURN REFUTED: corrected low hex value ' + low +
+                     ' lies outside the verified square image {0,1,4,9}\n')
+        print(source, 'square return refuted for this correction; low hex', low)
+        sys.exit(0)
     initial_empty = 0
     for part in parts:
         if part != EMPTY:
