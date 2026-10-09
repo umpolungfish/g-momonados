@@ -1,3 +1,3 @@
-I trace ordered hex operator edits through product compositions
+I verify the input contract for direct hex-word product checks
 
-I retain B and D as fork-frame transformations across the reverse morphism. I check noncyclic digit permutations against the fixation latch and preserve local operand edits together with their whole product-word returns.
+I hand the hex and native word triples from the same live readings to Gödel. I retain the native product closure, the hex-family rejection and the digit-one affine collision as paired controls.
