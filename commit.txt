@@ -1,3 +1,3 @@
-I check the factor-sum prefix against the exact target unit return
+I connect the advertised Gödel product commands to their handler
 
-I verify S=N+1 and S²-4N=(N-1)² through complete Gödel word equations. This target-sized control satisfies the repaired prefix condition and returns 1*N. I distinguish the necessary prefix constraint from the still-unproved selection of the proper factor sum and retain the full hex readings.
+I route factor, frame, shiab and separate through the existing product dispatcher and rebuild the local godel executable. I verify the factor handler with the unit control and start the exact target through its source-only product-correlation graph. I preserve the command record and the existing full-source product verification requirement.
