@@ -51,6 +51,14 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
         out = run(['./godel', 'product', n, a, b])
         assert 'relation.exact-product     PASS' in out
 
+    def source_product(a, b, label):
+        product(SOURCE, a, b)
+        proper = a not in {'0', '1', SOURCE} and b not in {'0', '1', SOURCE}
+        record.write('SOURCE PRODUCT CERTIFICATE label=' + label + ' left=' + a +
+                     ' right=' + b + ' exact=PASS proper=' + str(proper) + '\n')
+        print(SOURCE, label, a, b, 'proper-factor PASS' if proper else 'unit return')
+        return proper
+
     source = SOURCE
     source_parts = read(source)
     correction_parts = source_parts[4:8]
@@ -241,8 +249,7 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
                                      ' residual-sign=' + transported_sign +
                                      ' remainder=' + collected_remainder + ' EXACT PASS\n')
                         if collected_remainder == '0':
-                            product(source, operand, cofactor)
-                            print(source, 'lifted residual source product', operand, cofactor, 'PASS')
+                            source_product(operand, cofactor, 'lifted residual collection')
                         else:
                             read(collected_remainder)
                             coupled_return = operate(collected_remainder, 'divmod', cofactor)
@@ -254,16 +261,13 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
                                 collected_operand = field(operate(operand,
                                     'sub' if transported_sign == '+' else 'add',
                                     field(coupled_return, 'result')), 'result')
-                                product(source, cofactor, collected_operand)
-                                print(source, 'partial cofactor source product', cofactor,
-                                      collected_operand, 'PASS')
+                                source_product(cofactor, collected_operand, 'partial cofactor collection')
                     print(source, label, 'positive operand collection checked')
                 print(source, label, 'operand signs', left_sign + '+')
                 if transported_residual == '0':
                     factor_left = field(operate(lifted_root, 'sub', lifted_correction), 'result')
                     factor_right = field(operate(lifted_root, 'add', lifted_correction), 'result')
-                    product(source, factor_left, factor_right)
-                    print(source, 'correlated source product', factor_left, factor_right, 'PASS')
+                    source_product(factor_left, factor_right, 'correlated collection')
                 print(source, label, 'lift repairs source bit', residual_zeros,
                       'new initial empty cells', transported_zeros)
             for candidate, counterpart in ((left, right), (right, left)):
@@ -273,8 +277,7 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
                 if rem == '0':
                     cofactor = field(operate(counterpart, 'sub' if sign == '+' else 'add',
                                              field(collected, 'result')), 'result')
-                    product(source, candidate, cofactor)
-                    print(source, 'residual collection', candidate, cofactor, 'PASS')
+                    source_product(candidate, cofactor, 'residual collection')
             print(source, 'signed residual coefficient', sign + quotient,
                   'initial empty cells', residual_zeros)
         if coefficients[0][0] == '-' and coefficients[1][0] == '+':
@@ -295,10 +298,10 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
     product(correction, root, root)
     left = field(operate(root, 'sub', payload), 'result')
     right = field(operate(root, 'add', payload), 'result')
-    product(source, left, right)
+    proper = source_product(left, right, 'square collection')
     for value in (payload, square, root, left, right):
         read(value)
-    record.write('SOURCE-ONLY SQUARE COLLECTION ' + source + ' = ' + left +
+    record.write(('SOURCE-ONLY SQUARE COLLECTION ' if proper else 'UNIT SOURCE RETURN ') + source + ' = ' + left +
                  ' * ' + right + '\n')
     print(source, '+', square, '=', root, '*', root, '; factors', left, right,
           'PASS')
