@@ -72,8 +72,11 @@ with (ROOT / 'measurements' / ('godel_hex_repeated_composition_' + SOURCE + '.lo
         borders[position] = border
     period = len(motifs) - borders[-1]
     if len(motifs) % period or period == len(motifs):
-        record.write('NO EXACT REPEATED FULL HEX COMPOSITION; no source factor certificate\n')
-        print(SOURCE, 'full hex composition has no exact repeated block')
+        record.write('NONREPETITION SELECTS THE RETAINED UNEQUAL FULL COMPOSITION\n')
+        print(SOURCE, 'full hex composition selects its unequal-block return')
+        record.flush()
+        followed = run(['python3', 'measurements/godel_hex_unequal_composition_probe.py', SOURCE])
+        print(followed.rstrip())
         sys.exit(0)
     # Prefer the equal-half fork when available, preserving all internal operators.
     half = len(motifs) // 2
