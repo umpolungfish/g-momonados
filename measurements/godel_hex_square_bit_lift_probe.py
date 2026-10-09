@@ -127,6 +127,56 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
     if root_tail is None:
         for value in (current, opposite, current_square, opposite_square):
             read(value)
+        root_shift = decode([EMPTY] * (initial_empty // 2) + [FILLED])
+        coefficients = []
+        for returned in (current, opposite):
+            restored = field(operate(root_shift, 'mul', returned), 'result')
+            left = field(operate(restored, 'sub', payload), 'result')
+            right = field(operate(restored, 'add', payload), 'result')
+            positioned_product = field(operate(left, 'mul', right), 'result')
+            difference = operate(positioned_product, 'sub', source)
+            sign = '+'
+            if difference is None:
+                difference = operate(source, 'sub', positioned_product)
+                sign = '-'
+            residual = field(difference, 'result')
+            read(residual)
+            residual_parts = encode(residual)
+            residual_zeros = 0
+            for cell in residual_parts:
+                if cell != EMPTY:
+                    break
+                residual_zeros += 1
+            placement = decode([EMPTY] * (position + 1 + initial_empty) + [FILLED])
+            coefficient = operate(residual, 'divmod', placement)
+            assert field(coefficient, 'remainder') == '0'
+            quotient = field(coefficient, 'result')
+            coefficients.append((sign, quotient))
+            product(residual, placement, quotient)
+            read(quotient)
+            record.write('SIGNED SOURCE RETURN ' + source + ' = ' + left +
+                         ' * ' + right + ' - (' + sign + residual + ')\n')
+            record.write('PLACED RESIDUAL ' + sign + residual + ' = ' +
+                         sign + quotient + ' * ' + placement +
+                         ' initial-empty-cells=' + str(residual_zeros) + '\n')
+            for candidate, counterpart in ((left, right), (right, left)):
+                collected = operate(residual, 'divmod', candidate)
+                rem = field(collected, 'remainder')
+                record.write('RESIDUAL/PAYLOAD ' + candidate + ' remainder=' + rem + '\n')
+                if rem == '0':
+                    cofactor = field(operate(counterpart, 'sub' if sign == '+' else 'add',
+                                             field(collected, 'result')), 'result')
+                    product(source, candidate, cofactor)
+                    print(source, 'residual collection', candidate, cofactor, 'PASS')
+            print(source, 'signed residual coefficient', sign + quotient,
+                  'initial empty cells', residual_zeros)
+        if coefficients[0][0] == '-' and coefficients[1][0] == '+':
+            delta = field(operate(coefficients[0][1], 'add', coefficients[1][1]), 'result')
+            half_modulus = decode([EMPTY] * (position - 1) + [FILLED])
+            predicted = field(operate(half_modulus, 'sub', current), 'result')
+            assert delta == predicted
+            record.write('PAIRED COEFFICIENT TRANSPORT C2-C1 = 2^(k-1)-h = ' + delta +
+                         ' EXACT PASS\n')
         record.write('FINITE ROOT WIDTH REACHED WITHOUT EXACT SQUARE RETURN\n')
         print(source, 'correction', payload, 'bit-lift prefixes closed through',
               position, 'retained final roots', current, opposite)

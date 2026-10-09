@@ -1,3 +1,3 @@
-I certify source square corrections through positioned one-bit lifts
+I retain paired root residuals with their exact shifted coefficients
 
-I reproduce the 8051 factor return by lifting one square cell at a time. I retain the compatible large-source correction words, every closed prefix and both terminal root words at the complete width check.
+I verify the large-source product differences, their shifted coefficient returns and the relation between each coefficient pair. I preserve the operand collection remainders and the verified 8051 extraction.
