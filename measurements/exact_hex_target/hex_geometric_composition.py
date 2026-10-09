@@ -1,9 +1,15 @@
 """Read complete repeated signed compositions at observed hex boundaries."""
 from pathlib import Path
 import re
+import argparse
+
+parser=argparse.ArgumentParser()
+parser.add_argument('--transported',action='store_true')
+options=parser.parse_args()
 
 HERE = Path(__file__).resolve().parent
-text = (HERE / 'run_payload_collection.md').read_text()
+text = (HERE / ('signed_carry_transport.md' if options.transported
+                else 'run_payload_collection.md')).read_text()
 source = {}
 for label, sign in [('Positive', 1), ('Negative', -1)]:
     positions = re.search(label+r' unit positions: ([0-9, ]+)', text).group(1)
@@ -66,6 +72,7 @@ report += ['', 'Best composition with cofactor width at least 100 cells: '
            'family on the present signed representation. It does not rule '
            'out a product exposed by another source-preserving carry '
            'transport. It supplies no proper-factor certificate.']
-(HERE/'hex_geometric_composition.md').write_text('\n'.join(report)+'\n')
+name='hex_geometric_composition'+('_transported' if options.transported else '')
+(HERE/(name+'.md')).write_text('\n'.join(report)+'\n')
 print(f'compositions={len(rows)} closed={len(closed)} best={rows[0]} '
       f'best_large={min(large) if large else None}', flush=True)
