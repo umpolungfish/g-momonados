@@ -1,4 +1,5 @@
 """Certify a source-derived square correction by positioned one-bit lifts."""
+from godel_hex_record_name import record_name
 from pathlib import Path
 import re
 import subprocess
@@ -17,7 +18,7 @@ def field(out, label):
 def cells(word):
     return [word[1:-3][i:i + 5] for i in range(0, len(word[1:-3]), 5)]
 
-with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + ('_upper_frame' if SOURCE_UPPER else '') + '.log')).open('a') as record:
+with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + record_name(SOURCE) + ('_upper_frame' if SOURCE_UPPER else '') + '.log')).open('a') as record:
     def run(args, allow_underflow=False):
         out = subprocess.run(args, cwd=ROOT, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -124,36 +125,42 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + ('_upper_
     correction = field(operate(source, 'add', square), 'result')
     parts = read(correction)
     if SOURCE_UPPER:
-        initial_target_zeros = 0
-        for cell in parts:
-            if cell != EMPTY:
-                break
-            initial_target_zeros += 1
-        failed_cell = initial_target_zeros if initial_target_zeros % 2 else None
-        if failed_cell is None:
-            tail_prefix = parts[initial_target_zeros:]
-            tail_prefix += [EMPTY] * max(0, 3 - len(tail_prefix))
-            for index in (1, 2):
-                if tail_prefix[index] == FILLED:
-                    failed_cell = initial_target_zeros + index
+        for prefix_transport in range(len(source_parts) + 1):
+            initial_target_zeros = 0
+            for cell in parts:
+                if cell != EMPTY:
                     break
-        anchor_zeros = 0
-        for cell in encode(payload):
-            if cell != EMPTY:
+                initial_target_zeros += 1
+            failed_cell = initial_target_zeros if initial_target_zeros % 2 else None
+            if failed_cell is None:
+                tail_prefix = parts[initial_target_zeros:]
+                tail_prefix += [EMPTY] * max(0, 3 - len(tail_prefix))
+                for index in (1, 2):
+                    if tail_prefix[index] == FILLED:
+                        failed_cell = initial_target_zeros + index
+                        break
+            anchor_zeros = 0
+            for cell in encode(payload):
+                if cell != EMPTY:
+                    break
+                anchor_zeros += 1
+            if failed_cell is None:
                 break
-            anchor_zeros += 1
-        if failed_cell is not None and failed_cell >= 2 * anchor_zeros + 3:
-            unit_position = failed_cell - anchor_zeros - 1
-            old_parts = parts
-            payload = field(operate(payload, 'add', decode([EMPTY] * unit_position + [FILLED])), 'result')
-            correction_parts = encode(payload)
-            square = field(operate(payload, 'mul', payload), 'result')
-            correction = field(operate(source, 'add', square), 'result')
-            parts = read(correction)
-            assert old_parts[:failed_cell] == parts[:failed_cell]
-            assert old_parts[failed_cell] != parts[failed_cell]
-            record.write('FULL UPPER ANCHOR PREFIX UNIT failed-target-cell=' + str(failed_cell) +
-                         ' anchor-unit-cell=' + str(unit_position) + ' repaired-prefix=PASS\n')
+            if failed_cell < 2 * anchor_zeros + 3:
+                record.write('ANCHOR PREFIX TRANSPORT OUTSIDE VALID SHIFT RANGE\n')
+                break
+            if failed_cell is not None and failed_cell >= 2 * anchor_zeros + 3:
+                unit_position = failed_cell - anchor_zeros - 1
+                old_parts = parts
+                payload = field(operate(payload, 'add', decode([EMPTY] * unit_position + [FILLED])), 'result')
+                correction_parts = encode(payload)
+                square = field(operate(payload, 'mul', payload), 'result')
+                correction = field(operate(source, 'add', square), 'result')
+                parts = read(correction)
+                assert old_parts[:failed_cell] == parts[:failed_cell]
+                assert old_parts[failed_cell] != parts[failed_cell]
+                record.write('FULL UPPER ANCHOR PREFIX UNIT failed-target-cell=' + str(failed_cell) +
+                             ' anchor-unit-cell=' + str(unit_position) + ' repaired-prefix=PASS\n')
     low_parts = parts[:4]
     low_parts += [EMPTY] * (4 - len(low_parts))
     low = decode(low_parts)

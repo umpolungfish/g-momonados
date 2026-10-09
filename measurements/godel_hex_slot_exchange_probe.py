@@ -1,4 +1,5 @@
 """Spell source-derived operator exchanges; Gödel performs every number operation."""
+from godel_hex_record_name import record_name
 from pathlib import Path
 import re
 import subprocess
@@ -6,7 +7,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = sys.argv[1]
-RECORD = ROOT / 'measurements' / ('godel_hex_slot_exchange_' + SOURCE + '.log')
+RECORD = ROOT / 'measurements' / ('godel_hex_slot_exchange_' + record_name(SOURCE) + '.log')
 EMPTY = '≻⋈∈⊤∋'
 FILLED = '≻⋈∈⊥∋'
 PAIRS = [('truth/falsity', 0, 1, '1'), ('truth/information', 0, 2, '3'),

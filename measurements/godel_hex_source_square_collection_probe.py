@@ -1,4 +1,5 @@
 """Collect a source-inscribed square correction through frame returns."""
+from godel_hex_record_name import record_name
 from pathlib import Path
 import re
 import subprocess
@@ -15,7 +16,7 @@ def field(out, label):
 def cells(word):
     return [word[1:-3][i:i + 5] for i in range(0, len(word[1:-3]), 5)]
 
-with (ROOT / 'measurements' / ('godel_hex_source_square_collection_' + SOURCE + '.log')).open('a') as record:
+with (ROOT / 'measurements' / ('godel_hex_source_square_collection_' + record_name(SOURCE) + '.log')).open('a') as record:
     def run(args, allow_underflow=False):
         out = subprocess.run(args, cwd=ROOT, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

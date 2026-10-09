@@ -1,4 +1,5 @@
 """Certify common components of source-selected positioned hex exchange differences."""
+from godel_hex_record_name import record_name
 from pathlib import Path
 import re
 import subprocess
@@ -16,7 +17,7 @@ def cells(word):
 
 SOURCE = sys.argv[1] if len(sys.argv) > 1 else '213'
 
-with (ROOT / 'measurements' / ('godel_hex_exchange_placement_' + SOURCE + '.log')).open('a') as record:
+with (ROOT / 'measurements' / ('godel_hex_exchange_placement_' + record_name(SOURCE) + '.log')).open('a') as record:
     def run(args, allow_underflow=False):
         out = subprocess.run(args, cwd=ROOT, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -79,16 +80,10 @@ with (ROOT / 'measurements' / ('godel_hex_exchange_placement_' + SOURCE + '.log'
             return b
         if b == '0':
             return a
-        a, b = odd_tail(a), odd_tail(b)
-        while a != b:
-            previous_width = len(encode(a)) + len(encode(b))
-            difference = operate(a, 'sub', b)
-            if difference is None:
-                difference = operate(b, 'sub', a)
-                b = odd_tail(field(difference, 'result'))
-            else:
-                a = odd_tail(field(difference, 'result'))
-            assert len(encode(a)) + len(encode(b)) < previous_width
+        while b != '0':
+            # Use the exact output/remainder relation directly; no factor search.
+            out = operate(a, 'divmod', b)
+            a, b = b, field(out, 'remainder')
         return a
     for first, second in ((0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)):
         positive, negative = [], []
