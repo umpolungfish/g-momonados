@@ -1,3 +1,3 @@
-I retain signed square prefixes below the simultaneous lift bound
+I apply each square lift within its individual valuation bound
 
-I preserve the compatible source 17 prefix with its negative operand and exact residual. I enforce the correlated toggle's proved width condition and replay the proper source certificates and both large-source returns.
+I verify the root-only repairs of the source 17 control and preserve its inapplicable correction moves. I verify that its exact unit products remain separate from proper source factors and replay both large sources.
