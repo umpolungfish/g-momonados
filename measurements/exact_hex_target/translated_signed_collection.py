@@ -10,10 +10,12 @@ parser.add_argument('--hex-boundaries', action='store_true')
 parser.add_argument('--opposite', action='store_true')
 parser.add_argument('--displacement', type=int)
 parser.add_argument('--higher-first', action='store_true')
+parser.add_argument('--single-polarity', action='store_true')
 options = parser.parse_args()
 polarity = -1 if options.opposite else 1
 record_name = ('translated_signed_collection' +
                ('_higher_first' if options.higher_first else '') +
+               ('_single_polarity' if options.single_polarity else '') +
                ('_hex' if options.hex_boundaries else '') +
                ('_opposite' if options.opposite else '') +
                ('_' + str(options.displacement) if options.displacement else ''))
@@ -125,15 +127,41 @@ displacements = range(step, max(signed)+1, step)
 if options.displacement:
     assert options.displacement > 0 and options.displacement % step == 0
     displacements = [options.displacement]
-for displacement in displacements:
-    used, payload = set(), {}
-    for i in sorted(signed):
-        j = i + displacement
-        if i not in used and j not in used and signed.get(j) == polarity*signed[i]:
-            payload[i] = signed[i]
-            used.update((i, j))
-    if best is None or len(payload) > len(best[1]):
-        best = displacement, payload, used
+polarity_census = []
+selected_rewrite = None
+original_signed = dict(signed)
+variants = [(None, signed)]
+if options.single_polarity:
+    for position in sorted(signed):
+        if position+1 not in signed:
+            altered = dict(signed)
+            altered[position] = -signed[position]
+            altered[position+1] = signed[position]
+            variants.append((position, altered))
+for position, variant in variants:
+    variant_best = None
+    for displacement in displacements:
+        used, payload = set(), {}
+        for i in sorted(variant):
+            j = i + displacement
+            if i not in used and j not in used and variant.get(j) == polarity*variant[i]:
+                payload[i] = variant[i]
+                used.update((i, j))
+        if variant_best is None or len(payload) > len(variant_best[1]):
+            variant_best = displacement, payload, used
+    leftover = len(variant)-len(variant_best[2])
+    polarity_census.append((position, leftover, variant_best[0], len(variant_best[1])))
+    if best is None or leftover < len(selected_signed)-len(best[2]):
+        best = variant_best
+        selected_signed = variant
+        selected_rewrite = position
+signed = selected_signed
+if selected_rewrite is not None:
+    i = selected_rewrite
+    expected = dict(original_signed)
+    expected[i] = -original_signed[i]
+    expected[i+1] = original_signed[i]
+    assert signed == expected
 displacement, payload, used = best
 residual = {i:c for i,c in signed.items() if i not in used}
 reconstructed = dict(residual)
@@ -196,6 +224,9 @@ report = ['# Translated signed payload collection', '',
           f'Translation polarity: {polarity}.',
           f'Whole-hex boundary restriction: {options.hex_boundaries}.',
           f'Higher-first source cancellation: {options.higher_first}.',
+          f'Selected local polarity position: {selected_rewrite}.',
+          'Local polarity comparison (position, residual terms, displacement, payload terms): '
+          + repr(polarity_census), '',
           'Source rewrite trace: ' + repr(rewrites), '',
           'Complete signed source positions: ' + repr(sorted(signed.items())), '',
           f'Payload: {len(payload)} signed terms, copied twice.',
