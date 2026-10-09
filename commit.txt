@@ -1,3 +1,3 @@
-I enforce extraction-only scope and collect literal source runs
+I retain exact signed cancellation of the source boundaries
 
-I preserve the stopped correlation run as excluded history. I collect the exact source into seven observed payload groups and verify every product and addition with the native Gödel instrument. I retain all residual groups and record that no proper factors have been extracted.
+I reduce 458 observed run boundaries to 308 signed terms with 150 local rewrites. I verify the complete source equation with the Gödel addition instrument and preserve every signed position and rewrite. No factor search or guessed operand cells enter the computation.
