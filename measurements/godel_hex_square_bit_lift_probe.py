@@ -7,6 +7,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 EMPTY, FILLED = '≻⋈∈⊤∋', '≻⋈∈⊥∋'
 SOURCE = sys.argv[1] if len(sys.argv) > 1 else '8051'
+SINGLE_PRESENCE = '--single-presence' in sys.argv[2:]
 
 def field(out, label):
     return next(line.split(None, 1)[1] for line in out.splitlines()
@@ -51,11 +52,14 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
         out = run(['./godel', 'product', n, a, b])
         assert 'relation.exact-product     PASS' in out
 
+    proper_certificates = []
+
     def source_product(a, b, label):
         product(SOURCE, a, b)
         proper = a not in {'0', '1', SOURCE} and b not in {'0', '1', SOURCE}
         record.write('SOURCE PRODUCT CERTIFICATE label=' + label + ' left=' + a +
                      ' right=' + b + ' exact=PASS proper=' + str(proper) + '\n')
+        proper_certificates.append(proper)
         print(SOURCE, label, a, b, 'proper-factor PASS' if proper else 'unit return')
         return proper
 
@@ -95,6 +99,10 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
     elif low_source in {'5', '13'}:
         if correction_parts[0] == FILLED and correction_parts[1] == EMPTY:
             correction_parts = [EMPTY] + correction_parts
+    if SINGLE_PRESENCE and FILLED in correction_parts:
+        first = correction_parts.index(FILLED)
+        correction_parts = [EMPTY] * first + [FILLED]
+        record.write('SECOND-MOTIF SINGLE-PRESENCE RETURN retained-slot=' + str(first) + '\n')
     payload = decode(correction_parts)
     read(payload)
     if payload == '0':
@@ -107,7 +115,7 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
     low_parts = parts[:4]
     low_parts += [EMPTY] * (4 - len(low_parts))
     low = decode(low_parts)
-    if low not in {'0', '1', '4', '9'} and low_source == '3' and FILLED in correction_parts:
+    if low not in {'0', '1', '4', '9'} and low_source in {'3', '15'} and FILLED in correction_parts:
         first_occupied = correction_parts.index(FILLED)
         record.write('LOW HEX CONSTRAINT SELECTS FIRST OCCUPIED SECOND-MOTIF SLOT ' +
                      str(first_occupied) + ' -> truth; retain one occupied unit\n')
@@ -350,6 +358,11 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
         record.write('FINITE ROOT WIDTH REACHED WITHOUT EXACT SQUARE RETURN\n')
         print(source, 'correction', payload, 'bit-lift prefixes closed through',
               position, 'retained final roots', current, opposite)
+        if not SINGLE_PRESENCE and not any(proper_certificates) and low_source in {'5', '13'} and correction_parts.count(FILLED) > 1:
+            record.write('RETAIN FULL RETURN; FOLLOW FIRST OCCUPIED SECOND-MOTIF PRESENCE ONCE\n')
+            record.flush()
+            out = run(['python3', 'measurements/godel_hex_square_bit_lift_probe.py', source, '--single-presence'])
+            print(out.rstrip())
         sys.exit(0)
     product(tail, root_tail, root_tail)
     root_shift = decode([EMPTY] * (initial_empty // 2) + [FILLED])

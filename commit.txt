@@ -1,3 +1,3 @@
-I repair an incompatible second hex motif with its first occupied unit
+I follow a retained motif presence after its full square return fails
 
-I verify source-only square returns 10403 = 101 * 103 and 35 = 5 * 7, preserve 8051 and retain the prefix refutation for 19.
+I verify source-only products at 60 bits and with a positioned falsity correction, retain the prime prefix control and skip redundant returns after extraction.
