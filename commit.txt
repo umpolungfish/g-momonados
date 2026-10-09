@@ -1,3 +1,3 @@
-I collect operand copies from the exact target corrections
+I verify the exact target hex and native decoder inputs
 
-I certify all twelve full-width source equations after reading exposed operand copies from the six signed correction payloads. The first correction contains two copies of its left operand; the collected cofactor and smaller correction preserve the complete source. I retain every nonzero remainder and its ordered hex reading for the next operation.
+I retain the live complete-word control: the native word returns the target, while its ordered hex word is rejected as an unregistered numeral family. I identify the digit constructor and the positional reconstruction actually used by the frame probes, and preserve the full instrument inputs and responses.
