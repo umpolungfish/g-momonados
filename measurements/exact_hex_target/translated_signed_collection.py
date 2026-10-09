@@ -4,6 +4,8 @@ import re
 import subprocess
 import gzip
 import argparse
+import ast
+import hashlib
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--hex-boundaries', action='store_true')
@@ -11,6 +13,7 @@ parser.add_argument('--opposite', action='store_true')
 parser.add_argument('--displacement', type=int)
 parser.add_argument('--higher-first', action='store_true')
 parser.add_argument('--single-polarity', action='store_true')
+parser.add_argument('--signed-record', type=str)
 options = parser.parse_args()
 polarity = -1 if options.opposite else 1
 record_name = ('translated_signed_collection' +
@@ -19,6 +22,11 @@ record_name = ('translated_signed_collection' +
                ('_hex' if options.hex_boundaries else '') +
                ('_opposite' if options.opposite else '') +
                ('_' + str(options.displacement) if options.displacement else ''))
+if options.signed_record:
+    input_record = Path(__file__).resolve().parent / options.signed_record
+    assert input_record.resolve().parent == Path(__file__).resolve().parent
+    record_text = input_record.read_text()
+    record_name += '_continued_' + hashlib.sha256(record_text.encode()).hexdigest()[:12]
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
@@ -118,6 +126,11 @@ if options.higher_first:
     positive = word(i for i,c in signed.items() if c > 0)
     negative = word(i for i,c in signed.items() if c < 0)
     assert operate(native, 'add', negative) == positive
+
+if options.signed_record:
+    signed = dict(ast.literal_eval(re.search(
+        r'Complete signed source positions: (\[.*\])', record_text).group(1)))
+    assert signed and all(abs(c) == 1 for c in signed.values())
 
 # Choose by repeated source support alone. No divisibility or product-return
 # tests participate in selecting the displacement.
@@ -225,6 +238,7 @@ report = ['# Translated signed payload collection', '',
           f'Whole-hex boundary restriction: {options.hex_boundaries}.',
           f'Higher-first source cancellation: {options.higher_first}.',
           f'Selected local polarity position: {selected_rewrite}.',
+          f'Input signed record: {options.signed_record}.',
           'Local polarity comparison (position, residual terms, displacement, payload terms): '
           + repr(polarity_census), '',
           'Source rewrite trace: ' + repr(rewrites), '',
@@ -252,4 +266,4 @@ for label, hex_word in hex_readings:
 with gzip.open(HERE / (record_name + '.log.gz'), 'wt') as out:
     out.write('\n'.join(log))
 print(f'displacement={displacement} payload_terms={len(payload)} '
-      f'residual_terms={len(residual)} full_source_equation=PASS', flush=True)
+      f'residual_terms={len(residual)} full_source_equation=PASS record={record_name}', flush=True)
