@@ -99,6 +99,26 @@ with (ROOT / 'measurements' / ('godel_hex_translated_lane_' + SOURCE + '.log')).
         record.write('TRANSLATED DIFFERENCE COLLECTION quotient=' + field(collected, 'result') +
                      ' remainder=' + field(collected, 'remainder') + '\n')
         if field(collected, 'remainder') != '0':
+            adjustment = field(operate(multiplier, 'mul', field(collected, 'result')), 'result')
+            partial_cofactor = field(operate(a, 'add' if sign == '+' else 'sub', adjustment), 'result')
+            smaller_residual = field(operate(multiplier, 'mul', field(collected, 'remainder')), 'result')
+            partial_product = field(operate(payload, 'mul', partial_cofactor), 'result')
+            assert field(operate(partial_product, 'add' if sign == '+' else 'sub', smaller_residual), 'result') == SOURCE
+            read(partial_cofactor)
+            read(smaller_residual)
+            record.write('PARTIAL TRANSLATED RETURN n=' + SOURCE + ' payload=' + payload +
+                         ' cofactor=' + partial_cofactor + ' residual=' + sign + smaller_residual +
+                         ' EXACT PASS\n')
+            remainder_parts = encode(field(collected, 'remainder'))
+            if remainder_parts.count(FILLED) == 1:
+                unit_quotient = operate(multiplier, 'divmod', field(collected, 'remainder'))
+                if field(unit_quotient, 'remainder') == '0':
+                    product(multiplier, field(collected, 'remainder'), field(unit_quotient, 'result'))
+                    assert field(operate(multiplier, 'add', '1'), 'result') == payload
+                    record.write('UNIT COMMON-PAYLOAD CERTIFICATE: K = remainder * ' +
+                                 field(unit_quotient, 'result') + ' + 1\n')
+                    print(SOURCE, 'partial translated return residual', sign + smaller_residual,
+                          'unit common-payload certificate PASS')
             print(SOURCE, 'translation', translation, 'payload', payload,
                   'retained difference remainder', field(collected, 'remainder'))
             sys.exit(0)
