@@ -18,6 +18,8 @@ Verified on this source:
 
 - The complete-word decoder control returns the exact source from its native word and rejects its complete hex word as an unregistered numeral family. The hex/native round trip in the ordered-word probe reconstructs cells from motif presence before decoding. The source constructor and this control are recorded in the working notebook and `hex_decoder_control.log`.
 
+- The target-sized factor-sum control `S=N+1` passes the repaired low-prefix condition and the complete discriminant-square equation, returning `1*N`. The prefix repairs do not determine the proper factor sum. The frame-selected high sum cells remain candidate choices; their selection has not been derived from the proper factors. Control: `factor_sum_unit_control.log.gz`.
+
 Implementation corrections: bounded source labels prevent filesystem filename overflow; repeated prefix transport follows each newly exposed failure; division/remainder transport avoids the slower subtraction certificate. Python spells and indexes words and orchestrates calls; source arithmetic remains in `godel`. Full logs are stored losslessly as gzip archives and can be loaded through `read_record`.
 
 The source goal remains active. These checks are research results, not a factor certificate.
