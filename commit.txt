@@ -1,3 +1,3 @@
-I retain exact signed cancellation of the source boundaries
+I audit extraction routes against the source-only requirement
 
-I reduce 458 observed run boundaries to 308 signed terms with 150 local rewrites. I verify the complete source equation with the Gödel addition instrument and preserve every signed position and rewrite. No factor search or guessed operand cells enter the computation.
+I distinguish passive witness extraction and conventional mark-based routes from the missing source-to-operand transformation. I preserve the bounded historical evidence audit and leave the exact factor goal incomplete.
