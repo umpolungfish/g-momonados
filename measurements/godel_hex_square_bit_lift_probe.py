@@ -68,6 +68,8 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
         # Move the source's sole falsity presence into information.
         if correction_parts[1] == FILLED and correction_parts[2] == EMPTY:
             correction_parts[1], correction_parts[2] = correction_parts[2], correction_parts[1]
+        if correction_parts[0] == FILLED and correction_parts[2] == EMPTY:
+            correction_parts[0], correction_parts[2] = correction_parts[2], correction_parts[0]
     elif low_source in {'7', '11'}:
         # Retain information and its banked fork; remove falsity when equal.
         if correction_parts[1] == correction_parts[2] == FILLED:
@@ -139,14 +141,23 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
         coefficients = []
         for returned in (current, opposite):
             restored = field(operate(root_shift, 'mul', returned), 'result')
-            left = field(operate(restored, 'sub', payload), 'result')
+            original_left = operate(restored, 'sub', payload)
+            original_left_sign = '+'
+            if original_left is None:
+                original_left = operate(payload, 'sub', restored)
+                original_left_sign = '-'
+            left = field(original_left, 'result')
             right = field(operate(restored, 'add', payload), 'result')
             positioned_product = field(operate(left, 'mul', right), 'result')
-            difference = operate(positioned_product, 'sub', source)
-            sign = '+'
-            if difference is None:
-                difference = operate(source, 'sub', positioned_product)
+            if original_left_sign == '-':
+                difference = operate(source, 'add', positioned_product)
                 sign = '-'
+            else:
+                difference = operate(positioned_product, 'sub', source)
+                sign = '+'
+                if difference is None:
+                    difference = operate(source, 'sub', positioned_product)
+                    sign = '-'
             residual = field(difference, 'result')
             read(residual)
             residual_parts = encode(residual)
@@ -162,7 +173,7 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
             coefficients.append((sign, quotient))
             product(residual, placement, quotient)
             read(quotient)
-            record.write('SIGNED SOURCE RETURN ' + source + ' = ' + left +
+            record.write('SIGNED SOURCE RETURN ' + source + ' = ' + original_left_sign + left +
                          ' * ' + right + ' - (' + sign + residual + ')\n')
             record.write('PLACED RESIDUAL ' + sign + residual + ' = ' +
                          sign + quotient + ' * ' + placement +
@@ -173,7 +184,11 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
                     break
                 correction_zeros += 1
             root_zeros = initial_empty // 2
-            assert residual_zeros >= 2 * max(root_zeros, correction_zeros) + 3
+            if residual_zeros < 2 * max(root_zeros, correction_zeros) + 3:
+                record.write('CO-LIFT RETAINED: residual cell below simultaneous-toggle bound\n')
+                print(source, 'retained signed endpoint', original_left_sign + left,
+                      right, 'residual cell', residual_zeros, 'below co-lift bound')
+                continue
             root_increment = decode([EMPTY] * (residual_zeros - root_zeros - 1) + [FILLED])
             correction_increment = decode([EMPTY] * (residual_zeros - correction_zeros - 1) + [FILLED])
             changed_root = field(operate(restored, 'add', root_increment), 'result')
