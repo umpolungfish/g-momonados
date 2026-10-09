@@ -1,3 +1,3 @@
-I apply the recorded two-sided partial-copy operation to the exact return
+I combine intermediate rewrites with two-sided collection and cancellation
 
-I verify the 21 multiplicity control through Gödel and check all four orderings on the preserved exact-target state. I retain complete equations and hex readings, and identify intermediate zero rewrites as the next recorded operation.
+I verify every tested symbolic return and every accepted native Gödel return. I preserve 52 accepted rounds and all tested paths, reducing the correction to 106 terms while retaining the excluded placement. I verify the accelerated selector against the recorded operation and retain the complete terminal words.
