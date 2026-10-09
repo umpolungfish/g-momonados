@@ -74,6 +74,9 @@ with (ROOT / 'measurements' / ('godel_hex_square_bit_lift_' + SOURCE + '.log')).
         # Retain information and its banked fork; remove falsity when equal.
         if correction_parts[1] == correction_parts[2] == FILLED:
             correction_parts[1] = EMPTY
+    elif low_source in {'5', '13'}:
+        if correction_parts[0] == FILLED and correction_parts[1] == EMPTY:
+            correction_parts = [EMPTY] + correction_parts
     payload = decode(correction_parts)
     read(payload)
     if payload == '0':
