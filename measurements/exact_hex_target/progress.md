@@ -16,6 +16,8 @@ Verified on this source:
 
 - The six full-frame correction payloads have been tested against each exposed operand. Only the first return contains complete operand copies: two copies of its left operand. Collecting those copies changes the cofactor and reduces the correction; all twelve collected source equations pass independent Gödel addition/multiplication checks. Every retained remainder is nonzero. The full equations and hex readings are in `frame_residual_collection.md` and `frame_residual_collection.log.gz`.
 
+- The complete-word decoder control returns the exact source from its native word and rejects its complete hex word as an unregistered numeral family. The hex/native round trip in the ordered-word probe reconstructs cells from motif presence before decoding. The source constructor and this control are recorded in the working notebook and `hex_decoder_control.log`.
+
 Implementation corrections: bounded source labels prevent filesystem filename overflow; repeated prefix transport follows each newly exposed failure; division/remainder transport avoids the slower subtraction certificate. Python spells and indexes words and orchestrates calls; source arithmetic remains in `godel`. Full logs are stored losslessly as gzip archives and can be loaded through `read_record`.
 
 The source goal remains active. These checks are research results, not a factor certificate.
