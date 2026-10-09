@@ -5,9 +5,13 @@ import gzip
 import subprocess
 import re
 import argparse
+import ast
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--fast', action='store_true')
+parser.add_argument('--overlap-seed', action='store_true')
+parser.add_argument('--anchor-low-pole', action='store_true')
+parser.add_argument('--preserve-odd', action='store_true')
 options = parser.parse_args()
 
 HERE = Path(__file__).resolve().parent
@@ -39,6 +43,8 @@ def fast_step(a, b, residual, reverse):
                 pair[0] += abs(r-c)-abs(r)-abs(c)
                 pair[1] += abs(r+c)-abs(r)-abs(c)
         for shift in sorted(scores, reverse=reverse):
+            if globals().get('preserve_odd',False) and shift == 0:
+                continue
             for sign,delta in zip((1,-1),scores[shift]):
                 if delta < 0 and (best is None or delta < best[0]):
                     best = delta,side,shift,sign
@@ -62,6 +68,30 @@ def fast_step(a, b, residual, reverse):
         beforeMagnitude=before,afterMagnitude=after,correction=sorted(changed.items()))
 logs = state['logs']
 A, B, R = (dict(state[k]) for k in ('A0','B0','R0'))
+if options.overlap_seed:
+    parent_text = (HERE/'overlap_combined_return.md').read_text()
+    A,B,R = (dict(ast.literal_eval(re.search(label+r': (\[.*\])',parent_text).group(1)))
+             for label in ('Final operand A','Final operand B','Final correction'))
+    certify(state['native'],A,B,R)
+prelude = None
+if options.anchor_low_pole:
+    assert options.overlap_seed and min(A)==0 and abs(A[0])==1
+    assert min(B)>0 and min(R)==0
+    before = sum(abs(c) for c in R.values())
+    coefficient = R[0]*A[0]
+    B[0] = coefficient
+    for i,c in A.items():
+        R[i] = R.get(i,0)-coefficient*c
+        if not R[i]:
+            del R[i]
+    certify(state['native'],A,B,R)
+    prelude = (coefficient,before,sum(abs(c) for c in R.values()),sorted(A.items()),sorted(B.items()),sorted(R.items()))
+    print('forced_low_pole_completion='+repr(prelude[:3]), flush=True)
+initial_a,initial_b = dict(A),dict(B)
+preserve_odd = False
+if options.preserve_odd:
+    assert options.fast and options.anchor_low_pole
+    assert min(normalize(A)[0]) == 0 and min(normalize(B)[0]) == 0
 if options.fast:
     # Compare the accelerated overlap score with the recorded selector on
     # every initial one-unit rewrite in both shift orders before using it.
@@ -74,6 +104,7 @@ if options.fast:
             assert fast_step(A,B,altered,reverse) == reference_step(A,B,altered,reverse)
     step = fast_step
     print('accelerated selector matches every initial observed-unit control', flush=True)
+preserve_odd = options.preserve_odd
 native = state['native']
 ROOT = state['ROOT']
 
@@ -137,20 +168,26 @@ while R:
         break
     final,A,B,R,trace = best
     a,b,closed = certify(native, A, B, R)
+    if preserve_odd:
+        assert min(normalize(A)[0]) == 0 and min(normalize(B)[0]) == 0
     rounds.append((score,final,trace,sorted(A.items()),sorted(B.items()),sorted(R.items())))
     print(f'accepted_round={len(rounds)} residual_magnitude={score}->{final} closed={closed}', flush=True)
-    print('placement_changed='+str(normalize(B)[0] != normalize(state['B0'])[0]), flush=True)
+    print('placement_changed='+str(normalize(B)[0] != normalize(initial_b)[0])+
+          ' other_operand_changed='+str(normalize(A)[0] != normalize(initial_a)[0]), flush=True)
     if closed:
         break
 a,b,closed = certify(native, A, B, R)
 report = ['# Combined intermediate-rewrite and two-sided return', '',
-          'Parent: the certified 186-term source correction.',
+          ('Parent: the certified overlapping displacement-290 source return.' if options.overlap_seed
+           else 'Parent: the certified 186-term source correction.'),
           'Each observed residual unit is rewritten without changing its value. '
           'Partial collection precedes cancellation. Both shift and cancellation orders are retained.',
           'Every tested endpoint expands and normalizes to the complete source dictionary. '
           'Every accepted endpoint additionally passes native Gödel.',
           f'Checked paths: {checked}; accepted rounds: {len(rounds)}.',
           f'Final correction magnitude: {magnitude(R)}; proper product closure: {closed}.', '',
+          'Forced low-pole completion: '+repr(prelude), '',
+          f'Accepted operand values remain odd: {preserve_odd}.', '',
           'Complete accepted paths: '+repr(rounds), '',
           'Complete comparison table: '+repr(comparisons), '',
           'Final operand A: '+repr(sorted(A.items())),
@@ -166,7 +203,10 @@ for label,terms in [('operand A',A),('operand B',B),('correction',R)]:
     hex_word = next(line.split(':',1)[1].strip() for line in clean.splitlines()
                     if 'hex-digit word' in line)
     report.extend([f'{label} sign {sign}: `{value}`.', hex_word, ''])
-(HERE/'combined_zero_partial_return.md').write_text('\n'.join(report)+'\n')
-with gzip.open(HERE/'combined_zero_partial_return.log.gz','wt') as out:
+record_name = 'combined_zero_partial_return'+('_overlap' if options.overlap_seed else '')
+record_name += '_low_pole' if options.anchor_low_pole else ''
+record_name += '_odd' if options.preserve_odd else ''
+(HERE/(record_name+'.md')).write_text('\n'.join(report)+'\n')
+with gzip.open(HERE/(record_name+'.log.gz'),'wt') as out:
     out.write('\n'.join(logs))
 print(f'checked={checked} accepted={len(rounds)} final_residual={magnitude(R)} closed={closed}', flush=True)

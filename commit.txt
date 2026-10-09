@@ -1,3 +1,3 @@
-I combine intermediate rewrites with two-sided collection and cancellation
+I retain placement-changing branches of the combined source return
 
-I verify every tested symbolic return and every accepted native Gödel return. I preserve 52 accepted rounds and all tested paths, reducing the correction to 106 terms while retaining the excluded placement. I verify the accelerated selector against the recorded operation and retain the complete terminal words.
+I combine overlapping source extraction, forced low-pole completion, odd-preserving collection, operand transport and residual rewrites. I retain increased and tied corrections when they change the placement and verify all selected signed returns through Gödel. Source-bounded complete-return transport accepts three placement changes, reducing the correction from 197 to 173. I check each minimum changed placement against its complete source return and preserve its nonzero remainder and ordered words. I replace the fixed carry-cell limit with a source-derived linear scan, verify equivalent carry traces, and add durable accepted-round checkpoints.
