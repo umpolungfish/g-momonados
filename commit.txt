@@ -1,3 +1,3 @@
-I preserve the complete ordered hex composition before extraction
+I repair an incompatible second hex motif with its first occupied unit
 
-I verify every canonical motif and the banked information order against live source reads, including both large sources.
+I verify source-only square returns 10403 = 101 * 103 and 35 = 5 * 7, preserve 8051 and retain the prefix refutation for 19.
