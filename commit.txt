@@ -1,3 +1,3 @@
-I verify the input contract for direct hex-word product checks
+I retain source-wide hex operator involutions and their signed placements
 
-I hand the hex and native word triples from the same live readings to Gödel. I retain the native product closure, the hex-family rejection and the digit-one affine collision as paired controls.
+I verify the DD to BB operator exchange, its source-derived placement return and unequal-motif residual controls using the permitted instruments. I preserve the ordered scaffold and the signed placement relationship for further composition.
