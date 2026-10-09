@@ -1,3 +1,3 @@
-I expose a larger source payload through one local polarity rewrite
+I continue exact source-polarity rewrites through three preserved returns
 
-I preserve the observed-term rewrite comparison and certify the complete selected source equation through Gödel. The cell-50 rewrite reduces the retained correction from 198 to 195 signed terms. I retain its complete source positions and operand/residual hex readings.
+I read preserved signed source words and retain each continuation under its input content name. I verify three complete Gödel returns reducing the residual from 195 to 186 signed terms and preserve every comparison and hex reading.
