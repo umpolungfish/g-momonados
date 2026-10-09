@@ -4,6 +4,11 @@ import ast
 import re
 import subprocess
 import gzip
+import argparse
+
+parser=argparse.ArgumentParser()
+parser.add_argument('--anchor-low-pole',action='store_true')
+options=parser.parse_args()
 
 HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[1]
@@ -66,14 +71,21 @@ def normalize(terms):
 text=(HERE/'translated_signed_collection_hex_opposite_184.md').read_text()
 A=dict(ast.literal_eval(re.search(r'Signed payload positions: (\[.*\])',text).group(1)))
 R=dict(ast.literal_eval(re.search(r'Signed residual positions: (\[.*\])',text).group(1)))
-options=[]
+anchor=min(A) if options.anchor_low_pole else 0
+A={i-anchor:c for i,c in A.items()}
+candidates=[]
 for position in R:
     shift=position-min(A)
     if shift<0 or shift%4 or max(A)+shift>max(R):continue
     for sign in (1,-1):
         matches=[i+shift for i,c in A.items() if R.get(i+shift)==sign*c]
-        options.append((len(matches),shift,sign))
-matched,shift,sign=max(options)
+        candidates.append((len(matches),shift,sign))
+if options.anchor_low_pole:
+    shift=0
+    sign=R[0]*A[0]
+    matched=sum(R.get(i)==sign*c for i,c in A.items())
+else:
+    matched,shift,sign=max(candidates)
 completion_polarity=sign
 copy={i+shift:sign*c for i,c in A.items()}
 missing={i:c for i,c in copy.items() if R.get(i)!=c}
@@ -82,7 +94,7 @@ for i,c in copy.items():corrected[i]=corrected.get(i,0)-c
 corrected={i:c for i,c in corrected.items() if c}
 raw_corrected=dict(corrected)
 corrected,moves=normalize(corrected)
-B={0:1,184:-1}
+B={anchor:1,184+anchor:-1}
 B[shift]=B.get(shift,0)+sign
 B={i:c for i,c in B.items() if c}
 
@@ -120,6 +132,7 @@ report=['# Residual-guided partial-copy completion','',
         'literal matching at whole-hex boundaries. Missing terms are '
         'introduced with their exact opposite correction; none is discarded.','',
         f'Observed matched terms: {matched} of {len(A)}.',
+        f'Payload empty-cell shift moved into cofactor: {anchor}.',
         f'Selected displacement: {shift}; polarity: {completion_polarity}.',
         'Missing/unequal terms: '+repr(sorted(missing.items())),'',
         'Raw opposite correction: '+repr(sorted(raw_corrected.items())),'',
@@ -132,8 +145,9 @@ report=['# Residual-guided partial-copy completion','',
         'The residual remains nonzero; this is not a proper-factor certificate.','']
 for label,sign,value,hex_word in readings:
     report.extend([label+': `'+sign+value+'`','',hex_word,''])
-(HERE/'residual_copy_completion.md').write_text('\n'.join(report)+'\n')
-with gzip.open(HERE/'residual_copy_completion.log.gz','wt') as out:
+name='residual_copy_completion'+('_low_pole' if anchor else '')
+(HERE/(name+'.md')).write_text('\n'.join(report)+'\n')
+with gzip.open(HERE/(name+'.log.gz'),'wt') as out:
     out.write('\n'.join(logs))
 print(f'matched={matched}/{len(A)} shift={shift} '
       f'residual_terms={len(R)}->{len(corrected)} carries={len(moves)} '
