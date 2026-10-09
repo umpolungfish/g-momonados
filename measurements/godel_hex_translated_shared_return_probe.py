@@ -61,15 +61,33 @@ with (ROOT / 'measurements' / ('godel_hex_translated_shared_return_' + SOURCE + 
     if not returns or returns[-1][0] != SOURCE:
         raise RuntimeError('No partial translated return for this source')
     _, payload, placement, sign, residual = returns[-1]
-    selected = []
-    for value in (payload, residual):
-        out = run(['python3', 'measurements/godel_hex_lane_residual_probe.py', value])
+    out = run(['python3', 'measurements/godel_hex_lane_residual_probe.py', payload])
+    match = re.search(r'lane residual collection (\d+) (\d+) proper-factor PASS', out)
+    if match is None:
+        raise RuntimeError('Payload lane return did not expose a proper product')
+    left, right = match.groups()
+    residual_parts = read(residual)
+    shift = 0
+    for cell in residual_parts:
+        if cell != EMPTY:
+            break
+        shift += 1
+    odd_residual = decode(residual_parts[shift:])
+    scale = decode([EMPTY] * shift + [FILLED])
+    if odd_residual in (left, right):
+        factor = odd_residual
+        payload_cofactor = right if factor == left else left
+        residual_cofactor = scale
+        product(residual, factor, scale)
+        record.write('RESIDUAL WORD MATCH shift=' + str(shift) + ' odd-word=' + factor + '\n')
+    else:
+        out = run(['python3', 'measurements/godel_hex_lane_residual_probe.py', residual])
         match = re.search(r'lane residual collection (\d+) (\d+) proper-factor PASS', out)
         if match is None:
-            raise RuntimeError('Lane return did not expose a proper shared payload')
-        selected.append(match.groups())
-    (factor, payload_cofactor), (residual_factor, residual_cofactor) = selected
-    assert factor == residual_factor
+            raise RuntimeError('Residual structural return does not match the payload product')
+        factor, residual_cofactor = match.groups()
+        assert factor in (left, right)
+        payload_cofactor = right if factor == left else left
     product(payload, factor, payload_cofactor)
     product(residual, factor, residual_cofactor)
     positioned = field(operate(payload_cofactor, 'mul', placement), 'result')
