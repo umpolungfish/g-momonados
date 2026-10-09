@@ -9,9 +9,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--hex-boundaries', action='store_true')
 parser.add_argument('--opposite', action='store_true')
 parser.add_argument('--displacement', type=int)
+parser.add_argument('--higher-first', action='store_true')
 options = parser.parse_args()
 polarity = -1 if options.opposite else 1
 record_name = ('translated_signed_collection' +
+               ('_higher_first' if options.higher_first else '') +
                ('_hex' if options.hex_boundaries else '') +
                ('_opposite' if options.opposite else '') +
                ('_' + str(options.displacement) if options.displacement else ''))
@@ -73,6 +75,47 @@ signed = {}
 for label, sign in [('Positive', 1), ('Negative', -1)]:
     line = re.search(label + r' unit positions: ([0-9, ]+)', text).group(1)
     signed.update({int(i): sign for i in line.split(', ')})
+
+rewrites = []
+if options.higher_first:
+    source = (HERE / 'source.txt').read_text().strip()
+    native = field(call('encode', source), 'word')
+    cells = native[1:-3]
+    occupied = {i//5 for i in range(0, len(cells), 5)
+                if cells[i:i+5] == FILLED}
+    signed = {}
+    for i in sorted(occupied):
+        if i-1 not in occupied:
+            signed[i] = signed.get(i, 0)-1
+        if i+1 not in occupied:
+            signed[i+1] = signed.get(i+1, 0)+1
+    signed = {i:c for i,c in signed.items() if c}
+    while True:
+        changed = False
+        for i in sorted(signed, reverse=True):
+            c = signed[i]
+            if abs(c) >= 2:
+                sign = 1 if c > 0 else -1
+                signed[i] -= 2*sign
+                signed[i+1] = signed.get(i+1, 0)+sign
+                rule = ('merge', i, sign)
+            elif signed.get(i+1, 0)*c < 0:
+                sign = 1 if signed[i+1] > 0 else -1
+                signed[i+1] -= sign
+                signed[i] += 2*sign
+                rule = ('split-cancel', i, sign)
+            else:
+                continue
+            signed = {j:d for j,d in signed.items() if d}
+            rewrites.append((rule, sorted(signed.items())))
+            changed = True
+            break
+        if not changed:
+            break
+    assert all(abs(c) == 1 for c in signed.values())
+    positive = word(i for i,c in signed.items() if c > 0)
+    negative = word(i for i,c in signed.items() if c < 0)
+    assert operate(native, 'add', negative) == positive
 
 # Choose by repeated source support alone. No divisibility or product-return
 # tests participate in selecting the displacement.
@@ -152,6 +195,9 @@ report = ['# Translated signed payload collection', '',
           f'Displacement: {displacement} native cells.',
           f'Translation polarity: {polarity}.',
           f'Whole-hex boundary restriction: {options.hex_boundaries}.',
+          f'Higher-first source cancellation: {options.higher_first}.',
+          'Source rewrite trace: ' + repr(rewrites), '',
+          'Complete signed source positions: ' + repr(sorted(signed.items())), '',
           f'Payload: {len(payload)} signed terms, copied twice.',
           f'Residual: {len(residual)} signed terms.', '',
           'Signed payload positions: ' + repr(sorted(payload.items())), '',
