@@ -2,18 +2,26 @@
 from pathlib import Path
 import re
 import argparse
+import ast
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--transported',action='store_true')
+parser.add_argument('--higher-first',action='store_true')
 options=parser.parse_args()
+assert not (options.transported and options.higher_first)
 
 HERE = Path(__file__).resolve().parent
-text = (HERE / ('signed_carry_transport.md' if options.transported
+text = (HERE / ('translated_signed_collection_higher_first.md' if options.higher_first
+                else 'signed_carry_transport.md' if options.transported
                 else 'run_payload_collection.md')).read_text()
 source = {}
-for label, sign in [('Positive', 1), ('Negative', -1)]:
-    positions = re.search(label+r' unit positions: ([0-9, ]+)', text).group(1)
-    source.update({int(i):sign for i in positions.split(', ')})
+if options.higher_first:
+    source = dict(ast.literal_eval(re.search(
+        r'Complete signed source positions: (\[.*\])', text).group(1)))
+else:
+    for label, sign in [('Positive', 1), ('Negative', -1)]:
+        positions = re.search(label+r' unit positions: ([0-9, ]+)', text).group(1)
+        source.update({int(i):sign for i in positions.split(', ')})
 
 rows = []
 for displacement in range(4, max(source)+1, 4):
@@ -59,6 +67,7 @@ report = ['# Complete signed hex-composition census', '',
           'term. No unknown factor support, divisibility test, or solver '
           'participates.', '',
           f'Complete source signed terms: {len(source)}.',
+          f'Higher-first source representation: {options.higher_first}.',
           f'Observed repeated compositions: {len(rows)}.',
           f'Compositions with zero residual: {len(closed)}.', '',
           'Every retained symbolic expansion matches the complete signed '
@@ -72,7 +81,8 @@ report += ['', 'Best composition with cofactor width at least 100 cells: '
            'family on the present signed representation. It does not rule '
            'out a product exposed by another source-preserving carry '
            'transport. It supplies no proper-factor certificate.']
-name='hex_geometric_composition'+('_transported' if options.transported else '')
+name=('hex_geometric_composition'+('_transported' if options.transported else '')
+      +('_higher_first' if options.higher_first else ''))
 (HERE/(name+'.md')).write_text('\n'.join(report)+'\n')
 print(f'compositions={len(rows)} closed={len(closed)} best={rows[0]} '
       f'best_large={min(large) if large else None}', flush=True)
