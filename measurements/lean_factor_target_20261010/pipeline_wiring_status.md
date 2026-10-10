@@ -51,11 +51,19 @@ still checks both exact amplitude integers. Exact arithmetic tests pass and the
 optimized release carrier builds with this change; the already-running trace
 uses its earlier executable, so runtime speedup remains unmeasured.
 
+The current release build also precomputes place values and modular sums for
+digit widths up to eight bits, avoiding repeated BigUint modular reductions at
+each recursive diagram node. Wider digits retain the prior general recursion.
+A new 14-wire coherent-state test covers enabled and disabled controls, wrapped
+translation, invalid work values, and non-real amplitudes. All nine exact
+decision tests pass. The long exact-source trace predates both optimizations;
+their effect on its run time remains to be measured in a subsequent run.
+
 ## Arithmetic checks and next evidence
 
 The release path no longer repeats full source-cofactor and interval
 partition traversals solely for round-trip assertions. Those checks remain
-active in debug builds, and all eight tests in `tests/ququart_decision_exact.rs`
+active in debug builds, and all nine tests in `tests/ququart_decision_exact.rs`
 pass, including exact coherent-amplitude modular translations at 200 and 256
 bits. The 895-bit run remains active. Completion still requires a phase-derived
 candidate, the Lean exact-product certificate, and an independently checked
