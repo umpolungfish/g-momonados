@@ -41,6 +41,16 @@ period with exact modular exponentiation before attempting factor closure. The
 live run has reached 3 of 899 scheduled digits; no period or factors have been
 certified yet.
 
+Native instruction samples from the exact-source trace resolve most often to
+`DecisionArena::modular_digit_add::visit`, followed by `reclaim_pending`,
+`FixedComplex::mul`, and exact `BigInt::add`. This locates the cost in the
+coherent decision-diagram arithmetic and reclamation beneath nested modular
+addition, rather than in the omitted Toggle/Add/Compare dispatch paths. The
+leaf interning index now uses a small byte hasher; complete `Node` equality
+still checks both exact amplitude integers. Exact arithmetic tests pass and the
+optimized release carrier builds with this change; the already-running trace
+uses its earlier executable, so runtime speedup remains unmeasured.
+
 ## Arithmetic checks and next evidence
 
 The release path no longer repeats full source-cofactor and interval
