@@ -17,6 +17,13 @@ impl SixteenOutcome {
     pub fn mask(self) -> u8 {
         self.0
     }
+    /// The checked TensorFiltration.nativeCarrier label equivalence, with
+    /// native membership weights N=1, T=2, F=4, B=8.
+    /// Runtime atoms t,f,T,F map to native atoms T,N,B,F respectively.
+    pub fn kernel_mask(self) -> u8 {
+        ((self.0 & 2) >> 1) | ((self.0 & 1) << 1)
+            | ((self.0 & 8) >> 1) | ((self.0 & 4) << 1)
+    }
     pub fn wh_index(self) -> (usize, usize) {
         (self.0 as usize / 4, self.0 as usize % 4)
     }

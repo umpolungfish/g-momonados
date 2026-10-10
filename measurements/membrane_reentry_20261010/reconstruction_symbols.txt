@@ -1,0 +1,1 @@
+00000000000e0770 0000000000000a52 T <g_momonados::anyon_ququart::FixedQuquartSic>::certify_gram_frame
