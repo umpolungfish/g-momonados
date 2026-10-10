@@ -352,6 +352,46 @@ mod tests {
     }
 
     #[test]
+    fn precomputed_modular_digit_add_preserves_controlled_complex_states() {
+        let mut arena = DecisionArena::new(14);
+        let zero = arena.zero();
+        let mut root = zero;
+        let mut cases = Vec::new();
+        let mut ordinal = 0u64;
+        for work in [0u64,1,172,173,200,511] {
+            for digit in [0u64,1,7,15] {
+                for enabled in [false,true] {
+                    let address = BigUint::from(work) | (BigUint::from(digit) << 9usize)
+                        | (BigUint::from(u8::from(enabled)) << 13usize);
+                    let amplitude = (BigInt::from(ordinal+3),-BigInt::from(ordinal+11));
+                    ordinal += 1;
+                    let mut basis = arena.intern(Node::Leaf(amplitude.0.clone(),amplitude.1.clone()));
+                    for wire in (0..arena.cells).rev() {
+                        basis = if address.bit(wire as u64) { arena.branch(wire,zero,basis) }
+                            else { arena.branch(wire,basis,zero) };
+                    }
+                    root = arena.sum(root,basis);
+                    cases.push((work,digit,enabled,address,amplitude));
+                }
+            }
+        }
+        let mut roots = [root,zero,zero,zero,zero];
+        arena.fold(&mut roots);
+        let register: Vec<_> = (0..9).collect();
+        let digit_wires: Vec<_> = (9..13).collect();
+        let controls = [(13usize,true)];
+        roots[1] = arena.modular_digit_add(root,&register,&digit_wires,
+            &BigUint::from(17u8),&BigUint::from(173u16),&controls);
+        arena.fold(&mut roots);
+        for (work,digit,enabled,_,amplitude) in cases {
+            let translated = if enabled && work < 173 { (work + digit*17) % 173 } else { work };
+            let output = BigUint::from(translated) | (BigUint::from(digit) << 9usize)
+                | (BigUint::from(u8::from(enabled)) << 13usize);
+            assert_eq!(arena.amplitude(roots[1],&output),amplitude);
+        }
+    }
+
+    #[test]
     fn controlled_permutations_preserve_complex_support_through_slot_reuse() {
         let n = BigUint::parse_bytes(
             b"307795685303946736105416402281159953456744654179248447762559917", 10,
@@ -1020,6 +1060,24 @@ impl DecisionArena {
     pub fn modular_digit_add(&mut self, root: usize, register: &[usize], digit: &[usize],
         value: &BigUint, modulus: &BigUint, controls: &[(usize,bool)]) -> usize {
         if !self.controls_possible(root,controls) { return root; }
+        fn visit_precomputed(arena: &mut DecisionArena, root: usize, register: &[usize], digit: &[usize],
+            at: usize, mask: usize, sums: &[BigUint], modulus: &BigUint,
+            cofactors: &mut OperationCache<(usize,usize),(usize,usize)>) -> usize {
+            if arena.fixed[root].empty { return root; }
+            if at == digit.len() { return arena.modular_add(root,register,&sums[mask],modulus,&[]); }
+            let bit = digit[at];
+            if arena.fixed[root].zero.bit(bit as u64) {
+                return visit_precomputed(arena,root,register,digit,at+1,mask,sums,modulus,cofactors);
+            }
+            let high_mask = mask | (1usize << at);
+            if arena.fixed[root].one.bit(bit as u64) {
+                return visit_precomputed(arena,root,register,digit,at+1,high_mask,sums,modulus,cofactors);
+            }
+            let (low,high) = arena.source_cofactors(root,bit,cofactors);
+            let low = visit_precomputed(arena,low,register,digit,at+1,mask,sums,modulus,cofactors);
+            let high = visit_precomputed(arena,high,register,digit,at+1,high_mask,sums,modulus,cofactors);
+            arena.fuse_source_arms(low,high,bit)
+        }
         fn visit(arena: &mut DecisionArena, root: usize, register: &[usize], digit: &[usize],
             at: usize, accumulated: &BigUint, place: &BigUint, modulus: &BigUint,
             cofactors: &mut OperationCache<(usize,usize),(usize,usize)>) -> usize {
@@ -1045,8 +1103,27 @@ impl DecisionArena {
         let enabled = self.conditional_literals(zero,root,controls);
         // Nested digit arms share cofactor answers. Nodes are immutable and
         // none are reclaimed until this arithmetic operation has returned.
-        let changed = visit(self,enabled,register,digit,0,&BigUint::zero(),value,modulus,
-            &mut OperationCache::default());
+        let mut cofactors = OperationCache::default();
+        let changed = if digit.len() <= 8 {
+            // Every branch at depth `at` reaches the same at-most-2^8 prefix
+            // sums. Compute them once instead of doing BigUint add/division at
+            // every diagram node in the recursive traversal.
+            let mut places = Vec::with_capacity(digit.len());
+            let mut place = value % modulus;
+            for _ in digit {
+                places.push(place.clone());
+                place = (&place << 1usize) % modulus;
+            }
+            let mut sums = alloc::vec![BigUint::zero(); 1usize << digit.len()];
+            for mask in 1..sums.len() {
+                let bit = mask.trailing_zeros() as usize;
+                let previous = mask & (mask - 1);
+                sums[mask] = (&sums[previous] + &places[bit]) % modulus;
+            }
+            visit_precomputed(self,enabled,register,digit,0,0,&sums,modulus,&mut cofactors)
+        } else {
+            visit(self,enabled,register,digit,0,&BigUint::zero(),value,modulus,&mut cofactors)
+        };
         self.conditional_literals(root,changed,controls)
     }
 
