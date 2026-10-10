@@ -29,6 +29,7 @@ stats = dict(component_products=0, component_words=0, component_fold_tests=0,
              fold_joins=0, overlay_joins=0, cross_width_comparisons=0,
              cross_width_exact_returns=0)
 word_ids, catalog, source_returns = {}, {}, {}
+scanned_components = set()
 
 # Reuse the checked cell arithmetic and certificate gate without running its CLI.
 instrument = HERE/'cross_frame_collection.py'
@@ -96,17 +97,22 @@ def enrich(source, rows):
                                   dividend=wid(q),observed_component=wid(d),
                                   quotient=wid(quotient),remainder=wid(remainder))
                         emit('cross_width_quotient_return',**path)
-                        if remainder:
-                            continue
-                        stats['cross_width_exact_returns'] += 1
-                        register(q,d,quotient,path)
+                        if not remainder:
+                            stats['cross_width_exact_returns'] += 1
+                            register(q,d,quotient,path)
                         joined=mul(k,d)
-                        register(group['product'],joined,quotient,path)
-                        equation_certificate(source,joined,quotient,rsign,residual)
+                        new_sign,new_residual=combine((1,mul(k,remainder)),
+                                                      (rsign,residual))
+                        register(mul(joined,quotient),joined,quotient,path)
+                        equation_certificate(source,joined,quotient,new_sign,new_residual)
+                        emit('transported_source_equation', placement=wid(joined),
+                             quotient=wid(quotient), correction_sign=new_sign,
+                             correction=wid(new_residual), path=path)
                         derived_rows.append((w,epsilon,'cross-width-transport',joined,
-                                             quotient,rsign,residual))
+                                             quotient,new_sign,new_residual))
                         structural_returns(joined)
                         structural_returns(quotient)
+                        structural_returns(new_residual)
     for w, epsilon, tag, k, q, sign, r in rows+derived_rows:
         join_fold(source,k,q,sign,r,dict(operation='transported-product-collection',
                                         width=w,epsilon=epsilon,form=tag))
@@ -157,6 +163,7 @@ try:
     join_fold(source,a,b,1,r,dict(operation='control-shared-component'))
     assert source_returns
     catalog.clear()
+    scanned_components.clear()
     source_returns.clear()
     stats.update({key:0 for key in stats})
     parent_words, root_rows = {}, []
@@ -177,6 +184,8 @@ try:
                             source_id=row['source'],left_id=row['left'],right_id=row['right'])
                 catalog.setdefault(value,{})[a] = (b,path)
                 catalog[value][b] = (a,path)
+            elif target_seen and row['kind'] == 'component_scan':
+                scanned_components.add(parent_words[row['source']])
             elif target_seen and row['kind'] == 'root_fold':
                 k = parent_words[row['placement']]
                 for tag in ('original','collected'):

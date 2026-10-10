@@ -32,6 +32,7 @@ stats = dict(root_folds=0, collected_nonzero_folds=0, component_words=0,
              component_fold_tests=0, component_products=0, fold_joins=0,
              overlay_pairs=0, overlay_fragments=0, overlay_joins=0)
 word_ids, catalog = {}, {}
+scanned_components = set()
 source_returns = {}
 
 
@@ -246,9 +247,9 @@ def fold_closes(source, w, epsilon):
 
 def structural_returns(source):
     """Every width, including nonzero collected fold imbalances, on one component."""
-    if not source or source == ONE or source in catalog:
+    if not source or source == ONE or source in scanned_components:
         return
-    catalog[source] = {}
+    catalog.setdefault(source, {})
     stats['component_words'] += 1
     size, occupied = width(source), set(source)
     body = bytes(1 if i in occupied else 0 for i in range(size))
@@ -281,6 +282,7 @@ def structural_returns(source):
                          dict(operation='collected-frame-fold', width=w, epsilon=epsilon,
                               original_quotient=wid(original[0]), correction_sign=original[1],
                               original_correction=wid(original[2]), trace=trace))
+    scanned_components.add(source)
     emit('component_scan', source=wid(source), widths=[1, max(0, size-1)],
          returned_components=[wid(k) for k in catalog[source]],
          failed_shapes='Reconstruct from this source, width and epsilon with folded(); none discarded as zero.')
@@ -391,6 +393,16 @@ def overlays(source):
 
 
 def controls():
+    source = native_support('45')
+    three, fifteen = native_support('3'), native_support('15')
+    five, nine = native_support('5'), native_support('9')
+    register(source, three, fifteen, dict(operation='preloaded-control-return'))
+    structural_returns(source)
+    assert catalog[source][three][0] == fifteen
+    assert catalog[source][five][0] == nine
+    scans = stats['component_words']
+    structural_returns(source)
+    assert stats['component_words'] == scans
     # Nonzero fold collection, common-component collection and crossed framings.
     for value in ('51', '117', '213'):
         source = native_support(value)
@@ -431,6 +443,7 @@ try:
     if not args.controls_only:
         source_returns.clear()
         catalog.clear()
+        scanned_components.clear()
         stats.update({key:0 for key in stats})
         source = native_support((HERE/'source.txt').read_text().strip())
         emit('target', source=wid(source), source_word=word(source))
