@@ -1,6 +1,7 @@
 use g_momonados::anyon_pair::{FibonacciPair, PairMatrix, COMPUTATIONAL_CHANNELS};
+use g_momonados::anyon_ququart::{QuquartCarrier, QuquartDigit};
 use num_bigint::{BigInt, BigUint};
-use num_traits::{One, Signed, ToPrimitive, Zero};
+use num_traits::{Signed, ToPrimitive};
 #[allow(dead_code)]
 pub mod work;
 
@@ -21,16 +22,7 @@ pub fn validate_base_scaling(prepared: &serde_json::Value) -> Result<(), String>
 }
 
 pub fn numeral(word: &str) -> Result<BigUint, String> {
-    let decoded = g_momonados::godel_calculus::decode(word).map_err(|e| e.to_string())?;
-    if !matches!(decoded.structure, g_momonados::godel_calculus::Structure::CellBinary { .. }) {
-        return Err("prepared value must be a cell-binary word".into());
-    }
-    if g_momonados::godel_calculus::encode_cell_binary(&decoded.value) != word {
-        return Err("prepared value must be a canonical cell-binary word".into());
-    }
-    Ok(decoded.value.bits_le().iter().enumerate().fold(BigUint::zero(), |n, (bit, set)| {
-        if *set { n | (BigUint::one() << bit) } else { n }
-    }))
+    g_momonados::godel_calculus::decode_cell_biguint(word)
 }
 pub fn signed_numeral(value: &str) -> Result<BigInt, String> {
     let mut chars = value.chars();
@@ -99,12 +91,37 @@ fn check_accuracy(metrics: &Metrics, exponent: i32) -> Result<(), String> {
     Ok(())
 }
 
+fn native_fourier(source: &BigUint, exponent: i32) -> Result<(PairMatrix, Metrics), String> {
+    let algebra = FibonacciPair::new(source)?;
+    let format = algebra.format();
+    let mut matrix = PairMatrix::identity(format);
+    for digit in 0..4 {
+        let mut column = QuquartCarrier::basis(&algebra, QuquartDigit::try_from(digit as u8)?);
+        column.fourier_target(false);
+        for row in 0..5 {
+            matrix.0[5 * row + COMPUTATIONAL_CHANNELS[digit]] = column.amplitudes()[row].clone();
+        }
+    }
+    let metrics = matrix_metrics(&matrix, format, 0)?;
+    check_accuracy(&metrics, exponent)?;
+    Ok((matrix, metrics))
+}
+
 pub fn contract(prepared: &serde_json::Value) -> Result<(BigUint, PairMatrix, Metrics), String> {
     let raw = prepared["source_word"].as_str().ok_or("missing source word")?;
     let n = numeral(raw)?;
     let accuracy = numeral(prepared["accuracy_word"].as_str().ok_or("missing accuracy word")?)?
         .to_u64().ok_or("invalid accuracy word")?;
     let exponent = i32::try_from(accuracy).map_err(|_| "accuracy overflow")?;
+    let native = match prepared.get("operator_kind") {
+        None => false,
+        Some(value) if value.as_str() == Some("native_fourier") => true,
+        Some(_) => return Err("unknown Fourier operator kind".into()),
+    };
+    if native && prepared.get("prepared_operator").is_none() {
+        let (matrix, metrics) = native_fourier(&n, exponent)?;
+        return Ok((n, matrix, metrics));
+    }
     if let Some(operator) = prepared.get("prepared_operator") {
         let format = g_momonados::phase_unbraid::FixedPointFormat::for_modulus(&n)?;
         if numeral(operator["w_bits_word"].as_str().ok_or("missing precision word")?)?.to_u64() != Some(format.w_bits) {
@@ -136,7 +153,16 @@ pub fn contract(prepared: &serde_json::Value) -> Result<(BigUint, PairMatrix, Me
         let physical_closure = metric("closure_word")?;
         let exchanges = integer("exchanges_word")?.to_usize()
             .ok_or("invalid prepared exchange count")?;
-        if exchanges == 0 { return Err("prepared Fourier operator has no exchanges".into()); }
+        if native {
+            if exchanges != 0 { return Err("native Fourier operator claims braid exchanges".into()); }
+            let (expected, _) = native_fourier(&n, exponent)?;
+            if matrix.0.iter().zip(expected.0.iter()).any(|(observed, bound)|
+                observed.re != bound.re || observed.im != bound.im) {
+                return Err("baked native Fourier matrix differs from its source".into());
+            }
+        } else if exchanges == 0 {
+            return Err("prepared Fourier operator has no exchanges".into());
+        }
         let mut metrics = matrix_metrics(&matrix, &format, exchanges)?;
         metrics.closure = metrics.closure.max(physical_closure);
         check_accuracy(&metrics, exponent)?;
