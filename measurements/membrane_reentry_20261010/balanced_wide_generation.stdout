@@ -1,0 +1,6 @@
+Certified case 0: 512-bit semiprime
+Certified case 1: 768-bit semiprime
+Certified case 2: 1024-bit semiprime
+Certified case 3: 1536-bit semiprime
+Certified case 4: 2048-bit semiprime
+Generated 5 certified semiprimes in measurements/membrane_reentry_20261010/balanced_wide.tsv

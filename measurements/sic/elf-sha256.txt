@@ -1,2 +1,0 @@
-0e24b074e4c313d1bd9d00ecaab00e8fc1f25f577bd697a9d1f0654d7c2f8f8a  measurements/sic/sic-tool.elf
-204000c677555f2c5503b93b832cb7f8a33c7e69192077ea69f7144ae231c8cf  measurements/sic/sic-checks.elf
