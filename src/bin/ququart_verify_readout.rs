@@ -206,7 +206,26 @@ fn verify() -> Result<bool, String> {
                 .iter().map(|value| numeral(value.as_str().ok_or("SIC mass must be a word")?))
                 .collect::<Result<Vec<_>,String>>()?.try_into().map_err(|_| "SIC frame must retain every outcome")?;
             if sic.gram_masses(&gram)? != masses { return Err("SIC masses differ from their measured control Gram".into()); }
-            sic.validate_gram_frame(&gram,&masses)?;
+            let reconstruction = sic.certify_gram_frame(&gram,&masses)?;
+            // Earlier ledgers retain their original fields. When a ledger
+            // carries the complete reconstruction certificate, bind every
+            // entry and both residual words to the recomputed certificate.
+            if witness.get("recovered_gram").is_some()
+                || witness.get("reconstruction_residual_word").is_some()
+                || witness.get("reconstruction_tolerance_word").is_some() {
+                let entries = witness["recovered_gram"].as_array().ok_or("missing reconstructed SIC Gram")?;
+                let recovered: [(num_bigint::BigInt,num_bigint::BigInt);16] = entries.iter().map(|entry| {
+                    Ok((support::signed_numeral(entry["re_word"].as_str().ok_or("missing reconstructed real word")?)?,
+                        support::signed_numeral(entry["im_word"].as_str().ok_or("missing reconstructed imaginary word")?)?))
+                }).collect::<Result<Vec<_>,String>>()?.try_into().map_err(|_| "reconstructed SIC Gram must contain every control pair")?;
+                if recovered != reconstruction.recovered
+                    || numeral(witness["reconstruction_residual_word"].as_str().ok_or("missing reconstruction residual word")?)?
+                        != *reconstruction.maximum_residual.magnitude()
+                    || numeral(witness["reconstruction_tolerance_word"].as_str().ok_or("missing reconstruction tolerance word")?)?
+                        != *reconstruction.tolerance.magnitude() {
+                    return Err("SIC reconstruction certificate differs from the measured control Gram".into());
+                }
+            }
             let sample = &samples[index/per_shot];
             let phase = numeral(sample["numerator_word"].as_str().ok_or("missing measured phase numerator")?)?;
             let expected = (phase >> (2*(index%per_shot))) & BigUint::from(3u8);
