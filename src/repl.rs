@@ -170,6 +170,14 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
         };
         let line = line_owned.as_str();
         let _vessel = crate::runtime_nesting::CommandVessel::admit(line);
+        #[cfg(feature = "hosted")]
+        if matches!(line.split_whitespace().next(), Some("reentry" | "lean-kernel")) {
+            let args: Vec<String> = line.split_whitespace().skip(1).map(str::to_owned).collect();
+            if args.first().map(String::as_str) == Some("word") {
+                crate::lean_kernel::run_word_to(&args, vox_core::phase_word::native_transition_table, crate::runtime_nesting::write_stdout);
+            } else { crate::lean_kernel::run_to(&args, crate::runtime_nesting::write_stdout); }
+            continue;
+        }
 
         // Multi-line ask paste: accumulate until a lone `.`
         if ask_paste.active {
@@ -514,6 +522,7 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                     tail.join(" ").split_whitespace().map(|s| s.to_string()).collect();
                 if rest.is_empty() || rest[0] == "help" {
                     sprintln!("vox <sub>        — control-flow closure auditor");
+                    sprintln!("vox reentry help     — native Lean kernel carrier, Y, lattice bounds and clocks");
                     sprintln!("vox verdict <word>   — classic FOUR-valued verdict over a glyph word,");
                     sprintln!("                       the same close-condition rule the SIXTEEN_3");
                     sprintln!("                       engine reads, but over T/F/B/N only");
@@ -569,6 +578,12 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                     sprintln!("and linear at N. The fork is what the verdict is looking for.");
                 } else {
                     match rest[0].as_str() {
+                        #[cfg(feature = "hosted")]
+                        "reentry" | "lean-kernel" => {
+                            if rest.get(1).map(String::as_str) == Some("word") {
+                                crate::lean_kernel::run_word_to(&rest[1..], vox_core::phase_word::native_transition_table, crate::runtime_nesting::write_stdout);
+                            } else { crate::lean_kernel::run_to(&rest[1..], crate::runtime_nesting::write_stdout); }
+                        }
                         "verdict" | "words" | "word" => {
                             if rest.len() > 1 {
                                 let word: Vec<char> = rest[1..].join("").chars().collect();
@@ -4684,6 +4699,14 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             }
             "p4ra" => {
                 let sub = parts.next().unwrap_or("");
+                #[cfg(feature = "hosted")]
+                if matches!(sub, "reentry" | "lean-kernel") {
+                    let args: Vec<String> = line.split_whitespace().skip(2).map(str::to_owned).collect();
+                    if args.first().map(String::as_str) == Some("word") {
+                        crate::lean_kernel::run_word_to(&args, vox_core::phase_word::native_transition_table, crate::runtime_nesting::write_stdout);
+                    } else { crate::lean_kernel::run_to(&args, crate::runtime_nesting::write_stdout); }
+                    continue;
+                }
                 print_p4ra(sub, parts.collect::<alloc::vec::Vec<&str>>().join(" "));
             }
             "tick" => {

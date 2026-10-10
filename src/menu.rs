@@ -225,6 +225,7 @@ pub static IMASM_MENU: &[MenuItem] = &[
 ];
 
 pub static KERNEL_MENU: &[MenuItem] = &[
+    MenuItem { name: "reentry", cmd: "reentry", desc: "Lean kernel SIXTEEN_3, certified S/K/I/Y reduction, lattice bounds and feedback clocks", example: "reentry orbit 2 1000000000000 negation", submenu: None },
     MenuItem { name: "ask", cmd: "ask", desc: "kernel structural ask (dry). Full wet: host ./ask --file | -i", example: "ask What is the distance to CLINK L8?", submenu: None },
     MenuItem { name: "spine", cmd: "spine", desc: "manuscript spine: PROVE->UNIFY->PORT x vessel (no Python)", example: "spine", submenu: None },
     MenuItem { name: "vessel", cmd: "vessel", desc: "witness-vessel transport: Clay payloads x 88 dialects, frob-gated", example: "vessel", submenu: None },
