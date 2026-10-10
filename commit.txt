@@ -1,3 +1,3 @@
-I retain the source scripts for my older measurement runs
+I wire my hosted G-mOMonadOS commands to the native Lean kernel
 
-I restore the C, Lean, debugger, command, graph, and plotting inputs that live beside deleted test outputs. The generated records remain cleared.
+I require SIXTEEN_3, kernel re-entry and certified Y admission before all primary hosted routes. I expose direct and REPL reentry commands, including vox and p4ra aliases, while keeping their reports inside my command vessel. I add the kernel command to my menu.

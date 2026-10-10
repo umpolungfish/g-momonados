@@ -38,6 +38,9 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use core::alloc::Layout;
 
 mod runtime_nesting;
+#[cfg(feature = "hosted")]
+#[path = "../../p4rakernel/bridge/client.rs"]
+mod lean_kernel;
 mod serial;
 #[macro_use]
 mod style;
@@ -573,6 +576,10 @@ pub fn heap_used() -> (usize, usize) {
 
 #[cfg(feature = "hosted")]
 fn main() {
+    if let Err(error) = lean_kernel::ensure_default() {
+        eprintln!("Lean kernel admission failed: {error}");
+        std::process::exit(2);
+    }
     if option_env!("PHASE_UNBRAID_BAKED_EXECUTE") == Some("1") {
         let base = option_env!("PHASE_UNBRAID_BAKED_BASE").unwrap_or("2");
         let shots = option_env!("PHASE_UNBRAID_BAKED_SHOTS").unwrap_or("8");
@@ -583,6 +590,11 @@ fn main() {
         std::process::exit(if closed { 0 } else { 2 });
     }
     let argv: Vec<String> = std::env::args().skip(1).collect();
+    if matches!(argv.first().map(String::as_str), Some("reentry" | "lean-kernel")) {
+        std::process::exit(if argv.get(1).map(String::as_str) == Some("word") {
+            lean_kernel::run_word(&argv[1..], vox_core::phase_word::native_transition_table)
+        } else { lean_kernel::run(&argv[1..]) });
+    }
     if !argv.is_empty() {
         // Direct CLI: word-valued factoring routes bypass the REPL line reader.
         let head = argv[0].as_str();
