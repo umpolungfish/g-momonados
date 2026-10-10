@@ -2,6 +2,9 @@
 //! All work amplitudes and phase digits remain resident until completion.
 #[path = "ququart_support/mod.rs"]
 mod support;
+#[path = "../../../p4rakernel/bridge/client.rs"]
+#[allow(dead_code)]
+mod lean_kernel;
 use g_momonados::{godel_calculus::{encode_cell_binary, Nat}, ququart_factor::QuquartFactorExecutor,
     ququart_folded_work::QuquartFoldedWorkDevice};
 use std::io::Write;
@@ -9,6 +12,9 @@ use num_traits::ToPrimitive;
 include!(concat!(env!("OUT_DIR"), "/ququart_prepared.rs"));
 
 fn execute() -> Result<String, String> {
+    // Admit the source-bound carrier through the same Lean kernel bridge used
+    // by the hosted evaluator. This checks SIXTEEN_3, kernel re-entry, and Y.
+    lean_kernel::ensure_default().map_err(|error| format!("Lean admission: {error}"))?;
     let prepared: serde_json::Value = serde_json::from_str(PREPARED).map_err(|e| e.to_string())?;
     if prepared.get("prepared_operator").is_none() {
         return Err("baked membrane requires a prepared operator in IMASM words".into());
@@ -58,12 +64,36 @@ fn execute() -> Result<String, String> {
     if digits != num_bigint::BigUint::from(powers.len()) { return Err("baked phase resolution differs from schedule".into()); }
     let schedule = g_momonados::ququart_factor::QuquartPowerSchedule::from_prepared(&n, &base, powers)?;
     let mut executor = QuquartFactorExecutor::with_prepared_schedule(device, schedule);
+    if std::env::var_os("QUQUART_TRACE").is_some() {
+        std::thread::spawn(|| loop {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            let nested: Vec<u64> = g_momonados::ququart_folded_work::VOX_NESTED_OPERATION_COUNTERS
+                .iter().map(|counter| counter.load(std::sync::atomic::Ordering::Relaxed)).collect();
+            eprintln!("nested_operation_counters={:?}", nested);
+            let counters: Vec<u64> = g_momonados::ququart_folded_work::VOX_QUQUART_COUNTERS
+                .iter().map(|counter| counter.load(std::sync::atomic::Ordering::Relaxed)).collect();
+            eprintln!("ququart_counters={:?}", counters);
+        });
+    }
     let mut shot = num_bigint::BigUint::from(0u8);
     loop {
         shot += 1u8;
         let readout = executor.shot(&n, &base)?;
         if let Some(closure) = readout.closure {
             let (p_word, q_word) = closure.nested_radix_words(radix_word)?;
+            let source_decimal = support::numeral(closure.source_word())?.to_str_radix(10);
+            let p_decimal = support::numeral(&p_word)?.to_str_radix(10);
+            let q_decimal = support::numeral(&q_word)?.to_str_radix(10);
+            let mut lean_report = Vec::new();
+            let lean_status = lean_kernel::run_to(&[
+                "product".into(), source_decimal, p_decimal, q_decimal,
+            ], |bytes| lean_report.extend_from_slice(bytes));
+            if lean_status != 0 || !String::from_utf8_lossy(&lean_report)
+                .lines().any(|line| line.starts_with("product-certificate=true ")
+                    && line.ends_with("evidence-certified=true")) {
+                return Err(format!("Lean rejected source-bound factor product: {}",
+                    String::from_utf8_lossy(&lean_report)));
+            }
             let word = |v: &num_bigint::BigUint| encode_cell_binary(&Nat::from_bits_le(
                 (0..v.bits()).map(|bit| v.bit(bit)).collect()));
             let phase_denominator = readout.phase.denominator()?;
