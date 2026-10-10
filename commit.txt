@@ -1,3 +1,3 @@
-I wire my hosted G-mOMonadOS commands to the native Lean kernel
+I avoid regenerating my full phase schedule during base validation
 
-I require SIXTEEN_3, kernel re-entry and certified Y admission before all primary hosted routes. I expose direct and REPL reentry commands, including vox and p4ra aliases, while keeping their reports inside my command vessel. I add the kernel command to my menu.
+I keep the exact source-unit gcd check in scaled-base validation and validate the supplied controlled-power schedule once at the executor boundary. I record the source-bound run state and its current BigUint validation profile.
