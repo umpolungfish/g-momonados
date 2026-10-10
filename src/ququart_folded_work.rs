@@ -21,6 +21,11 @@ pub static VOX_QUQUART_COUNTERS: [AtomicU64; 8] = [
     AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
 ];
 
+#[cfg_attr(not(test), no_mangle)]
+pub static VOX_NESTED_OPERATION_COUNTERS: [AtomicU64; 4] = [
+    AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
+];
+
 pub struct PreparedModularWork {
     pub source: BigUint,
     pub digit_bits: usize,
@@ -329,6 +334,13 @@ impl QuquartFoldedWorkDevice {
 
     fn apply_nested(&mut self, operation: NestedOperation) -> Result<(), String> {
         VOX_QUQUART_COUNTERS[3].fetch_add(1, Ordering::Relaxed);
+        let variant = match &operation {
+            NestedOperation::Toggle(_) => 0,
+            NestedOperation::ModularAdd { .. } => 1,
+            NestedOperation::Add { .. } => 2,
+            NestedOperation::Compare { .. } => 3,
+        };
+        VOX_NESTED_OPERATION_COUNTERS[variant].fetch_add(1, Ordering::Relaxed);
         let map_register = |r: Vec<usize>| r.into_iter().map(|wire| self.work_wire(wire)).collect();
         let map_controls = |c: Vec<(usize,bool)>| c.into_iter()
             .map(|(wire,value)| (self.work_wire(wire),value)).collect();

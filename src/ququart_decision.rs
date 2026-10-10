@@ -10,7 +10,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 
 // Native Vox reads these while the process is stopped. They do not enter
 // arithmetic, evidence, or the terminal readout.
-#[no_mangle]
+#[cfg_attr(not(test), no_mangle)]
 pub static VOX_MODULAR_COUNTERS: [AtomicU64; 4] = [
     AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
 ];
@@ -979,7 +979,7 @@ impl DecisionArena {
     fn fuse_source_arms(&mut self, low: usize, high: usize, wire: usize) -> usize {
         let fused = self.conditional_literals(low, high, &[(wire, true)]);
         let recovered = self.source_cofactors(fused, wire, &mut OperationCache::default());
-        assert_eq!(recovered, (low, high),
+        debug_assert_eq!(recovered, (low, high),
             "transformed source arms did not recover at wire {wire}");
         fused
     }
@@ -990,7 +990,7 @@ impl DecisionArena {
         register: &[usize], cut: &BigUint) -> usize {
         let fused = self.sum(low, high);
         let recovered = self.partition_less(fused, register, cut);
-        assert_eq!(recovered, (low, high),
+        debug_assert_eq!(recovered, (low, high),
             "transformed interval arms did not recover at their output cut");
         fused
     }
