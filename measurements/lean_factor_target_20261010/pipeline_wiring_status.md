@@ -30,7 +30,7 @@ zero. The indirect jump-table paths for all four variants are present in the
 compiled symbol, but those last two variants have not been exercised by this
 phase schedule. Therefore the Diagrammar gap concerns static branch coverage;
 it does not block the phase work that is currently executing. The continuing
-modular-add path has reached 3 of 899 scheduled phase digits. Its current
+modular-add path has reached 4 of 899 scheduled phase digits. Its current
 profile is in `vox_native_roundtrip_release.*`; this is partial progress, not a
 factor result.
 
@@ -38,7 +38,7 @@ The phase-analysis stage is `PhaseReadoutAccumulator::close_fraction`: it
 filters continued-fraction convergents by the measured-bin error bound, combines
 only denominators supported by measured evidence, and checks the candidate
 period with exact modular exponentiation before attempting factor closure. The
-live run has reached 3 of 899 scheduled digits; no period or factors have been
+live run has reached 4 of 899 scheduled digits; no period or factors have been
 certified yet.
 
 Native instruction samples from the exact-source trace resolve most often to
@@ -68,3 +68,23 @@ pass, including exact coherent-amplitude modular translations at 200 and 256
 bits. The 895-bit run remains active. Completion still requires a phase-derived
 candidate, the Lean exact-product certificate, and an independently checked
 integer multiplication.
+
+## Prepared-base startup validation
+
+`scaled_modular_base` previously built and discarded a complete ququart power
+schedule just to establish that the scaled base was a unit modulo the source.
+The baked executor then checked the supplied schedule again at
+`QuquartPowerSchedule::from_prepared`. The current implementation performs the
+unit check with an exact gcd and retains the full per-entry schedule check at
+the execution boundary. The source-bound release target builds with this
+change.
+
+The test build is currently blocked because the checkout lacks
+`measurements/anyon-extractor-width-controls.tsv`, which several test modules
+include at compile time. The newly built exact-source Vox run
+`vox_native_gcd_validation_release` has passed Lean admission but has not yet
+initialized phase counters. At its latest inspected sample, the profile still
+lands in `num_bigint::biguint::division::div_rem_core`; the run has produced no
+new phase evidence. Its effect on startup and phase throughput remains under
+measurement. The earlier integrated run uses the preceding executable and is
+not evidence for this change.

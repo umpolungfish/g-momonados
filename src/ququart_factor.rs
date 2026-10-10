@@ -17,8 +17,12 @@ pub fn scaled_modular_base(source: &BigUint, binary_base: &BigUint, radix_word: 
     if scaled.is_zero() || scaled.is_one() {
         return Err("scaled modular base must be nontrivial".into());
     }
-    // This also checks that the resolved base is a unit modulo the source.
-    QuquartPowerSchedule::prepare(source, &scaled)?;
+    // The baked executor validates its prepared powers once at the actual
+    // schedule boundary. Avoid generating and discarding that full schedule
+    // here just to check the base's unit condition.
+    if crate::factor_routes::big_gcd(scaled.clone(), source.clone()) != BigUint::one() {
+        return Err("scaled modular base must be coprime to its source".into());
+    }
     Ok(scaled)
 }
 
