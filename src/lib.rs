@@ -43,6 +43,7 @@ pub mod anyon_fusion_kernel;
 pub mod anyon_qutrit;
 pub mod anyon_ququart;
 pub mod ququart_factor;
+pub mod ququart_reentry_clock;
 pub mod ququart_work;
 #[cfg(feature = "hosted")]
 pub mod sic;
