@@ -30,7 +30,7 @@ fn validate_prepared_values(value: &serde_json::Value, key: Option<&str>) -> Res
         serde_json::Value::Object(fields) => {
             for (field, child) in fields {
                 match field.as_str() {
-                    "component" | "telemetry" => {
+                    "component" | "telemetry" | "operator_kind" => {
                         if !child.is_string() {
                             return Err(format!("prepared metadata {field} must be a string"));
                         }
@@ -73,6 +73,9 @@ fn validate_prepared(path: &str) -> Result<(), String> {
     .map_err(|error| error.to_string())?;
     validate_prepared_values(&prepared, None)?;
     support::validate_base_scaling(&prepared)?;
+    if prepared.get("operator_kind").and_then(|value| value.as_str()) == Some("native_fourier") {
+        support::contract(&prepared)?;
+    }
     if let Some(work) = prepared.get("prepared_work") {
         if support::work::compile(&prepared)? != *work {
             return Err("baked work boundaries differ from source and radix".into());

@@ -11,6 +11,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::fmt;
+use num_bigint::BigUint;
 
 #[path = "godel_support.rs"]
 mod support;
@@ -475,6 +476,20 @@ pub fn decode(word: &str) -> Result<Reading, DecodeError> {
         return Ok(r);
     }
     Err(DecodeError::Unrecognized)
+}
+
+/// Read a canonical cell-binary numeral into the arbitrary-precision work register.
+pub fn decode_cell_biguint(word: &str) -> Result<BigUint, String> {
+    let decoded = decode(word).map_err(|error| error.to_string())?;
+    if !matches!(decoded.structure, Structure::CellBinary { .. }) {
+        return Err("prepared value must be a cell-binary word".into());
+    }
+    if encode_cell_binary(&decoded.value) != word {
+        return Err("prepared value must be a canonical cell-binary word".into());
+    }
+    Ok(decoded.value.bits_le().iter().enumerate().fold(BigUint::from(0u8), |n, (bit, set)| {
+        if *set { n | (BigUint::from(1u8) << bit) } else { n }
+    }))
 }
 
 /// Canonical repeated-cell binary encoding for an arbitrary-length natural.
