@@ -76,6 +76,9 @@ fn execute() -> Result<String, String> {
                 serde_json::json!({
                     "gram":witness.gram.iter().map(|(re,im)| serde_json::json!({"re_word":signed(re),"im_word":signed(im)})).collect::<Vec<_>>(),
                     "mass_words":witness.masses.iter().map(&word).collect::<Vec<_>>(),
+                    "recovered_gram":witness.reconstruction.recovered.iter().map(|(re,im)| serde_json::json!({"re_word":signed(re),"im_word":signed(im)})).collect::<Vec<_>>(),
+                    "reconstruction_residual_word":word(witness.reconstruction.maximum_residual.magnitude()),
+                    "reconstruction_tolerance_word":word(witness.reconstruction.tolerance.magnitude()),
                     "digit_word":word(&num_bigint::BigUint::from(witness.digit as u8))
                 })).collect();
             let sic_samples = serde_json::to_string(&sic_samples).map_err(|e|e.to_string())?;

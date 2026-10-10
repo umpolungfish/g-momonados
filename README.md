@@ -91,6 +91,22 @@ The kernel braids Fibonacci anyons directly on the metal. The `fibqc` module com
 
 ### SIC-POVM Implementation
 
+The hosted ququart path retains all sixteen SIC projector masses and certifies
+dual reconstruction of the complete complex control Gram matrix. Each folded
+measurement records the recovered matrix, maximum residual, and fixed-point
+rounding tolerance before selecting its computational digit. The baked readout
+verifier recomputes those fields from the source-bound frame. `SixteenOutcome`
+also exposes the checked lane/native label permutation through `kernel_mask`.
+
+Build the focused reader with `cargo build -j1 --bin sic-tool`. The
+`sic-tool anyon-program` command composes the resident carrier operations from
+a JSON program on stdin. Its `fourier` action takes an explicit `inverse`
+flag. A `rejoin` event emits its Gram matrix and projector masses.
+`sic-tool gram-reconstruct` reads a JSON record with `source`, `gram`, and
+`masses`, all numeric values as decimal strings, then recomputes the complete
+reconstruction certificate. Each Gram entry is a `[real, imaginary]` pair in
+the convention `inner_product_work_row_work_col`.
+
 The d=12 SIC-POVM campaign runs on bare metal via the `d12` REPL command. Five verified pillars:
 
 1. **Phase-tower collapse:** 3→1 independent generators (8× reduction)

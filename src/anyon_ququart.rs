@@ -212,6 +212,16 @@ pub struct FixedQuquartSic {
     format: FixedPointFormat,
     rays: [[FixedComplex; 4]; 16],
 }
+
+/// Complete dual synthesis in the shared-work convention <work_i|work_j>.
+/// Residuals and tolerance are integers in the original Gram units.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SicGramReconstruction {
+    pub recovered: [(BigInt, BigInt); 16],
+    pub maximum_residual: BigInt,
+    pub tolerance: BigInt,
+}
+
 impl FixedQuquartSic {
     /// All sixteen projector masses from a shared work Gram matrix. The POVM
     /// effect masses are these values divided by four.
@@ -233,27 +243,55 @@ impl FixedQuquartSic {
         Ok(masses)
     }
 
-    /// SIC dual synthesis of computational populations on the same carrier.
-    pub fn validate_gram_frame(&self, gram: &[(BigInt,BigInt);16], masses: &[BigUint;16]) -> Result<(),String> {
+    /// Certify all populations and coherences from the sixteen projector masses.
+    /// For d=4, synthesis is (5/4) sum_i m_i P_i - trace I.
+    /// ZetaSICDualFrame.ququart_coefficients checks 5/4 = 1-3*zeta(-1)
+    /// and the inverse-Gram uniform correction -1/16 = (3/4)*zeta(-1).
+    pub fn certify_gram_frame(&self, gram: &[(BigInt,BigInt);16], masses: &[BigUint;16]) -> Result<SicGramReconstruction,String> {
         let trace: BigInt = (0..4).map(|i| gram[5*i].0.clone()).sum();
         if trace < BigInt::zero() { return Err("negative control Gram trace".into()); }
+        for row in 0..4 {
+            if !gram[5*row].1.is_zero() || gram[5*row].0 < BigInt::zero() {
+                return Err("invalid control Gram diagonal".into());
+            }
+            for col in 0..row {
+                if gram[4*row+col].0 != gram[4*col+row].0
+                    || gram[4*row+col].1 != -&gram[4*col+row].1 {
+                    return Err("control Gram is not Hermitian".into());
+                }
+            }
+        }
         let scale_squared = self.format.scale().pow(2);
         // The fixed analytic frame has finite integer rounding. Compare with
         // a source-dependent tolerance far below a computational Born digit.
         let tolerance = core::cmp::max(BigInt::from(1u8), &trace >> (self.format.w_bits/2) as usize);
-        for component in 0..4 {
-            let weighted: BigInt = self.rays.iter().zip(masses).map(|(ray,mass)| {
-                BigInt::from(mass.clone()) * (&ray[component].re*&ray[component].re + &ray[component].im*&ray[component].im)
-            }).sum();
-            let reconstructed = weighted*5u8 / (&scale_squared*4u8) - &trace;
-            if (&reconstructed - &gram[5*component].0).abs() > tolerance {
-                return Err("SIC dual reconstruction differs from computational Born mass".into());
+        let denominator = &scale_squared * 4u8;
+        let recovered: [(BigInt,BigInt);16] = core::array::from_fn(|entry| {
+            let row = entry / 4;
+            let col = entry % 4;
+            let mut real = BigInt::zero();
+            let mut imaginary = BigInt::zero();
+            for (ray, mass) in self.rays.iter().zip(masses) {
+                let mass = BigInt::from(mass.clone());
+                real += &mass * (&ray[row].re*&ray[col].re + &ray[row].im*&ray[col].im);
+                // control_gram stores <work_row|work_col>, the conjugate
+                // of the usual density-matrix entry.
+                imaginary += mass * (&ray[row].re*&ray[col].im - &ray[row].im*&ray[col].re);
             }
-            if !gram[5*component].1.is_zero() || gram[5*component].0 < BigInt::zero() {
-                return Err("invalid control Gram diagonal".into());
-            }
+            let diagonal = if row == col { trace.clone() } else { BigInt::zero() };
+            (real*5u8 / &denominator - diagonal, imaginary*5u8 / &denominator)
+        });
+        let maximum_residual = recovered.iter().zip(gram).map(|((re,im),(gr,gi))| {
+            (re-gr).abs().max((im-gi).abs())
+        }).max().unwrap();
+        if maximum_residual > tolerance {
+            return Err("SIC dual reconstruction differs from the full control Gram".into());
         }
-        Ok(())
+        Ok(SicGramReconstruction { recovered, maximum_residual, tolerance })
+    }
+
+    pub fn validate_gram_frame(&self, gram: &[(BigInt,BigInt);16], masses: &[BigUint;16]) -> Result<(),String> {
+        self.certify_gram_frame(gram, masses).map(|_| ())
     }
 
     pub fn new(format: &FixedPointFormat) -> Result<Self, String> {
