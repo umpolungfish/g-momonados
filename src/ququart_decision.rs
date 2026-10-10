@@ -50,9 +50,31 @@ type BranchCache = BTreeMap<(usize,usize),usize>;
 // their full exact integers in a separate index instead of inflating every
 // branch hash-table entry with the leaf enum's storage.
 #[cfg(feature = "hosted")]
-type LeafCache = std::collections::HashMap<Node,usize>;
+type LeafCache = std::collections::HashMap<Node,usize,
+    core::hash::BuildHasherDefault<LeafHasher>>;
 #[cfg(not(feature = "hosted"))]
 type LeafCache = BTreeMap<Node,usize>;
+
+// Leaf values can contain thousands of exact bits. Use a small deterministic
+// byte hasher for the disposable interning index; equality still compares the
+// complete BigInts, so collisions cannot merge distinct amplitudes.
+#[cfg(feature = "hosted")]
+struct LeafHasher(u64);
+#[cfg(feature = "hosted")]
+impl Default for LeafHasher {
+    fn default() -> Self { Self(0xcbf29ce484222325) }
+}
+#[cfg(feature = "hosted")]
+impl core::hash::Hasher for LeafHasher {
+    fn finish(&self) -> u64 { self.0 }
+    fn write(&mut self, bytes: &[u8]) {
+        let mut hash = self.0;
+        for &byte in bytes {
+            hash = (hash ^ u64::from(byte)).wrapping_mul(0x100000001b3);
+        }
+        self.0 = hash;
+    }
+}
 
 struct NodeIndex {
     branches: Vec<BranchCache>,
