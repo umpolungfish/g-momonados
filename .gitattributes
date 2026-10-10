@@ -98,6 +98,7 @@
 /membranes/ququart_wider_320_iterative_radix4_20261005/compiler.json filter=lfs diff=lfs merge=lfs -text
 /membranes/ququart_wider_320_pooled_radix4_20261005/compiler.json filter=lfs diff=lfs merge=lfs -text
 /membranes/ququart_wider_320_pooled_radix4_20261005/prepared.json filter=lfs diff=lfs merge=lfs -text
+measurements/godel_relationships.md filter=lfs diff=lfs merge=lfs -text
 measurements/anyon_wiring/nested_state_baseline/source.tar.gz filter=lfs diff=lfs merge=lfs -text
 measurements/anyon_wiring/stack_recovery/g-momonados/index.html filter=lfs diff=lfs merge=lfs -text
 measurements/exact_hex_target/transported_signed_collection_2.native.log.gz filter=lfs diff=lfs merge=lfs -text
