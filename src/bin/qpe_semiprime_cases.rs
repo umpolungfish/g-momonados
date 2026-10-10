@@ -110,9 +110,16 @@ fn certify_prime(entropy: &mut File, bits: usize) -> std::io::Result<PrimeCertif
         ((BigUint::one() << (bits - 1)) - BigUint::one() + &two_q - BigUint::one()) / &two_q;
     let upper = ((BigUint::one() << bits) - BigUint::from(2u8)) / &two_q;
     let span = &upper - &lower + BigUint::one();
+    // Wide fixture generation previously paid for a modular exponentiation
+    // even when a candidate had a small divisor. This rejection preserves
+    // Pocklington certification and the persisted verification format.
+    let small_primes: Vec<u64> = (3..=997).step_by(2).filter(|candidate| prime(*candidate)).collect();
     loop {
         let multiplier = &lower + draw_below(entropy, &span)?;
         let value = &two_q * &multiplier + BigUint::one();
+        if small_primes.iter().any(|divisor| (&value % *divisor).is_zero()) {
+            continue;
+        }
         let exponent = &value - BigUint::one();
         for witness in 2u64..=32 {
             let witness = BigUint::from(witness);

@@ -102,10 +102,25 @@ Build the focused reader with `cargo build -j1 --bin sic-tool`. The
 `sic-tool anyon-program` command composes the resident carrier operations from
 a JSON program on stdin. Its `fourier` action takes an explicit `inverse`
 flag. A `rejoin` event emits its Gram matrix and projector masses.
+The `clock` action binds a certified retained-negation table to a named
+proposition's recorded support and refutation. Each `tick` executes the shared
+integer update, checks it against the cached orbit, and selects the coherent
+Fourier direction from the resulting phase. `clock_read` checks distant ticks
+without unfolding the program again. The retained update swaps runtime t/F
+and preserves f/T under the corpus's lane/native equivalence. The same compiled
+update can be lifted and executed as a saved Vox IMASM module.
 `sic-tool gram-reconstruct` reads a JSON record with `source`, `gram`, and
 `masses`, all numeric values as decimal strings, then recomputes the complete
 reconstruction certificate. Each Gram entry is a `[real, imaginary]` pair in
 the convention `inner_product_work_row_work_col`.
+The baked shared-work SIC outcome records both Gram-derived masses and the
+rounded branch masses used by its sampler. Their maximum difference is checked
+against the source-bound tolerance. Feed the Gram-derived masses to
+`gram-reconstruct`; the branch masses remain in the witness so sampling can be
+audited independently. `prepare_ququart.py --native-fourier --dynamic-work`
+prepares a source-bound factor membrane with the fixed-point Fourier matrix
+rechecked at readout. Vox `profile-native` can execute and profile its baked
+binary while preserving the factor-producing arm in the terminal report.
 
 The d=12 SIC-POVM campaign runs on bare metal via the `d12` REPL command. Five verified pillars:
 

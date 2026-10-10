@@ -87,6 +87,7 @@ pub fn run(input: &str) -> Result<Value, String> {
     let mut evidence: BTreeMap<String, Value> = BTreeMap::new();
     let mut snapshots: BTreeMap<String, Value> = BTreeMap::new();
     let mut events = Vec::new();
+    let mut clocks: BTreeMap<String, (g_momonados::ququart_reentry_clock::RuntimeClock, u64, u8)> = BTreeMap::new();
     let steps = plan
         .get("steps")
         .and_then(Value::as_array)
@@ -110,6 +111,53 @@ pub fn run(input: &str) -> Result<Value, String> {
             let kind = field(action, "kind")?;
             let mut event = json!({"i":i,"symbol":symbol,"kind":kind});
             match kind {
+                "clock" => {
+                    let id = field(action, "id")?.to_string();
+                    if clocks.contains_key(&id) { return Err("clock identifier already bound".into()); }
+                    let proposition = field(action, "proposition")?;
+                    let coordinates = evidence.get(proposition).ok_or("clock requires measured evidence")?;
+                    let accepted = |axis: &str| coordinates[axis].as_array().map(|records|
+                        records.iter().any(|r| r["accepted"].as_bool() == Some(true))).unwrap_or(false);
+                    // Constructive native T/F evidence has runtime weights 1/8.
+                    let retained = (accepted("support") as u8) | ((accepted("refutation") as u8) << 3);
+                    let clock = g_momonados::ququart_reentry_clock::RuntimeClock::from_record(&action["certificate"])?;
+                    if clock.retained() != retained { return Err("clock retained value differs from measured evidence".into()); }
+                    let seed = action["certificate"]["seed"].as_u64().ok_or("missing clock seed")? as u8;
+                    event["proposition"] = json!(proposition);
+                    event["measured_evidence"] = coordinates.clone();
+                    event["certificate"] = action["certificate"].clone();
+                    event["state"] = json!(seed);
+                    clocks.insert(id, (clock, 0, seed));
+                }
+                "tick" => {
+                    let id = field(action, "id")?;
+                    let (clock, tick, logical) = clocks.get_mut(id).ok_or("tick requires bound clock")?;
+                    if *logical != clock.read(*tick) { return Err("executed clock differs before tick".into()); }
+                    let before = *logical;
+                    *logical = clock.step(before);
+                    *tick = tick.checked_add(1).ok_or("clock tick overflow")?;
+                    if *logical != clock.read(*tick) { return Err("executed clock differs after tick".into()); }
+                    // Bind the observed phase to the existing coherent Fourier gate.
+                    let inverse = *logical & 1 != 0;
+                    carrier.fourier_target(inverse);
+                    event["id"] = json!(id);
+                    event["tick"] = json!(*tick);
+                    event["before"] = json!(before);
+                    event["after"] = json!(*logical);
+                    event["cached"] = json!(clock.read(*tick));
+                    event["fourier_inverse"] = json!(inverse);
+                    event["sic_masses"] = json!(carrier.sic_masses(&sic)?.map(|m| m.to_string()));
+                }
+                "clock_read" => {
+                    let id = field(action, "id")?;
+                    let (clock, _, _) = clocks.get(id).ok_or("clock read requires bound clock")?;
+                    let tick = action["tick"].as_u64().ok_or("missing distant clock tick")?;
+                    event["tick"] = json!(tick);
+                    event["state"] = json!(clock.read(tick));
+                    event["successor"] = json!(clock.step(clock.read(tick)));
+                    let next = tick.checked_add(1).ok_or("clock read tick overflow")?;
+                    if clock.step(clock.read(tick)) != clock.read(next) { return Err("distant clock successor differs".into()); }
+                }
                 "retain" => {
                     event["state"] = state(&carrier);
                 }

@@ -40,6 +40,11 @@ path = "src/bin/ququart_factor_baked.rs"
 required-features = ["hosted"]
 
 [[bin]]
+name = "ququart_work_probe_baked"
+path = "src/bin/ququart_work_probe_baked.rs"
+required-features = ["hosted"]
+
+[[bin]]
 name = "vox_disasm_region"
 path = "src/bin/vox_disasm_region.rs"
 required-features = ["hosted"]

@@ -64,10 +64,23 @@ impl PreparedModularWork {
     }
 }
 
+#[derive(Clone)]
 pub struct SicControlWitness {
     pub gram: [(BigInt,BigInt);16],
     pub masses: [BigUint;16],
     pub digit: QuquartDigit,
+    pub reconstruction: crate::anyon_ququart::SicGramReconstruction,
+}
+
+#[derive(Clone)]
+pub struct SicOutcomeWitness {
+    pub gram: [(BigInt, BigInt); 16],
+    /// Projector masses computed from the measured control Gram.
+    pub masses: [BigUint; 16],
+    /// Rounded branch norms actually used by the outcome sampler.
+    pub sample_masses: [BigUint; 16],
+    pub projection_residual: BigUint,
+    pub outcome: QuquartSicOutcome,
     pub reconstruction: crate::anyon_ququart::SicGramReconstruction,
 }
 
@@ -91,6 +104,7 @@ pub struct QuquartFoldedWorkDevice {
     digit_bits: usize,
     prepared_work: Option<PreparedModularWork>,
     sic_witnesses: Vec<SicControlWitness>,
+    sic_outcome_witnesses: Vec<SicOutcomeWitness>,
     nested_since_fold: usize,
     pub peak_nodes: usize,
 }
@@ -117,6 +131,7 @@ impl QuquartFoldedWorkDevice {
             digit_bits: 1,
             prepared_work: None,
             sic_witnesses: Vec::new(),
+            sic_outcome_witnesses: Vec::new(),
             nested_since_fold: 0,
             peak_nodes: 0,
         })
@@ -126,6 +141,7 @@ impl QuquartFoldedWorkDevice {
         self
     }
     pub fn sic_witnesses(&self) -> &[SicControlWitness] { &self.sic_witnesses }
+    pub fn sic_outcome_witnesses(&self) -> &[SicOutcomeWitness] { &self.sic_outcome_witnesses }
 
     /// Execute every source-bound stage on a correlated complex state, then
     /// return through the inverse of each adjacent operation. Expected forward
@@ -408,6 +424,10 @@ impl QuquartFoldedWorkDevice {
         if self.count >= self.expected {
             return Err("ququart phase has extra SIC measurements".into());
         }
+        let gram = self.arena.control_gram(&core::array::from_fn(|digit|
+            self.roots[COMPUTATIONAL_CHANNELS[digit]]));
+        let gram_masses = self.sic.gram_masses(&gram)?;
+        let reconstruction = self.sic.certify_gram_frame(&gram, &gram_masses)?;
         let old = self.roots;
         let zero = self.arena.zero();
         let mut branches = [zero; 16];
@@ -426,9 +446,24 @@ impl QuquartFoldedWorkDevice {
             branches[outcome] = branch;
         }
         masses[16] = self.arena.mass(old[LEAKAGE_CHANNEL]) * 4u8;
+        let sample_masses: [BigUint; 16] = core::array::from_fn(|index| masses[index].clone());
+        let projection_residual = gram_masses.iter().zip(&sample_masses).map(|(analytic, sampled)|
+            if analytic >= sampled { analytic - sampled } else { sampled - analytic })
+            .max().unwrap_or_else(BigUint::zero);
+        if BigInt::from(projection_residual.clone()) > reconstruction.tolerance {
+            return Err("SIC projection rounding exceeds its source-bound Gram tolerance".into());
+        }
         let outcome = crate::anyon_fusion_kernel::sample_born_masses(&masses, |bytes| {
             Self::entropy(&mut self.random, bytes)
         })?;
+        let measured = if outcome == 16 { QuquartSicOutcome::OutsideCarrier } else {
+            QuquartSicOutcome::Carrier(crate::sic::SixteenOutcome::new(outcome as u8)
+                .map_err(|error| error.to_string())?)
+        };
+        self.sic_outcome_witnesses.push(SicOutcomeWitness {
+            gram, masses: gram_masses, sample_masses, projection_residual,
+            outcome: measured, reconstruction,
+        });
         if outcome == 16 {
             let z = self.arena.zero();
             self.roots = [z; 5];
@@ -446,9 +481,7 @@ impl QuquartFoldedWorkDevice {
         self.roots[COMPUTATIONAL_CHANNELS[0]] = normalized;
         self.fold();
         self.count += 1;
-        Ok(QuquartSicOutcome::Carrier(
-            crate::sic::SixteenOutcome::new(outcome as u8).map_err(|error| error.to_string())?,
-        ))
+        Ok(measured)
     }
 }
 impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
@@ -761,6 +794,16 @@ mod tests {
         device.begin(&n, &BigUint::from(2u8), 1).unwrap();
         let outcome = device.measure_sic_outcome().unwrap();
         assert!(matches!(outcome, QuquartSicOutcome::Carrier(state) if state.mask() < 16));
+        let witness = device.sic_outcome_witnesses().last().unwrap();
+        assert_eq!(witness.outcome, outcome);
+        assert_eq!(device.sic.gram_masses(&witness.gram).unwrap(), witness.masses);
+        assert_eq!(device.sic.certify_gram_frame(&witness.gram, &witness.masses).unwrap(),
+            witness.reconstruction);
+        let measured_residual = witness.masses.iter().zip(&witness.sample_masses)
+            .map(|(analytic, sampled)| if analytic >= sampled { analytic - sampled } else { sampled - analytic })
+            .max().unwrap();
+        assert_eq!(measured_residual, witness.projection_residual);
+        assert!(BigInt::from(measured_residual) <= witness.reconstruction.tolerance);
         let selected = device.roots[COMPUTATIONAL_CHANNELS[0]];
         assert_eq!(device.arena.mass(selected), format.scale().to_biguint().unwrap().pow(2));
         for &channel in &COMPUTATIONAL_CHANNELS[1..] {

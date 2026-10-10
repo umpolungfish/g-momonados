@@ -62,6 +62,8 @@ def main():
                         help="retained compiler JSON containing IMASM words; the physical braid is recontracted")
     reports.add_argument("--retained-case", type=Path,
                          help="reuse the exact source-bound Fourier operator embedded in a retained membrane")
+    reports.add_argument("--native-fourier", action="store_true",
+                         help="bake and recheck the source-bound fixed-point Fourier target")
     parser.add_argument("--dynamic-work", action="store_true",
                         help="generate nested arithmetic operations at execution from baked source words")
     args = parser.parse_args()
@@ -92,7 +94,9 @@ def main():
     prepared = {"component": "ququart_fourier", "source_word": source_word,
                 "accuracy_word": inputs["accuracy_word"],
                 "telemetry": "terminal_only"}
-    if args.retained_case:
+    if args.native_fourier:
+        prepared["operator_kind"] = "native_fourier"
+    elif args.retained_case:
         if args.base is None:
             raise RuntimeError("retained factor preparations require a modular base word")
         prepared["prepared_operator"] = retained_operator(args.retained_case, inputs)
@@ -129,7 +133,7 @@ def main():
         if not args.retained_case:
             contraction = run([str(ROOT / "target/release/ququart_prepare_operator"), str(prepared_path)])
             prepared["prepared_operator"] = json.loads(contraction.stdout)
-            prepared.pop("exchange_words")
+            prepared.pop("exchange_words", None)
         prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
         if args.base is not None:
             powers = run([str(ROOT / "target/release/ququart_prepare_operator"),
@@ -162,7 +166,8 @@ def main():
                         radix_word=prepared["radix_word"],
                         terminal_nesting="vox_product_over_prefix_meets_prefix_over_product",
                         execution_limits=None, extraction="native_ququart_factor_executor",
-                        fourier_operator="contracted_physical_fibonacci_braid",
+                        fourier_operator=("native_fixed_point_fourier" if args.native_fourier
+                            else "contracted_physical_fibonacci_braid"),
                         fourier_contraction="preparation_time",
                         modular_work_operator="nested_reversible_arithmetic_on_shared_complex_decision_branches",
                         work_wire_layout="interleaved_source_workspace",
