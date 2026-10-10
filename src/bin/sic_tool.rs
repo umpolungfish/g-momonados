@@ -8,12 +8,16 @@ mod program;
 fn run(args: &[String]) -> Result<(), SicError> {
     let policy = EvidencePolicy::new(1e-12, 1e-8)?;
     match args.first().map(String::as_str).unwrap_or("ququart") {
-        "anyon-program" => {
+        "anyon-program" | "gram-reconstruct" => {
             use std::io::Read;
-            if args.len()!=1 { return Err(SicError("anyon-program reads its bound program from stdin".into())); }
+            if args.len()!=1 { return Err(SicError("anyon-program and gram-reconstruct read their bound record from stdin".into())); }
             let mut input=String::new();
             std::io::stdin().read_to_string(&mut input).map_err(|e|SicError(e.to_string()))?;
-            let report=program::run(&input).map_err(SicError)?;
+            let report = if args[0] == "gram-reconstruct" {
+                program::reconstruct(&input)
+            } else {
+                program::run(&input)
+            }.map_err(SicError)?;
             println!("{}",serde_json::to_string(&report).map_err(|e|SicError(e.to_string()))?);
         }
         "anyon-ququart" => {
@@ -156,7 +160,7 @@ fn run(args: &[String]) -> Result<(), SicError> {
         }
         _ => {
             return Err(SicError(
-                "usage: sic-tool qubit [rx ry rz] | wh|wh-gpu <fiducial.json>".into(),
+                "usage: sic-tool ququart | qubit [rx ry rz] | wh|wh-gpu <fiducial.json> | anyon-ququart <source> [exchanges] | anyon-program | gram-reconstruct (JSON on stdin)".into(),
             ))
         }
     }

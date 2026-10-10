@@ -68,6 +68,7 @@ pub struct SicControlWitness {
     pub gram: [(BigInt,BigInt);16],
     pub masses: [BigUint;16],
     pub digit: QuquartDigit,
+    pub reconstruction: crate::anyon_ququart::SicGramReconstruction,
 }
 
 pub struct FrobeniusStageWitness {
@@ -559,7 +560,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         });
         let gram = self.arena.control_gram(&core::array::from_fn(|digit| self.roots[COMPUTATIONAL_CHANNELS[digit]]));
         let sic_masses = self.sic.gram_masses(&gram)?;
-        self.sic.validate_gram_frame(&gram,&sic_masses)?;
+        let reconstruction = self.sic.certify_gram_frame(&gram,&sic_masses)?;
         for digit in 0..4 {
             if gram[5*digit].0 != BigInt::from(masses[digit].clone()) {
                 return Err("shared control Gram differs from computational Born mass".into());
@@ -583,7 +584,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         self.roots = [z; 5];
         self.roots[selected] = root;
         let digit = QuquartDigit::try_from(outcome as u8)?;
-        self.sic_witnesses.push(SicControlWitness { gram, masses:sic_masses, digit });
+        self.sic_witnesses.push(SicControlWitness { gram, masses:sic_masses, digit, reconstruction });
         self.measured = Some(digit);
         self.count += 1;
         VOX_QUQUART_COUNTERS[2].store(self.count as u64, Ordering::Relaxed);

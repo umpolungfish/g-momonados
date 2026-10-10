@@ -17,6 +17,34 @@ fn natural(v: &Value, key: &str) -> Result<BigUint, String> {
     BigUint::parse_bytes(field(v, key)?.as_bytes(), 10)
         .ok_or_else(|| format!("invalid natural {key}"))
 }
+
+/// Recompute a source-bound SIC certificate without executing its carrier.
+pub fn reconstruct(input: &str) -> Result<Value, String> {
+    let record: Value = serde_json::from_str(input).map_err(|e| e.to_string())?;
+    let source = natural(&record, "source")?;
+    if source.bits() < 128 { return Err("source must be at least 128 bits".into()); }
+    let algebra = FibonacciPair::new(&source)?;
+    let sic = FixedQuquartSic::new(algebra.format())?;
+    let gram: [(BigInt,BigInt);16] = record["gram"].as_array().ok_or("missing control Gram")?
+        .iter().map(|entry| {
+            let pair = entry.as_array().ok_or("Gram entry must be a complex pair")?;
+            if pair.len() != 2 { return Err("Gram entry must have two coordinates".into()); }
+            let integer = |value: &Value| value.as_str().ok_or("Gram coordinate must be a decimal string")?
+                .parse::<BigInt>().map_err(|_| "invalid Gram integer".to_string());
+            Ok((integer(&pair[0])?, integer(&pair[1])?))
+        }).collect::<Result<Vec<_>,String>>()?.try_into().map_err(|_| "Gram must contain sixteen complex entries")?;
+    let masses: [BigUint;16] = record["masses"].as_array().ok_or("missing projector masses")?
+        .iter().map(|value| value.as_str().ok_or("mass must be a decimal string")?
+            .parse::<BigUint>().map_err(|_| "invalid projector mass".to_string()))
+        .collect::<Result<Vec<_>,String>>()?.try_into().map_err(|_| "SIC must contain sixteen masses")?;
+    if sic.gram_masses(&gram)? != masses { return Err("SIC masses differ from the supplied control Gram".into()); }
+    let certificate = sic.certify_gram_frame(&gram, &masses)?;
+    Ok(json!({"source":source.to_string(),"fixed_point_bits":algebra.format().w_bits,
+        "gram_convention":"inner_product_work_row_work_col",
+        "recovered_gram":certificate.recovered.iter().map(|(re,im)| [re.to_string(),im.to_string()]).collect::<Vec<_>>(),
+        "maximum_residual":certificate.maximum_residual.to_string(),
+        "tolerance":certificate.tolerance.to_string()}))
+}
 fn state(carrier: &QuquartCarrier) -> Value {
     json!(carrier
         .amplitudes()
@@ -85,6 +113,12 @@ pub fn run(input: &str) -> Result<Value, String> {
                 "retain" => {
                     event["state"] = state(&carrier);
                 }
+                "fourier" => {
+                    let inverse = action["inverse"].as_bool().ok_or("Fourier action requires an inverse flag")?;
+                    carrier.fourier_target(inverse);
+                    event["inverse"] = json!(inverse);
+                    event["state"] = state(&carrier);
+                }
                 "exchange" => {
                     let gs = action
                         .get("generators")
@@ -137,12 +171,19 @@ pub fn run(input: &str) -> Result<Value, String> {
                     let gram = core::array::from_fn(|k| {
                         let x = &a[COMPUTATIONAL_CHANNELS[k / 4]];
                         let y = &a[COMPUTATIONAL_CHANNELS[k % 4]];
-                        (&x.re * &y.re + &x.im * &y.im, &x.im * &y.re - &x.re * &y.im)
+                        (&x.re * &y.re + &x.im * &y.im, &x.re * &y.im - &x.im * &y.re)
                     });
                     let masses = sic.gram_masses(&gram)?;
-                    sic.validate_gram_frame(&gram, &masses)?;
+                    let reconstruction = sic.certify_gram_frame(&gram, &masses)?;
                     event["id"] = json!(id);
-                    event["population_dual_verified"] = json!(true);
+                    event["gram_dual_verified"] = json!(true);
+                    event["gram_convention"] = json!("inner_product_work_row_work_col");
+                    event["gram"] = json!(gram.iter().map(|(re,im)| [re.to_string(), im.to_string()]).collect::<Vec<_>>());
+                    event["masses"] = json!(masses.map(|mass| mass.to_string()));
+                    event["recovered_gram"] = json!(reconstruction.recovered.iter()
+                        .map(|(re,im)| [re.to_string(), im.to_string()]).collect::<Vec<_>>());
+                    event["reconstruction_residual"] = json!(reconstruction.maximum_residual.to_string());
+                    event["reconstruction_tolerance"] = json!(reconstruction.tolerance.to_string());
                     event["retained_phase_and_leakage"] = state(&carrier);
                     event["source_return"] = residual(&carrier, &before, &scale);
                 }
@@ -225,6 +266,7 @@ pub fn run(input: &str) -> Result<Value, String> {
     }
     Ok(
         json!({"backend":"anyon-composition","source":source.to_string(),"fixed_point_bits":algebra.format().w_bits,
+              "outcome_kernel_masks":(0..16).map(|mask| g_momonados::sic::SixteenOutcome::new(mask).unwrap().kernel_mask()).collect::<Vec<_>>(),
               "events":events,"final_state":state(&carrier),"source_return":residual(&carrier,&initial,&scale),
               "sic_masses":carrier.sic_masses(&sic)?.map(|m|m.to_string()),"evidence":evidence,"latches":snapshots,
               "readout":"non-destructive analysis; retained coherent phase and leakage"}),
