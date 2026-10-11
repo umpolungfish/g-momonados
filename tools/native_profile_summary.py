@@ -9,6 +9,13 @@ from pathlib import Path
 from elftools.elf.elffile import ELFFile
 
 
+def complete_lines(stream):
+    for line in stream:
+        if not line.endswith("\n"):
+            break
+        yield line
+
+
 def summarize(elf_path, prefix):
     with open(elf_path, "rb") as binary:
         elf = ELFFile(binary)
@@ -21,7 +28,7 @@ def summarize(elf_path, prefix):
     transitions = []
     latest = None
     with open(str(prefix) + ".ququart.tsv") as stream:
-        for row in csv.DictReader(stream, delimiter="\t"):
+        for row in csv.DictReader(complete_lines(stream), delimiter="\t"):
             try:
                 values = list(row.values())
                 seconds = float(values[0])
@@ -32,10 +39,21 @@ def summarize(elf_path, prefix):
             if not transitions or transitions[-1][1] != phase:
                 transitions.append((seconds, phase))
     times = [t for t, _ in transitions]
+    modular_bounds = collections.defaultdict(lambda: [0, 0])
+    modular_path = Path(str(prefix) + ".modular.tsv")
+    if modular_path.exists():
+        with modular_path.open() as stream:
+            for row in csv.DictReader(complete_lines(stream), delimiter="\t"):
+                seconds = float(row["seconds"])
+                phase_index = bisect.bisect_right(times, seconds) - 1
+                phase = transitions[phase_index][1] if phase_index >= 0 else (0, 0)
+                bounds = modular_bounds[phase]
+                bounds[0] = max(bounds[0], int(row["entry_nodes"]))
+                bounds[1] = max(bounds[1], int(row["exit_nodes"]))
     counts = collections.defaultdict(collections.Counter)
     bounds = {}
     with open(str(prefix) + ".samples.tsv") as stream:
-        for row in csv.DictReader(stream, delimiter="\t"):
+        for row in csv.DictReader(complete_lines(stream), delimiter="\t"):
             try:
                 seconds = float(row["seconds"])
                 address = int(row["address"], 16)
@@ -58,6 +76,8 @@ def summarize(elf_path, prefix):
         "phases": [{
             "shot_started": phase[0], "measured_digits": phase[1],
             "sample_seconds": bounds[phase], "samples": sum(counter.values()),
+            "maximum_sampled_modular_entry_nodes": modular_bounds[phase][0],
+            "maximum_sampled_modular_exit_nodes": modular_bounds[phase][1],
             "top_symbols": counter.most_common(12),
         } for phase, counter in sorted(counts.items())],
     }
