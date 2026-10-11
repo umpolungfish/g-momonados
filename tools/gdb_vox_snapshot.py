@@ -67,6 +67,20 @@ result = {
     "steps": integer(machine + layout["steps"]),
     "counters": {name: guest_integer(address) for name, address in spec["counters"].items()},
 }
+if spec.get("capture_page_count"):
+    def page_count(node, height):
+        if not node:
+            return 0
+        length = integer(node + layout["node_length"], 2)
+        if length > 11 or height > 12:
+            raise ValueError("VM page tree differs from its measured layout")
+        return length + (sum(page_count(integer(node + layout["node_edges"] + 8 * slot), height - 1)
+                             for slot in range(length + 1)) if height else 0)
+
+    tree = machine + layout["memory"]
+    result["materialized_guest_pages"] = page_count(integer(tree + layout["root_node"]),
+                                                   integer(tree + layout["root_height"]))
+    result["materialized_guest_bytes"] = result["materialized_guest_pages"] * 4096
 if spec.get("capture_syslog"):
     capacity, pointer = integer(machine), integer(machine + 8)
     head, length = integer(machine + 16), integer(machine + 24)
