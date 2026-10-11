@@ -1,1 +1,1 @@
-I measure allocation-free execution with sequential bounded probes
+I record bounded classical attempts on the exact factor target
