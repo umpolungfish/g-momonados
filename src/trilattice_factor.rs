@@ -288,7 +288,7 @@ pub fn read(n: &str) -> String {
 /// base closes, the number is handed to the rho search, which reaches factors
 /// without needing the order at all.
 pub fn winding(n: &str, a_opt: Option<u64>) -> String {
-    use crate::native_numeral::{add_via_word, divmod_via_word, mod_pow_walk, modulo_via_word, subtract_via_word, to_bits_low_first};
+    use crate::native_numeral::{add_via_word, divmod_via_word, modulo_via_word, subtract_via_word};
     let t = n.trim();
     let nv: BigUint = match t.parse() {
         Ok(v) => v,
@@ -334,7 +334,12 @@ pub fn winding(n: &str, a_opt: Option<u64>) -> String {
         let mut r = d.clone();
         while modulo_via_word(&r, &two).unwrap().is_zero() {
             let half = divmod_via_word(&r, &two).unwrap().0;
-            let a_half = mod_pow_walk(&a, &to_bits_low_first(&half), &nv);
+            let a_half = match crate::factor_routes::certified_modular_residue_step(
+                &half, &a, &nv, &r,
+            ) {
+                Ok(step) => step.value,
+                Err(_) => break,
+            };
             if a_half == one { r = half; continue; }   // still a multiple, reduce
             if a_half == subtract_via_word(&nv, &one).unwrap() { break; }          // trivial root, this base fails
             let p = big_gcd(subtract_via_word(&a_half, &one).unwrap(), nv.clone());

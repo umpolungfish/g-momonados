@@ -5,6 +5,12 @@ use crate::reversible_modular::ModularMultiply;
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
+use core::sync::atomic::{AtomicU64, Ordering};
+
+// Count exact source-bound powers as the baked schedule crosses validation.
+// Vox reads this while the native process is stopped.
+#[no_mangle]
+pub static VOX_QUQUART_POWER_VALIDATIONS: AtomicU64 = AtomicU64::new(0);
 
 /// Carry a binary modular base into a power-of-two work radix.
 /// A radix digit contains log2(radix) binary places, so its base is that
@@ -153,6 +159,7 @@ pub struct QuquartFactorClosure {
     p_word: String,
     q_word: String,
     order: BigUint,
+    orbit: crate::factor_routes::CertifiedModularOrbit,
     p: BigUint,
     q: BigUint,
 }
@@ -161,6 +168,10 @@ impl QuquartFactorClosure {
     pub fn source_word(&self) -> &str { &self.source_word }
     pub fn factor_words(&self) -> (&str, &str) { (&self.p_word, &self.q_word) }
     pub fn order(&self) -> &BigUint { &self.order }
+    pub fn residue_base(&self) -> &BigUint { self.orbit.base() }
+    pub fn residue_step(&self, tick: &BigUint) -> crate::factor_routes::ModularResidueStep {
+        self.orbit.step(tick)
+    }
     pub fn word(&self) -> String { alloc::format!("{}|{}|{}", self.source_word, self.p_word, self.q_word) }
     /// Execute both Vox split/fuse nestings at the baked numeral radix.
     /// The emitted arms come from their common terminal prefix, then close
@@ -231,6 +242,21 @@ pub fn extract_certified_winding(
     source: &BigUint,
     order: &BigUint,
 ) -> Result<QuquartFactorClosure, String> {
+    extract_winding_from_bases(source, order,
+        [2u32, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]
+            .into_iter().map(BigUint::from))
+}
+
+/// Keep the measured base attached to its period through factor extraction.
+pub fn extract_certified_winding_for_base(
+    source: &BigUint, base: &BigUint, order: &BigUint,
+) -> Result<QuquartFactorClosure, String> {
+    extract_winding_from_bases(source, order, core::iter::once(base.clone()))
+}
+
+fn extract_winding_from_bases(
+    source: &BigUint, order: &BigUint, bases: impl IntoIterator<Item = BigUint>,
+) -> Result<QuquartFactorClosure, String> {
     use crate::godel_calculus::{check, encode_cell_binary, Nat, Operator};
     let numeral = |value: &BigUint| Nat::from_bits_le(
         crate::native_numeral::to_bits_low_first(value));
@@ -242,16 +268,16 @@ pub fn extract_certified_winding(
         return Err("measured phase did not close an even modular winding".into());
     }
 
-    // Try multiple bases until one yields a non-trivial factor
-    for base_val in [2u32, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47] {
-        let base = BigUint::from(base_val);
+    for base in bases {
         if base >= *source { continue; }
         let base_numeral = numeral(&base);
         
-        // Verify this base has the correct order
-        if base_numeral.pow_mod(&order_numeral, &source_numeral) != Some(one.clone()) {
-            continue;
-        }
+        // Reduce the winding tick only through the shared certified-period
+        // step, so phase and SIC routes close the same modular orbit.
+        let orbit = match crate::factor_routes::CertifiedModularOrbit::certify(&base, source, order) {
+            Ok(orbit) => orbit,
+            Err(_) => continue,
+        };
         
         let gcd = |mut left: Nat, mut right: Nat| {
             while !right.is_zero() {
@@ -269,8 +295,12 @@ pub fn extract_certified_winding(
         let mut p_numeral = one.clone();
         while current_order.bits_le().get(0) == Some(&false) && !current_order.is_zero() {
             let half = Nat::from_bits_le(current_order.bits_le()[1..].to_vec());
-            let half_power = base_numeral.pow_mod(&half, &source_numeral)
-                .ok_or("measured winding has a zero source")?;
+            let half_tick = half.bits_le().iter().enumerate().fold(
+                BigUint::zero(), |value, (bit, set)| {
+                    if *set { value | (BigUint::one() << bit) } else { value }
+                });
+            let half_power = orbit.step(&half_tick).value;
+            let half_power = numeral(&half_power);
             if half_power != one && half_power.add(&one) != source_numeral {
                 let mut cand = gcd(half_power.sub(&one).ok_or("zero half-winding")?, source_numeral.clone());
                 if cand == one || cand == source_numeral {
@@ -306,7 +336,7 @@ pub fn extract_certified_winding(
             });
         let p = host_value(&p_numeral);
         let q = host_value(&q_numeral);
-        return Ok(QuquartFactorClosure { source_word, p_word, q_word, order: order.clone(), p, q });
+        return Ok(QuquartFactorClosure { source_word, p_word, q_word, order: order.clone(), orbit, p, q });
     }
     Err("no base yielded a nontrivial factor".into())
 }
@@ -340,10 +370,17 @@ pub fn close_sic_phase_evidence(
     let mut ranked_orders: Vec<_> = ranked_orders.into_iter().collect();
     ranked_orders.sort_by(|left, right| right.1.cmp(&left.1));
     for (order, _) in ranked_orders {
-        if (&order & BigUint::one()).is_one() || base.modpow(&order, source) != BigUint::one() {
+        if (&order & BigUint::one()).is_one() {
             continue;
         }
-        if let Ok(closure) = extract_certified_winding(source, &order) {
+        let period_step = match crate::factor_routes::certified_modular_residue_step(
+            &order, base, source, &order,
+        ) {
+            Ok(step) => step,
+            Err(_) => continue,
+        };
+        if period_step.value != BigUint::one() { continue; }
+        if let Ok(closure) = extract_certified_winding_for_base(source, base, &order) {
             return Ok(Some(closure));
         }
     }
@@ -372,6 +409,7 @@ impl QuquartPowerSchedule {
         Self::from_prepared(source, base, powers)
     }
     pub fn from_prepared(source: &BigUint, base: &BigUint, powers: Vec<BigUint>) -> Result<Self, String> {
+        VOX_QUQUART_POWER_VALIDATIONS.store(0, Ordering::Relaxed);
         let expected = ModularMultiply::new(source)?.width().checked_add(4)
             .ok_or("ququart phase width overflow")?;
         if powers.len() != expected { return Err("prepared ququart schedule has incomplete phase resolution".into()); }
@@ -382,6 +420,7 @@ impl QuquartPowerSchedule {
         let mut expected_power = base % source;
         for power in &powers {
             if power != &expected_power { return Err("prepared controlled power differs from source and base".into()); }
+            VOX_QUQUART_POWER_VALIDATIONS.fetch_add(1, Ordering::Relaxed);
             let square = power * power % source;
             expected_power = &square * &square % source;
         }
@@ -446,7 +485,7 @@ impl<D: QuquartPhaseDevice> QuquartFactorExecutor<D> {
             self.measured_phases.push((phase.numerator().clone(), phase.denominator()?));
             let closure = phase.close(&mut self.evidence, source, base)?;
             let closure = if let Some((order, measured_p, measured_q)) = closure {
-                let result = extract_certified_winding(source, &order)?;
+                let result = extract_certified_winding_for_base(source, base, &order)?;
                 let (p, q) = result.factors();
                 if !((p == &measured_p && q == &measured_q) || (p == &measured_q && q == &measured_p)) {
                     return Err("resident closure changed the measured factor arms".into());
@@ -530,6 +569,25 @@ impl<D: QuquartPhaseDevice> QuquartFactorExecutor<D> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn measured_base_stays_bound_through_factor_closure_and_residue_reentry() {
+        let n = BigUint::from(15u8);
+        let base = BigUint::from(4u8);
+        let m = BigUint::one() << 16usize;
+        let measured_bin = &m >> 1usize;
+        let mut evidence = PhaseReadoutAccumulator::default();
+        let (order, _, _) = evidence.close_fraction(&measured_bin, &m, &base, &n)
+            .unwrap().unwrap();
+        let closure = extract_certified_winding_for_base(&n, &base, &order).unwrap();
+        assert_eq!(closure.residue_base(), &base);
+        assert_eq!(closure.factors().0 * closure.factors().1, n);
+        assert!(extract_certified_winding_for_base(&n, &BigUint::from(2u8), &order).is_err());
+        let tick = (BigUint::one() << 2048usize) + BigUint::one();
+        let step = closure.residue_step(&tick);
+        assert_eq!(step.value, base.modpow(&tick, &n));
+        assert_eq!(step.period, order);
+    }
     #[test]
     fn prepared_schedule_rejects_changed_source_power_or_resolution() {
         let n = BigUint::parse_bytes(b"74190557381655886253556359637698917958655348096397072330011641798610025580603", 10).unwrap();

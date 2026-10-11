@@ -324,6 +324,12 @@ impl FixedQuquartSic {
             },
         ];
         let mut rays = core::array::from_fn(|_| core::array::from_fn(|_| zero()));
+        let phase_numerators: [BigInt; 8] = core::array::from_fn(|turn| BigInt::from(turn));
+        let phases = FixedComplex::winding_twiddle_table(
+            &phase_numerators,
+            &BigUint::from(8u8),
+            format,
+        )?;
         for (i, output) in rays.iter_mut().enumerate() {
             let p = i / 4;
             let q = i % 4;
@@ -331,12 +337,7 @@ impl FixedQuquartSic {
                 let shifted = (n + 4 - p) % 4;
                 // tau=-exp(pi i/4), omega=exp(pi i/2), D=tau^pq X^p Z^q.
                 let turns = (5 * p * q + 2 * q * shifted) % 8;
-                let phase = FixedComplex::winding_twiddle(
-                    &BigInt::from(turns),
-                    &BigUint::from(8u8),
-                    format,
-                )?;
-                *z = phase.mul(&ray[shifted], format);
+                *z = phases[turns].mul(&ray[shifted], format);
             }
         }
         Ok(Self {
