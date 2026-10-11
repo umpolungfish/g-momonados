@@ -1,5 +1,17 @@
 # Source-bound phase pipeline wiring status
 
+## Guest page reclamation
+
+The resumed target's native instruction samples repeatedly reach musl
+`munmap`, allocation, and `DecisionArena::reclaim_pending`. Vox previously
+reported successful `munmap` without removing the discarded guest pages.
+The runtime now removes the page-rounded interval and rejects unaligned,
+empty, or overflowing requests. Five dynamic-page tests pass, including
+neighbor preservation, repeated unmapping, fresh writes after reclamation,
+and the existing musl growth-remapping checks. The long tape executions
+started before this repair retain their original runtime. Their progress
+does not establish the repair's effect on target performance.
+
 Target: the exact source in `source.decimal` (895 bits). The baked executable
 uses its prepared IMASM operator, folded ququart work register, SIC readout,
 phase reconstruction, and nested-radix closure. The native factor-producing
