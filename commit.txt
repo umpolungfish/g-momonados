@@ -1,1 +1,1 @@
-I preserve corrected membrane execution and bounded fold experiments
+I measure allocation-free execution with sequential bounded probes

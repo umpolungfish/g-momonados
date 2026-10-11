@@ -264,3 +264,9 @@ the sampling signal alone preserves that behavior. The retained comparison is
 On the user’s instruction, all six overlapping factor runs were interrupted. New experiments run sequentially with at most 60 seconds per execution. The 895-bit target has no completed factor readout.
 
 A checked one-byte binary rewire changed the shared fold cadence from eight to four completed nested operations. The structured 128-bit control completed in 7.44 seconds with its full output byte-identical to the original. A separate sequential original run completed in 6.13 seconds. This single comparison does not support a speed improvement, so the four-operation cadence is retained as an experimental artifact rather than promoted as an acceleration.
+
+## Allocation-free runtime evaluation
+
+Vox now parses effective-address fields without a temporary vector and stores flag interpretations without allocating a string on each arithmetic instruction. The compiled factor carrier is unchanged. All twelve arithmetic/SIMD checks passed. Three interleaved sequential static allocator-probe trials produced exact native output; median execution changed from 3.339 seconds to 3.225 seconds, approximately 3.4 percent lower. The complete source-bound Fourier-contract diagnostic also remained byte-identical to native and finished in 5.93 seconds. These bounded runtime probes do not establish a speedup or completed factorization for the 895-bit target.
+
+The new preserved runner and receipts are under `measurements/modular_residue_20261010/runtime_address/`. The static flag-mode representation changes the internal Machine layout; existing debugger offset specifications remain tied to their original preserved runners.
