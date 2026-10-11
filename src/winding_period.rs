@@ -238,7 +238,10 @@ pub fn factor(N: u64, max_tries: u32, mut seed: u64) -> Option<(u64, u64, u64, u
         if g0 > 1 && g0 < N { return Some((a, 0, g0, N / g0)); }
         let r = match winding_order(a, N) { Some(r) => r, None => continue };
         if r == 0 || r % 2 != 0 { continue; }
-        let x = powmod(a, r / 2, N);
+        let step = crate::factor_routes::certified_modular_residue_step(
+            &BigUint::from(r / 2), &BigUint::from(a), &BigUint::from(N), &BigUint::from(r),
+        ).ok()?;
+        let x = step.value.to_u64()?;
         if x == 1 || x == N - 1 { continue; }
         let g = gcd(x.wrapping_sub(1), N);
         if g > 1 && g < N { return Some((a, r, g, N / g)); }
@@ -497,7 +500,7 @@ pub enum FactorBig {
 /// a^(r/2) not ±1 gives gcd(a^(r/2) - 1, N) as a non-trivial factor.
 /// Same retry shape as `factor`, promoted to arbitrary precision.
 pub fn factor_big(n: &BigUint, max_tries: u32, step_cap: u64, mut seed: u64) -> FactorBig {
-    use crate::native_numeral::{add_via_word, divmod_via_word, mod_pow_walk, modulo_via_word, subtract_via_word, to_bits_low_first};
+    use crate::native_numeral::{add_via_word, divmod_via_word, modulo_via_word, subtract_via_word};
     let one = BigUint::one();
     let three = BigUint::from(3u32);
     if *n <= three { return FactorBig::NoFactorInTries; }
@@ -515,7 +518,12 @@ pub fn factor_big(n: &BigUint, max_tries: u32, step_cap: u64, mut seed: u64) -> 
         match winding_order_big(&a, n, step_cap) {
             WindingBig::Order(r) => {
                 if r == 0 || r % 2 != 0 { continue; }
-                let x = mod_pow_walk(&a, &to_bits_low_first(&BigUint::from(r / 2)), n);
+                let x = match crate::factor_routes::certified_modular_residue_step(
+                    &BigUint::from(r / 2), &a, n, &BigUint::from(r),
+                ) {
+                    Ok(step) => step.value,
+                    Err(_) => continue,
+                };
                 if x == one || x == n_minus_1 { continue; }
                 let g = gcd_big(subtract_via_word(&x, &one).unwrap(), n.clone());
                 if g != one && &g != n {

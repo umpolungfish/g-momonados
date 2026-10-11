@@ -436,7 +436,10 @@ pub fn factor_close(a_tape: &[char], n_tape: &[char], r: &[char])
     if cmp(&rem, &one_v) == core::cmp::Ordering::Equal {
         return (None, "order odd -- a^(r/2) undefined, retry with another base");
     }
-    let h = pow_tape(a_tape, &half, n_tape);
+    let h = match crate::factor_routes::certified_modular_residue_tape_step(&half, a_tape, n_tape, r) {
+        Ok(value) => value,
+        Err(_) => return (None, "uncertified modular period"),
+    };
     let minus_one = sub(n_tape, &one_v);
     if cmp(&h, &minus_one) == core::cmp::Ordering::Equal {
         return (None, "a^(r/2) = -1 (mod n) -- retry with another base");
@@ -454,6 +457,26 @@ pub fn factor_close(a_tape: &[char], n_tape: &[char], r: &[char])
         }
     }
     (None, "both closing gcds trivial for this base -- retry with another base")
+}
+
+#[cfg(test)]
+mod residue_closure_tests {
+    use super::factor_close;
+    use vox_core::morphism_factor::{mul, tape_u64};
+
+    #[test]
+    fn factor_close_requires_a_source_bound_period_before_extracting() {
+        let source = tape_u64(15);
+        let base = tape_u64(2);
+        // The old unchecked half-power could return a factor even though
+        // 2^2 != 1 modulo 15. A candidate pair cannot certify its period.
+        let (invalid, reason) = factor_close(&base, &source, &tape_u64(2));
+        assert!(invalid.is_none());
+        assert_eq!(reason, "uncertified modular period");
+        let (valid, _) = factor_close(&base, &source, &tape_u64(4));
+        let (left, right) = valid.unwrap();
+        assert_eq!(mul(&left, &right), source);
+    }
 }
 
 pub fn verify() -> String {

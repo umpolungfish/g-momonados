@@ -90,6 +90,10 @@ fn validate_prepared(path: &str) -> Result<(), String> {
 }
 fn verify() -> Result<bool, String> {
     let args: Vec<_> = std::env::args().collect();
+    if args.get(1).map(String::as_str) == Some("--help") {
+        println!("ququart_verify_readout prepared.json terminal.stdout\nququart_verify_readout --validate-prepared prepared.json");
+        return Ok(false);
+    }
     if args.len() == 3 && args[1] == "--validate-prepared" {
         validate_prepared(&args[2])?;
         println!("validated all baked numeric values as IMASM cell-binary words");
@@ -117,6 +121,8 @@ fn verify() -> Result<bool, String> {
         "radix_word", "nested_factor_word",
         "sic_frame_samples",
         "producing_arm_word",
+        "residue_base_word", "residue_tick_word", "residue_period_word",
+        "residue_index_word", "residue_value_word",
     ];
     if fields.keys().any(|key| !allowed_fields.contains(key)) {
         return Err("terminal output contains an unapproved field or a non-word numeric value".into());
@@ -251,6 +257,20 @@ fn verify() -> Result<bool, String> {
     let (order, left, right) = closed.ok_or("recorded measurements do not close factor extraction")?;
     if !((left == p && right == q) || (left == q && right == p)) { return Err("measured phase yields different factor arms".into()); }
     if numeral(field("order_word")?)? != order { return Err("reported order word differs from measured phase closure".into()); }
+    // Optional for retained older reports; a present receipt must be complete
+    // and independently agree with the source-bound phase and exact arithmetic.
+    if fields.keys().any(|key| key.starts_with("residue_")) {
+        let residue_base = numeral(field("residue_base_word")?)?;
+        let tick = numeral(field("residue_tick_word")?)?;
+        let period = numeral(field("residue_period_word")?)?;
+        let index = numeral(field("residue_index_word")?)?;
+        let value = numeral(field("residue_value_word")?)?;
+        if residue_base != base % &n || period != order || period.is_zero()
+            || !residue_base.modpow(&period, &n).is_one()
+            || index != &tick % &period || value != residue_base.modpow(&tick, &n) {
+            return Err("modular residue receipt differs from its measured orbit".into());
+        }
+    }
     let last = samples.last().ok_or("phase sample ledger is empty")?;
     if numeral(field("phase_numerator_word")?)? != numeral(last["numerator_word"].as_str().ok_or("missing final phase numerator word")?)?
         || numeral(field("phase_denominator_word")?)? != numeral(last["denominator_word"].as_str().ok_or("missing final phase denominator word")?)? {

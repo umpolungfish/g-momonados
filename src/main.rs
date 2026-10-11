@@ -20,6 +20,7 @@
 // this resolves against the std-provided alloc, which is why build-std must be
 // off for the hosted target -- rebuilding alloc there duplicates its lang items.
 extern crate alloc;
+use g_momonados::factor_routes;
 
 // Hosted diagnostics are terminal surfaces of the active IMASM vessel.  The
 // local stderr macro routes unqualified diagnostics; qualified calls use the

@@ -1,0 +1,809 @@
+◇ CIRCUIT  reclaim_pending   387 nodes, 415 wires   open forks 8
+  weight = Belnap register delta: ↑ true  ↓ false  ↑↓ both  · none   «B» paradox held   ⚡ truth flip   ═▶ cross-branch
+
+  0 ⊢ VINIT    ·   
+     └─▶  1 ⋈   [o→i]  ·
+  1 ⋈ CLINK    ·   
+     └─▶  2 ⋈   [o→i]  ·
+  2 ⋈ CLINK    ·   
+     └─▶  3 ⋈   [o→i]  ·
+  3 ⋈ CLINK    ·   
+     └─▶  4 ⋈   [o→i]  ·
+  4 ⋈ CLINK    ·   
+     └─▶  5 ⋈   [o→i]  ·
+  5 ⋈ CLINK    ·   
+     └─▶  6 ⋈   [o→i]  ·
+  6 ⋈ CLINK    ·   
+     └─▶  7 ⊞   [o→i]  ·
+  7 ⊞ ENGAGR   ·   
+     └─▶  8 ⋈   [o→i]  ·
+  8 ⋈ CLINK    ·   
+     └─▶  9 ⋈   [o→i]  ·
+  9 ⋈ CLINK    ·   
+     └─▶ 10 ⊤   [o→i]  ↑
+ 10 ⊤ EVALT    ↑   
+     └─▶ 11 ∈   [o→i]  ↑→↑
+ 11 ∈ FSPLIT   ↑     ┐ fork
+     └─▶ 12 ⋈   [o→i]  ↑→·
+ 12 ⋈ CLINK    ·   
+     └─▶ 13 ⋈   [o→i]  ·
+ 13 ⋈ CLINK    ·   
+     └─▶ 14 ⋈   [o→i]  ·
+ 14 ⋈ CLINK    ·   
+     └─▶ 15 ⋈   [o→i]  ·
+ 15 ⋈ CLINK    ·   
+     └─▶ 16 ⋈   [o→i]  ·
+ 16 ⋈ CLINK    ·   
+     └─▶ 17 ⊞   [o→i]  ·
+ 17 ⊞ ENGAGR   ·   
+     └─▶ 18 ⋈   [o→i]  ·
+ 18 ⋈ CLINK    ·   
+     └─▶ 19 ⋈   [o→i]  ·
+ 19 ⋈ CLINK    ·   
+     └─▶ 20 ∈   [o→i]  ·
+ 20 ∈ FSPLIT   ·     ┐ fork
+     └─▶ 21 ⋈   [o→i]  ·
+ 21 ⋈ CLINK    ·   
+     └─▶ 22 ⊞   [o→i]  ·
+ 22 ⊞ ENGAGR   ·   
+     └─▶ 23 ⋈   [o→i]  ·
+ 23 ⋈ CLINK    ·   
+     └─▶ 24 ⋈   [o→i]  ·
+ 24 ⋈ CLINK    ·   
+     └─▶ 25 ⋈   [o→i]  ·
+ 25 ⋈ CLINK    ·   
+     └─▶ 26 ⊤   [o→i]  ↑
+ 26 ⊤ EVALT    ↑   
+     └─▶ 27 ∈   [o→i]  ↑→↑
+ 27 ∈ FSPLIT   ↑     ┐ fork
+     └─▶ 28 ⋈   [o→i]  ↑→·
+ 28 ⋈ CLINK    ·   
+     └─▶ 29 ⊤   [o→i]  ↑
+ 29 ⊤ EVALT    ↑   
+     └─▶ 30 ∈   [o→i]  ↑→↑
+ 30 ∈ FSPLIT   ↑     ┐ fork
+     └─▶ 31 ⋈   [o→i]  ↑→·
+ 31 ⋈ CLINK    ·   
+     └─▶ 32 ⊤   [o→i]  ↑
+ 32 ⊤ EVALT    ↑   
+     └─▶ 33 ∈   [o→i]  ↑→↑
+ 33 ∈ FSPLIT   ↑     ┐ fork
+     └─▶ 34 ⋈   [o→i]  ↑→·
+ 34 ⋈ CLINK    ·   
+     └─▶ 35 ⋈   [o→i]  ·
+ 35 ⋈ CLINK    ·   
+     └─▶ 36 ⊞   [o→i]  ·
+ 36 ⊞ ENGAGR   ·   
+     └─▶ 37 ⋈   [o→i]  ·
+ 37 ⋈ CLINK    ·   
+     └─▶ 38 ⋈   [o→i]  ·
+ 38 ⋈ CLINK    ·   
+     └─▶ 39 ⋈   [o→i]  ·
+ 39 ⋈ CLINK    ·   
+     └─▶ 40 ⊤   [o→i]  ↑
+ 40 ⊤ EVALT    ↑   
+     └─▶ 41 ∈   [o→i]  ↑→↑
+ 41 ∈ FSPLIT   ↑     ┐ fork
+     └─▶ 42 ⋈   [o→i]  ↑→·
+ 42 ⋈ CLINK    ·   
+     └─▶ 43 ⊞   [o→i]  ·
+ 43 ⊞ ENGAGR   ·   
+     └─▶ 44 ⋈   [o→i]  ·
+ 44 ⋈ CLINK    ·   
+     └─▶ 45 ⋈   [o→i]  ·
+ 45 ⋈ CLINK    ·   
+     └─▶ 46 ⋈   [o→i]  ·
+ 46 ⋈ CLINK    ·   
+     └─▶ 47 ⋈   [o→i]  ·
+ 47 ⋈ CLINK    ·   
+     └─▶ 48 ⊡   [o→i]  ·
+ 48 ⊡ IFIX     ·   
+     └─▶ 49 ⊡   [o→i]  ·
+ 49 ⊡ IFIX     ·   
+     └─▶ 50 ⊡   [o→i]  ·
+ 50 ⊡ IFIX     ·   
+     └─▶ 51 ⊡   [o→i]  ·
+ 51 ⊡ IFIX     ·   
+     └─▶ 52 ⊡   [o→i]  ·
+ 52 ⊡ IFIX     ·   
+     └─▶ 53 ⊡   [o→i]  ·
+ 53 ⊡ IFIX     ·   
+     └─▶ 54 ⋈   [o→i]  ·
+ 54 ⋈ CLINK    ·   
+     └─▶ 55 ⊤   [o→i]  ·
+ 55 ⊤ EVALT    ·   
+     └─▶ 56 ⋈   [o→i]  ·
+ 56 ⋈ CLINK    ·   
+     └─▶ 57 ∈   [o→i]  ·
+ 57 ∈ FSPLIT   ·     ┐ fork
+     └─▶ 58 ⋈   [o→i]  ·
+ 58 ⋈ CLINK    ·   
+     └─▶ 59 ⋈   [o→i]  ·
+ 59 ⋈ CLINK    ·   
+     └─▶ 60 ⋈   [o→i]  ·
+ 60 ⋈ CLINK    ·   
+     └─▶ 61 ≻   [o→i]  ·
+ 61 ≻ AFWD     ·   
+     └─▶ 62 ⋈   [o→i]  ·
+ 62 ⋈ CLINK    ·   
+     └─▶ 63 ⊞   [o→i]  ·
+ 63 ⊞ ENGAGR   ·   
+     └─▶ 64 ⋈   [o→i]  ·
+ 64 ⋈ CLINK    ·   
+     └─▶ 65 ⋈   [o→i]  ·
+ 65 ⋈ CLINK    ·   
+     └─▶ 66 ⊞   [o→i]  ·
+ 66 ⊞ ENGAGR   ·   
+     └─▶ 67 ⊞   [o→i]  ·
+ 67 ⊞ ENGAGR   ·   
+     └─▶ 68 ⊞   [o→i]  ·
+ 68 ⊞ ENGAGR   ·   
+     └─▶ 69 ⊞   [o→i]  ·
+ 69 ⊞ ENGAGR   ·   
+     └─▶ 70 ⋈   [o→i]  ·
+ 70 ⋈ CLINK    ·   
+     └─▶ 71 ⊞   [o→i]  ·
+ 71 ⊞ ENGAGR   ·   
+     └─▶ 72 ∈   [o→i]  ·
+ 72 ∈ FSPLIT   ·     ┐ fork
+     └─▶ 73 ⊞   [o→i]  ·
+ 73 ⊞ ENGAGR   ·   
+     └─▶ 74 ⊡   [o→i]  ·
+ 74 ⊡ IFIX     ·   
+     └─▶ 75 ⊞   [o→i]  ·
+ 75 ⊞ ENGAGR   ·   
+     └─▶ 76 ⊞   [o→i]  ·
+ 76 ⊞ ENGAGR   ·   
+     └─▶ 77 ⊞   [o→i]  ·
+ 77 ⊞ ENGAGR   ·   
+     └─▶ 78 ⊤   [o→i]  ·
+ 78 ⊤ EVALT    ·   
+     └─▶ 79 ∈   [o→i]  ·
+ 79 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 80 ⋈   [T→i]  ·
+     └─▶ 385 ≺   [F→i]  ·
+ 80 ⋈ CLINK    ·   
+     └─▶ 81 ⊡   [o→i]  ·
+ 81 ⊡ IFIX     ·   
+     └─▶ 82 ⋈   [o→i]  ·
+ 82 ⋈ CLINK    ·   
+     └─▶ 83 ⊡   [o→i]  ·
+ 83 ⊡ IFIX     ·   
+     └─▶ 84 ⋈   [o→i]  ·
+ 84 ⋈ CLINK    ·   
+     └─▶ 165 ⋈   [o→i]  ·
+ 85 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 86 ⊞   [T→i]  ·
+     └─▶ 159 ≺   [F→i]  ·
+ 86 ⊞ ENGAGR   ·   
+     └─▶ 87 ⊞   [o→i]  ·
+ 87 ⊞ ENGAGR   ·   
+     └─▶ 88 ⊞   [o→i]  ·
+ 88 ⊞ ENGAGR   ·   
+     └─▶ 89 ⋈   [o→i]  ·
+ 89 ⋈ CLINK    ·   
+     └─▶ 90 ⊞   [o→i]  ·
+ 90 ⊞ ENGAGR   ·   
+     └─▶ 91 ⋈   [o→i]  ·
+ 91 ⋈ CLINK    ·   
+     └─▶ 92 ⋈   [o→i]  ·
+ 92 ⋈ CLINK    ·   
+     └─▶ 93 ⋈   [o→i]  ·
+ 93 ⋈ CLINK    ·   
+     └─▶ 94 ⊞   [o→i]  ·
+ 94 ⊞ ENGAGR   ·   
+     └─▶ 95 ⋈   [o→i]  ·
+ 95 ⋈ CLINK    ·   
+     └─▶ 96 ≻   [o→i]  ·
+ 96 ≻ AFWD     ·   
+     └─▶ 97 ⊤   [o→i]  ·
+ 97 ⊤ EVALT    ·   
+     └─▶ 158 ⋈   [o→i]  ·
+ 98 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 99 ⊞   [T→i]  ·
+     └─▶ 157 ∋   [F→F]  ·
+ 99 ⊞ ENGAGR   ·   
+     └─▶ 100 ⋈   [o→i]  ·
+100 ⋈ CLINK    ·   
+     └─▶ 101 ⊞   [o→i]  ·
+101 ⊞ ENGAGR   ·   
+     └─▶ 102 ⋈   [o→i]  ·
+102 ⋈ CLINK    ·   
+     └─▶ 103 ⊞   [o→i]  ·
+103 ⊞ ENGAGR   ·   
+     └─▶ 104 ⋈   [o→i]  ·
+104 ⋈ CLINK    ·   
+     └─▶ 105 ⊞   [o→i]  ·
+105 ⊞ ENGAGR   ·   
+     └─▶ 106 ⋈   [o→i]  ·
+106 ⋈ CLINK    ·   
+     └─▶ 107 ⊡   [o→i]  ·
+107 ⊡ IFIX     ·   
+     └─▶ 108 ⊞   [o→i]  ·
+108 ⊞ ENGAGR   ·   
+     └─▶ 109 ⊞   [o→i]  ·
+109 ⊞ ENGAGR   ·   
+     └─▶ 110 ⊞   [o→i]  ·
+110 ⊞ ENGAGR   ·   
+     └─▶ 111 ⊡   [o→i]  ·
+111 ⊡ IFIX     ·   
+     └─▶ 112 ⊞   [o→i]  ·
+112 ⊞ ENGAGR   ·   
+     └─▶ 113 ⊞   [o→i]  ·
+113 ⊞ ENGAGR   ·   
+     └─▶ 114 ⋈   [o→i]  ·
+114 ⋈ CLINK    ·   
+     └─▶ 115 ⊞   [o→i]  ·
+115 ⊞ ENGAGR   ·   
+     └─▶ 116 ⊞   [o→i]  ·
+116 ⊞ ENGAGR   ·   
+     └─▶ 117 ⊞   [o→i]  ·
+117 ⊞ ENGAGR   ·   
+     └─▶ 118 ⊞   [o→i]  ·
+118 ⊞ ENGAGR   ·   
+     └─▶ 119 ⊞   [o→i]  ·
+119 ⊞ ENGAGR   ·   
+     └─▶ 120 ⋈   [o→i]  ·
+120 ⋈ CLINK    ·   
+     └─▶ 121 ⊤   [o→i]  ·
+121 ⊤ EVALT    ·   
+     └─▶ 126 ⋈   [o→i]  ·
+122 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 123 ⊡   [T→i]  ·
+     └─▶ 125 ∋   [F→F]  ·
+123 ⊡ IFIX     ·   
+     └─▶ 124 ⋈   [o→i]  ·
+124 ⋈ CLINK    ·   
+     └─▶ 125 ∋   [o→T]  ·
+125 ∋ FFUSE    ·     ┘ join
+     └─▶ 137 ∈   [o→i]  ·
+126 ⋈ CLINK    ·   
+     └─▶ 127 ⋈   [o→i]  ·
+127 ⋈ CLINK    ·   
+     └─▶ 128 ⊡   [o→i]  ·
+128 ⊡ IFIX     ·   
+     └─▶ 129 ⋈   [o→i]  ·
+129 ⋈ CLINK    ·   
+     └─▶ 130 ⋈   [o→i]  ·
+130 ⋈ CLINK    ·   
+     └─▶ 131 ⊞   [o→i]  ·
+131 ⊞ ENGAGR   ·   
+     └─▶ 132 ⋈   [o→i]  ·
+132 ⋈ CLINK    ·   
+     └─▶ 133 ⋈   [o→i]  ·
+133 ⋈ CLINK    ·   
+     └─▶ 134 ⊡   [o→i]  ·
+134 ⊡ IFIX     ·   
+     └─▶ 135 ⋈   [o→i]  ·
+135 ⋈ CLINK    ·   
+     └─▶ 136 ⊤   [o→i]  ·
+136 ⊤ EVALT    ·   
+     └─▶ 151 ⊞   [o→i]  ·
+137 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 138 ⋈   [T→i]  ·
+     └─▶ 150 ∋   [F→F]  ·
+138 ⋈ CLINK    ·   
+     └─▶ 139 ≻   [o→i]  ·
+139 ≻ AFWD     ·   
+     └─▶ 140 ⋈   [o→i]  ·
+140 ⋈ CLINK    ·   
+     └─▶ 141 ⊞   [o→i]  ·
+141 ⊞ ENGAGR   ·   
+     └─▶ 142 ⋈   [o→i]  ·
+142 ⋈ CLINK    ·   
+     └─▶ 143 ⋈   [o→i]  ·
+143 ⋈ CLINK    ·   
+     └─▶ 144 ⋈   [o→i]  ·
+144 ⋈ CLINK    ·   
+     └─▶ 145 ⊡   [o→i]  ·
+145 ⊡ IFIX     ·   
+     └─▶ 146 ⋈   [o→i]  ·
+146 ⋈ CLINK    ·   
+     └─▶ 147 ⊡   [o→i]  ·
+147 ⊡ IFIX     ·   
+     └─▶ 150 ∋   [o→T]  ·
+148 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 149 ∋   [T→T]  ·
+     └─▶ 149 ∋   [F→F]  ·
+149 ∋ FFUSE    ·     ┘ join
+     └─▶ 150 ∋   [o→T]  ·
+150 ∋ FFUSE    ·     ┘ join
+     └─▶ 155 ∈   [o→i]  ·
+151 ⊞ ENGAGR   ·   
+     └─▶ 152 ⊞   [o→i]  ·
+152 ⊞ ENGAGR   ·   
+     └─▶ 153 ⊞   [o→i]  ·
+153 ⊞ ENGAGR   ·   
+     └─▶ 154 ⊤   [o→i]  ·
+154 ⊤ EVALT    ·   
+     └─▶ 157 ∋   [o→T]  ·
+155 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 156 ∋   [T→T]  ·
+     └─▶ 156 ∋   [F→F]  ·
+156 ∋ FFUSE    ·     ┘ join
+     └─▶ 157 ∋   [o→T]  ·
+157 ∋ FFUSE    ·     ┘ join
+     └─▶ 164 ∋   [o→T]  ·
+158 ⋈ CLINK    ·   
+     └─▶ 164 ∋   [o→T]  ·
+159 ≺ AREV     ·   
+     └─▶ 160 ⊞   [o→i]  ·
+160 ⊞ ENGAGR   ·   
+     └─▶ 161 ⊞   [o→i]  ·
+161 ⊞ ENGAGR   ·   
+     └─▶ 162 ⊞   [o→i]  ·
+162 ⊞ ENGAGR   ·   
+     └─▶ 163 ≺   [o→i]  ·
+163 ≺ AREV     ·   
+     └─▶ 164 ∋   [o→F]  ·
+164 ∋ FFUSE    ·     ┘ join
+     └─▶ 167 ∈   [o→i]  ·
+165 ⋈ CLINK    ·   
+     └─▶ 166 ⊤   [o→i]  ·
+166 ⊤ EVALT    ·   
+     └─▶ 369 ⋈   [o→i]  ·
+167 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 168 ⋈   [T→i]  ·
+     └─▶ 368 ∋   [F→F]  ·
+168 ⋈ CLINK    ·   
+     └─▶ 169 ⊞   [o→i]  ·
+169 ⊞ ENGAGR   ·   
+     └─▶ 170 ⋈   [o→i]  ·
+170 ⋈ CLINK    ·   
+     └─▶ 171 ⋈   [o→i]  ·
+171 ⋈ CLINK    ·   
+     └─▶ 172 ⋈   [o→i]  ·
+172 ⋈ CLINK    ·   
+     └─▶ 173 ⋈   [o→i]  ·
+173 ⋈ CLINK    ·   
+     └─▶ 174 ⋈   [o→i]  ·
+174 ⋈ CLINK    ·   
+     └─▶ 175 ⋈   [o→i]  ·
+175 ⋈ CLINK    ·   
+     └─▶ 176 ⊞   [o→i]  ·
+176 ⊞ ENGAGR   ·   
+     └─▶ 177 ⊞   [o→i]  ·
+177 ⊞ ENGAGR   ·   
+     └─▶ 178 ⋈   [o→i]  ·
+178 ⋈ CLINK    ·   
+     └─▶ 179 ⊞   [o→i]  ·
+179 ⊞ ENGAGR   ·   
+     └─▶ 180 ⋈   [o→i]  ·
+180 ⋈ CLINK    ·   
+     └─▶ 181 ⊞   [o→i]  ·
+181 ⊞ ENGAGR   ·   
+     └─▶ 182 ⊞   [o→i]  ·
+182 ⊞ ENGAGR   ·   
+     └─▶ 183 ⋈   [o→i]  ·
+183 ⋈ CLINK    ·   
+     └─▶ 184 ⊞   [o→i]  ·
+184 ⊞ ENGAGR   ·   
+     └─▶ 185 ⋈   [o→i]  ·
+185 ⋈ CLINK    ·   
+     └─▶ 186 ⊞   [o→i]  ·
+186 ⊞ ENGAGR   ·   
+     └─▶ 187 ⊞   [o→i]  ·
+187 ⊞ ENGAGR   ·   
+     └─▶ 188 ⊞   [o→i]  ·
+188 ⊞ ENGAGR   ·   
+     └─▶ 189 ⊞   [o→i]  ·
+189 ⊞ ENGAGR   ·   
+     └─▶ 190 ⋈   [o→i]  ·
+190 ⋈ CLINK    ·   
+     └─▶ 191 ⊞   [o→i]  ·
+191 ⊞ ENGAGR   ·   
+     └─▶ 192 ⊞   [o→i]  ·
+192 ⊞ ENGAGR   ·   
+     └─▶ 193 ⊞   [o→i]  ·
+193 ⊞ ENGAGR   ·   
+     └─▶ 194 ⋈   [o→i]  ·
+194 ⋈ CLINK    ·   
+     └─▶ 195 ⊞   [o→i]  ·
+195 ⊞ ENGAGR   ·   
+     └─▶ 196 ⊞   [o→i]  ·
+196 ⊞ ENGAGR   ·   
+     └─▶ 197 ⊞   [o→i]  ·
+197 ⊞ ENGAGR   ·   
+     └─▶ 198 ⋈   [o→i]  ·
+198 ⋈ CLINK    ·   
+     └─▶ 199 ⊞   [o→i]  ·
+199 ⊞ ENGAGR   ·   
+     └─▶ 200 ⊞   [o→i]  ·
+200 ⊞ ENGAGR   ·   
+     └─▶ 201 ⊞   [o→i]  ·
+201 ⊞ ENGAGR   ·   
+     └─▶ 202 ⋈   [o→i]  ·
+202 ⋈ CLINK    ·   
+     └─▶ 203 ⋈   [o→i]  ·
+203 ⋈ CLINK    ·   
+     └─▶ 204 ⊞   [o→i]  ·
+204 ⊞ ENGAGR   ·   
+     └─▶ 205 ⊞   [o→i]  ·
+205 ⊞ ENGAGR   ·   
+     └─▶ 206 ⊞   [o→i]  ·
+206 ⊞ ENGAGR   ·   
+     └─▶ 207 ⊞   [o→i]  ·
+207 ⊞ ENGAGR   ·   
+     └─▶ 208 ⊞   [o→i]  ·
+208 ⊞ ENGAGR   ·   
+     └─▶ 365 ⊤   [o→i]  ·
+209 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 210 ⊞   [T→i]  ·
+     └─▶ 364 ∋   [F→F]  ·
+210 ⊞ ENGAGR   ·   
+     └─▶ 211 ⊡   [o→i]  ·
+211 ⊡ IFIX     ·   
+     └─▶ 212 ⊞   [o→i]  ·
+212 ⊞ ENGAGR   ·   
+     └─▶ 213 ⊞   [o→i]  ·
+213 ⊞ ENGAGR   ·   
+     └─▶ 214 ⊞   [o→i]  ·
+214 ⊞ ENGAGR   ·   
+     └─▶ 215 ⊤   [o→i]  ·
+215 ⊤ EVALT    ·   
+     └─▶ 273 ⋈   [o→i]  ·
+216 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 217 ∈   [T→i]  ·
+     └─▶ 272 ∋   [F→F]  ·
+217 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 218 ⊞   [T→i]  ·
+     └─▶ 271 ∋   [F→F]  ·
+218 ⊞ ENGAGR   ·   
+     └─▶ 219 ⊞   [o→i]  ·
+219 ⊞ ENGAGR   ·   
+     └─▶ 220 ⊞   [o→i]  ·
+220 ⊞ ENGAGR   ·   
+     └─▶ 221 ⋈   [o→i]  ·
+221 ⋈ CLINK    ·   
+     └─▶ 222 ⊞   [o→i]  ·
+222 ⊞ ENGAGR   ·   
+     └─▶ 223 ⋈   [o→i]  ·
+223 ⋈ CLINK    ·   
+     └─▶ 224 ⊤   [o→i]  ·
+224 ⊤ EVALT    ·   
+     └─▶ 265 ⊞   [o→i]  ·
+225 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 226 ⋈   [T→i]  ·
+     └─▶ 264 ∋   [F→F]  ·
+226 ⋈ CLINK    ·   
+     └─▶ 227 ⊤   [o→i]  ·
+227 ⊤ EVALT    ·   
+     └─▶ 259 ⋈   [o→i]  ·
+228 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 229 ⊞   [T→i]  ·
+     └─▶ 258 ∋   [F→F]  ·
+229 ⊞ ENGAGR   ·   
+     └─▶ 230 ⋈   [o→i]  ·
+230 ⋈ CLINK    ·   
+     └─▶ 231 ⊞   [o→i]  ·
+231 ⊞ ENGAGR   ·   
+     └─▶ 232 ⋈   [o→i]  ·
+232 ⋈ CLINK    ·   
+     └─▶ 233 ⊞   [o→i]  ·
+233 ⊞ ENGAGR   ·   
+     └─▶ 234 ⋈   [o→i]  ·
+234 ⋈ CLINK    ·   
+     └─▶ 235 ⊞   [o→i]  ·
+235 ⊞ ENGAGR   ·   
+     └─▶ 236 ⊡   [o→i]  ·
+236 ⊡ IFIX     ·   
+     └─▶ 237 ⊞   [o→i]  ·
+237 ⊞ ENGAGR   ·   
+     └─▶ 238 ⊞   [o→i]  ·
+238 ⊞ ENGAGR   ·   
+     └─▶ 239 ⊞   [o→i]  ·
+239 ⊞ ENGAGR   ·   
+     └─▶ 240 ⊡   [o→i]  ·
+240 ⊡ IFIX     ·   
+     └─▶ 241 ⊞   [o→i]  ·
+241 ⊞ ENGAGR   ·   
+     └─▶ 242 ⊞   [o→i]  ·
+242 ⊞ ENGAGR   ·   
+     └─▶ 243 ⋈   [o→i]  ·
+243 ⋈ CLINK    ·   
+     └─▶ 244 ⊞   [o→i]  ·
+244 ⊞ ENGAGR   ·   
+     └─▶ 245 ⊞   [o→i]  ·
+245 ⊞ ENGAGR   ·   
+     └─▶ 246 ⊞   [o→i]  ·
+246 ⊞ ENGAGR   ·   
+     └─▶ 247 ⊞   [o→i]  ·
+247 ⊞ ENGAGR   ·   
+     └─▶ 248 ⊞   [o→i]  ·
+248 ⊞ ENGAGR   ·   
+     └─▶ 249 ⋈   [o→i]  ·
+249 ⋈ CLINK    ·   
+     └─▶ 250 ⊤   [o→i]  ·
+250 ⊤ EVALT    ·   
+     └─▶ 255 ⋈   [o→i]  ·
+251 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 252 ⊡   [T→i]  ·
+     └─▶ 254 ∋   [F→F]  ·
+252 ⊡ IFIX     ·   
+     └─▶ 253 ⋈   [o→i]  ·
+253 ⋈ CLINK    ·   
+     └─▶ 254 ∋   [o→T]  ·
+254 ∋ FFUSE    ·     ┘ join
+     └─▶ 258 ∋   [o→T]  ·
+255 ⋈ CLINK    ·   
+     └─▶ 256 ⋈   [o→i]  ·
+256 ⋈ CLINK    ·   
+     └─▶ 257 ⊡   [o→i]  ·
+257 ⊡ IFIX     ·   
+     └─▶ 258 ∋   [o→T]  ·
+258 ∋ FFUSE    ·     ┘ join
+     └─▶ 262 ∈   [o→i]  ·
+259 ⋈ CLINK    ·   
+     └─▶ 260 ⊞   [o→i]  ·
+260 ⊞ ENGAGR   ·   
+     └─▶ 261 ⋈   [o→i]  ·
+261 ⋈ CLINK    ·   
+     └─▶ 264 ∋   [o→T]  ·
+262 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 263 ∋   [T→T]  ·
+     └─▶ 263 ∋   [F→F]  ·
+263 ∋ FFUSE    ·     ┘ join
+     └─▶ 264 ∋   [o→T]  ·
+264 ∋ FFUSE    ·     ┘ join
+     └─▶ 269 ∈   [o→i]  ·
+265 ⊞ ENGAGR   ·   
+     └─▶ 266 ⊞   [o→i]  ·
+266 ⊞ ENGAGR   ·   
+     └─▶ 267 ⊞   [o→i]  ·
+267 ⊞ ENGAGR   ·   
+     └─▶ 268 ⊤   [o→i]  ·
+268 ⊤ EVALT    ·   
+     └─▶ 271 ∋   [o→T]  ·
+269 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 270 ∋   [T→T]  ·
+     └─▶ 270 ∋   [F→F]  ·
+270 ∋ FFUSE    ·     ┘ join
+     └─▶ 271 ∋   [o→T]  ·
+271 ∋ FFUSE    ·     ┘ join
+     └─▶ 272 ∋   [o→T]  ·
+272 ∋ FFUSE    ·     ┘ join
+     └─▶ 276 ∈   [o→i]  ·
+273 ⋈ CLINK    ·   
+     └─▶ 274 ⋈   [o→i]  ·
+274 ⋈ CLINK    ·   
+     └─▶ 275 ⊤   [o→i]  ·
+275 ⊤ EVALT    ·   
+     └─▶ 364 ∋   [o→T]  ·
+276 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 277 ⊡   [T→i]  ·
+     └─▶ 363 ∋   [F→F]  ·
+277 ⊡ IFIX     ·   
+     └─▶ 280 ⋈   [o→i]  ·
+278 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 279 ∋   [T→T]  ·
+     └─▶ 279 ∋   [F→F]  ·
+279 ∋ FFUSE    ·     ┘ join
+     └─▶ 283 ∈   [o→i]  ·
+280 ⋈ CLINK    ·   
+     └─▶ 281 ⋈   [o→i]  ·
+281 ⋈ CLINK    ·   
+     └─▶ 282 ⊤   [o→i]  ·
+282 ⊤ EVALT    ·   
+     └─▶ 359 ⋈   [o→i]  ·
+283 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 284 ⊡   [T→i]  ·
+     └─▶ 358 ∋   [F→F]  ·
+284 ⊡ IFIX     ·   
+     └─▶ 287 ⋈   [o→i]  ·
+285 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 286 ∋   [T→T]  ·
+     └─▶ 286 ∋   [F→F]  ·
+286 ∋ FFUSE    ·     ┘ join
+     └─▶ 289 ∈   [o→i]  ·
+287 ⋈ CLINK    ·   
+     └─▶ 288 ⊤   [o→i]  ·
+288 ⊤ EVALT    ·   
+     └─▶ 339 ⊣   [o→i]  ·
+289 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 290 ⋈   [T→i]  ·
+     └─▶ 338 ∋   [F→F]  ·
+290 ⋈ CLINK    ·   
+     └─▶ 291 ≻   [o→i]  ·
+291 ≻ AFWD     ·   
+     └─▶ 292 ⋈   [o→i]  ·
+292 ⋈ CLINK    ·   
+     └─▶ 293 ⋈   [o→i]  ·
+293 ⋈ CLINK    ·   
+     └─▶ 294 ⋈   [o→i]  ·
+294 ⋈ CLINK    ·   
+     └─▶ 295 ⋈   [o→i]  ·
+295 ⋈ CLINK    ·   
+     └─▶ 296 ⋈   [o→i]  ·
+296 ⋈ CLINK    ·   
+     └─▶ 297 ≻   [o→i]  ·
+297 ≻ AFWD     ·   
+     └─▶ 298 ⋈   [o→i]  ·
+298 ⋈ CLINK    ·   
+     └─▶ 299 ⋈   [o→i]  ·
+299 ⋈ CLINK    ·   
+     └─▶ 300 ⋈   [o→i]  ·
+300 ⋈ CLINK    ·   
+     └─▶ 301 ⋈   [o→i]  ·
+301 ⋈ CLINK    ·   
+     └─▶ 302 ⊤   [o→i]  ·
+302 ⊤ EVALT    ·   
+     └─▶ 307 ⋈   [o→i]  ·
+303 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 304 ⋈   [T→i]  ·
+     └─▶ 306 ∋   [F→F]  ·
+304 ⋈ CLINK    ·   
+     └─▶ 305 ≻   [o→i]  ·
+305 ≻ AFWD     ·   
+     └─▶ 306 ∋   [o→T]  ·
+306 ∋ FFUSE    ·     ┘ join
+     └─▶ 314 ∈   [o→i]  ·
+307 ⋈ CLINK    ·   
+     └─▶ 308 ⋈   [o→i]  ·
+308 ⋈ CLINK    ·   
+     └─▶ 309 ⋈   [o→i]  ·
+309 ⋈ CLINK    ·   
+     └─▶ 310 ⋈   [o→i]  ·
+310 ⋈ CLINK    ·   
+     └─▶ 311 ⋈   [o→i]  ·
+311 ⋈ CLINK    ·   
+     └─▶ 312 ⋈   [o→i]  ·
+312 ⋈ CLINK    ·   
+     └─▶ 313 ⊤   [o→i]  ·
+313 ⊤ EVALT    ·   
+     └─▶ 338 ∋   [o→T]  ·
+314 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 315 ⊡   [T→i]  ·
+     └─▶ 337 ∋   [F→F]  ·
+315 ⊡ IFIX     ·   
+     └─▶ 316 ⊡   [o→i]  ·
+316 ⊡ IFIX     ·   
+     └─▶ 317 ⋈   [o→i]  ·
+317 ⋈ CLINK    ·   
+     └─▶ 318 ⋈   [o→i]  ·
+318 ⋈ CLINK    ·   
+     └─▶ 319 ⊞   [o→i]  ·
+319 ⊞ ENGAGR   ·   
+     └─▶ 320 ⊞   [o→i]  ·
+320 ⊞ ENGAGR   ·   
+     └─▶ 321 ⋈   [o→i]  ·
+321 ⋈ CLINK    ·   
+     └─▶ 322 ⋈   [o→i]  ·
+322 ⋈ CLINK    ·   
+     └─▶ 335 ⋈   [o→i]  ·
+323 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 324 ⋈   [T→i]  ·
+     └─▶ 334 ∋   [F→F]  ·
+324 ⋈ CLINK    ·   
+     └─▶ 325 ⊤   [o→i]  ·
+325 ⊤ EVALT    ·   
+     └─▶ 332 ⋈   [o→i]  ·
+326 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 327 ⋈   [T→i]  ·
+     └─▶ 331 ∋   [F→F]  ·
+327 ⋈ CLINK    ·   
+     └─▶ 328 ⋈   [o→i]  ·
+328 ⋈ CLINK    ·   
+     └─▶ 329 ⋈   [o→i]  ·
+329 ⋈ CLINK    ·   
+     └─▶ 330 ≻   [o→i]  ·
+330 ≻ AFWD     ·   
+     └─▶ 331 ∋   [o→T]  ·
+331 ∋ FFUSE    ·     ┘ join
+     └─▶ 334 ∋   [o→T]  ·
+332 ⋈ CLINK    ·   
+     └─▶ 333 ≻   [o→i]  ·
+333 ≻ AFWD     ·   
+     └─▶ 334 ∋   [o→T]  ·
+334 ∋ FFUSE    ·     ┘ join
+     └─▶ 337 ∋   [o→T]  ·
+335 ⋈ CLINK    ·   
+     └─▶ 336 ≻   [o→i]  ·
+336 ≻ AFWD     ·   
+     └─▶ 337 ∋   [o→T]  ·
+337 ∋ FFUSE    ·     ┘ join
+     └─▶ 338 ∋   [o→T]  ·
+338 ∋ FFUSE    ·     ┘ join
+     └─▶ 341 ∈   [o→i]  ·
+339 ⊣ TANCH    ·   
+     └─▶ 340 ⊡   [o→i]  ·
+340 ⊡ IFIX     ·   
+     └─▶ 352 ⋈   [o→i]  ·
+341 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 342 ⊤   [T→i]  ·
+     └─▶ 351 ∋   [F→F]  ·
+342 ⊤ EVALT    ·   
+     └─▶ 348 ⋈   [o→i]  ·
+343 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 344 ≻   [T→i]  ·
+     └─▶ 347 ∋   [F→F]  ·
+344 ≻ AFWD     ·   
+     └─▶ 345 ⋈   [o→i]  ·
+345 ⋈ CLINK    ·   
+     └─▶ 346 ⋈   [o→i]  ·
+346 ⋈ CLINK    ·   
+     └─▶ 347 ∋   [o→T]  ·
+347 ∋ FFUSE    ·     ┘ join
+     └─▶ 351 ∋   [o→T]  ·
+348 ⋈ CLINK    ·   
+     └─▶ 349 ⊞   [o→i]  ·
+349 ⊞ ENGAGR   ·   
+     └─▶ 350 ⋈   [o→i]  ·
+350 ⋈ CLINK    ·   
+     └─▶ 351 ∋   [o→T]  ·
+351 ∋ FFUSE    ·     ┘ join
+     └─▶ 355 ∈   [o→i]  ·
+352 ⋈ CLINK    ·   
+     └─▶ 353 ⊤   [o→i]  ·
+353 ⊤ EVALT    ·   
+     └─▶ 354 ⋈   [o→i]  ·
+354 ⋈ CLINK    ·   
+     └─▶ 357 ⋈   [o→i]  ·
+355 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 356 ∋   [T→T]  ·
+     └─▶ 356 ∋   [F→F]  ·
+356 ∋ FFUSE    ·     ┘ join
+     └─▶ 358 ∋   [o→T]  ·
+357 ⋈ CLINK    ·   
+     └─▶ 358 ∋   [o→T]  ·
+358 ∋ FFUSE    ·     ┘ join
+     └─▶ 363 ∋   [o→T]  ·
+359 ⋈ CLINK    ·   
+     └─▶ 360 ≻   [o→i]  ·
+360 ≻ AFWD     ·   
+     └─▶ 361 ⋈   [o→i]  ·
+361 ⋈ CLINK    ·   
+     └─▶ 362 ⋈   [o→i]  ·
+362 ⋈ CLINK    ·   
+     └─▶ 363 ∋   [o→T]  ·
+363 ∋ FFUSE    ·     ┘ join
+     └─▶ 364 ∋   [o→T]  ·
+364 ∋ FFUSE    ·     ┘ join
+     └─▶ 366 ∈   [o→i]  ·
+365 ⊤ EVALT    ·   
+     └─▶ 368 ∋   [o→T]  ·
+366 ∈ FSPLIT   ·     ┐ fork
+     ├─▶ 367 ∋   [T→T]  ·
+     └─▶ 367 ∋   [F→F]  ·
+367 ∋ FFUSE    ·     ┘ join
+     └─▶ 368 ∋   [o→T]  ·
+368 ∋ FFUSE    ·     ┘ join
+     └─▶ 386 ∋   [o→T]  ·
+369 ⋈ CLINK    ·   
+     └─▶ 370 ⋈   [o→i]  ·
+370 ⋈ CLINK    ·   
+     └─▶ 371 ⋈   [o→i]  ·
+371 ⋈ CLINK    ·   
+     └─▶ 372 ⋈   [o→i]  ·
+372 ⋈ CLINK    ·   
+     └─▶ 373 ⋈   [o→i]  ·
+373 ⋈ CLINK    ·   
+     └─▶ 374 ⊞   [o→i]  ·
+374 ⊞ ENGAGR   ·   
+     └─▶ 375 ⋈   [o→i]  ·
+375 ⋈ CLINK    ·   
+     └─▶ 376 ⋈   [o→i]  ·
+376 ⋈ CLINK    ·   
+     └─▶ 377 ⋈   [o→i]  ·
+377 ⋈ CLINK    ·   
+     └─▶ 378 ⋈   [o→i]  ·
+378 ⋈ CLINK    ·   
+     └─▶ 379 ⋈   [o→i]  ·
+379 ⋈ CLINK    ·   
+     └─▶ 380 ⋈   [o→i]  ·
+380 ⋈ CLINK    ·   
+     └─▶ 381 ⊣   [o→i]  ·
+381 ⊣ TANCH    ·   
+     └─▶ 382 ⊞   [o→i]  ·
+382 ⊞ ENGAGR   ·   
+     └─▶ 383 ⊞   [o→i]  ·
+383 ⊞ ENGAGR   ·   
+     └─▶ 384 ⊞   [o→i]  ·
+384 ⊞ ENGAGR   ·   
+     └─▶ 386 ∋   [o→T]  ·
+385 ≺ AREV     ·   
+     └─▶ 386 ∋   [o→F]  ·
+386 ∋ FFUSE    ·     ┘ join
+
+  walk: OPEN   final register ·
+
+wrote ../G-mOMonadOS/measurements/lean_factor_target_20261010/reclaim_pending.wiring.svg

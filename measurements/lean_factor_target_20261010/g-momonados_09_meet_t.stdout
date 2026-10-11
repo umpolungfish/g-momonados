@@ -1,0 +1,5 @@
+backend=Lean-kernel SIXTEEN_3=active mask-order=N,T,F,B
+kernel-reentry=6
+table=[5, 5, 7, 7, 5, 5, 7, 7, 5, 5, 7, 7, 5, 5, 7, 7]
+least=5 greatest=7 certified=true
+seed=0 transient=1 period=1 tick=4 value=5 cycle-certified=true

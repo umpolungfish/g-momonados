@@ -481,13 +481,19 @@ pub fn decode(word: &str) -> Result<Reading, DecodeError> {
 /// Read a canonical cell-binary numeral into the arbitrary-precision work register.
 pub fn decode_cell_biguint(word: &str) -> Result<BigUint, String> {
     let decoded = decode(word).map_err(|error| error.to_string())?;
-    if !matches!(decoded.structure, Structure::CellBinary { .. }) {
-        return Err("prepared value must be a cell-binary word".into());
-    }
-    if encode_cell_binary(&decoded.value) != word {
+    let bits_le = match decoded.structure {
+        Structure::CellBinary { bits_le } => bits_le,
+        _ => return Err("prepared value must be a cell-binary word".into()),
+    };
+    let canonical = if decoded.value.is_zero() {
+        bits_le.as_slice() == [false]
+    } else {
+        bits_le.last() == Some(&true)
+    };
+    if !canonical {
         return Err("prepared value must be a canonical cell-binary word".into());
     }
-    Ok(decoded.value.bits_le().iter().enumerate().fold(BigUint::from(0u8), |n, (bit, set)| {
+    Ok(bits_le.iter().enumerate().fold(BigUint::from(0u8), |n, (bit, set)| {
         if *set { n | (BigUint::from(1u8) << bit) } else { n }
     }))
 }
@@ -910,6 +916,20 @@ pub fn selftest_report() -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn biguint_decoder_checks_canonical_bits_without_reencoding() {
+        for value in [Nat::zero(), Nat::from_u64(3)] {
+            let canonical = encode_cell_binary(&value);
+            let expected = if value.is_zero() { BigUint::from(0u8) } else { BigUint::from(3u8) };
+            assert_eq!(decode_cell_biguint(&canonical).unwrap(), expected);
+            let suffix_start = canonical.len() - 9;
+            let mut extended = canonical[..suffix_start].to_string();
+            push_cell(&mut extended, false);
+            extended.push_str(&canonical[suffix_start..]);
+            assert!(decode_cell_biguint(&extended).is_err());
+        }
+    }
 
     #[test]
     fn ququart_arithmetic_preserves_products_quotients_and_remainders() {

@@ -125,18 +125,32 @@ impl FixedComplex {
     /// the source-derived fixed precision. Reduce before trigonometry so even
     /// an arbitrarily wide numerator cannot produce an unbounded Taylor angle.
     pub fn winding_twiddle(numerator: &BigInt, denominator: &BigUint, format: &FixedPointFormat) -> Result<Self, String> {
+        Self::winding_twiddle_table(core::slice::from_ref(numerator), denominator, format)
+            .map(|mut values| values.remove(0))
+    }
+
+    /// Evaluate several windings at one denominator and precision, sharing the
+    /// source-derived fixed pi value across their exact trigonometric readouts.
+    pub fn winding_twiddle_table(
+        numerators: &[BigInt],
+        denominator: &BigUint,
+        format: &FixedPointFormat,
+    ) -> Result<Vec<Self>, String> {
         if denominator.is_zero() { return Err("winding denominator is zero".into()); }
         let denominator = BigInt::from(denominator.clone());
-        let mut reduced = ((numerator % &denominator) + &denominator) % &denominator;
-        if &reduced * 2 > denominator { reduced -= &denominator; }
         let work_bits = format.w_bits.checked_add(32).ok_or("winding precision overflow")?;
         let shift = usize::try_from(work_bits).map_err(|_| "winding precision exceeds host indexing")?;
         let scale = BigInt::one() << shift;
-        let angle = fixed_round_div(fixed_pi(&scale) * 2 * reduced, &denominator);
-        let (re, im) = fixed_sincos(&angle, &scale);
+        let pi = fixed_pi(&scale);
         let rounding = BigInt::one() << 31usize;
         let down = |value: BigInt| if value.is_negative() { -((-value + &rounding) >> 32usize) } else { (value + &rounding) >> 32usize };
-        Ok(Self { re: down(re), im: down(im) })
+        numerators.iter().map(|numerator| {
+            let mut reduced = ((numerator % &denominator) + &denominator) % &denominator;
+            if &reduced * 2 > denominator { reduced -= &denominator; }
+            let angle = fixed_round_div(&pi * 2 * reduced, &denominator);
+            let (re, im) = fixed_sincos(&angle, &scale);
+            Ok(Self { re: down(re), im: down(im) })
+        }).collect()
     }
 
     pub fn qft_twiddle(index: &BigUint, stage: u64, inverse: bool, format: &FixedPointFormat) -> Result<Self, String> {
@@ -652,14 +666,18 @@ fn attempt_big_wide(k_big: BigUint, m_big: BigUint, a: &BigUint, n: &BigUint) ->
         if r0 <= one { continue; }
         if &r0 > n { continue; }
         let r = r0.clone();
-        if powm_big(a.clone(), r.clone(), n) != one { continue; }
+        let orbit = match crate::factor_routes::CertifiedModularOrbit::certify(a, n, &r) {
+            Ok(orbit) => orbit,
+            Err(_) => continue,
+        };
         if &r % &two != BigUint::zero() {
             return Attempt::Degenerate(format!(
                 "CF: s/{} -> period r={} is odd — a^(r/2) has no half-step; advancing the coprime base",
                 r0, r));
         }
         let half = &r / &two;
-        let xh = powm_big(a.clone(), half, n);
+        let half_step = orbit.step(&half);
+        let xh = half_step.value;
         if &xh + &one == *n {
             return Attempt::Degenerate(format!(
                 "CF: s/{} -> r={} but a^(r/2) == -1 (mod N) — no split this base; advancing",
@@ -1050,10 +1068,15 @@ impl PhaseReadoutAccumulator {
             let candidate = &self.denominator / gcd * r;
             if &candidate > n { continue; }
             self.denominator = candidate;
-            if base.modpow(&self.denominator, n).is_one() {
+            let orbit = match crate::factor_routes::CertifiedModularOrbit::certify(base, n, &self.denominator) {
+                Ok(orbit) => orbit,
+                Err(_) => break,
+            };
+            {
                 let period = self.denominator.clone();
                 if (&period & BigUint::one()).is_one() { return Err(format!("certified period {period} is odd")); }
-                let half = base.modpow(&(&period >> 1usize), n);
+                let half_tick = &period >> 1usize;
+                let half = orbit.step(&half_tick).value;
                 if half.is_one() || &half + BigUint::one() == *n { return Err(format!("certified period {period} gives a trivial half-period split")); }
                 for difference in [&half - BigUint::one(), &half + BigUint::one()] {
                     let p = gcd_big(difference, n.clone());
@@ -1478,6 +1501,25 @@ pub fn repl_phase_unbraid(args: &[&str]) -> String {
 #[cfg(test)]
 mod phase_tests_big {
     use super::*;
+    #[test]
+    fn batched_winding_twiddles_equal_individual_exact_readouts() {
+        let format = FixedPointFormat::for_modulus_bits(64).unwrap();
+        let numerators: Vec<_> = (0..8).map(BigInt::from).collect();
+        let table = FixedComplex::winding_twiddle_table(
+            &numerators,
+            &BigUint::from(8u8),
+            &format,
+        ).unwrap();
+        assert_eq!(table.len(), numerators.len());
+        for (numerator, observed) in numerators.iter().zip(table) {
+            assert_eq!(observed, FixedComplex::winding_twiddle(
+                numerator,
+                &BigUint::from(8u8),
+                &format,
+            ).unwrap());
+        }
+    }
+
     #[test]
     fn phase_accumulator_binding_128_bit_semiprime() {
         let n = semiprime_128();

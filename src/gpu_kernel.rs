@@ -3374,14 +3374,10 @@ mod temporal_phase_relation_tests {
     fn recycled_cuda_unstructured_semiprime_prefix_matches_cpu() {
         use crate::phase_unbraid::{FixedPointFormat, RecycledPhaseState, fixed_born_mass, recycled_phase_mix_cpu};
         let qft = CudaQft::new(0).unwrap();
-        // Read only N from fixtures whose persisted prime proofs are verified
-        // by qpe_semiprime_cases. No factor or certificate enters execution.
-        for record in include_str!("../measurements/unstructured-wide-controls.tsv").lines().skip(1) {
-            let fields: Vec<_> = record.split('\t').collect();
-            let bits: u64 = fields[1].parse().unwrap();
-            let n: BigUint = fields[2].parse().unwrap();
-            assert_eq!(n.bits(), bits);
-            assert!(bits >= 128);
+        // Execution reads the isolated source file containing only n values.
+        for record in include_str!("../measurements/unstructured_semiprimes.decimal").lines() {
+            let n: BigUint = record.parse().unwrap();
+            assert!(n.bits() >= 128);
             let base = BigUint::from(2u8);
             let qubits = n.bits() * 2 + 8;
             let format = FixedPointFormat::for_modulus(&n).unwrap();

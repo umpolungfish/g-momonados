@@ -191,7 +191,10 @@ pub fn oneshot_factor(n_str: &str, max_steps: u64) -> (B4Verdict, Option<String>
         }
         if cur == one && !r.bit(0) {
             let half = r.clone() >> 1;
-            let x = a.modpow(&half, &n);
+            let x = match crate::factor_routes::certified_modular_residue_step(&half, &a, &n, &r) {
+                Ok(step) => step.value,
+                Err(_) => return (B4Verdict::B, None, None),
+            };
             let nm1 = &n - &one;
             if x != nm1 {
                 let p = gcd_big(x.clone() + &one, n.clone());
