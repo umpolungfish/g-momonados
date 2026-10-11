@@ -16,6 +16,9 @@ pub fn signed_word(value: &BigInt) -> String {
 
 fn prepare() -> Result<String, String> {
     let path = std::env::args().nth(1).ok_or("missing preparation file")?;
+    if path == "--help" {
+        return Ok("ququart_prepare_operator prepared.json\nququart_prepare_operator --numerals DECIMAL ...\nququart_prepare_operator --read-numeral WORD\nququart_prepare_operator --scale-base|--prepare-powers|--prepare-work|--validate-inputs FILE\nququart_prepare_operator --radix-words EXTENT_WORD\nququart_prepare_operator --defaults\n".into());
+    }
     if path == "--numerals" {
         let mut values = serde_json::Map::new();
         for raw in std::env::args().skip(2) {

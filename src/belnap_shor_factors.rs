@@ -75,7 +75,13 @@ pub fn extract_factors(n_val: u64, a: u64, period: u64) -> FactorResult {
     }
 
     let half = period / 2;
-    let a_half = mod_pow(a, half, n_val);
+    let a_half = match crate::factor_routes::certified_modular_residue_u64_step(half, a, n_val, period) {
+        Ok(value) => value,
+        Err(_) => return FactorResult {
+            n: n_val, a, period, factor1: None, factor2: None,
+            trivial: true, reason: "uncertified modular period",
+        },
+    };
 
     // a^(r/2) ≡ -1 mod N → trivial factors
     if a_half == n_val - 1 {

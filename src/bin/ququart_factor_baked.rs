@@ -11,16 +11,33 @@ use std::io::Write;
 use num_traits::ToPrimitive;
 include!(concat!(env!("OUT_DIR"), "/ququart_prepared.rs"));
 
+// Vox reads this progress marker at native samples. Codes: 0 startup, 1 Lean
+// admitted, 2 input parsed, 3 Fourier checked, 4 base checked, 5 device
+// prepared, 6 powers decoded, 7 schedule validated, 8 phase executor.
+#[no_mangle]
+pub static VOX_QUQUART_PIPELINE_STAGE: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+#[no_mangle]
+pub static VOX_QUQUART_POWER_WORDS_DECODED: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+fn pipeline_stage(stage: u64) {
+    VOX_QUQUART_PIPELINE_STAGE.store(stage, std::sync::atomic::Ordering::Relaxed);
+}
+
 fn execute() -> Result<String, String> {
     // Admit the source-bound carrier through the same Lean kernel bridge used
     // by the hosted evaluator. This checks SIXTEEN_3, kernel re-entry, and Y.
     lean_kernel::ensure_default().map_err(|error| format!("Lean admission: {error}"))?;
+    pipeline_stage(1);
     let prepared: serde_json::Value = serde_json::from_str(PREPARED).map_err(|e| e.to_string())?;
     if prepared.get("prepared_operator").is_none() {
         return Err("baked membrane requires a prepared operator in IMASM words".into());
     }
+    pipeline_stage(2);
     let (n, fourier, metrics) = support::contract(&prepared)?;
+    pipeline_stage(3);
     support::validate_base_scaling(&prepared)?;
+    pipeline_stage(4);
     let base = support::numeral(prepared["base_word"].as_str().ok_or("missing baked base word")?)?;
     let seed = support::numeral(prepared["seed_word"].as_str().ok_or("missing baked seed word")?)?
         .to_u64().ok_or("invalid seed word")?;
@@ -55,15 +72,24 @@ fn execute() -> Result<String, String> {
     } else {
         device
     };
-    let powers = prepared["prepared_operator"]["controlled_power_words"].as_array()
+    pipeline_stage(5);
+    let power_words = prepared["prepared_operator"]["controlled_power_words"].as_array()
         .ok_or("missing baked controlled power words")?.iter()
-        .map(|value| support::numeral(value.as_str().ok_or("controlled power must be an IMASM word")?))
-        .collect::<Result<Vec<_>, String>>()?;
+        .collect::<Vec<_>>();
+    VOX_QUQUART_POWER_WORDS_DECODED.store(0, std::sync::atomic::Ordering::Relaxed);
+    let mut powers = Vec::with_capacity(power_words.len());
+    for value in power_words {
+        powers.push(support::numeral(value.as_str().ok_or("controlled power must be an IMASM word")?)?);
+        VOX_QUQUART_POWER_WORDS_DECODED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
     let digits = support::numeral(prepared["prepared_operator"]["phase_digits_word"].as_str()
         .ok_or("missing baked phase resolution word")?)?;
     if digits != num_bigint::BigUint::from(powers.len()) { return Err("baked phase resolution differs from schedule".into()); }
+    pipeline_stage(6);
     let schedule = g_momonados::ququart_factor::QuquartPowerSchedule::from_prepared(&n, &base, powers)?;
+    pipeline_stage(7);
     let mut executor = QuquartFactorExecutor::with_prepared_schedule(device, schedule);
+    pipeline_stage(8);
     if std::env::var_os("QUQUART_TRACE").is_some() {
         std::thread::spawn(|| loop {
             std::thread::sleep(std::time::Duration::from_secs(2));
@@ -123,7 +149,13 @@ fn execute() -> Result<String, String> {
                 word(&num_bigint::BigUint::from(metrics.closure.to_bits())),
                 word(&num_bigint::BigUint::from(metrics.exchanges)));
             let phase_arm = word(&num_bigint::BigUint::from(1u8));
-            return Ok(format!("{report}producing_arm_word={phase_arm}\nradix_word={radix_word}\nnested_factor_word={nesting_word}\nsic_frame_samples={sic_samples}\n"));
+            let tick = num_bigint::BigUint::from(1_000_000_000_000_000_001u64);
+            let step = closure.residue_step(&tick);
+            let residue_report = format!(
+                "residue_base_word={}\nresidue_tick_word={}\nresidue_period_word={}\nresidue_index_word={}\nresidue_value_word={}\n",
+                word(closure.residue_base()), word(&step.tick), word(&step.period),
+                word(&step.residue), word(&step.value));
+            return Ok(format!("{report}{residue_report}producing_arm_word={phase_arm}\nradix_word={radix_word}\nnested_factor_word={nesting_word}\nsic_frame_samples={sic_samples}\n"));
         }
     }
 }

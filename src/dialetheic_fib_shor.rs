@@ -276,7 +276,10 @@ pub fn gcd(mut a: u64, mut b: u64) -> u64 {
 /// Extract factors from the period: p = gcd(a^{r/2} ± 1, N).
 pub fn factors_from_period(a: u64, n: u64, r: u64) -> (Option<u64>, Option<u64>) {
     if r == 0 || r % 2 != 0 { return (None, None); }
-    let half = mod_pow(a, r / 2, n);
+    let half = match crate::factor_routes::certified_modular_residue_u64_step(r / 2, a, n, r) {
+        Ok(value) => value,
+        Err(_) => return (None, None),
+    };
     // a^{r/2} ≡ ±1 mod N: the standard Shor retry case (the congruence gives
     // no factor). half == 1 means a^{r/2} ≡ 1 so r was not the minimal period.
     if half == 0 || half == 1 || half == n - 1 { return (None, None); }
@@ -408,12 +411,15 @@ pub fn report(r: &DialetheicFibShorResult) -> String {
             s.push_str(&format!("  factors written to the classical register (⊡ IFIX)\n"));
         }
         _ => {
-            let half = mod_pow(r.a_val, r.period / 2, r.n_val);
+            let half = crate::factor_routes::certified_modular_residue_u64_step(
+                r.period / 2, r.a_val, r.n_val, r.period).ok();
             let reason = if r.period % 2 != 0 || r.period == 0 {
                 "r odd or 0 — retry with another a"
-            } else if half == r.n_val - 1 {
+            } else if half.is_none() {
+                "uncertified modular period"
+            } else if half == Some(r.n_val - 1) {
                 "a^(r/2) ≡ -1 mod N — standard Shor retry case, use another a"
-            } else if half == 1 {
+            } else if half == Some(1) {
                 "a^(r/2) ≡ 1 mod N — r is not the minimal period"
             } else {
                 "retry with another a"

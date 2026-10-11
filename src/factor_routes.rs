@@ -1,6 +1,10 @@
 //! Shared bounded factor routes for library and kernel consumers.
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
+pub use vox_core::modular_residue::{
+    certified_modular_residue_step, CertifiedModularOrbit, ModularResidueStep,
+    certified_modular_residue_u64_step, certified_modular_residue_tape_step,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PrimeVerdict {
@@ -400,6 +404,28 @@ pub fn congruence_split(n: &BigUint, fb_bound: u64, trials: u64) -> Option<(BigU
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn certified_period_reduces_a_huge_tick_without_walking_it() {
+        let tick = BigUint::from(1_000_000_000_000_000_001u64);
+        let base = BigUint::from(2u8);
+        let n = BigUint::from(15u8);
+        let period = BigUint::from(4u8);
+        let step = certified_modular_residue_step(&tick, &base, &n, &period).unwrap();
+        assert_eq!(step.residue, BigUint::one());
+        assert_eq!(step.value, BigUint::from(2u8));
+    }
+
+    #[test]
+    fn modular_residue_step_rejects_an_uncertified_period() {
+        let err = certified_modular_residue_step(
+            &BigUint::from(1_000_000_000_000_000_001u64),
+            &BigUint::from(2u8),
+            &BigUint::from(15u8),
+            &BigUint::from(3u8),
+        ).unwrap_err();
+        assert!(err.contains("uncertified period"));
+    }
 
     #[test]
     fn streaming_dependency_closes_on_a_130_bit_semiprime() {

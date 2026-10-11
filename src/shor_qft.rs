@@ -234,7 +234,7 @@ pub fn run_shor_register(a: u64, n_val: u64, n_qubits: usize) -> Result<ShorRegi
     let mut factors = None;
     if let Some(r) = extracted_period {
         if r % 2 == 0 {
-            let half = mod_pow_u64(a, r / 2, n_val);
+            let half = crate::factor_routes::certified_modular_residue_u64_step(r / 2, a, n_val, r)?;
             if half != n_val - 1 {
                 let f1 = gcd_u64(if half >= 1 { half - 1 } else { n_val - 1 }, n_val);
                 let f2 = gcd_u64(half + 1, n_val);
