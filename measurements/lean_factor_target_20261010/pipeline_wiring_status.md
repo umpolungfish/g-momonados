@@ -1,5 +1,34 @@
 # Source-bound phase pipeline wiring status
 
+Target: the exact source in `source.decimal` (895 bits). The baked executable
+uses its prepared IMASM operator, folded ququart work register, SIC readout,
+phase reconstruction, and nested-radix closure. The native factor-producing
+arm remains disabled for this run.
+
+## Packed double SIMD
+
+The resumed rewritten 128-bit control completes both shots and exits zero.
+The independent readout verifier accepts its factor product and certified
+residue receipt. Every factor word, residue word, phase sample, and SIC sample
+matches native output byte for byte. The sole different field is the Fourier
+computational diagnostic: native reports `2.0665914735611586e-16`, and the
+earlier Vox runner reports zero.
+
+A static musl probe isolates missing `xorpd` execution. The decoder retains
+the instruction, but the VM omitted packed-double logical operations from
+SIMD dispatch. The repaired runtime handles XOR, AND, AND-NOT, and OR across
+both lanes while preserving integer flags. All twelve SIMD tests pass.
+All fifteen floating-point probe cases now match native output byte for byte.
+The target and full control tapes are replaying under `vox_runner_simd`.
+The native target profile remains running through its original static carrier.
+
+The bounded `runtime_reclaim/diagnostic_probe` imports the same Fourier
+contract and includes the same prepared 128-bit control. Under the combined
+repair, all four diagnostic fields match native execution exactly, including
+computational residual bits `3cadc86076325b4c`. The static allocator probe
+also matches native output under this runner. Verification receipts and
+runner hashes are retained beside the probes.
+
 ## Guest page reclamation
 
 The resumed target's native instruction samples repeatedly reach musl
@@ -33,10 +62,25 @@ sample boundaries. `peak_nodes` also updates after folding, so neither counter
 measures the temporary allocation peak inside an arithmetic operation. No
 target factor pair has been emitted by these samples.
 
-Target: the exact source in `source.decimal` (895 bits). The baked executable
-uses its prepared IMASM operator, folded ququart work register, SIC readout,
-phase reconstruction, and nested-radix closure. The native factor-producing
-arm remains disabled for this run.
+## Compiled fold cadence
+
+The native target profile samples modular entry/exit boundaries with over
+15 million unreclaimed nodes while post-fold retention is about 858,000.
+`tools/rewire_fold_cadence.py` identifies the shared successful-operation gate
+in `QuquartFoldedWorkDevice::apply_nested`: load the object counter, increment
+and store it, compare with eight, and call that object's fold method on
+equality. The tool checks the fold method's counter reset and the machine
+call target. It copies the ELF and changes the single compare immediate from
+eight to one at address `0x325b6`.
+
+The patched 128-bit native carrier completes with all 51,583,828 stdout bytes
+identical to the original native carrier. The independent readout verifier
+accepts its phase, SIC, factor-product, and residue receipt. Both patched
+ELFs pass whole-image rewiring: all 767,288 executable bytes are accounted
+for, with 17,669 closed pairs, zero open pairs, and zero unresolved transfers.
+This is a control-flow closure check plus a structured-control readout
+witness. The patched target's value-level result and performance remain
+under evaluation in `target895_final/fold_each/native_profile.*`.
 
 ## Lean boundary
 
@@ -133,6 +177,17 @@ recorded sample precedes phase-counter initialization.
 
 ## Certified residue execution
 
+`p4rakernel/p4ramill/Imscribing/Paraconsistent/CertifiedModularResidue.lean`
+proves the shared identity for arbitrary natural ticks, bases, moduli, and
+positive certified periods: the reduced modular power equals the unreduced
+power. It also proves the residue bound, equality for matching residues, and
+period-multiple jumps. A certificate binds the base, modulus, and period and
+requires the period power to equal one modulo the source. The proof accepts
+nonminimal periods. The extended re-entry audit passes; its axiom report lists
+the standard `propext` dependency for the power identity and period jumps.
+The bound and matching-residue theorems have no axiom dependencies. This is a
+conditional arithmetic proof; the factoring executor supplies the period.
+
 `Vox/src/modular_residue.rs` supplies the shared operation for BigUint, native
 integers, and binary numeral tapes. The certificate privately binds the base,
 source, and period. It verifies `base^period mod source = 1` once and evaluates
@@ -203,3 +258,9 @@ factor and residue verifier. Continuing directly from the sample stop keeps
 this control at the completed `wait4` return during Lean admission. Changing
 the sampling signal alone preserves that behavior. The retained comparison is
 `../modular_residue_20261010/control128/profiler_wait_controls.json`.
+
+## Sequential bounded execution
+
+On the user’s instruction, all six overlapping factor runs were interrupted. New experiments run sequentially with at most 60 seconds per execution. The 895-bit target has no completed factor readout.
+
+A checked one-byte binary rewire changed the shared fold cadence from eight to four completed nested operations. The structured 128-bit control completed in 7.44 seconds with its full output byte-identical to the original. A separate sequential original run completed in 6.13 seconds. This single comparison does not support a speed improvement, so the four-operation cadence is retained as an experimental artifact rather than promoted as an acceleration.

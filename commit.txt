@@ -1,5 +1,1 @@
-I verify guest page reclamation through my static allocator probe
-
-I compare complete native and Vox output and check both checksums independently.
-I measure materialized guest pages alongside retained phase nodes and preserve the live target snapshots.
-I record the completed control shots while its terminal receipt is being assembled.
+I preserve corrected membrane execution and bounded fold experiments
