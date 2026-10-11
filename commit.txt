@@ -1,5 +1,5 @@
-I retry my rewritten factor membrane with guest page reclamation
+I verify guest page reclamation through my static allocator probe
 
-I preserve the repaired Vox runner and record its source commit, hashes, and live run identity.
-I summarize native samples by measured phase digit using exact ELF function ranges.
-I retain control verification, target progress snapshots, and the rendered pipeline report.
+I compare complete native and Vox output and check both checksums independently.
+I measure materialized guest pages alongside retained phase nodes and preserve the live target snapshots.
+I record the completed control shots while its terminal receipt is being assembled.
