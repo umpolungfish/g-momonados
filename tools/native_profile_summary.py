@@ -54,6 +54,7 @@ def summarize(elf_path, prefix):
     return {
         "elf": str(elf_path), "profile": str(prefix), "latest_counters": latest,
         "scope": "Stopped instruction samples, grouped by last observed shot and digit; no inferred factors.",
+        "node_counter_scope": "Retained and peak node counters are updated after arena folding; temporary allocation peaks between folds are not measured by them.",
         "phases": [{
             "shot_started": phase[0], "measured_digits": phase[1],
             "sample_seconds": bounds[phase], "samples": sum(counter.values()),

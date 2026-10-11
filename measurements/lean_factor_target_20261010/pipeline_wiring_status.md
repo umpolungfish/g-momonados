@@ -12,6 +12,27 @@ and the existing musl growth-remapping checks. The long tape executions
 started before this repair retain their original runtime. Their progress
 does not establish the repair's effect on target performance.
 
+The repaired runner also completes the static musl allocation probe under
+`../modular_residue_20261010/runtime_reclaim/`. Its complete stdout matches
+native execution byte for byte. Independent checksum sums agree, and live
+neighbor buffers survive repeated vector growth, release, and allocation.
+This verifies runtime transport independently of the factor search.
+
+The target retry validates all 899 prepared powers and enters phase execution.
+Across two snapshots, modular calls advance from 35 to 96 while materialized
+guest pages fall from 12,572 to 11,613; the folded arena retains 13,446 nodes
+at both samples. The earlier runner has 126,587 materialized pages after 412
+modular calls. These are different execution positions, so their ratio is
+not a measured speedup.
+
+The resumed native target reaches three measured digits. The minimum sampled
+post-fold retained-node counts after digits one, two, and three are 10,736,
+42,906, and 171,420. Subsequent gates before the next measurement increase
+these counts again. `target895_final/phase_node_growth.json` preserves the
+sample boundaries. `peak_nodes` also updates after folding, so neither counter
+measures the temporary allocation peak inside an arithmetic operation. No
+target factor pair has been emitted by these samples.
+
 Target: the exact source in `source.decimal` (895 bits). The baked executable
 uses its prepared IMASM operator, folded ququart work register, SIC readout,
 phase reconstruction, and nested-radix closure. The native factor-producing
