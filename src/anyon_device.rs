@@ -110,6 +110,7 @@ impl FibonacciGenerator<std::os::unix::net::UnixStream, std::os::unix::net::Unix
         )?;
         let mut started = false;
         let mut last_shot = 0u64;
+        let mut last_phase: Option<(num_bigint::BigUint, num_bigint::BigUint, u64)> = None;
         loop {
             let response = self.response()?;
             if response.get("source").and_then(serde_json::Value::as_str)
@@ -141,6 +142,23 @@ impl FibonacciGenerator<std::os::unix::net::UnixStream, std::os::unix::net::Unix
                         eprintln!("anyon_factor_phase shot={last_shot} digits={completed}/{total}");
                     }
                 }
+                Some("phase_readout") => {
+                    let digits = response["digits"].as_u64()
+                        .ok_or("factor service omitted complete phase width")?;
+                    let numerator = response["numerator"].as_str()
+                        .ok_or("factor service omitted complete phase numerator")?;
+                    let denominator = response["denominator"].as_str()
+                        .ok_or("factor service omitted complete phase denominator")?;
+                    let numerator = numerator.parse::<num_bigint::BigUint>()
+                        .map_err(|_| "invalid complete phase numerator")?;
+                    let denominator = denominator.parse::<num_bigint::BigUint>()
+                        .map_err(|_| "invalid complete phase denominator")?;
+                    if denominator == num_bigint::BigUint::from(0u8) || numerator >= denominator {
+                        return Err("complete phase value is outside its register range".into());
+                    }
+                    last_phase = Some((numerator.clone(), denominator.clone(), digits));
+                    eprintln!("anyon_factor_phase_readout shot={last_shot} digits={digits} value={numerator}/{denominator}");
+                }
                 Some("shot_completed") => {
                     if response["phase_digits_completed"].as_u64()
                         != response["phase_digits_total"].as_u64()
@@ -168,7 +186,12 @@ impl FibonacciGenerator<std::os::unix::net::UnixStream, std::os::unix::net::Unix
                     }
                     let order = response["order"].as_str().ok_or("factor service omitted order")?
                         .parse::<num_bigint::BigUint>().map_err(|_| "invalid order")?;
-                    return Ok(Some(SocketFactorReadout { p, q, order, shots:last_shot }));
+                    let (phase_numerator, phase_denominator, phase_digits) = last_phase
+                        .take().ok_or("factor service omitted its complete phase value")?;
+                    return Ok(Some(SocketFactorReadout {
+                        p, q, order, shots:last_shot,
+                        phase_numerator, phase_denominator, phase_digits,
+                    }));
                 }
                 Some(event) => return Err(format!("unexpected factor service event: {event}")),
                 None => return Err("factor service response omitted event type".into()),
@@ -182,6 +205,9 @@ pub struct SocketFactorReadout {
     pub q: num_bigint::BigUint,
     pub order: num_bigint::BigUint,
     pub shots: u64,
+    pub phase_numerator: num_bigint::BigUint,
+    pub phase_denominator: num_bigint::BigUint,
+    pub phase_digits: u64,
 }
 
 impl<R: Read, W: Write> FibonacciAnyonDevice for FibonacciGenerator<R, W> {

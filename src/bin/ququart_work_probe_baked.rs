@@ -50,6 +50,44 @@ fn execute() -> Result<serde_json::Value, String> {
     let peak_nodes = device.peak_nodes;
     device.reset_control(digit)?;
     device.finish()?;
+
+    // Carry the measured SIC coordinate support through the retained-9 clock.
+    // The four nonzero coordinate labels should remain distinct and select all
+    // four two-call Fourier orientation pairs via output bits 1 and 2.
+    let mut coordinate_labels = witness.gram.iter().enumerate()
+        .filter_map(|(label, (re, im))| (!re.is_zero() || !im.is_zero()).then_some(label as u8))
+        .collect::<Vec<_>>();
+    coordinate_labels.sort_unstable();
+    let mut support_clock_cases = Vec::with_capacity(coordinate_labels.len());
+    for label in coordinate_labels {
+        let certificate = prepared["readout_clocks"].as_array().ok_or("missing measured readout clocks")?
+            .iter().find(|c| c["retained"].as_u64() == Some(9) && c["seed"].as_u64() == Some(label as u64))
+            .ok_or_else(|| format!("coordinate label {label} has no retained-9 clock"))?;
+        let clock = RuntimeClock::from_record(certificate)?;
+        let first_tick = clock.step(label);
+        let second_tick = clock.step(first_tick);
+        if first_tick != clock.read(1) || second_tick != clock.read(2) {
+            return Err(format!("coordinate label {label} differs from certified clock ticks"));
+        }
+        device.begin(&source, &base, 1)?;
+        let first_inverse = first_tick & 2 != 0;
+        device.fourier(first_inverse)?;
+        device.controlled_multiply(&base)?;
+        let second_inverse = second_tick & 4 != 0;
+        device.fourier(second_inverse)?;
+        let measured_digit = device.measure_phase_digit()?;
+        device.reset_control(measured_digit)?;
+        device.finish()?;
+        support_clock_cases.push(serde_json::json!({
+            "coordinate_label": label,
+            "clock_ticks": [first_tick, second_tick],
+            "fourier_inverse": [first_inverse, second_inverse],
+            "digit": measured_digit as u8,
+            "clock_entry": clock.entry(),
+            "clock_period": clock.period(),
+        }));
+    }
+
     // A second source-bound shot exercises the projector-outcome path itself.
     // Its Gram and measured masses are certified before the SIC collapse.
     device.begin(&source, &base, 1)?;
@@ -74,6 +112,7 @@ fn execute() -> Result<serde_json::Value, String> {
         "masses":witness.masses.map(|m| m.to_string()),
         "reconstruction_residual":witness.reconstruction.maximum_residual.to_string(),
         "reconstruction_tolerance":witness.reconstruction.tolerance.to_string(),
+        "coordinate_support_clock_cases":support_clock_cases,
         "sic_outcome_mask":sic_mask,
         "sic_outcome_gram":sic_witness.gram.iter().map(|(re,im)| [re.to_string(),im.to_string()]).collect::<Vec<_>>(),
         "sic_outcome_masses":sic_witness.masses.map(|m| m.to_string()),
