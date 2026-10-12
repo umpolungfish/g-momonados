@@ -6,6 +6,12 @@ use g_momonados::{
 use num_bigint::BigUint;
 use num_traits::{ToPrimitive, Zero};
 use serde_json::{json, Value};
+use g_momonados::word_tape::WordTape;
+fn square_residue(value: &BigUint, source: &BigUint) -> Result<BigUint,String> {
+    let value = WordTape::from_canonical_word(&word(value)).ok_or("invalid prepared power word")?;
+    let source = WordTape::from_canonical_word(&word(source)).ok_or("invalid prepared source word")?;
+    numeral(value.mul(&value).divmod(&source).ok_or("prepared power crossed zero source")?.1.as_word())
+}
 fn word(n: &BigUint) -> String {
     encode_cell_binary(&Nat::from_bits_le(
         (0..n.bits()).map(|b| n.bit(b)).collect(),
@@ -14,6 +20,7 @@ fn word(n: &BigUint) -> String {
 fn index(n: usize) -> String {
     word(&BigUint::from(n))
 }
+pub fn word_for_record(n: &BigUint) -> String { word(n) }
 fn wires(w: &[usize]) -> Vec<String> {
     w.iter().map(|&v| index(v)).collect()
 }
@@ -29,7 +36,7 @@ fn compile_legacy(p: &Value) -> Result<Value, String> {
         p["radix_word"].as_str().ok_or("missing radix")?,
     )?;
     let bits = radix.bits_le().len() - 1;
-    let arithmetic = ModularMultiply::new(&n)?;
+    let arithmetic = ModularMultiply::new_phase_register(&n)?;
     let powers = p["prepared_operator"]["controlled_power_words"]
         .as_array()
         .ok_or("missing powers")?;
@@ -38,7 +45,7 @@ fn compile_legacy(p: &Value) -> Result<Value, String> {
         let multiplier = numeral(power.as_str().ok_or("nonword power")?)?;
         let mut register = Vec::new();
         let mut operations = Vec::new();
-        for (lane, value) in [(0, multiplier.clone()), (1, &multiplier * &multiplier % &n)] {
+        for (lane, value) in [(0, multiplier.clone()), (1, square_residue(&multiplier,&n)?)] {
             arithmetic.emit_ququart_nested_radix(&value,lane,bits,|operation| {
                 operations.push(match operation {
                     NestedOperation::ModularAdd {register:r,digit,value,modulus,controls:c}=> {
@@ -71,7 +78,7 @@ pub fn compile(p: &Value) -> Result<Value, String> {
         p["radix_word"].as_str().ok_or("missing radix")?,
     )?;
     let bits = radix.bits_le().len() - 1;
-    let arithmetic = ModularMultiply::new(&n)?;
+    let arithmetic = ModularMultiply::new_phase_register(&n)?;
     let powers = p["prepared_operator"]["controlled_power_words"]
         .as_array()
         .ok_or("missing powers")?;
@@ -84,7 +91,7 @@ pub fn compile(p: &Value) -> Result<Value, String> {
         let multiplier = numeral(power.as_str().ok_or("nonword power")?)?;
         let mut stage_references = Vec::new();
         let mut stage_register = Vec::new();
-        for (lane, value) in [(0, multiplier.clone()), (1, &multiplier * &multiplier % &n)] {
+        for (lane, value) in [(0, multiplier.clone()), (1, square_residue(&multiplier,&n)?)] {
             arithmetic.emit_ququart_nested_radix(&value, lane, bits, |operation| {
                 let encoded = match operation {
                     NestedOperation::ModularAdd {
@@ -231,6 +238,16 @@ fn decode_legacy(p: &Value) -> Result<Vec<(BigUint, Vec<NestedOperation>)>, Stri
 }
 
 pub fn decode(p: &Value) -> Result<g_momonados::ququart_folded_work::PreparedModularWork, String> {
+    decode_record(p,true)
+}
+
+/// Load an operation pool whose recovery was checked before compilation.
+/// The baked run imports these exact references and does not regenerate work.
+pub fn load_prepared(p: &Value) -> Result<g_momonados::ququart_folded_work::PreparedModularWork,String> {
+    decode_record(p,false)
+}
+
+fn decode_record(p: &Value, verify: bool) -> Result<g_momonados::ququart_folded_work::PreparedModularWork,String> {
     use g_momonados::ququart_folded_work::PreparedModularWork;
     let source = number(&p["source_word"])?;
     let radix = g_momonados::ququart_factor::power_of_two_radix_word(
@@ -251,7 +268,7 @@ pub fn decode(p: &Value) -> Result<g_momonados::ququart_folded_work::PreparedMod
             operations,
             stages,
         };
-        validate_recovery(p, &prepared)?;
+        if verify { validate_recovery(p, &prepared)?; }
         return Ok(prepared);
     }
     let work = &p["prepared_work"];
@@ -282,7 +299,7 @@ pub fn decode(p: &Value) -> Result<g_momonados::ququart_folded_work::PreparedMod
         operations,
         stages,
     };
-    validate_recovery(p, &prepared)?;
+    if verify { validate_recovery(p, &prepared)?; }
     Ok(prepared)
 }
 
@@ -305,14 +322,22 @@ fn validate_recovery(
         .iter()
         .map(number)
         .collect::<Result<Vec<_>, _>>()?;
-    let schedule =
-        g_momonados::ququart_factor::QuquartPowerSchedule::from_prepared(&source, &base, powers)?;
+    let source_word = WordTape::from_canonical_word(&word(&source)).ok_or("invalid recovery source word")?;
+    let mut expected = WordTape::from_canonical_word(&word(&base)).ok_or("invalid recovery base word")?;
+    for (height,power) in powers.iter().enumerate() {
+        if WordTape::from_canonical_word(&word(power)).ok_or("invalid recovery power word")? != expected
+            || prepared.stages.get(height).map(|stage| &stage.0)!=Some(power) {
+            return Err(format!("prepared power changed at stack height {height}"));
+        }
+        let square = expected.mul(&expected).divmod(&source_word).unwrap().1;
+        expected = square.mul(&square).divmod(&source_word).unwrap().1;
+    }
     if number(&p["prepared_operator"]["phase_digits_word"])?
-        != BigUint::from(schedule.powers().len())
+        != BigUint::from(powers.len())
     {
         return Err("prepared work height differs from its phase register".into());
     }
-    prepared.verify_recovery(&source, &base, digit_bits, schedule.powers().len())
+    prepared.verify_recovery(&source, &base, digit_bits, powers.len())
 }
 
 #[cfg(test)]

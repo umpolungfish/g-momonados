@@ -127,6 +127,60 @@ pub fn factor(n: &WordTape, b1: u64, b2: u64, device: usize, sigma: u64, curves:
     Ok(Some(candidate))
 }
 
+/// N-only low product relation on the existing GPU IMASM arithmetic. Candidate
+/// addresses enumerate all low pairs internally; no reference factors enter.
+pub fn product_prefix_support(n: &WordTape, columns: usize, device: usize)
+    -> Result<Vec<(u64, u64)>, String> {
+    if columns == 0 || columns > 8 || columns > n.bit_len() {
+        return Err("GPU product prefix requires one to eight source columns".into());
+    }
+    let count = 1usize << (2*columns);
+    let (ctx, module) = backend(device, columns+2)?;
+    let stream = ctx.default_stream();
+    let function = module.load_function("product_prefix_support").map_err(|e| e.to_string())?;
+    let source = arms(n, n.bit_len());
+    let input = stream.clone_htod(&source[..columns]).map_err(|e| e.to_string())?;
+    let mut support = stream.clone_htod(&vec![EVALT; count]).map_err(|e| e.to_string())?;
+    let columns_i32 = columns as i32;
+    let count_i32 = count as i32;
+    let mut launch = stream.launch_builder(&function);
+    launch.arg(&input).arg(&columns_i32).arg(&count_i32).arg(&mut support);
+    let cfg = LaunchConfig { grid_dim: ((count as u32).div_ceil(4),1,1),
+        block_dim: (128,1,1), shared_mem_bytes: 0 };
+    unsafe { launch.launch(cfg) }.map_err(|e| e.to_string())?;
+    let support = stream.clone_dtoh(&support).map_err(|e| e.to_string())?;
+    let mask = (1u64 << columns)-1;
+    let mut pairs = Vec::new();
+    for (address, mark) in support.into_iter().enumerate() {
+        match mark {
+            EVALF => pairs.push(((address as u64)>>columns, address as u64 & mask)),
+            EVALT => {},
+            _ => return Err("GPU product support returned an invalid parity mark".into()),
+        }
+    }
+    Ok(pairs)
+}
+
+#[cfg(test)]
+mod product_support_tests {
+    use super::*;
+    #[test]
+    #[ignore = "requires live CUDA devices"]
+    fn device_support_matches_every_modular_pair_and_source_control() {
+        for n in [17u64, 32, 91, 143] {
+            let word = WordTape::from_small(n);
+            for columns in [1usize, 4, 8.min(word.bit_len())] {
+                let pairs = product_prefix_support(&word, columns, 0).unwrap();
+                let modulus = 1u64 << columns;
+                let expected: Vec<_> = (0..modulus).flat_map(|p|
+                    (0..modulus).filter_map(move |q|
+                        (p*q % modulus == n % modulus).then_some((p,q)))).collect();
+                assert_eq!(pairs, expected, "N={n},columns={columns}");
+            }
+        }
+    }
+}
+
 pub fn run(raw: &str, b1: u64, b2: u64, device: usize, sigma: u64, curves: u32) -> String {
     let Some(n)=WordTape::from_canonical_word(raw) else {
         return "gpu_ecm: expected a canonical IMASM numeral word".into();

@@ -1,6 +1,7 @@
 //! Shared complex-amplitude decision branches for a coherent work register.
 //! Equal branches share storage; gates act on the diagram without enumerating residues.
 use crate::phase_unbraid::{FixedComplex, FixedPointFormat};
+use crate::word_tape::{SignedWordTape, WordTape};
 use alloc::{sync::Arc, vec::Vec};
 #[cfg(any(test, not(feature = "hosted")))]
 use alloc::collections::BTreeMap;
@@ -14,6 +15,13 @@ use core::sync::atomic::{AtomicU64, Ordering};
 pub static VOX_MODULAR_COUNTERS: [AtomicU64; 4] = [
     AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
 ];
+#[cfg_attr(not(test), no_mangle)]
+pub static VOX_DIGIT_PREFIX_COUNTERS: [AtomicU64;3] = [AtomicU64::new(0),AtomicU64::new(0),AtomicU64::new(0)];
+pub fn digit_prefix_counts() -> (u64,u64,u64) {
+    (VOX_DIGIT_PREFIX_COUNTERS[0].load(Ordering::Relaxed),
+     VOX_DIGIT_PREFIX_COUNTERS[1].load(Ordering::Relaxed),
+     VOX_DIGIT_PREFIX_COUNTERS[2].load(Ordering::Relaxed))
+}
 
 #[cfg(feature = "hosted")]
 type OperationCache<K, V> = std::collections::HashMap<K, V,
@@ -113,7 +121,7 @@ impl NodeIndex {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Node {
-    Leaf(BigInt, BigInt),
+    Leaf(SignedWordTape, SignedWordTape),
     Branch {
         wire: usize,
         low: usize,
@@ -121,10 +129,139 @@ enum Node {
     },
 }
 
+impl Node {
+    // Compatibility boundary for prepared coefficients and existing observers.
+    // Resident leaves and all leaf arithmetic retain the IMASM word rails.
+    fn leaf(re: BigInt, im: BigInt) -> Self {
+        Self::Leaf(SignedWordTape::from_bigint(&re), SignedWordTape::from_bigint(&im))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use num_traits::One;
+
+    #[cfg(feature="hosted")]
+    #[test]
+    fn compiled_support_preserves_locked_source_register_and_reversible_recovery() {
+        use crate::baked_resident::{BakedNode,BakedSupport,BakedSignedWord,BakedWordComplex};
+        let source=WordTape::from_canonical_word(include_str!(
+            "../measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm").trim()).unwrap();
+        assert!(source.bit_len()>=200);
+        let mut original=DecisionArena::new(source.bit_len());
+        let base=source.to_biguint();
+        let a=original.basis(&base,BigInt::from(3));
+        let b=original.basis(&(&base^BigUint::one()),BigInt::from(-5));
+        let root=original.sum(a,b);
+        let record=original.prepared_record(root);
+        let signed=|row:&serde_json::Value| {
+            let value=SignedWordTape::from_prepared_record(row).unwrap();
+            BakedSignedWord {negative:value.is_negative(),
+                word:Box::leak(value.magnitude().as_word().to_owned().into_boxed_str())}
+        };
+        let rows:Vec<_>=record["nodes"].as_array().unwrap().iter().map(|row| {
+            if row.get("re").is_some() {BakedNode::Leaf(BakedWordComplex {re:signed(&row["re"]),im:signed(&row["im"])})}
+            else {BakedNode::Branch {wire:row["wire"].as_u64().unwrap() as usize,
+                low:row["low"].as_u64().unwrap() as usize,high:row["high"].as_u64().unwrap() as usize}}
+        }).collect();
+        let mut limbs=Vec::new();
+        let mut spans=Vec::new();
+        for row in record["support_masks"].as_array().unwrap() {
+            let digits:Vec<u32>=row.as_array().unwrap().iter().map(|n|n.as_u64().unwrap() as u32).collect();
+            let start=limbs.len();limbs.extend(digits);spans.push((start,limbs.len()));
+        }
+        let fixed:Vec<_>=record["fixed"].as_array().unwrap().iter().map(|row|
+            (row[0].as_bool().unwrap(),row[1].as_u64().unwrap() as usize,row[2].as_u64().unwrap() as usize)).collect();
+        let support=BakedSupport {limbs:Box::leak(limbs.into_boxed_slice()),
+            spans:Box::leak(spans.into_boxed_slice()),fixed:Box::leak(fixed.into_boxed_slice())};
+        let (mut imported,imported_root)=DecisionArena::from_baked_nodes(source.bit_len(),
+            record["root"].as_u64().unwrap() as usize,&rows,&support).unwrap();
+        assert_eq!(imported.prepared_record(imported_root),record);
+        let changed=imported.flip(imported_root,source.bit_len()-1);
+        let recovered=imported.flip(changed,source.bit_len()-1);
+        assert_eq!(recovered,imported_root);
+        for value in [&base,&(&base^BigUint::one())] {
+            assert_eq!(imported.amplitude(recovered,value),original.amplitude(root,value));
+        }
+        let mut corrupt=record.clone();
+        let last=corrupt["fixed"].as_array().unwrap().len()-1;
+        corrupt["fixed"][last][0]=serde_json::json!(true);
+        assert!(DecisionArena::from_prepared_record(&corrupt).is_err());
+    }
+
+    #[test]
+    fn locked_source_digit_prefixes_preserve_joint_complex_branches_and_recovery() {
+        let source=WordTape::from_canonical_word(include_str!(
+            "../measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm").trim()).unwrap();
+        assert!(source.bit_len()>=200);
+        let n=source.to_biguint();let width=source.bit_len();let cells=width+9;
+        let register:Vec<_>=(0..width).collect();let digit:Vec<_>=(width..width+8).collect();
+        let control=width+8;
+        let seed=source.truncate(8).to_biguint().to_u32_digits()[0] as u8;
+        for (first_digit,second_digit) in [(0u8,0u8),(seed,seed),(seed,seed^128)] {
+            let mut arena=DecisionArena::new(cells);let mut root=arena.zero();
+            let states=[(&n >> 2usize,first_digit,true,3i64,2i64),
+                (&n >> 1usize,second_digit,true,-5,7),
+                ((&n >> 2usize)*3u8,first_digit,false,11,-1)];
+            let basis=|value:&BigUint,d:u8,enabled:bool| value
+                | (BigUint::from(d)<<width) | (BigUint::from(enabled as u8)<<control);
+            for (value,d,enabled,re,im) in &states {
+                let point=basis(value,*d,*enabled);
+                let zero=arena.zero();let leaf=arena.intern(Node::leaf(BigInt::from(*re),BigInt::from(*im)));
+                let literals:Vec<_>=(0..cells).map(|wire|(wire,point.bit(wire as u64))).collect();
+                let branch=arena.conditional_literals(zero,leaf,&literals);
+                root=arena.sum(root,branch);
+            }
+            let before=digit_prefix_counts();
+            let changed=crate::reentry_powerset::bind_one(root,|root|Ok::<_,()>(
+                arena.modular_digit_add(root,&register,&digit,&BigUint::from(2u8),&n,&[(control,true)]))).unwrap();
+            let after=digit_prefix_counts();
+            if first_digit==0 && second_digit==0 {
+                assert_eq!(changed,root);
+                assert_eq!(after.1-before.1,1);
+                assert_eq!(after.2-before.2,0);
+            } else {assert!(after.2-before.2<=16,"unvisited prefix words were materialized");}
+            for (value,d,enabled,re,im) in &states {
+                let output=if *enabled {(value+BigUint::from(2u16*(*d as u16)))%&n} else {value.clone()};
+                assert_eq!(arena.amplitude(changed,&basis(&output,*d,*enabled)),(BigInt::from(*re),BigInt::from(*im)));
+            }
+            let recovered=arena.modular_digit_add(changed,&register,&digit,&(&n-2u8),&n,&[(control,true)]);
+            assert_eq!(recovered,root);
+        }
+    }
+
+    #[test]
+    fn imported_disjoint_support_preserves_every_signed_complex_amplitude() {
+        let mut left = DecisionArena::new(2);
+        let zero = left.zero();
+        let mut l = zero;
+        for value in 0u8..4 {
+            let leaf = left.intern(Node::leaf(BigInt::from(value+1), -BigInt::from(value+3)));
+            let mut branch = leaf;
+            for wire in (0..2).rev() {
+                branch = if value>>wire & 1 == 1 { left.branch(wire,zero,branch) }
+                    else { left.branch(wire,branch,zero) };
+            }
+            l = left.sum(l, branch);
+        }
+        let mut right = DecisionArena::new(2);
+        let r = right.basis(&BigUint::from(3u8), BigInt::from(-7));
+        let mut joint = DecisionArena::new(4);
+        let a = joint.import_shifted(&left,l,0).unwrap();
+        let b = joint.import_shifted(&right,r,2).unwrap();
+        let joined = joint.amplitude_product(a,b);
+        assert_eq!(joint.mass(joined), left.mass(l)*right.mass(r));
+        for first in 0u8..4 {
+            for second in 0u8..4 {
+                let (ar,ai) = left.amplitude(l,&BigUint::from(first));
+                let (br,bi) = right.amplitude(r,&BigUint::from(second));
+                assert_eq!(joint.amplitude(joined,&BigUint::from(first | second<<2)),
+                    (&ar*&br-&ai*&bi, ar*bi+ai*br));
+            }
+        }
+        assert!(joint.import_shifted(&left,l,3).is_err());
+    }
 
     fn rsa_arena() -> DecisionArena {
         let source = BigUint::parse_bytes(
@@ -149,6 +286,45 @@ mod tests {
         let denominator = BigUint::from(10u8);
         assert_eq!(arena.sample_prefix(root, 2, &BigUint::one(), &denominator).unwrap(), BigUint::zero());
         assert_eq!(arena.sample_prefix(root, 2, &BigUint::from(9u8), &denominator).unwrap(), BigUint::from(3u8));
+    }
+
+    #[test]
+    fn sic_matrix_operation_preserves_complex_coherence_and_work_ancestry() {
+        let mut arena = DecisionArena::new(3);
+        let first = arena.basis(&BigUint::zero(), BigInt::one());
+        let imaginary = arena.basis(&BigUint::one(), BigInt::one());
+        let imaginary = arena.scale_words(imaginary,
+            &(SignedWordTape::zero(), SignedWordTape::from_small(1)), 0);
+        let other_work = arena.basis(&BigUint::from(6u8), BigInt::from(2u8));
+        let root = arena.sum(first, imaginary);
+        let root = arena.sum(root, other_work);
+        let zero = arena.zero();
+        let mut aligned = [zero;4];
+        for (label, arm) in aligned.iter_mut().enumerate() {
+            *arm = arena.conditional_literals(zero,root,
+                &[(0,label&1 != 0),(1,label&2 != 0)]);
+            for bit in 0..2 { if label&(1<<bit) != 0 { *arm = arena.flip(*arm,bit); } }
+        }
+        let gram = arena.control_gram(&aligned);
+        let frame = crate::anyon_ququart::FixedQuquartSic::new(
+            &FixedPointFormat::for_modulus_bits(12).unwrap()).unwrap();
+        let masses = frame.gram_mass_numerators(&gram).unwrap();
+        let recovered = frame.certify_gram_frame_unrounded_masses(&gram,&masses).unwrap();
+        let matrix = core::array::from_fn(|entry| {
+            let (re,im) = &recovered.rounded.recovered[4*(entry%4)+entry/4];
+            (SignedWordTape::from_bigint(re),SignedWordTape::from_bigint(im))
+        });
+        let result = arena.apply_control_matrix(root,[0,1],&matrix).unwrap();
+        for address in 0u8..8 {
+            let expected = match address {
+                0 => (BigInt::from(2),BigInt::zero()),
+                1 => (BigInt::zero(),BigInt::from(2)),
+                6 => (BigInt::from(8),BigInt::zero()),
+                _ => (BigInt::zero(),BigInt::zero()),
+            };
+            assert_eq!(arena.amplitude(result,&BigUint::from(address)), expected);
+        }
+        assert!(arena.apply_control_matrix(root,[1,0],&matrix).is_err());
     }
 
     #[test]
@@ -221,7 +397,7 @@ mod tests {
                     let address = if enabled { value | (BigUint::one() << width) } else { value.clone() };
                     let re = &scale * (index+1);
                     let im = -&scale * (index+2);
-                    let mut basis = arena.intern(Node::Leaf(re.clone(),im.clone()));
+                    let mut basis = arena.intern(Node::leaf(re.clone(),im.clone()));
                     for wire in (0..arena.cells).rev() {
                         basis = if address.bit(wire as u64) { arena.branch(wire,z,basis) }
                             else { arena.branch(wire,basis,z) };
@@ -281,7 +457,7 @@ mod tests {
                             let re = BigInt::from(1+index+13*usize::from(enabled)+29*usize::from(tag));
                             let im = -BigInt::from(7+3*index+17*usize::from(enabled)+31*usize::from(tag));
                             let location = address(value,enabled,tag);
-                            let mut basis = arena.intern(Node::Leaf(re.clone(),im.clone()));
+                            let mut basis = arena.intern(Node::leaf(re.clone(),im.clone()));
                             for wire in (0..cells).rev() {
                                 basis = if location.bit(wire as u64) {arena.branch(wire,z,basis)}
                                     else {arena.branch(wire,basis,z)};
@@ -359,7 +535,7 @@ mod tests {
         for value in 0u64..128 {
             let basis = arena.basis(&BigUint::from(value),BigInt::from(value+1));
             // Give every address a distinct non-real amplitude.
-            let mut imaginary = arena.intern(Node::Leaf(BigInt::zero(),BigInt::from(2*value+7)));
+            let mut imaginary = arena.intern(Node::leaf(BigInt::zero(),BigInt::from(2*value+7)));
             for wire in (0..7).rev() {
                 imaginary = if value & (1 << wire) != 0 { arena.branch(wire,z,imaginary) }
                     else { arena.branch(wire,imaginary,z) };
@@ -406,7 +582,7 @@ mod tests {
                         | (BigUint::from(u8::from(enabled)) << 13usize);
                     let amplitude = (BigInt::from(ordinal+3),-BigInt::from(ordinal+11));
                     ordinal += 1;
-                    let mut basis = arena.intern(Node::Leaf(amplitude.0.clone(),amplitude.1.clone()));
+                    let mut basis = arena.intern(Node::leaf(amplitude.0.clone(),amplitude.1.clone()));
                     for wire in (0..arena.cells).rev() {
                         basis = if address.bit(wire as u64) { arena.branch(wire,zero,basis) }
                             else { arena.branch(wire,basis,zero) };
@@ -443,7 +619,7 @@ mod tests {
         let z = arena.zero();
         let right = arena.basis(&y, BigInt::from(7));
         // Use distinct exact complex coordinates without a fixed-point rounding seam.
-        let amplitude = arena.intern(Node::Leaf(BigInt::from(3), BigInt::from(5)));
+        let amplitude = arena.intern(Node::leaf(BigInt::from(3), BigInt::from(5)));
         let mut complex_left = amplitude;
         for wire in (0..400).rev() {
             complex_left = if x.bit(wire as u64) { arena.branch(wire, z, complex_left) }
@@ -478,23 +654,51 @@ mod tests {
 // Empty support masks are value zero, with no allocation or atomic references.
 // Nonempty masks still share immutable storage and copy on mutation.
 #[derive(Clone)]
-struct SupportMask(Option<Arc<BigUint>>);
-impl core::ops::Deref for SupportMask {
-    type Target = BigUint;
-    fn deref(&self) -> &BigUint {
-        self.0.as_deref().unwrap_or(&BigUint::ZERO)
-    }
+enum SupportStorage {
+    Owned(Arc<BigUint>),
+    Compiled(&'static [u32]),
 }
+#[derive(Clone)]
+struct SupportMask(Option<SupportStorage>);
 impl SupportMask {
+    #[cfg(test)]
+    fn is_zero(&self) -> bool {self.0.is_none()}
+    fn bit(&self, wire:u64) -> bool {
+        match &self.0 {
+            None=>false,
+            Some(SupportStorage::Owned(value))=>value.bit(wire),
+            Some(SupportStorage::Compiled(digits))=>usize::try_from(wire/32).ok()
+                .and_then(|index|digits.get(index)).is_some_and(|digit|digit & (1u32 << (wire%32))!=0),
+        }
+    }
+    fn value(&self) -> BigUint {
+        match &self.0 {
+            None=>BigUint::zero(),
+            Some(SupportStorage::Owned(value))=>(**value).clone(),
+            Some(SupportStorage::Compiled(digits))=>BigUint::new(digits.to_vec()),
+        }
+    }
     fn intersection(&self, other: &Self) -> Self {
         let (Some(left),Some(right)) = (&self.0,&other.0) else { return Self(None); };
-        if Arc::ptr_eq(left,right) { return self.clone(); }
-        let value = &**left & &**right;
-        if value.is_zero() { Self(None) } else { Self(Some(Arc::new(value))) }
+        let value=match (left,right) {
+            (SupportStorage::Owned(left),SupportStorage::Owned(right))=>{
+                if Arc::ptr_eq(left,right) {return self.clone();}
+                &**left & &**right
+            }
+            (SupportStorage::Compiled(left),SupportStorage::Compiled(right))=>{
+                if core::ptr::eq(*left,*right) {return self.clone();}
+                BigUint::new(left.iter().zip(*right).map(|(a,b)|a&b).collect())
+            }
+            _=>self.value() & other.value(),
+        };
+        if value.is_zero() { Self(None) } else { Self(Some(SupportStorage::Owned(Arc::new(value)))) }
     }
     fn set_bit(&mut self, wire: u64) {
-        let storage = self.0.get_or_insert_with(|| Arc::new(BigUint::zero()));
-        Arc::make_mut(storage).set_bit(wire,true);
+        if self.bit(wire) {return;}
+        if !matches!(self.0,Some(SupportStorage::Owned(_))) {
+            self.0=Some(SupportStorage::Owned(Arc::new(self.value())));
+        }
+        if let Some(SupportStorage::Owned(storage))=&mut self.0 {Arc::make_mut(storage).set_bit(wire,true);}
     }
 }
 
@@ -519,16 +723,6 @@ pub struct DecisionArena {
     unique: NodeIndex,
     empty_fixed: FixedBits,
     pub cells: usize,
-}
-
-fn integer_sqrt(value: &BigUint) -> BigUint {
-    if value < &BigUint::from(2u8) { return value.clone(); }
-    let mut root = BigUint::one() << value.bits().div_ceil(2) as usize;
-    loop {
-        let next = (&root + value / &root) >> 1usize;
-        if next >= root { return root; }
-        root = next;
-    }
 }
 
 impl DecisionArena {
@@ -590,6 +784,9 @@ impl DecisionArena {
                 fixed
             }
         };
+        self.intern_fixed(node, fixed)
+    }
+    fn intern_fixed(&mut self, node: Node, fixed: FixedBits) -> usize {
         if let Node::Branch { low, high, .. } = &node {
             self.references[*low] += 1;
             self.references[*high] += 1;
@@ -643,7 +840,104 @@ impl DecisionArena {
         pending
     }
     pub fn zero(&mut self) -> usize {
-        self.intern(Node::Leaf(BigInt::zero(), BigInt::zero()))
+        self.intern(Node::Leaf(SignedWordTape::zero(), SignedWordTape::zero()))
+    }
+    /// Import a retained amplitude function into a disjoint cell range.
+    /// Unaddressed cells remain free; no basis branches are enumerated.
+    pub fn import_shifted(&mut self, source: &Self, root: usize, offset: usize)
+        -> Result<usize, String> {
+        if offset.checked_add(source.cells).is_none_or(|end| end > self.cells) {
+            return Err("imported decision register exceeds its carrier".into());
+        }
+        fn visit(target: &mut DecisionArena, source: &DecisionArena, root: usize,
+            offset: usize, memo: &mut OperationCache<usize, usize>) -> usize {
+            if let Some(&result) = memo.get(&root) { return result; }
+            let result = match source.node(root) {
+                Node::Leaf(re, im) => target.intern(Node::Leaf(re.clone(), im.clone())),
+                Node::Branch { wire, low, high } => {
+                    let low = visit(target, source, *low, offset, memo);
+                    let high = visit(target, source, *high, offset, memo);
+                    target.branch(wire+offset, low, high)
+                }
+            };
+            memo.insert(root, result);
+            result
+        }
+        Ok(visit(self, source, root, offset, &mut OperationCache::default()))
+    }
+
+    /// Multiply amplitude functions pointwise. On disjoint imported ranges
+    /// this is their tensor product in one resident diagram.
+    pub fn amplitude_product(&mut self, first: usize, second: usize) -> usize {
+        fn visit(arena: &mut DecisionArena, first: usize, second: usize,
+            memo: &mut OperationCache<(usize,usize), usize>) -> usize {
+            if let Some(&result) = memo.get(&(first,second)) { return result; }
+            let result = match (arena.node(first).clone(), arena.node(second).clone()) {
+                (Node::Leaf(ar,ai), Node::Leaf(br,bi)) =>
+                    arena.intern(Node::Leaf(ar.mul(&br).sub(&ai.mul(&bi)),
+                        ar.mul(&bi).add(&ai.mul(&br)))),
+                _ => {
+                    let wire = match (arena.top(first), arena.top(second)) {
+                        (Some(a),Some(b)) => a.min(b),
+                        (Some(a),None) | (None,Some(a)) => a,
+                        _ => unreachable!(),
+                    };
+                    let (al,ah) = arena.split(first,wire);
+                    let (bl,bh) = arena.split(second,wire);
+                    let low = visit(arena,al,bl,memo);
+                    let high = visit(arena,ah,bh,memo);
+                    arena.branch(wire,low,high)
+                }
+            };
+            memo.insert((first,second),result);
+            result
+        }
+        visit(self,first,second,&mut OperationCache::default())
+    }
+
+    /// Rename physical cells without changing any amplitude or free branch.
+    /// Selectors restore canonical ordering when the permutation crosses wires.
+    pub fn permuted(&self, root: usize, wires: &[usize]) -> Result<(Self, usize), String> {
+        let mut sorted = wires.to_vec();
+        sorted.sort_unstable();
+        if sorted != (0..self.cells).collect::<Vec<_>>() {
+            return Err("register permutation must retain every cell exactly once".into());
+        }
+        fn visit(source: &DecisionArena, target: &mut DecisionArena, id: usize,
+            wires: &[usize], fixed: &[Option<bool>], memo: &mut OperationCache<usize, usize>) -> usize {
+            if let Some(&result) = memo.get(&id) { return result; }
+            let result = match source.node(id) {
+                Node::Leaf(re, im) => target.intern(Node::Leaf(re.clone(), im.clone())),
+                Node::Branch { wire, low, high } => {
+                    if let Some(value) = fixed[*wire] {
+                        visit(source,target,if value { *high } else { *low },wires,fixed,memo)
+                    } else {
+                        let low = visit(source, target, *low, wires, fixed, memo);
+                        let high = visit(source, target, *high, wires, fixed, memo);
+                        let wire = wires[*wire];
+                        if target.top(low).is_none_or(|child| child>wire)
+                            && target.top(high).is_none_or(|child| child>wire) {
+                            target.branch(wire,low,high)
+                        } else { target.conditional_literals(low, high, &[(wire, true)]) }
+                    }
+                }
+            };
+            memo.insert(id, result);
+            result
+        }
+        let mut target = Self::new(self.cells);
+        let support = &self.fixed[root];
+        let fixed: Vec<_> = (0..self.cells).map(|wire|
+            if support.empty { None }
+            else if support.zero.bit(wire as u64) { Some(false) }
+            else if support.one.bit(wire as u64) { Some(true) } else { None }).collect();
+        let root = visit(self, &mut target, root, wires, &fixed, &mut OperationCache::default());
+        let mut literals: Vec<_> = fixed.iter().enumerate().filter_map(|(wire,value)|
+            value.map(|value| (wires[wire],value))).collect();
+        literals.sort_unstable();
+        let zero = target.zero();
+        let root = target.conditional_literals(zero,root,&literals);
+        Ok((target, root))
     }
     fn branch(&mut self, wire: usize, low: usize, high: usize) -> usize {
         assert!(wire < self.cells, "split/fuse wire exceeds its register");
@@ -670,7 +964,7 @@ impl DecisionArena {
     }
     pub fn basis(&mut self, value: &BigUint, scale: BigInt) -> usize {
         let z = self.zero();
-        let mut root = self.intern(Node::Leaf(scale, BigInt::zero()));
+        let mut root = self.intern(Node::leaf(scale, BigInt::zero()));
         for wire in (0..self.cells).rev() {
             root = if value.bit(wire as u64) {
                 self.branch(wire, z, root)
@@ -681,14 +975,20 @@ impl DecisionArena {
         root
     }
     pub fn scale(&mut self, id: usize, scalar: &FixedComplex, format: &FixedPointFormat) -> usize {
-        if scalar.re.is_zero() && scalar.im.is_zero() {
+        self.scale_words(id, &(SignedWordTape::from_bigint(&scalar.re),
+            SignedWordTape::from_bigint(&scalar.im)), format.w_bits as usize)
+    }
+
+    pub(crate) fn scale_words(&mut self, id: usize,
+        scalar: &(SignedWordTape, SignedWordTape), fractional_bits: usize) -> usize {
+        if scalar.0.is_zero() && scalar.1.is_zero() {
             return self.zero();
         }
         fn visit(
             a: &mut DecisionArena,
             id: usize,
-            scalar: &FixedComplex,
-            f: &FixedPointFormat,
+            scalar: &(SignedWordTape, SignedWordTape),
+            fractional_bits: usize,
             memo: &mut OperationCache<usize, usize>,
         ) -> usize {
             if let Some(r) = memo.get(&id) {
@@ -696,19 +996,54 @@ impl DecisionArena {
             }
             let r = match a.node(id).clone() {
                 Node::Leaf(re, im) => {
-                    let z = FixedComplex { re, im }.mul(scalar, f);
-                    a.intern(Node::Leaf(z.re, z.im))
+                    let real = re.mul(&scalar.0).sub(&im.mul(&scalar.1))
+                        .rounded_shr(fractional_bits);
+                    let imaginary = re.mul(&scalar.1).add(&im.mul(&scalar.0))
+                        .rounded_shr(fractional_bits);
+                    a.intern(Node::Leaf(real, imaginary))
                 }
                 Node::Branch { wire, low, high } => {
-                    let low = visit(a, low, scalar, f, memo);
-                    let high = visit(a, high, scalar, f, memo);
+                    let low = visit(a, low, scalar, fractional_bits, memo);
+                    let high = visit(a, high, scalar, fractional_bits, memo);
                     a.branch(wire, low, high)
                 }
             };
             memo.insert(id, r);
             r
         }
-        visit(self, id, scalar, format, &mut OperationCache::default())
+        visit(self, id, scalar, fractional_bits, &mut OperationCache::default())
+    }
+
+    /// A complete complex coordinate operator on two cells of the resident
+    /// register. Work branches stay attached while the four control arms are
+    /// aligned, transformed and returned to their original cell addresses.
+    pub(crate) fn apply_control_matrix(&mut self, root: usize, wires: [usize; 2],
+        matrix: &[(SignedWordTape, SignedWordTape); 16]) -> Result<usize, String> {
+        if wires[0] >= wires[1] || wires[1] >= self.cells {
+            return Err("coordinate operator needs two ordered resident cells".into());
+        }
+        let zero = self.zero();
+        let mut aligned = [zero; 4];
+        for (label, arm) in aligned.iter_mut().enumerate() {
+            let controls = [(wires[0], label & 1 != 0), (wires[1], label & 2 != 0)];
+            *arm = self.conditional_literals(zero, root, &controls);
+            for (wire, active) in controls {
+                if active { *arm = self.flip(*arm, wire); }
+            }
+        }
+        let mut result = zero;
+        for row in 0..4 {
+            let mut arm = zero;
+            for col in 0..4 {
+                let transformed = self.scale_words(aligned[col], &matrix[4*row+col], 0);
+                arm = self.sum(arm, transformed);
+            }
+            for (bit, wire) in wires.into_iter().enumerate() {
+                if row & (1 << bit) != 0 { arm = self.flip(arm, wire); }
+            }
+            result = self.sum(result, arm);
+        }
+        Ok(result)
     }
 
     /// Apply one normalized Hadamard to a wire of the shared register. The
@@ -716,9 +1051,15 @@ impl DecisionArena {
     /// wire is treated as the equal low/high pair it denotes.
     pub fn hadamard(&mut self, root: usize, wire: usize, format: &FixedPointFormat) -> Result<usize, String> {
         if wire >= self.cells { return Err("Hadamard wire exceeds decision register".into()); }
-        let scale = format.scale().to_biguint().ok_or("Hadamard scale is not positive")?;
-        let inverse_sqrt_two = integer_sqrt(&(&scale * &scale / 2u8));
-        let scalar = FixedComplex { re: BigInt::from(inverse_sqrt_two), im: BigInt::zero() };
+        let scale = WordTape::one_at(format.w_bits as usize);
+        let inverse_sqrt_two = scale.mul(&scale).shr1().isqrt();
+        let scalar = FixedComplex { re: BigInt::from(inverse_sqrt_two.to_biguint()), im: BigInt::zero() };
+        self.hadamard_with_scalar(root,wire,format,&scalar)
+    }
+
+    pub(crate) fn hadamard_with_scalar(&mut self, root: usize, wire: usize,
+        format: &FixedPointFormat, scalar: &FixedComplex) -> Result<usize,String> {
+        if wire >= self.cells { return Err("Hadamard wire exceeds decision register".into()); }
         fn visit(a: &mut DecisionArena, id: usize, wire: usize, scalar: &FixedComplex,
             format: &FixedPointFormat, memo: &mut OperationCache<usize, usize>) -> usize {
             if let Some(&result) = memo.get(&id) { return result; }
@@ -732,7 +1073,9 @@ impl DecisionArena {
                 _ => {
                     let (low, high) = a.split(id, wire);
                     let plus = a.sum(low, high);
-                    let negative_high = a.scale(high, &FixedComplex { re: -format.scale(), im: BigInt::zero() }, format);
+                    let negative_high = a.scale_words(high,
+                        &(SignedWordTape::from_magnitude(WordTape::one_at(format.w_bits as usize),true),
+                            SignedWordTape::zero()),format.w_bits as usize);
                     let minus = a.sum(low, negative_high);
                     let plus = a.scale(plus, scalar, format);
                     let minus = a.scale(minus, scalar, format);
@@ -742,7 +1085,7 @@ impl DecisionArena {
             memo.insert(id, result);
             result
         }
-        Ok(visit(self, root, wire, &scalar, format, &mut OperationCache::default()))
+        Ok(visit(self, root, wire, scalar, format, &mut OperationCache::default()))
     }
 
     /// Apply a diagonal winding only on the conjunction of the supplied
@@ -766,6 +1109,20 @@ impl DecisionArena {
     /// phase digit is measured or fed back while the transform is running.
     pub fn fourier_register(&mut self, mut root: usize, wires: &[usize], inverse: bool,
         format: &FixedPointFormat) -> Result<usize, String> {
+        self.fourier_register_with_coefficients(&mut root,wires,inverse,format,None,None)
+    }
+
+    pub(crate) fn fourier_register_prepared(&mut self, mut root: usize, wires: &[usize],
+        format: &FixedPointFormat, inverse_phases: &[FixedComplex], hadamard: &FixedComplex) -> Result<usize,String> {
+        if inverse_phases.len()!=wires.len().saturating_sub(1) {
+            return Err("prepared Fourier coefficients changed register width".into());
+        }
+        self.fourier_register_with_coefficients(&mut root,wires,true,format,Some(inverse_phases),Some(hadamard))
+    }
+
+    fn fourier_register_with_coefficients(&mut self, state: &mut usize, wires: &[usize], inverse: bool,
+        format: &FixedPointFormat, phases: Option<&[FixedComplex]>, hadamard: Option<&FixedComplex>) -> Result<usize,String> {
+        let mut root = *state;
         if wires.iter().any(|&wire| wire >= self.cells)
             || wires.windows(2).any(|pair| pair[0] >= pair[1]) {
             return Err("Fourier register wires must be ordered and in range".into());
@@ -783,11 +1140,19 @@ impl DecisionArena {
                 let target = wires[target_index];
                 for control_index in 0..target_index {
                     let control = wires[control_index];
-                    let denominator = BigUint::one() << (target_index - control_index + 1);
-                    root = self.controlled_winding(root, &[(control, true), (target, true)],
-                        &-BigInt::one(), &denominator, format)?;
+                    let controls = [(control,true),(target,true)];
+                    root = if let Some(phases) = phases {
+                        let zero = self.zero();
+                        let selected = self.conditional_literals(zero,root,&controls);
+                        let rotated = self.scale(selected,&phases[target_index-control_index-1],format);
+                        self.conditional_literals(root,rotated,&controls)
+                    } else {
+                        let denominator = WordTape::one_at(target_index-control_index+1).to_biguint();
+                        self.controlled_winding(root,&controls,&BigInt::from(-1),&denominator,format)?
+                    };
                 }
-                root = self.hadamard(root, target, format)?;
+                root = if let Some(scalar) = hadamard { self.hadamard_with_scalar(root,target,format,scalar)? }
+                    else { self.hadamard(root,target,format)? };
             }
         } else {
             for target_index in (0..wires.len()).rev() {
@@ -795,7 +1160,7 @@ impl DecisionArena {
                 root = self.hadamard(root, target, format)?;
                 for control_index in (0..target_index).rev() {
                     let control = wires[control_index];
-                    let denominator = BigUint::one() << (target_index - control_index + 1);
+                    let denominator = WordTape::one_at(target_index-control_index+1).to_biguint();
                     root = self.controlled_winding(root, &[(control, true), (target, true)],
                         &BigInt::one(), &denominator, format)?;
                 }
@@ -811,23 +1176,28 @@ impl DecisionArena {
     /// above `width` remain unobserved and are summed into each prefix mass.
     pub fn sample_prefix(&self, root: usize, width: usize, numerator: &BigUint,
         denominator: &BigUint) -> Result<BigUint, String> {
-        if width > self.cells || denominator.is_zero() || numerator >= denominator {
+        self.sample_word(root, width, &WordTape::from_biguint(numerator),
+            &WordTape::from_biguint(denominator)).map(|word| word.to_biguint())
+    }
+    pub fn sample_word(&self, root: usize, width: usize, numerator: &WordTape,
+        denominator: &WordTape) -> Result<WordTape, String> {
+        if width > self.cells || denominator.is_zero() || numerator.ge(denominator) {
             return Err("whole-register readout has an invalid width or Born quantile".into());
         }
         let mut masses = OperationCache::default();
-        let total = self.mass(root);
+        let total = self.mass_word(root);
         if total.is_zero() { return Err("whole-register readout has zero Born mass".into()); }
-        let mut rank = &total * numerator / denominator;
+        let mut rank = total.mul(numerator).divmod(denominator).unwrap().0;
         let mut current = root;
-        let mut value = BigUint::zero();
+        let mut value = WordTape::zero();
         for wire in 0..width {
             let (low, high) = self.split(current, wire);
             let low_mass = self.mass_at(low, wire + 1, &mut masses);
-            if rank < low_mass {
+            if !rank.ge(&low_mass) {
                 current = low;
             } else {
-                rank -= low_mass;
-                value.set_bit(wire as u64, true);
+                rank = rank.sub(&low_mass).unwrap();
+                value = value.add(&WordTape::one_at(wire));
                 current = high;
             }
         }
@@ -863,7 +1233,7 @@ impl DecisionArena {
                     else {
                         unreachable!()
                     };
-                    arena.intern(Node::Leaf(ar + br, ai + bi))
+                    arena.intern(Node::Leaf(ar.add(br), ai.add(bi)))
                 }
                 (x, y) => {
                     let wire = x.into_iter().chain(y).min().unwrap();
@@ -1016,15 +1386,16 @@ impl DecisionArena {
     /// Entry i,j is <work_i|work_j>; skipped wires retain their multiplicity.
     pub fn control_gram(&self, roots: &[usize;4]) -> [(BigInt,BigInt);16] {
         fn visit(a: &DecisionArena, left: usize, right: usize, depth: usize,
-            memo: &mut OperationCache<(usize,usize,usize),(BigInt,BigInt)>) -> (BigInt,BigInt) {
+            memo: &mut OperationCache<(usize,usize,usize),(SignedWordTape,SignedWordTape)>) -> (SignedWordTape,SignedWordTape) {
             if a.fixed[left].empty || a.fixed[right].empty {
-                return (BigInt::zero(),BigInt::zero());
+                return (SignedWordTape::zero(),SignedWordTape::zero());
             }
             if let Some(value) = memo.get(&(left,right,depth)) { return value.clone(); }
             let value = match (a.top(left),a.top(right)) {
                 (None,None) => {
                     let (Node::Leaf(lr,li),Node::Leaf(rr,ri)) = (a.node(left),a.node(right)) else { unreachable!() };
-                    ((lr*rr+li*ri) << (a.cells-depth),(lr*ri-li*rr) << (a.cells-depth))
+                    (lr.mul(rr).add(&li.mul(ri)).shl(a.cells-depth),
+                        lr.mul(ri).sub(&li.mul(rr)).shl(a.cells-depth))
                 }
                 (x,y) => {
                     let wire = x.into_iter().chain(y).min().unwrap();
@@ -1032,14 +1403,17 @@ impl DecisionArena {
                     let (rl,rh) = a.split(right,wire);
                     let low = visit(a,ll,rl,wire+1,memo);
                     let high = visit(a,lh,rh,wire+1,memo);
-                    ((low.0+high.0) << (wire-depth),(low.1+high.1) << (wire-depth))
+                    (low.0.add(&high.0).shl(wire-depth),low.1.add(&high.1).shl(wire-depth))
                 }
             };
             memo.insert((left,right,depth),value.clone());
             value
         }
         let mut memo = OperationCache::default();
-        core::array::from_fn(|index| visit(self,roots[index/4],roots[index%4],0,&mut memo))
+        core::array::from_fn(|index| {
+            let (re, im) = visit(self,roots[index/4],roots[index%4],0,&mut memo);
+            (re.to_bigint(), im.to_bigint())
+        })
     }
 
     /// Fuse changed and unchanged arms on the original literal controls.
@@ -1089,18 +1463,22 @@ impl DecisionArena {
     /// The final borrow is discarded only at the register's modular boundary.
     pub fn add_constant(&mut self, root: usize, register: &[usize], value: &BigUint,
         controls: &[(usize, bool)]) -> usize {
+        self.add_constant_word(root, register, &WordTape::from_biguint(value), controls)
+    }
+    fn add_constant_word(&mut self, root: usize, register: &[usize], value: &WordTape,
+        controls: &[(usize, bool)]) -> usize {
         if !self.controls_possible(root,controls) || value.is_zero() { return root; }
-        fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &BigUint,
+        fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &WordTape,
             at: usize, borrow: bool, memo: &mut OperationCache<(usize,usize,bool),usize>) -> usize {
             // Subtraction by a zero suffix with no incoming borrow is the
             // identity on every remaining register and spectator wire.
-            if !borrow && value.bits() <= at as u64 { return id; }
+            if !borrow && value.bit_len() <= at { return id; }
             if at == register.len() || matches!(arena.node(id),Node::Leaf(..)) { return id; }
             if let Some(&result) = memo.get(&(id,at,borrow)) { return result; }
             let wire = arena.top(id).unwrap().min(register[at]);
             let (low,high) = arena.split(id,wire);
             let (low,high) = if wire == register[at] {
-                let constant = value.bit(at as u64);
+                let constant = value.bit_at(at);
                 let (for_zero,for_one) = if constant ^ borrow { (high,low) } else { (low,high) };
                 (visit(arena,for_zero,register,value,at+1,constant || borrow,memo),
                  visit(arena,for_one,register,value,at+1,constant && borrow,memo))
@@ -1121,10 +1499,13 @@ impl DecisionArena {
     }
 
     fn partition_less(&mut self, root: usize, register: &[usize], value: &BigUint) -> (usize,usize) {
+        self.partition_less_word(root, register, &WordTape::from_biguint(value))
+    }
+    fn partition_less_word(&mut self, root: usize, register: &[usize], value: &WordTape) -> (usize,usize) {
         let zero = self.zero();
         let fixed = &self.fixed[root];
         if fixed.empty { return (zero,zero); }
-        if value.bits() > register.len() as u64 { return (root,zero); }
+        if value.bit_len() > register.len() { return (root,zero); }
         // The exact support masks bound every live register value. Compare
         // those bounds from the most significant wire without constructing
         // either integer or walking the amplitude diagram. An uncertain
@@ -1132,7 +1513,7 @@ impl DecisionArena {
         if let Some(less) = self.partition_suffix_bound(root,register,value,0,false) {
             return if less { (root,zero) } else { (zero,root) };
         }
-        fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &BigUint,
+        fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &WordTape,
             at: usize, less: bool, zero: usize,
             memo: &mut OperationCache<(usize,usize,bool),(usize,usize)>) -> (usize,usize) {
             if arena.fixed[id].empty { return (zero,zero); }
@@ -1146,7 +1527,7 @@ impl DecisionArena {
             let wire = arena.top(id).unwrap_or(register[at]).min(register[at]);
             let (low,high) = arena.split(id,wire);
             let (low,high) = if wire == register[at] {
-                let bit = value.bit(at as u64);
+                let bit = value.bit_at(at);
                 (visit(arena,low,register,value,at+1,bit || less,zero,memo),
                  visit(arena,high,register,value,at+1,bit && less,zero,memo))
             } else {
@@ -1162,13 +1543,13 @@ impl DecisionArena {
 
     // Compare the remaining support interval with the remaining threshold.
     // Equal suffixes inherit the subtraction borrow from the consumed prefix.
-    fn partition_suffix_bound(&self, root: usize, register: &[usize], value: &BigUint,
+    fn partition_suffix_bound(&self, root: usize, register: &[usize], value: &WordTape,
         at: usize, less: bool) -> Option<bool> {
         let fixed = &self.fixed[root];
         let mut minimum = core::cmp::Ordering::Equal;
         let mut maximum = core::cmp::Ordering::Equal;
         for (bit,&wire) in register.iter().enumerate().skip(at).rev() {
-            let boundary = value.bit(bit as u64);
+            let boundary = value.bit_at(bit);
             if minimum == core::cmp::Ordering::Equal {
                 minimum = fixed.one.bit(wire as u64).cmp(&boundary);
             }
@@ -1225,8 +1606,12 @@ impl DecisionArena {
     /// Recover both arms through the output cut before the parent can return.
     fn fuse_interval_arms(&mut self, low: usize, high: usize,
         register: &[usize], cut: &BigUint) -> usize {
+        self.fuse_interval_word(low, high, register, &WordTape::from_biguint(cut))
+    }
+    fn fuse_interval_word(&mut self, low: usize, high: usize,
+        register: &[usize], cut: &WordTape) -> usize {
         let fused = self.sum(low, high);
-        let recovered = self.partition_less(fused, register, cut);
+        let recovered = self.partition_less_word(fused, register, cut);
         debug_assert_eq!(recovered, (low, high),
             "transformed interval arms did not recover at their output cut");
         fused
@@ -1234,35 +1619,57 @@ impl DecisionArena {
 
     pub fn modular_digit_add(&mut self, root: usize, register: &[usize], digit: &[usize],
         value: &BigUint, modulus: &BigUint, controls: &[(usize,bool)]) -> usize {
+        VOX_DIGIT_PREFIX_COUNTERS[0].fetch_add(1,Ordering::Relaxed);
         if !self.controls_possible(root,controls) { return root; }
+        assert!(!modulus.is_zero(),"modular word addition requires a nonzero modulus");
+        if digit.iter().all(|&wire|self.fixed[root].zero.bit(wire as u64)) {
+            VOX_DIGIT_PREFIX_COUNTERS[1].fetch_add(1,Ordering::Relaxed);
+            return root;
+        }
+        let modulus = WordTape::from_biguint(modulus);
+        let value = WordTape::from_biguint(value).divmod(&modulus)
+            .expect("modular word addition requires a nonzero modulus").1;
         fn visit_precomputed(arena: &mut DecisionArena, root: usize, register: &[usize], digit: &[usize],
-            at: usize, mask: usize, sums: &[BigUint], modulus: &BigUint,
+            at: usize, mask: usize, places:&[WordTape], sums: &mut [Option<WordTape>], modulus: &WordTape,
             cofactors: &mut OperationCache<(usize,usize),(usize,usize)>) -> usize {
             if arena.fixed[root].empty { return root; }
-            if at == digit.len() { return arena.modular_add(root,register,&sums[mask],modulus,&[]); }
+            fn prefix(mask:usize,places:&[WordTape],sums:&mut[Option<WordTape>],modulus:&WordTape)->WordTape {
+                if let Some(value)=&sums[mask] {return value.clone();}
+                let bit=mask.trailing_zeros() as usize;
+                let previous=mask & (mask-1);
+                let value=prefix(previous,places,sums,modulus).add_mod_canonical(&places[bit],modulus);
+                sums[mask]=Some(value.clone());
+                VOX_DIGIT_PREFIX_COUNTERS[2].fetch_add(1,Ordering::Relaxed);
+                value
+            }
+            if at == digit.len() {
+                if mask==0 {return root;}
+                let value=prefix(mask,places,sums,modulus);
+                return arena.modular_add_word(root,register,&value,modulus,&[]);
+            }
             let bit = digit[at];
             if arena.fixed[root].zero.bit(bit as u64) {
-                return visit_precomputed(arena,root,register,digit,at+1,mask,sums,modulus,cofactors);
+                return visit_precomputed(arena,root,register,digit,at+1,mask,places,sums,modulus,cofactors);
             }
             let high_mask = mask | (1usize << at);
             if arena.fixed[root].one.bit(bit as u64) {
-                return visit_precomputed(arena,root,register,digit,at+1,high_mask,sums,modulus,cofactors);
+                return visit_precomputed(arena,root,register,digit,at+1,high_mask,places,sums,modulus,cofactors);
             }
             let (low,high) = arena.source_cofactors(root,bit,cofactors);
-            let low = visit_precomputed(arena,low,register,digit,at+1,mask,sums,modulus,cofactors);
-            let high = visit_precomputed(arena,high,register,digit,at+1,high_mask,sums,modulus,cofactors);
+            let low = visit_precomputed(arena,low,register,digit,at+1,mask,places,sums,modulus,cofactors);
+            let high = visit_precomputed(arena,high,register,digit,at+1,high_mask,places,sums,modulus,cofactors);
             arena.fuse_source_arms(low,high,bit)
         }
         fn visit(arena: &mut DecisionArena, root: usize, register: &[usize], digit: &[usize],
-            at: usize, accumulated: &BigUint, place: &BigUint, modulus: &BigUint,
+            at: usize, accumulated: &WordTape, place: &WordTape, modulus: &WordTape,
             cofactors: &mut OperationCache<(usize,usize),(usize,usize)>) -> usize {
             if arena.fixed[root].empty { return root; }
-            if at == digit.len() { return arena.modular_add(root,register,accumulated,modulus,&[]); }
-            let next_place = (place << 1usize) % modulus;
+            if at == digit.len() { return arena.modular_add_word(root,register,accumulated,modulus,&[]); }
+            let next_place = place.add_mod_canonical(place, modulus);
             if arena.fixed[root].zero.bit(digit[at] as u64) {
                 return visit(arena,root,register,digit,at+1,accumulated,&next_place,modulus,cofactors);
             }
-            let next_accumulated = (accumulated + place) % modulus;
+            let next_accumulated = accumulated.add_mod_canonical(place, modulus);
             if arena.fixed[root].one.bit(digit[at] as u64) {
                 return visit(arena,root,register,digit,at+1,&next_accumulated,&next_place,modulus,cofactors);
             }
@@ -1280,24 +1687,19 @@ impl DecisionArena {
         // none are reclaimed until this arithmetic operation has returned.
         let mut cofactors = OperationCache::default();
         let changed = if digit.len() <= 8 {
-            // Every branch at depth `at` reaches the same at-most-2^8 prefix
-            // sums. Compute them once instead of doing BigUint add/division at
-            // every diagram node in the recursive traversal.
+            // Retain only the prefix words reached by the same coherent
+            // diagram. A fixed digit does not construct its unused alternatives.
             let mut places = Vec::with_capacity(digit.len());
-            let mut place = value % modulus;
+            let mut place = value.clone();
             for _ in digit {
                 places.push(place.clone());
-                place = (&place << 1usize) % modulus;
+                place = place.add_mod_canonical(&place, &modulus);
             }
-            let mut sums = alloc::vec![BigUint::zero(); 1usize << digit.len()];
-            for mask in 1..sums.len() {
-                let bit = mask.trailing_zeros() as usize;
-                let previous = mask & (mask - 1);
-                sums[mask] = (&sums[previous] + &places[bit]) % modulus;
-            }
-            visit_precomputed(self,enabled,register,digit,0,0,&sums,modulus,&mut cofactors)
+            let mut sums = alloc::vec![None; 1usize << digit.len()];
+            sums[0]=Some(WordTape::zero());
+            visit_precomputed(self,enabled,register,digit,0,0,&places,&mut sums,&modulus,&mut cofactors)
         } else {
-            visit(self,enabled,register,digit,0,&BigUint::zero(),value,modulus,&mut cofactors)
+            visit(self,enabled,register,digit,0,&WordTape::zero(),&value,&modulus,&mut cofactors)
         };
         self.conditional_literals(root,changed,controls)
     }
@@ -1307,28 +1709,33 @@ impl DecisionArena {
     /// No borrow flag is materialized between the input and output boundary.
     pub fn modular_add(&mut self, root: usize, register: &[usize], value: &BigUint,
         modulus: &BigUint, controls: &[(usize,bool)]) -> usize {
+        self.modular_add_word(root, register, &WordTape::from_biguint(value),
+            &WordTape::from_biguint(modulus), controls)
+    }
+    fn modular_add_word(&mut self, root: usize, register: &[usize], value: &WordTape,
+        modulus: &WordTape, controls: &[(usize,bool)]) -> usize {
         if !self.controls_possible(root,controls) { return root; }
-        let value = value % modulus;
+        let value = value.divmod(modulus).expect("modular word addition requires a nonzero modulus").1;
         if value.is_zero() { return root; }
         VOX_MODULAR_COUNTERS[0].fetch_add(1,Ordering::Relaxed);
         VOX_MODULAR_COUNTERS[1].store(1,Ordering::Relaxed);
         VOX_MODULAR_COUNTERS[2].store(self.retained_nodes() as u64,Ordering::Relaxed);
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
-        let (valid,invalid) = self.partition_less(enabled,register,modulus);
-        let threshold = modulus - &value;
-        let (low,high) = self.partition_less(valid,register,&threshold);
+        let (valid,invalid) = self.partition_less_word(enabled,register,modulus);
+        let threshold = modulus.sub(&value).unwrap();
+        let (low,high) = self.partition_less_word(valid,register,&threshold);
         VOX_MODULAR_COUNTERS[1].store(2,Ordering::Relaxed);
-        let low = self.add_constant(low,register,&value,&[]);
+        let low = self.add_constant_word(low,register,&value,&[]);
         VOX_MODULAR_COUNTERS[1].store(3,Ordering::Relaxed);
-        let radix = BigUint::from(1u8) << register.len();
-        let high = self.add_constant(high,register,&(radix-threshold),&[]);
+        let radix = WordTape::one_at(register.len());
+        let high = self.add_constant_word(high,register,&radix.sub(&threshold).unwrap(),&[]);
         VOX_MODULAR_COUNTERS[1].store(4,Ordering::Relaxed);
         // The wrapped interval lands below value; the unwrapped interval
         // lands above it. Recovery therefore uses the transformed cut.
-        let changed = self.fuse_interval_arms(high, low, register, &value);
+        let changed = self.fuse_interval_word(high, low, register, &value);
         VOX_MODULAR_COUNTERS[1].store(5,Ordering::Relaxed);
-        let changed = self.fuse_interval_arms(changed, invalid, register, modulus);
+        let changed = self.fuse_interval_word(changed, invalid, register, modulus);
         let result = self.conditional_literals(root,changed,controls);
         VOX_MODULAR_COUNTERS[3].store(self.retained_nodes() as u64,Ordering::Relaxed);
         VOX_MODULAR_COUNTERS[1].store(0,Ordering::Relaxed);
@@ -1341,7 +1748,8 @@ impl DecisionArena {
     pub fn compare_constant(&mut self, root: usize, register: &[usize], value: &BigUint,
         controls: &[(usize,bool)], flag: usize) -> usize {
         if !self.controls_possible(root,controls) || value.is_zero() { return root; }
-        fn visit(arena: &mut DecisionArena,id: usize,register: &[usize],value: &BigUint,
+        let value = WordTape::from_biguint(value);
+        fn visit(arena: &mut DecisionArena,id: usize,register: &[usize],value: &WordTape,
             at: usize,less: bool,flag: usize,memo: &mut OperationCache<(usize,usize,bool),usize>) -> usize {
             if at == register.len() { return if less { arena.flip(id,flag) } else { id }; }
             if matches!(arena.node(id),Node::Leaf(..)) { return id; }
@@ -1349,7 +1757,7 @@ impl DecisionArena {
             let wire = arena.top(id).unwrap().min(register[at]);
             let (low,high) = arena.split(id,wire);
             let (low,high) = if wire == register[at] {
-                let constant = value.bit(at as u64);
+                let constant = value.bit_at(at);
                 (visit(arena,low,register,value,at+1,constant || less,flag,memo),
                  visit(arena,high,register,value,at+1,constant && less,flag,memo))
             } else {
@@ -1362,36 +1770,40 @@ impl DecisionArena {
         }
         let zero = self.zero();
         let enabled = self.conditional_literals(zero,root,controls);
-        let changed = visit(self,enabled,register,value,0,false,flag,&mut OperationCache::default());
+        let changed = visit(self,enabled,register,&value,0,false,flag,&mut OperationCache::default());
         self.conditional_literals(root,changed,controls)
     }
     fn mass_at(&self, root: usize, depth: usize,
-        memo: &mut OperationCache<(usize, usize), BigUint>) -> BigUint {
+        memo: &mut OperationCache<(usize, usize), WordTape>) -> WordTape {
         if let Some(mass) = memo.get(&(root, depth)) { return mass.clone(); }
         let mass = match self.node(root) {
-            Node::Leaf(re, im) => (re * re + im * im).to_biguint().unwrap() << (self.cells - depth),
+            Node::Leaf(re, im) => re.magnitude().mul(re.magnitude())
+                .add(&im.magnitude().mul(im.magnitude())).shl(self.cells - depth),
             &Node::Branch { wire, low, high } =>
-                (self.mass_at(low, wire + 1, memo) + self.mass_at(high, wire + 1, memo)) << (wire - depth),
+                self.mass_at(low, wire + 1, memo).add(&self.mass_at(high, wire + 1, memo)).shl(wire - depth),
         };
         memo.insert((root, depth), mass.clone());
         mass
     }
     pub fn mass(&self, root: usize) -> BigUint {
+        self.mass_word(root).to_biguint()
+    }
+    pub fn mass_word(&self, root: usize) -> WordTape {
         self.mass_at(root, 0, &mut OperationCache::default())
     }
     pub fn normalize(&mut self, root: usize, norm: &BigInt, scale: &BigInt) -> usize {
         fn visit(
             a: &mut DecisionArena,
             id: usize,
-            norm: &BigInt,
-            scale: &BigInt,
+            norm: &SignedWordTape,
+            scale: &SignedWordTape,
             memo: &mut OperationCache<usize, usize>,
         ) -> usize {
             if let Some(r) = memo.get(&id) {
                 return *r;
             }
             let r = match a.node(id).clone() {
-                Node::Leaf(re, im) => a.intern(Node::Leaf(re * scale / norm, im * scale / norm)),
+                Node::Leaf(re, im) => a.intern(Node::Leaf(re.mul(scale).div(norm), im.mul(scale).div(norm))),
                 Node::Branch { wire, low, high } => {
                     let low = visit(a, low, norm, scale, memo);
                     let high = visit(a, high, norm, scale, memo);
@@ -1401,7 +1813,8 @@ impl DecisionArena {
             memo.insert(id, r);
             r
         }
-        visit(self, root, norm, scale, &mut OperationCache::default())
+        visit(self, root, &SignedWordTape::from_bigint(norm), &SignedWordTape::from_bigint(scale),
+            &mut OperationCache::default())
     }
     /// Pin the new roots, release only unreachable branches, and reuse slots.
     /// No complete diagram copy or node-count/heap cutoff is involved.
@@ -1423,11 +1836,130 @@ impl DecisionArena {
     pub fn retained_nodes(&self) -> usize {
         self.nodes.len() - self.free.len()
     }
+
+    #[cfg(feature = "hosted")]
+    pub(crate) fn prepared_record(&self, root: usize) -> serde_json::Value {
+        let mut order = Vec::new();
+        let mut indices = OperationCache::default();
+        let mut masks = Vec::new();
+        let mut mask_indices = OperationCache::default();
+        let mut fixed = Vec::new();
+        let mut pending = alloc::vec![(root,false)];
+        while let Some((id,returned)) = pending.pop() {
+            if indices.contains_key(&id) { continue; }
+            if !returned {
+                pending.push((id,true));
+                if let Node::Branch { low,high,.. } = self.node(id) {
+                    pending.push((*high,false)); pending.push((*low,false));
+                }
+            } else {
+                let node = match self.node(id) {
+                    Node::Leaf(re,im) => serde_json::json!({"re":re.prepared_record(),"im":im.prepared_record()}),
+                    Node::Branch { wire,low,high } => serde_json::json!({"wire":wire,"low":indices[low],"high":indices[high]}),
+                };
+                indices.insert(id,order.len()); order.push(node);
+                let support = &self.fixed[id];
+                let mut address = |mask: &SupportMask| {
+                    let value = mask.value();
+                    if let Some(&index) = mask_indices.get(&value) { return index; }
+                    let index = masks.len();
+                    masks.push(value.to_u32_digits());
+                    mask_indices.insert(value, index);
+                    index
+                };
+                fixed.push((support.empty, address(&support.zero), address(&support.one)));
+            }
+        }
+        serde_json::json!({"cells":self.cells,"root":indices[&root],"nodes":order,
+            "support_masks":masks,"fixed":fixed})
+    }
+
+    #[cfg(feature = "hosted")]
+    pub(crate) fn from_prepared_record(record: &serde_json::Value) -> Result<(Self,usize),String> {
+        let index = |key: &str| record[key].as_u64().and_then(|n| usize::try_from(n).ok())
+            .ok_or_else(|| alloc::format!("invalid prepared register {key}"));
+        let mut arena = Self::new(index("cells")?);
+        let mut nodes = Vec::new();
+        for row in record["nodes"].as_array().ok_or("missing prepared register nodes")? {
+            let node = if row.get("re").is_some() {
+                arena.intern(Node::Leaf(SignedWordTape::from_prepared_record(&row["re"])?,
+                    SignedWordTape::from_prepared_record(&row["im"])?))
+            } else {
+                let wire = row["wire"].as_u64().and_then(|n| usize::try_from(n).ok()).ok_or("invalid prepared cell address")?;
+                let child = |key: &str| -> Result<usize,String> {
+                    row[key].as_u64().and_then(|n| usize::try_from(n).ok()).and_then(|n| nodes.get(n)).copied()
+                        .ok_or_else(|| alloc::format!("prepared {key} escaped its ancestral frame"))
+                };
+                let low = child("low")?; let high = child("high")?;
+                if wire >= arena.cells || [low,high].into_iter().any(|id| arena.top(id).is_some_and(|top| top<=wire)) {
+                    return Err("prepared register changed its cell ordering".into());
+                }
+                arena.branch(wire,low,high)
+            };
+            if let Some(fixed) = record.get("fixed") {
+                let row = fixed.get(nodes.len()).ok_or("prepared support lost its node")?;
+                let mask = |slot:usize| -> Result<BigUint,String> {
+                    let id=row[slot].as_u64().and_then(|id|usize::try_from(id).ok())
+                        .ok_or("invalid prepared support address")?;
+                    let digits=record["support_masks"][id].as_array().ok_or("prepared support escaped its pool")?
+                        .iter().map(|digit| digit.as_u64().and_then(|n|u32::try_from(n).ok())
+                            .ok_or_else(||String::from("invalid prepared support limb")))
+                        .collect::<Result<Vec<_>,String>>()?;
+                    Ok(BigUint::new(digits))
+                };
+                let actual=&arena.fixed[node];
+                if row[0].as_bool()!=Some(actual.empty) || mask(1)?!=actual.zero.value() || mask(2)?!=actual.one.value() {
+                    return Err("prepared support differs from its amplitude diagram".into());
+                }
+            }
+            nodes.push(node);
+        }
+        let root = *nodes.get(index("root")?).ok_or("prepared register lost its root")?;
+        Ok((arena,root))
+    }
+
+    pub(crate) fn from_baked_nodes(cells:usize,root:usize,rows:&[crate::baked_resident::BakedNode],support:&crate::baked_resident::BakedSupport) -> Result<(Self,usize),String> {
+        use crate::baked_resident::BakedNode;
+        if support.fixed.len()!=rows.len() {return Err("compiled support lost its register binding".into());}
+        let limbs=support.limbs;
+        let masks: Vec<_> = support.spans.iter().map(|&(start,end)| {
+            let digits=limbs.get(start..end).ok_or("compiled mask escaped its limb block")?;
+            if digits.last()==Some(&0) {return Err(String::from("compiled support lost its normalized limb boundary"));}
+            Ok(if digits.is_empty() {SupportMask(None)} else {SupportMask(Some(SupportStorage::Compiled(digits)))})
+        }).collect::<Result<_,String>>()?;
+        let mut arena=Self::new(cells);
+        arena.nodes.reserve(rows.len());
+        arena.fixed.reserve(rows.len());
+        arena.references.reserve(rows.len());
+        arena.created.reserve(rows.len());
+        let mut nodes=Vec::with_capacity(rows.len());
+        for (row,&(empty,zero,one)) in rows.iter().zip(support.fixed) {
+            let fixed=FixedBits {empty,
+                zero:masks.get(zero).ok_or("compiled zero support escaped its pool")?.clone(),
+                one:masks.get(one).ok_or("compiled one support escaped its pool")?.clone()};
+            let node=match *row {
+                BakedNode::Leaf(z)=>Node::Leaf(z.re.value()?,z.im.value()?),
+                BakedNode::Branch {wire,low,high}=>{
+                    let low=*nodes.get(low).ok_or("compiled low arm escaped its ancestry")?;
+                    let high=*nodes.get(high).ok_or("compiled high arm escaped its ancestry")?;
+                    if wire>=cells || [low,high].into_iter().any(|id|arena.top(id).is_some_and(|top|top<=wire)) {
+                        return Err("compiled register changed its cell ordering".into());
+                    }
+                    if low==high {return Err("compiled register lost its reduced branch".into());}
+                    Node::Branch {wire,low,high}
+                }
+            };
+            if arena.unique.get(&node).is_some() {return Err("compiled register repeated a reduced node".into());}
+            nodes.push(arena.intern_fixed(node,fixed));
+        }
+        let root=*nodes.get(root).ok_or("compiled register lost its root")?;
+        Ok((arena,root))
+    }
     #[cfg(test)]
     pub fn amplitude(&self, mut root: usize, value: &BigUint) -> (BigInt, BigInt) {
         loop {
             match self.node(root) {
-                Node::Leaf(re, im) => return (re.clone(), im.clone()),
+                Node::Leaf(re, im) => return (re.to_bigint(), im.to_bigint()),
                 &Node::Branch { wire, low, high } => {
                     root = if value.bit(wire as u64) { high } else { low }
                 }

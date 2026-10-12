@@ -75,7 +75,7 @@ impl FixedPointFormat {
         Self::for_modulus_bits(modulus_bits)
     }
 
-    pub fn scale(&self) -> BigInt { BigInt::one() << self.w_bits as usize }
+    pub fn scale(&self) -> BigInt { BigInt::from(WordTape::one_at(self.w_bits as usize).to_biguint()) }
 
     pub fn encode_f64(&self, value: f64) -> Result<BigInt, String> {
         if !value.is_finite() { return Err("cannot encode a non-finite fixed-point value".into()); }
@@ -120,6 +120,62 @@ pub struct FixedComplex {
     pub im: BigInt,
 }
 
+use crate::word_tape::{SignedWordTape, WordTape};
+
+fn word_round_div(value: &SignedWordTape, divisor: &SignedWordTape) -> SignedWordTape {
+    let half = divisor.abs().shr(1);
+    let rounded = value.abs().add(&half).div(&divisor.abs());
+    if value.is_negative() ^ divisor.is_negative() { rounded.negate() } else { rounded }
+}
+
+fn word_arctan_reciprocal(denominator: u64, scale: &SignedWordTape) -> SignedWordTape {
+    let divisor = SignedWordTape::from_small(denominator);
+    let square = divisor.mul(&divisor);
+    let mut power = scale.div(&divisor);
+    let mut sum = SignedWordTape::zero();
+    let mut odd = SignedWordTape::from_small(1);
+    let two = SignedWordTape::from_small(2);
+    let mut positive = true;
+    while !power.is_zero() {
+        let term = power.div(&odd);
+        if term.is_zero() { break; }
+        sum = if positive { sum.add(&term) } else { sum.sub(&term) };
+        power = power.div(&square);
+        odd = odd.add(&two);
+        positive = !positive;
+    }
+    sum
+}
+
+fn word_pi(scale: &SignedWordTape) -> SignedWordTape {
+    word_arctan_reciprocal(5, scale).mul(&SignedWordTape::from_small(16))
+        .sub(&word_arctan_reciprocal(239, scale).mul(&SignedWordTape::from_small(4)))
+}
+
+fn word_sincos(angle: &SignedWordTape, scale: &SignedWordTape) -> (SignedWordTape, SignedWordTape) {
+    let angle_squared = word_round_div(&angle.mul(angle), scale);
+    let mut sine_sum = angle.clone();
+    let mut sine_term = angle.clone();
+    let mut cosine_sum = scale.clone();
+    let mut cosine_term = scale.clone();
+    let one = SignedWordTape::from_small(1);
+    let two = SignedWordTape::from_small(2);
+    let mut even = two.clone();
+    let mut subtract = true;
+    loop {
+        let sine_divisor = even.mul(&even.add(&one));
+        sine_term = word_round_div(&word_round_div(&sine_term.mul(&angle_squared), scale), &sine_divisor);
+        let cosine_divisor = even.sub(&one).mul(&even);
+        cosine_term = word_round_div(&word_round_div(&cosine_term.mul(&angle_squared), scale), &cosine_divisor);
+        if sine_term.is_zero() && cosine_term.is_zero() { break; }
+        if subtract { sine_sum = sine_sum.sub(&sine_term); cosine_sum = cosine_sum.sub(&cosine_term); }
+        else { sine_sum = sine_sum.add(&sine_term); cosine_sum = cosine_sum.add(&cosine_term); }
+        even = even.add(&two);
+        subtract = !subtract;
+    }
+    (cosine_sum, sine_sum)
+}
+
 impl FixedComplex {
     /// A rational winding, exp(2 pi i numerator / denominator), evaluated at
     /// the source-derived fixed precision. Reduce before trigonometry so even
@@ -137,19 +193,18 @@ impl FixedComplex {
         format: &FixedPointFormat,
     ) -> Result<Vec<Self>, String> {
         if denominator.is_zero() { return Err("winding denominator is zero".into()); }
-        let denominator = BigInt::from(denominator.clone());
+        let denominator = SignedWordTape::from_magnitude(WordTape::from_biguint(denominator), false);
         let work_bits = format.w_bits.checked_add(32).ok_or("winding precision overflow")?;
         let shift = usize::try_from(work_bits).map_err(|_| "winding precision exceeds host indexing")?;
-        let scale = BigInt::one() << shift;
-        let pi = fixed_pi(&scale);
-        let rounding = BigInt::one() << 31usize;
-        let down = |value: BigInt| if value.is_negative() { -((-value + &rounding) >> 32usize) } else { (value + &rounding) >> 32usize };
+        let scale = SignedWordTape::from_magnitude(WordTape::one_at(shift), false);
+        let pi = word_pi(&scale);
         numerators.iter().map(|numerator| {
-            let mut reduced = ((numerator % &denominator) + &denominator) % &denominator;
-            if &reduced * 2 > denominator { reduced -= &denominator; }
-            let angle = fixed_round_div(&pi * 2 * reduced, &denominator);
-            let (re, im) = fixed_sincos(&angle, &scale);
-            Ok(Self { re: down(re), im: down(im) })
+            let numerator = SignedWordTape::from_bigint(numerator);
+            let mut reduced = numerator.rem(&denominator).add(&denominator).rem(&denominator);
+            if reduced.shl(1) > denominator { reduced = reduced.sub(&denominator); }
+            let angle = word_round_div(&pi.shl(1).mul(&reduced), &denominator);
+            let (re, im) = word_sincos(&angle, &scale);
+            Ok(Self { re: re.rounded_shr(32).to_bigint(), im: im.rounded_shr(32).to_bigint() })
         }).collect()
     }
 
@@ -161,16 +216,15 @@ impl FixedComplex {
         let work_bits = format.w_bits.checked_add(32).ok_or("fixed-point trigonometry precision overflow")?;
         let work_shift = usize::try_from(work_bits).map_err(|_| "fixed-point trigonometry precision exceeds host indexing")?;
         let output_shift = usize::try_from(work_bits - format.w_bits).map_err(|_| "fixed-point guard precision exceeds host indexing")?;
-        let scale = BigInt::one() << work_shift;
-        let pi = fixed_pi(&scale);
+        let scale = SignedWordTape::from_magnitude(WordTape::one_at(work_shift), false);
+        let pi = word_pi(&scale);
         let stage_shift = usize::try_from(stage).map_err(|_| "QFT stage exceeds fixed-point phase indexing")?;
-        let round = BigInt::one() << output_shift.saturating_sub(1);
-        let round_down = |value: BigInt| if value.is_negative() { -((-value + &round) >> output_shift) } else { (value + &round) >> output_shift };
         indices.iter().map(|index| {
-            let mut angle = (&pi * BigInt::from(index.clone())) >> stage_shift;
-            if !inverse { angle = -angle; }
-            let (cosine, sine) = fixed_sincos(&angle, &scale);
-            Ok(Self { re: round_down(cosine), im: round_down(sine) })
+            let index = SignedWordTape::from_magnitude(WordTape::from_biguint(index), false);
+            let mut angle = pi.mul(&index).shr(stage_shift);
+            if !inverse { angle = angle.negate(); }
+            let (cosine, sine) = word_sincos(&angle, &scale);
+            Ok(Self { re: cosine.rounded_shr(output_shift).to_bigint(), im: sine.rounded_shr(output_shift).to_bigint() })
         }).collect()
     }
 
@@ -184,18 +238,17 @@ impl FixedComplex {
 
     pub fn mul(&self, other: &Self, format: &FixedPointFormat) -> Self {
         let shift = format.w_bits as usize;
-        let round = BigInt::one() << shift.saturating_sub(1);
-        let rounded = |value: BigInt| if value.is_negative() { -((-value + &round) >> shift) } else { (value + &round) >> shift };
+        let (ar, ai) = (SignedWordTape::from_bigint(&self.re), SignedWordTape::from_bigint(&self.im));
+        let (br, bi) = (SignedWordTape::from_bigint(&other.re), SignedWordTape::from_bigint(&other.im));
         Self {
-            re: rounded(&self.re * &other.re - &self.im * &other.im),
-            im: rounded(&self.re * &other.im + &self.im * &other.re),
+            re: ar.mul(&br).sub(&ai.mul(&bi)).rounded_shr(shift).to_bigint(),
+            im: ar.mul(&bi).add(&ai.mul(&br)).rounded_shr(shift).to_bigint(),
         }
     }
 
     pub fn half(&self) -> Self {
-        let round = BigInt::one();
-        let rounded = |value: &BigInt| if value.is_negative() { -((-value + &round) >> 1usize) } else { (value + &round) >> 1usize };
-        Self { re: rounded(&self.re), im: rounded(&self.im) }
+        Self { re: SignedWordTape::from_bigint(&self.re).rounded_shr(1).to_bigint(),
+            im: SignedWordTape::from_bigint(&self.im).rounded_shr(1).to_bigint() }
     }
 
     pub fn to_bytes(&self, format: &FixedPointFormat) -> Result<Vec<u8>, String> {
@@ -1031,13 +1084,60 @@ where F: FnMut(&mut [FixedComplex], &mut [FixedComplex], &FixedComplex, &FixedPo
 pub struct PhaseReadoutAccumulator {
     denominator: BigUint,
     source_base: Option<(BigUint, BigUint)>,
+    word_state: Option<(WordTape,WordTape,WordTape)>,
 }
 
 impl Default for PhaseReadoutAccumulator {
-    fn default() -> Self { Self { denominator: BigUint::one(), source_base: None } }
+    fn default() -> Self { Self { denominator: BigUint::one(), source_base: None, word_state:None } }
 }
 
 impl PhaseReadoutAccumulator {
+    /// The same measured-fraction closure on IMASM numeral values. The source,
+    /// base and accumulated period stay resident as words; no order is supplied.
+    pub fn close_word_fraction(&mut self, k: &WordTape, m: &WordTape,
+        base: &WordTape, source: &WordTape) -> Result<Option<(WordTape,WordTape,WordTape)>,String> {
+        let one = WordTape::one();
+        if !source.gt(&one) || base.is_zero() || m.is_zero() || k.ge(m) {
+            return Err("word phase closure lost its source or measured fraction".into());
+        }
+        if self.word_state.as_ref().is_none_or(|(n,a,_)| n!=source || a!=base) {
+            self.word_state = Some((source.clone(),base.clone(),one.clone()));
+        }
+        let mut numerator = k.clone();
+        let mut denominator = m.clone();
+        let (mut p0,mut p1) = (WordTape::zero(),one.clone());
+        let (mut q0,mut q1) = (one.clone(),WordTape::zero());
+        while !denominator.is_zero() {
+            let (coefficient,remainder) = numerator.divmod(&denominator).unwrap();
+            numerator = denominator; denominator = remainder;
+            let p = coefficient.mul(&p1).add(&p0);
+            let q = coefficient.mul(&q1).add(&q0);
+            p0=p1; p1=p.clone(); q0=q1; q1=q.clone();
+            if !q.gt(&one) || q.gt(source) { continue; }
+            let left=k.mul(&q); let right=p.mul(m);
+            let error=if left.ge(&right) { left.sub(&right).unwrap() } else { right.sub(&left).unwrap() };
+            if error.gt(&q) { continue; }
+            let retained = &mut self.word_state.as_mut().unwrap().2;
+            let common = retained.gcd(&q);
+            let order = retained.divmod(&common).unwrap().0.mul(&q);
+            if order.gt(source) { continue; }
+            *retained = order.clone();
+            if base.mod_pow(&order,source)!=Some(one.clone()) || order.bit_at(0) { continue; }
+            let half = base.mod_pow(&order.shr1(),source).unwrap();
+            if half==one || half.add(&one)==*source { continue; }
+            for difference in [half.sub(&one).unwrap(),half.add(&one)] {
+                let divisor=difference.gcd(source);
+                if !divisor.gt(&one) || !source.gt(&divisor) { continue; }
+                let (quotient,remainder)=source.divmod(&divisor).unwrap();
+                if !remainder.is_zero() || divisor.mul(&quotient)!=*source {
+                    return Err("measured word winding failed exact product closure".into());
+                }
+                return Ok(Some((order,divisor,quotient)));
+            }
+        }
+        Ok(None)
+    }
+
     pub fn close(&mut self, k: &BigUint, qubits: u64, base: &BigUint, n: &BigUint) -> Result<Option<(BigUint, BigUint, BigUint)>, String> {
         if n < &BigUint::from(2u8) || base.is_zero() || k.bits() > qubits { return Err("phase closure requires valid N, base and register bin".into()); }
         let m = BigUint::one() << usize::try_from(qubits).map_err(|_| "phase denominator exceeds host indexing")?;
@@ -1501,6 +1601,44 @@ pub fn repl_phase_unbraid(args: &[&str]) -> String {
 #[cfg(test)]
 mod phase_tests_big {
     use super::*;
+    #[test]
+    fn measured_word_fraction_closes_its_exact_source_and_rejects_wrong_winding() {
+        for (source,denominator) in [(15u64,4u64),(91,12)] {
+            let mut evidence=PhaseReadoutAccumulator::default();
+            let n=WordTape::from_small(source);
+            let base=WordTape::from_small(2);
+            assert!(evidence.close_word_fraction(&WordTape::one(),&WordTape::from_small(2),&base,&n).unwrap().is_none());
+            let (order,p,q)=evidence.close_word_fraction(&WordTape::one(),
+                &WordTape::from_small(denominator),&base,&n).unwrap().unwrap();
+            assert_eq!(base.mod_pow(&order,&n),Some(WordTape::one()));
+            assert!(p.gt(&WordTape::one()) && n.gt(&p));
+            assert_eq!(p.mul(&q),n);
+            assert!(n.divmod(&p).unwrap().1.is_zero());
+            assert!(evidence.close_word_fraction(&WordTape::from_small(denominator),
+                &WordTape::from_small(denominator),&base,&n).is_err());
+        }
+    }
+    #[test]
+    fn word_twiddles_match_retained_integer_coefficients() {
+        let format = FixedPointFormat::for_modulus_bits(20).unwrap();
+        let numerators: Vec<_> = [-11i32, 0, 1, 7, 29].into_iter().map(BigInt::from).collect();
+        let denominator = BigUint::from(37u8);
+        let words = FixedComplex::winding_twiddle_table(&numerators, &denominator, &format).unwrap();
+        // The retained integer formula is a separate comparison instrument.
+        let scale = BigInt::one() << (format.w_bits as usize + 32);
+        let pi = fixed_pi(&scale);
+        let divisor = BigInt::from(denominator);
+        let rounding = BigInt::one() << 31usize;
+        let down = |v: BigInt| if v.is_negative() { -((-v + &rounding) >> 32usize) }
+            else { (v + &rounding) >> 32usize };
+        for (numerator, word) in numerators.iter().zip(words) {
+            let mut reduced = ((numerator % &divisor) + &divisor) % &divisor;
+            if &reduced * 2u8 > divisor { reduced -= &divisor; }
+            let angle = fixed_round_div(&pi * 2u8 * reduced, &divisor);
+            let (re, im) = fixed_sincos(&angle, &scale);
+            assert_eq!(word, FixedComplex { re: down(re), im: down(im) });
+        }
+    }
     #[test]
     fn batched_winding_twiddles_equal_individual_exact_readouts() {
         let format = FixedPointFormat::for_modulus_bits(64).unwrap();

@@ -15,6 +15,16 @@ cudarc = { version = "=0.19.9", optional = true, default-features = false, featu
 # gpu_imasm_cycle.rs reads real ob3ect JSON files off disk.
 serde_json = { version = "1", optional = true }
 
+# The Cargo host build constructs the same resident modules used by the target.
+[build-dependencies]
+libm = "0.2"
+num-bigint = { version = "0.4", default-features = false }
+num-traits = { version = "0.2", default-features = false, features = ["libm"] }
+imasm_core = { path = "vendor/imasm_core", default-features = false }
+vox_core = { path = "../Vox", package = "vox", default-features = false }
+cudarc = { version = "=0.19.9", default-features = false, features = ["driver", "nvrtc", "cuda-12040", "dynamic-loading", "std"] }
+serde_json = "1"
+
 [[bin]]
 name = "g-momonados"
 path = "src/main.rs"
@@ -134,6 +144,10 @@ panic = "abort"
 lto = true
 codegen-units = 1
 opt-level = "s"
+
+# State construction executes in Cargo's host build, so optimize it too.
+[profile.release.build-override]
+opt-level = 3
 
 [lints.rust]
 warnings = "deny"

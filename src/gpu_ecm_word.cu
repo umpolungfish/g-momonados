@@ -96,6 +96,26 @@ __device__ __noinline__ void regular_mulmod(const Word &a,const Word &b,const Wo
     }
     copy(acc,out);
 }
+// One warp evaluates one internally generated low factor pair. The source
+// marks alone select support; this kernel emits a relation mask, not factors.
+extern "C" __global__ void product_prefix_support(const arm *source, int columns,
+    int count, arm *support) {
+    int pair=(blockIdx.x*blockDim.x+threadIdx.x)/32;
+    if(pair>=count) return;
+    Word p,q,modulus,target,product;
+    unsigned mask=(1u<<columns)-1;
+    small((unsigned)pair>>columns,p);
+    small((unsigned)pair&mask,q);
+    small(1ull<<columns,modulus);
+    clear(target);
+    for(int k=0;k<S;k++) {
+        int cell=32*k+lane();
+        if(cell<columns) target.v[k]=source[cell];
+    }
+    regular_mulmod(p,q,modulus,product);
+    bool matches=compare(product,target)==0;
+    if(lane()==0) support[pair]=matches?F:T;
+}
 // Montgomery multiplication with radix 2^(W-2), staying on parity arms.
 // Curve coordinates are converted once, then retained in this residue domain.
 __device__ __noinline__ void mulmod(const Word &a,const Word &b,const Word &n,Word &out) {
