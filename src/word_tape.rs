@@ -33,8 +33,15 @@ const IFIX: char = '⊡';
 const TANCH: char = '⊣';
 
 /// A numeral held as its own IMASM word.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct WordTape(pub(crate) String);
+
+impl Ord for WordTape {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering { self.compare(other) }
+}
+impl PartialOrd for WordTape {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> { Some(self.compare(other)) }
+}
 
 // ── entry/exit: the only two places BigUint appears ──────────────────────
 fn biguint_to_bits(n: &BigUint) -> Vec<bool> {
@@ -69,6 +76,17 @@ fn trim(bits: &[bool]) -> &[bool] {
 }
 
 impl WordTape {
+    fn numeral(&self) -> vox_core::fixed_point_imasm::ImasmNumeralWord {
+        vox_core::fixed_point_imasm::ImasmNumeralWord::checked(self.as_word())
+            .expect("WordTape retains canonical numeral framing")
+    }
+
+    pub(crate) fn parity_cells(&self) -> Vec<char> { self.vox_tape() }
+
+    pub(crate) fn from_parity_cells(cells: &[char]) -> Option<Self> {
+        if cells.iter().any(|cell| !matches!(cell, '⊤' | '⊥')) { return None; }
+        Some(Self::from_vox_tape(cells))
+    }
     fn vox_tape(&self) -> Vec<char> {
         self.bits_low_first().into_iter().map(|bit| if bit { EVALF } else { EVALT }).collect()
     }
@@ -104,6 +122,14 @@ impl WordTape {
         }
         if !bits.last().copied().unwrap_or(false) { return None; }
         Some(Self(word.into()))
+    }
+    /// Recover a Cargo-checked word without reparsing its prepared cells.
+    /// This is only the compiled-image boundary; external words use the full
+    /// canonical checker above. The compiler validates every interior cell.
+    pub(crate) fn from_compiled_word(word: &'static str) -> Option<Self> {
+        let body=word.strip_prefix("⊢")?.strip_suffix("⊙⊡⊣")?;
+        if !body.is_empty() && (body.len()%15!=0 || !body.ends_with("≻⋈∈⊥∋")) {return None;}
+        Some(Self(String::from(word)))
     }
     pub(crate) fn from_biguint(n: &BigUint) -> Self {
         if n.is_zero() { return Self::zero(); }
@@ -152,13 +178,18 @@ impl WordTape {
     }
 
     pub fn bit_len(&self) -> usize {
-        self.bits_low_first().len()
+        // The validated canonical alphabet uses three UTF-8 bytes per mark:
+        // one prefix, five marks per cell and three suffix marks.
+        (self.0.len()-12)/15
     }
     pub fn is_odd(&self) -> bool {
-        self.bits_low_first().first().copied().unwrap_or(false)
+        self.bit_at(0)
     }
     pub fn bit_at(&self, i: usize) -> bool {
-        self.bits_low_first().get(i).copied().unwrap_or(false)
+        if i >= self.bit_len() { return false; }
+        // Read the bound parity glyph at its cell address. No value is
+        // reconstructed and no preceding cell needs to be walked again.
+        &self.0.as_bytes()[12+15*i..15+15*i] == "⊥".as_bytes()
     }
 
     /// Low `k` bit-cells — x mod 2^k — read from the value's own word, not a
@@ -311,25 +342,65 @@ fn bits_isqrt(a: &[bool]) -> Vec<bool> {
 // ── arithmetic: word-walks over the cell bits ────────────────────────────
 impl WordTape {
     pub fn add(&self, b: &Self) -> Self {
-        Self::from_vox_tape(&vox_core::morphism_factor::add(&self.vox_tape(), &b.vox_tape()))
+        if self.is_zero() { return b.clone(); }
+        if b.is_zero() { return self.clone(); }
+        Self(vox_core::fixed_point_word_arithmetic::add(&self.numeral(), &b.numeral())
+            .expect("canonical word addition").as_str().into())
     }
     pub fn sub(&self, b: &Self) -> Option<Self> {
+        if b.is_zero() { return Some(self.clone()); }
+        if self == b { return Some(Self::zero()); }
         if !self.ge(b) { return None; }
-        Some(Self::from_vox_tape(&vox_core::morphism_factor::sub(&self.vox_tape(), &b.vox_tape())))
+        Some(Self(vox_core::fixed_point_word_arithmetic::subtract(&self.numeral(), &b.numeral())
+            .expect("ordered canonical word subtraction").as_str().into()))
     }
     pub fn mul(&self, b: &Self) -> Self {
-        Self::from_vox_tape(&vox_core::morphism_factor::mul(&self.vox_tape(), &b.vox_tape()))
+        if self.is_zero() || b.is_zero() { return Self::zero(); }
+        if self.is_one() { return b.clone(); }
+        if b.is_one() { return self.clone(); }
+        Self(vox_core::fixed_point_word_arithmetic::multiply(&self.numeral(), &b.numeral())
+            .expect("canonical word multiplication").as_str().into())
     }
     pub fn divmod(&self, b: &Self) -> Option<(Self, Self)> {
         if b.is_zero() { return None; }
-        let (q, r) = vox_core::morphism_factor::divmod(&self.vox_tape(), &b.vox_tape());
-        Some((Self::from_vox_tape(&q), Self::from_vox_tape(&r)))
+        let (q, r) = vox_core::fixed_point_word_arithmetic::divide(&self.numeral(), &b.numeral()).ok()?;
+        Some((Self(q.as_str().into()), Self(r.as_str().into())))
+    }
+
+    /// Modular powers consume the exponent's own numeral cells. Every product
+    /// and reduction remains on the existing IMASM arithmetic rails.
+    pub fn mod_pow(&self, exponent: &Self, modulus: &Self) -> Option<Self> {
+        let mut result = Self::one().divmod(modulus)?.1;
+        let mut base = self.divmod(modulus)?.1;
+        for bit in 0..exponent.bit_len() {
+            if exponent.bit_at(bit) { result = result.mul(&base).divmod(modulus)?.1; }
+            base = base.mul(&base).divmod(modulus)?.1;
+        }
+        Some(result)
+    }
+
+    pub fn gcd(&self, other: &Self) -> Self {
+        let (mut left, mut right) = (self.clone(),other.clone());
+        while !right.is_zero() {
+            let remainder = left.divmod(&right).expect("nonzero word divisor").1;
+            left = right; right = remainder;
+        }
+        left
     }
     pub fn ge(&self, b: &Self) -> bool {
-        vox_core::morphism_factor::cmp(&self.vox_tape(), &b.vox_tape()) != core::cmp::Ordering::Less
+        self.compare(b) != core::cmp::Ordering::Less
     }
     pub fn gt(&self, b: &Self) -> bool {
-        vox_core::morphism_factor::cmp(&self.vox_tape(), &b.vox_tape()) == core::cmp::Ordering::Greater
+        self.compare(b) == core::cmp::Ordering::Greater
+    }
+
+    pub fn compare(&self, b: &Self) -> core::cmp::Ordering {
+        let width = self.bit_len();
+        let other_width = b.bit_len();
+        if width != other_width { return width.cmp(&other_width); }
+        if self == b { return core::cmp::Ordering::Equal; }
+        vox_core::fixed_point_word_arithmetic::compare(&self.numeral(), &b.numeral())
+            .expect("canonical word comparison")
     }
 
     /// Shift left: insert n empty low bit-cells before the existing ones.
@@ -344,6 +415,10 @@ impl WordTape {
         let v = self.bits_low_first();
         if v.is_empty() { return Self::zero(); }
         Self::from_bits(&v[1..])
+    }
+    pub fn shr(&self, count: usize) -> Self {
+        let cells = self.bits_low_first();
+        Self::from_bits(&cells[count.min(cells.len())..])
     }
     /// A one-hot bit at a binary depth.
     pub fn one_at(bit: usize) -> Self {
@@ -361,7 +436,8 @@ impl WordTape {
 
     /// Newton square root, entirely on the word.
     pub fn isqrt(&self) -> Self {
-        Self::from_vox_tape(&vox_core::morphism_factor::isqrt(&self.vox_tape()))
+        Self(vox_core::fixed_point_word_arithmetic::sqrt_floor(&self.numeral())
+            .expect("canonical word square root").as_str().into())
     }
     /// Concavity-bounded Newton continuation from a lower floor root.
     pub(crate) fn isqrt_from(&self, lower: &Self) -> Self {
@@ -447,12 +523,202 @@ impl WordTape {
     }
 }
 
+/// Signed resident amplitude carried by positive and negative IMASM numeral
+/// rails. Cancellation walks those words; host integers appear only at the
+/// existing import/report boundaries.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct SignedWordTape {
+    positive: WordTape,
+    negative: WordTape,
+}
+
+impl SignedWordTape {
+    #[cfg(feature = "hosted")]
+    pub(crate) fn prepared_record(&self) -> serde_json::Value {
+        serde_json::json!({"direction":if self.is_negative() { "≺" } else { "≻" },
+            "magnitude_word":self.magnitude().as_word()})
+    }
+    #[cfg(feature = "hosted")]
+    pub(crate) fn from_prepared_record(record: &serde_json::Value) -> Result<Self,String> {
+        let magnitude = WordTape::from_canonical_word(record["magnitude_word"].as_str()
+            .ok_or("prepared amplitude lost its IMASM word")?).ok_or("invalid prepared amplitude word")?;
+        let negative = match record["direction"].as_str() {
+            Some("≺") => true, Some("≻") => false, _ => return Err("invalid prepared amplitude direction".into()),
+        };
+        Ok(Self::from_magnitude(magnitude,negative))
+    }
+    pub(crate) fn from_magnitude(magnitude: WordTape, negative: bool) -> Self {
+        if negative {
+            Self { positive: WordTape::zero(), negative: magnitude }
+        } else { Self { positive: magnitude, negative: WordTape::zero() } }
+    }
+    pub(crate) fn from_small(value: u64) -> Self {
+        Self::from_magnitude(WordTape::from_small(value), false)
+    }
+    pub(crate) fn abs(&self) -> Self { Self::from_magnitude(self.magnitude().clone(), false) }
+    fn rails(positive: WordTape, negative: WordTape) -> Self {
+        if negative.is_zero() { return Self { positive,negative }; }
+        if positive.is_zero() { return Self { positive,negative }; }
+        if positive.ge(&negative) {
+            Self { positive: positive.sub(&negative).unwrap(), negative: WordTape::zero() }
+        } else {
+            Self { positive: WordTape::zero(), negative: negative.sub(&positive).unwrap() }
+        }
+    }
+    pub(crate) fn zero() -> Self {
+        Self { positive: WordTape::zero(), negative: WordTape::zero() }
+    }
+    pub(crate) fn from_bigint(value: &num_bigint::BigInt) -> Self {
+        let magnitude = WordTape::from_biguint(value.magnitude());
+        if value.sign() == num_bigint::Sign::Minus {
+            Self { positive: WordTape::zero(), negative: magnitude }
+        } else { Self { positive: magnitude, negative: WordTape::zero() } }
+    }
+    pub(crate) fn to_bigint(&self) -> num_bigint::BigInt {
+        let sign = if self.is_negative() { num_bigint::Sign::Minus } else { num_bigint::Sign::Plus };
+        num_bigint::BigInt::from_biguint(sign, self.magnitude().to_biguint())
+    }
+    pub(crate) fn is_zero(&self) -> bool { self.positive.is_zero() && self.negative.is_zero() }
+    pub(crate) fn is_negative(&self) -> bool { !self.negative.is_zero() }
+    pub(crate) fn magnitude(&self) -> &WordTape {
+        if self.is_negative() { &self.negative } else { &self.positive }
+    }
+    pub(crate) fn add(&self, other: &Self) -> Self {
+        Self::rails(self.positive.add(&other.positive), self.negative.add(&other.negative))
+    }
+    pub(crate) fn negate(&self) -> Self {
+        Self { positive: self.negative.clone(), negative: self.positive.clone() }
+    }
+    pub(crate) fn sub(&self, other: &Self) -> Self { self.add(&other.negate()) }
+    pub(crate) fn mul(&self, other: &Self) -> Self {
+        let magnitude = self.magnitude().mul(other.magnitude());
+        if self.is_negative() ^ other.is_negative() {
+            Self { positive: WordTape::zero(), negative: magnitude }
+        } else { Self { positive: magnitude, negative: WordTape::zero() } }
+    }
+    pub(crate) fn div(&self, other: &Self) -> Self {
+        let magnitude = self.magnitude().divmod(other.magnitude())
+            .expect("signed word division requires a nonzero divisor").0;
+        if self.is_negative() ^ other.is_negative() {
+            Self { positive: WordTape::zero(), negative: magnitude }
+        } else { Self { positive: magnitude, negative: WordTape::zero() } }
+    }
+    pub(crate) fn rem(&self, other: &Self) -> Self {
+        let remainder = self.magnitude().divmod(other.magnitude())
+            .expect("signed word remainder requires a nonzero divisor").1;
+        Self::from_magnitude(remainder, self.is_negative())
+    }
+    /// Signed right shift retains the floor convention of the existing fixed
+    /// precision interface, including a negative value with low residue cells.
+    pub(crate) fn shr(&self, count: usize) -> Self {
+        let mut magnitude = self.magnitude().shr(count);
+        if self.is_negative() && !self.magnitude().truncate(count).is_zero() {
+            magnitude = magnitude.add(&WordTape::one());
+        }
+        Self::from_magnitude(magnitude, self.is_negative())
+    }
+    pub(crate) fn shl(&self, count: usize) -> Self {
+        Self { positive: self.positive.shl(count), negative: self.negative.shl(count) }
+    }
+    pub(crate) fn rounded_shr(&self, count: usize) -> Self {
+        if count == 0 { return self.clone(); }
+        let magnitude = self.magnitude().add(&WordTape::one_at(count - 1)).shr(count);
+        if self.is_negative() {
+            Self { positive: WordTape::zero(), negative: magnitude }
+        } else { Self { positive: magnitude, negative: WordTape::zero() } }
+    }
+}
+
+impl Ord for SignedWordTape {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        match (self.is_negative(), other.is_negative()) {
+            (true, false) => core::cmp::Ordering::Less,
+            (false, true) => core::cmp::Ordering::Greater,
+            (true, true) => other.magnitude().compare(self.magnitude()),
+            (false, false) => self.magnitude().compare(other.magnitude()),
+        }
+    }
+}
+impl PartialOrd for SignedWordTape {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> { Some(self.cmp(other)) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use num_traits::One;
 
     fn b(n: u64) -> BigUint { BigUint::from(n) }
+
+    #[test]
+    fn word_product_split_matches_dense_and_unequal_width_operands() {
+        let mut random = 1729u64;
+        for (left_bits,right_bits) in [(63,64),(64,65),(127,200),(512,513),(1024,65)] {
+            let mut make_operand = |bits: usize| {
+                let mut value = BigUint::zero();
+                for bit in 0..bits {
+                    random ^= random<<13; random ^= random>>7; random ^= random<<17;
+                    if random&1 != 0 { value.set_bit(bit as u64,true); }
+                }
+                value.set_bit((bits-1) as u64,true);
+                value
+            };
+            let left = make_operand(left_bits);
+            let right = make_operand(right_bits);
+            assert_eq!(WordTape::from_biguint(&left).mul(&WordTape::from_biguint(&right)).to_biguint(), &left*&right);
+        }
+    }
+
+    #[test]
+    fn word_square_root_retains_wide_square_and_neighbor_boundaries() {
+        let root = (BigUint::one()<<256usize) + (BigUint::one()<<127usize) + BigUint::from(37u8);
+        let square = &root*&root;
+        for (input, expected) in [
+            (square.clone(),root.clone()),
+            (&square+BigUint::one(),root.clone()),
+            (&square-BigUint::one(),&root-BigUint::one()),
+        ] {
+            assert_eq!(WordTape::from_biguint(&input).isqrt().to_biguint(), expected);
+        }
+        let word = WordTape::from_biguint(&root);
+        for bit in 0..300 { assert_eq!(word.bit_at(bit),root.bit(bit as u64)); }
+        assert_eq!(word.bit_len(),257);
+        assert!(!WordTape::zero().bit_at(0));
+    }
+
+    #[test]
+    fn signed_residual_rails_preserve_wide_arithmetic_and_rounding() {
+        use num_bigint::BigInt;
+        let a = -(BigInt::one() << 223usize) + BigInt::from(17);
+        let b = (BigInt::one() << 219usize) + BigInt::from(31);
+        let left = SignedWordTape::from_bigint(&a);
+        let right = SignedWordTape::from_bigint(&b);
+        assert_eq!(left.add(&right).to_bigint(), &a + &b);
+        assert_eq!(left.sub(&right).to_bigint(), &a - &b);
+        assert_eq!(left.mul(&right).to_bigint(), &a * &b);
+        assert_eq!(left.div(&right).to_bigint(), &a / &b);
+        assert!(left.add(&left.negate()).is_zero());
+        assert!(WordTape::from_canonical_word(left.magnitude().as_word()).is_some());
+        for value in [-7i32, -6, -5, 0, 5, 6, 7] {
+            let word = SignedWordTape::from_bigint(&BigInt::from(value));
+            let rounded = if value < 0 { -((-value + 2) / 4) } else { (value + 2) / 4 };
+            assert_eq!(word.rounded_shr(2).to_bigint(), BigInt::from(rounded));
+        }
+    }
+
+    #[test]
+    fn word_division_closes_a_wide_operand_and_remainder() {
+        let dividend = WordTape::one_at(223).add(&WordTape::from_small(19));
+        let divisor = WordTape::one_at(111).add(&WordTape::from_small(7));
+        let (quotient, remainder) = dividend.divmod(&divisor).unwrap();
+        assert_eq!(quotient.mul(&divisor).add(&remainder), dividend);
+        assert!(!remainder.ge(&divisor));
+        // Independent host arithmetic is confined to this comparison instrument.
+        let expected = dividend.to_biguint();
+        let d = divisor.to_biguint();
+        assert_eq!(quotient.to_biguint(), &expected / &d);
+        assert_eq!(remainder.to_biguint(), &expected % &d);
+    }
 
     fn check_roundtrip(vals: &[u64]) {
         for &v in vals {

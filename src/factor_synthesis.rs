@@ -4,6 +4,7 @@ use alloc::{string::String, vec::Vec};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 use crate::whole_register_phase::{WholeRegisterPhaseExecutor, WholeRegisterPhaseReadout};
+use crate::word_tape::WordTape;
 
 pub struct RetainedArmProbe {
     source: BigUint,
@@ -18,6 +19,10 @@ pub struct FactorReturn {
 }
 
 impl RetainedArmProbe {
+    pub fn from_word(source: &WordTape) -> Result<Self,String> {
+        Self::new(source.to_biguint())
+    }
+
     pub fn joint_progress(&self) -> Option<(usize, usize, usize)> {
         self.quantum.as_ref()?.streaming_progress()
     }
