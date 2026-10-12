@@ -114,6 +114,7 @@ name = "g_momonados"
 path = "src/lib.rs"
 
 [features]
+carrier-observation = ["vox_core/carrier-profile"]
 # G-mOMonadOS is mOMonadOS ported to run as a GPU-native build: hosted is
 # not an opt-in mode here, it is the only mode, on by default so plain
 # `cargo build` (no --target, no --features) produces the binary that

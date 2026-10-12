@@ -9,13 +9,64 @@ mod support;
 use g_momonados::anyon_ququart::QuquartDigit;
 use g_momonados::ququart_factor::{QuquartFactorExecutor, QuquartPhaseDevice};
 use g_momonados::ququart_folded_work::QuquartFoldedWorkDevice;
+use g_momonados::ququart_reentry_clock::RuntimeClock;
 use num_bigint::BigUint;
 use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 
+#[path = "../../../p4rakernel/bridge/client.rs"]
+#[allow(dead_code)]
+mod lean_kernel;
+
 const BACKEND: &str = "contracted_fibonacci_ququart";
+
+fn y_reentry_orientation_word(prepared: &Value, y_fixed_point: u8, digits: usize)
+    -> Result<Vec<(bool, bool)>, String>
+{
+    let clock = RuntimeClock::from_record(prepared.get("phase_reentry_clock")
+        .ok_or("physical operator lacks the certified phase re-entry clock")?)?;
+    let read_states = |key: &str| -> Result<Vec<u8>, String> {
+        prepared.get(key).and_then(Value::as_array).ok_or_else(|| format!("missing {key}"))?
+            .iter().map(|state| state.as_u64().filter(|state| *state < 16)
+                .map(|state| state as u8).ok_or_else(|| format!("invalid state in {key}")))
+            .collect()
+    };
+    let source_states = read_states("phase_source_states")?;
+    let clock_states = read_states("phase_clock_states")?;
+    if source_states.is_empty() || source_states.len() != clock_states.len() {
+        return Err("phase source and re-entry clock words differ in length".into());
+    }
+    let mut base = Vec::with_capacity(digits);
+    for (&source_state, &clock_state) in source_states.iter().zip(&clock_states) {
+        if clock.step(source_state) != clock_state {
+            return Err("phase coordinate differs from its retained re-entry step".into());
+        }
+        let pair = (clock_state & 2 != 0, clock_state & 4 != 0);
+        base.extend(core::iter::repeat(pair).take(4));
+    }
+    if base.len() < digits {
+        let extra = digits - base.len();
+        if extra > base.len() { return Err("phase schedule exceeds the re-entry motif prefix".into()); }
+        let prefix = base[..extra].to_vec();
+        base.extend(prefix);
+    }
+    if base.len() != digits { return Err("re-entry motif word differs from the phase schedule".into()); }
+    let recorded = prepared.get("phase_orientation_pairs").and_then(Value::as_array)
+        .ok_or("physical operator lacks its source-bound orientation word")?;
+    let recorded: Vec<(bool, bool)> = recorded.iter().map(|pair| {
+        let pair = pair.as_array().ok_or("phase orientation pair must be an array")?;
+        if pair.len() != 2 { return Err("phase orientation pair must contain two flags".into()); }
+        Ok((pair[0].as_bool().ok_or("phase orientation flag must be Boolean")?,
+            pair[1].as_bool().ok_or("phase orientation flag must be Boolean")?))
+    }).collect::<Result<_, String>>()?;
+    if recorded != base { return Err("orientation word differs from re-entered motif coordinates".into()); }
+    let y_forward = y_fixed_point & 2 != 0;
+    let y_return = y_fixed_point & 4 != 0;
+    Ok(base.into_iter().map(|(forward, inverse)|
+        (forward ^ y_forward, inverse ^ y_return)).collect())
+}
 
 fn word(value: &BigUint) -> String {
     let natural = g_momonados::godel_calculus::Nat::from_bits_le(
@@ -91,21 +142,24 @@ fn factor(stream: &mut UnixStream, request: &Value, directory: &Path) -> Result<
     if prepared.get("prepared_operator").is_none() {
         return Err("factor requires a contracted physical operator".into());
     }
+    let y_fixed_point = lean_kernel::ensure_default()
+        .map_err(|error| format!("Lean Y/re-entry admission: {error}"))?;
     let (bound_source, matrix, metrics) = support::contract(&prepared)?;
     if bound_source != source {
         return Err("physical operator belongs to a different source".into());
     }
     let mut prepared = prepared;
     let schedule = g_momonados::ququart_factor::QuquartPowerSchedule::prepare(&source, &base)?;
+    let orientations = y_reentry_orientation_word(&prepared, y_fixed_point, schedule.powers().len())?;
     prepared["base_word"] = json!(word(&base));
     prepared["seed_word"] = json!(word(&BigUint::from(1729u32)));
     prepared["prepared_operator"]["phase_digits_word"] =
         json!(word(&BigUint::from(schedule.powers().len())));
     prepared["prepared_operator"]["controlled_power_words"] = json!(
         schedule.powers().iter().map(word).collect::<Vec<_>>());
-    let pooled_work = support::work::compile(&prepared)?;
-    prepared["prepared_work"] = pooled_work;
-    let work = support::work::decode(&prepared)?;
+    // Emit each nested multiplier when its phase slot executes. Expanding the
+    // complete source schedule into a retained pool costs more memory than the
+    // measured path and delays the first phase digit.
     let radix = prepared["radix_word"].as_str().ok_or("physical operator lacks the work radix")?;
     let inner = QuquartFoldedWorkDevice::new_interleaved_radix(
         source.clone(), matrix, 1729, radix)?;
@@ -114,12 +168,16 @@ fn factor(stream: &mut UnixStream, request: &Value, directory: &Path) -> Result<
         "physical_exchanges":metrics.exchanges, "producer_pid":std::process::id(),
         "max_shots":shot_limit}))?;
     let device = ProgressDevice {
-        inner:inner.with_prepared_work(work), stream:stream.try_clone().map_err(|e| e.to_string())?,
+        inner, stream:stream.try_clone().map_err(|e| e.to_string())?,
         source:source.to_string(), digits:0, expected:0, shots:0,
     };
     let mut executor = QuquartFactorExecutor::new(device);
     for _ in 0..shot_limit {
-        let shot = executor.shot(&source, &base)?;
+        let shot = executor.shot_with_orientations(&source, &base, Some(&orientations))?;
+        send(stream, json!({"event":"phase_readout", "source":source.to_string(),
+            "shot":executor.device().shots, "digits":orientations.len(),
+            "numerator":shot.phase.numerator().to_string(),
+            "denominator":shot.phase.denominator()?.to_string()}))?;
         if let Some(closure) = shot.closure {
             let (p, q) = closure.factors();
             if p <= &BigUint::from(1u8) || q <= &BigUint::from(1u8) || p * q != source {

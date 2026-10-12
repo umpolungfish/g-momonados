@@ -5,7 +5,7 @@ use alloc::{sync::Arc, vec::Vec};
 #[cfg(any(test, not(feature = "hosted")))]
 use alloc::collections::BTreeMap;
 use num_bigint::{BigInt, BigUint};
-use num_traits::Zero;
+use num_traits::{One, Zero};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 // Native Vox reads these while the process is stopped. They do not enter
@@ -131,6 +131,47 @@ mod tests {
             b"1156514714917773145849996001252587703581994899993461612691909", 10).unwrap();
         assert!(source.bits() >= 200);
         DecisionArena::new(source.bits() as usize + 2)
+    }
+
+    #[test]
+    fn whole_register_readout_keeps_interference_and_marginalizes_work_wires() {
+        let source = BigUint::from(15u8);
+        let format = FixedPointFormat::for_modulus(&source).unwrap();
+        let mut arena = DecisionArena::new(4);
+        let mut root = arena.basis(&BigUint::zero(), format.scale());
+        root = arena.hadamard(root, 0, &format).unwrap();
+        root = arena.hadamard(root, 1, &format).unwrap();
+        root = arena.controlled_winding(root, &[(0, true), (1, true)],
+            &BigInt::one(), &BigUint::from(2u8), &format).unwrap();
+        root = arena.hadamard(root, 0, &format).unwrap();
+        root = arena.hadamard(root, 1, &format).unwrap();
+
+        let denominator = BigUint::from(10u8);
+        assert_eq!(arena.sample_prefix(root, 2, &BigUint::one(), &denominator).unwrap(), BigUint::zero());
+        assert_eq!(arena.sample_prefix(root, 2, &BigUint::from(9u8), &denominator).unwrap(), BigUint::from(3u8));
+    }
+
+    #[test]
+    fn whole_register_readout_rejects_partial_or_out_of_range_requests() {
+        let source = BigUint::from(15u8);
+        let format = FixedPointFormat::for_modulus(&source).unwrap();
+        let mut arena = DecisionArena::new(2);
+        let root = arena.basis(&BigUint::zero(), format.scale());
+        assert!(arena.hadamard(root, 2, &format).is_err());
+        assert!(arena.sample_prefix(root, 3, &BigUint::zero(), &BigUint::one()).is_err());
+        assert!(arena.sample_prefix(root, 2, &BigUint::one(), &BigUint::one()).is_err());
+    }
+
+    #[test]
+    fn full_fourier_alignment_round_trips_one_joint_basis_register() {
+        let source = BigUint::from(15u8);
+        let format = FixedPointFormat::for_modulus(&source).unwrap();
+        let mut arena = DecisionArena::new(3);
+        let root = arena.basis(&BigUint::from(5u8), format.scale());
+        let wires = [0, 1, 2];
+        let transformed = arena.fourier_register(root, &wires, false, &format).unwrap();
+        let recovered = arena.fourier_register(transformed, &wires, true, &format).unwrap();
+        assert_eq!(arena.sample_prefix(recovered, 3, &BigUint::one(), &BigUint::from(2u8)).unwrap(), BigUint::from(5u8));
     }
 
     #[test]
@@ -479,6 +520,17 @@ pub struct DecisionArena {
     empty_fixed: FixedBits,
     pub cells: usize,
 }
+
+fn integer_sqrt(value: &BigUint) -> BigUint {
+    if value < &BigUint::from(2u8) { return value.clone(); }
+    let mut root = BigUint::one() << value.bits().div_ceil(2) as usize;
+    loop {
+        let next = (&root + value / &root) >> 1usize;
+        if next >= root { return root; }
+        root = next;
+    }
+}
+
 impl DecisionArena {
     pub fn new(cells: usize) -> Self {
         Self {
@@ -657,6 +709,129 @@ impl DecisionArena {
             r
         }
         visit(self, id, scalar, format, &mut OperationCache::default())
+    }
+
+    /// Apply one normalized Hadamard to a wire of the shared register. The
+    /// decision diagram remains one correlated amplitude function; a skipped
+    /// wire is treated as the equal low/high pair it denotes.
+    pub fn hadamard(&mut self, root: usize, wire: usize, format: &FixedPointFormat) -> Result<usize, String> {
+        if wire >= self.cells { return Err("Hadamard wire exceeds decision register".into()); }
+        let scale = format.scale().to_biguint().ok_or("Hadamard scale is not positive")?;
+        let inverse_sqrt_two = integer_sqrt(&(&scale * &scale / 2u8));
+        let scalar = FixedComplex { re: BigInt::from(inverse_sqrt_two), im: BigInt::zero() };
+        fn visit(a: &mut DecisionArena, id: usize, wire: usize, scalar: &FixedComplex,
+            format: &FixedPointFormat, memo: &mut OperationCache<usize, usize>) -> usize {
+            if let Some(&result) = memo.get(&id) { return result; }
+            let result = match a.top(id) {
+                Some(top) if top < wire => {
+                    let (low, high) = a.split(id, top);
+                    let low = visit(a, low, wire, scalar, format, memo);
+                    let high = visit(a, high, wire, scalar, format, memo);
+                    a.branch(top, low, high)
+                }
+                _ => {
+                    let (low, high) = a.split(id, wire);
+                    let plus = a.sum(low, high);
+                    let negative_high = a.scale(high, &FixedComplex { re: -format.scale(), im: BigInt::zero() }, format);
+                    let minus = a.sum(low, negative_high);
+                    let plus = a.scale(plus, scalar, format);
+                    let minus = a.scale(minus, scalar, format);
+                    a.branch(wire, plus, minus)
+                }
+            };
+            memo.insert(id, result);
+            result
+        }
+        Ok(visit(self, root, wire, &scalar, format, &mut OperationCache::default()))
+    }
+
+    /// Apply a diagonal winding only on the conjunction of the supplied
+    /// register literals. This keeps Fourier alignment on the same resident
+    /// powerset diagram instead of opening per-digit measurement branches.
+    pub fn controlled_winding(&mut self, root: usize, controls: &[(usize, bool)],
+        numerator: &BigInt, denominator: &BigUint, format: &FixedPointFormat) -> Result<usize, String> {
+        if controls.iter().any(|&(wire, _)| wire >= self.cells)
+            || controls.windows(2).any(|pair| pair[0].0 >= pair[1].0) {
+            return Err("controlled winding requires ordered in-range wires".into());
+        }
+        let phase = FixedComplex::winding_twiddle(numerator, denominator, format)?;
+        let zero = self.zero();
+        let selected = self.conditional_literals(zero, root, controls);
+        let rotated = self.scale(selected, &phase, format);
+        Ok(self.conditional_literals(root, rotated, controls))
+    }
+
+    /// Apply the full binary Fourier transform to an ordered subset of wires.
+    /// Controlled rotations remain diagonal on the shared decision graph; no
+    /// phase digit is measured or fed back while the transform is running.
+    pub fn fourier_register(&mut self, mut root: usize, wires: &[usize], inverse: bool,
+        format: &FixedPointFormat) -> Result<usize, String> {
+        if wires.iter().any(|&wire| wire >= self.cells)
+            || wires.windows(2).any(|pair| pair[0] >= pair[1]) {
+            return Err("Fourier register wires must be ordered and in range".into());
+        }
+        let swap = |arena: &mut DecisionArena, state: usize, left: usize, right: usize| {
+            let state = arena.controlled_flip(state, right, &[left]);
+            let state = arena.controlled_flip(state, left, &[right]);
+            arena.controlled_flip(state, right, &[left])
+        };
+        if inverse {
+            for index in 0..wires.len() / 2 {
+                root = swap(self, root, wires[index], wires[wires.len() - 1 - index]);
+            }
+            for target_index in 0..wires.len() {
+                let target = wires[target_index];
+                for control_index in 0..target_index {
+                    let control = wires[control_index];
+                    let denominator = BigUint::one() << (target_index - control_index + 1);
+                    root = self.controlled_winding(root, &[(control, true), (target, true)],
+                        &-BigInt::one(), &denominator, format)?;
+                }
+                root = self.hadamard(root, target, format)?;
+            }
+        } else {
+            for target_index in (0..wires.len()).rev() {
+                let target = wires[target_index];
+                root = self.hadamard(root, target, format)?;
+                for control_index in (0..target_index).rev() {
+                    let control = wires[control_index];
+                    let denominator = BigUint::one() << (target_index - control_index + 1);
+                    root = self.controlled_winding(root, &[(control, true), (target, true)],
+                        &BigInt::one(), &denominator, format)?;
+                }
+            }
+            for index in 0..wires.len() / 2 {
+                root = swap(self, root, wires[index], wires[wires.len() - 1 - index]);
+            }
+        }
+        Ok(root)
+    }
+
+    /// Sample the complete low-wire phase word with one Born quantile. Wires
+    /// above `width` remain unobserved and are summed into each prefix mass.
+    pub fn sample_prefix(&self, root: usize, width: usize, numerator: &BigUint,
+        denominator: &BigUint) -> Result<BigUint, String> {
+        if width > self.cells || denominator.is_zero() || numerator >= denominator {
+            return Err("whole-register readout has an invalid width or Born quantile".into());
+        }
+        let mut masses = OperationCache::default();
+        let total = self.mass(root);
+        if total.is_zero() { return Err("whole-register readout has zero Born mass".into()); }
+        let mut rank = &total * numerator / denominator;
+        let mut current = root;
+        let mut value = BigUint::zero();
+        for wire in 0..width {
+            let (low, high) = self.split(current, wire);
+            let low_mass = self.mass_at(low, wire + 1, &mut masses);
+            if rank < low_mass {
+                current = low;
+            } else {
+                rank -= low_mass;
+                value.set_bit(wire as u64, true);
+                current = high;
+            }
+        }
+        Ok(value)
     }
     pub fn sum(&mut self, a: usize, b: usize) -> usize {
         if let Node::Leaf(re, im) = self.node(a) {
@@ -1190,29 +1365,19 @@ impl DecisionArena {
         let changed = visit(self,enabled,register,value,0,false,flag,&mut OperationCache::default());
         self.conditional_literals(root,changed,controls)
     }
+    fn mass_at(&self, root: usize, depth: usize,
+        memo: &mut OperationCache<(usize, usize), BigUint>) -> BigUint {
+        if let Some(mass) = memo.get(&(root, depth)) { return mass.clone(); }
+        let mass = match self.node(root) {
+            Node::Leaf(re, im) => (re * re + im * im).to_biguint().unwrap() << (self.cells - depth),
+            &Node::Branch { wire, low, high } =>
+                (self.mass_at(low, wire + 1, memo) + self.mass_at(high, wire + 1, memo)) << (wire - depth),
+        };
+        memo.insert((root, depth), mass.clone());
+        mass
+    }
     pub fn mass(&self, root: usize) -> BigUint {
-        fn visit(
-            a: &DecisionArena,
-            id: usize,
-            depth: usize,
-            memo: &mut OperationCache<(usize, usize), BigUint>,
-        ) -> BigUint {
-            if let Some(r) = memo.get(&(id, depth)) {
-                return r.clone();
-            }
-            let r = match a.node(id) {
-                Node::Leaf(re, im) => {
-                    (re * re + im * im).to_biguint().unwrap() << (a.cells - depth)
-                }
-                &Node::Branch { wire, low, high } => {
-                    (visit(a, low, wire + 1, memo) + visit(a, high, wire + 1, memo))
-                        << (wire - depth)
-                }
-            };
-            memo.insert((id, depth), r.clone());
-            r
-        }
-        visit(self, root, 0, &mut OperationCache::default())
+        self.mass_at(root, 0, &mut OperationCache::default())
     }
     pub fn normalize(&mut self, root: usize, norm: &BigInt, scale: &BigInt) -> usize {
         fn visit(

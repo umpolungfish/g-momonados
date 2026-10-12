@@ -1,0 +1,67 @@
+//! Baked N-only instrument for one coherent factor/product/carry glut.
+use g_momonados::resident_glut::ResidentGlut;
+use num_bigint::BigUint;
+use num_traits::Signed;
+use std::time::Instant;
+
+fn main() -> Result<(), String> {
+    let n = BigUint::parse_bytes(include_str!(
+        "../../measurements/factor_synthesis_20261011/n.txt").trim().as_bytes(), 10)
+        .ok_or("invalid baked source")?;
+    eprintln!("source {n}");
+    let preparation = Instant::now();
+    let mut resident = ResidentGlut::new(n.clone())?;
+    let sic = resident.sic_witness()?;
+    eprintln!("SIC initial residual={} without_uniform_correction_bits={} tolerance={} signed_residuals={:?}",
+        sic.reconstruction.maximum_residual, sic.uncorrected_maximum_residual.to_biguint().unwrap().bits(),
+        sic.reconstruction.tolerance, sic.signed_residuals);
+    let fractional = sic.rational_signed_residuals.iter().flat_map(|(re, im)| [re.abs(), im.abs()])
+        .max().unwrap();
+    eprintln!("SIC rational residual_numerator_bits={} denominator_bits={}",
+        fractional.to_biguint().unwrap().bits(), sic.rational_denominator.to_biguint().unwrap().bits());
+    eprintln!("SIC rational denominator={} signed_residual_numerators={:?}",
+        sic.rational_denominator, sic.rational_signed_residuals);
+    let frame = g_momonados::anyon_ququart::FixedQuquartSic::new(
+        &g_momonados::phase_unbraid::FixedPointFormat::for_modulus(&n)?)?;
+    let mut control = sic.gram.clone();
+    for col in 1..4 {
+        let (re, im) = &sic.gram[col];
+        control[col] = (-im, re.clone());
+        control[4*col] = (im.clone(), -re);
+    }
+    let control_masses = frame.gram_mass_numerators(&control)?;
+    frame.certify_gram_frame_unrounded_masses(&control, &control_masses)?;
+    let mismatched = frame.certify_gram_frame_unrounded_masses(&control, &sic.mass_numerators).is_err();
+    if !mismatched { return Err("SIC coherence control accepted mismatched masses".into()) }
+    eprintln!("SIC coherence-control recovered=true mismatched-masses-rejected=true");
+    eprintln!("prepared bits={} seconds={:.6}", n.bits(), preparation.elapsed().as_secs_f64());
+    let started = Instant::now();
+    let mut last_report = Instant::now();
+    let result = resident.readout_with_ports(|gates, nodes| {
+        if last_report.elapsed().as_secs() >= 5 {
+            eprintln!("resident seconds={:.3} gates={gates} retained_nodes={nodes}", started.elapsed().as_secs_f64());
+            last_report = Instant::now();
+        }
+    }, |port| {
+        let gauges: Vec<_> = vox_core::sieve::VOX_SIEVE_COUNTERS.iter()
+            .map(|g| g.load(std::sync::atomic::Ordering::Relaxed)).collect();
+        eprintln!("source-port {port} seconds={:.6} sieve_counters={gauges:?}", started.elapsed().as_secs_f64());
+    })?;
+    if let Some(result) = result {
+        let readout_seconds = started.elapsed().as_secs_f64();
+        assert_eq!(&result.divisor * &result.quotient, n);
+        assert_eq!(&n % &result.divisor, BigUint::from(0u8));
+        println!("trigger_to_readout_seconds {readout_seconds:.9}");
+        println!("trigger_to_verified_divisor_seconds {:.9}", started.elapsed().as_secs_f64());
+        println!("factor {}\nquotient {}", result.divisor, result.quotient);
+        println!("producer {}", result.producer);
+        println!("initial_mass {} selected_mass {} gates {} seconds {:.6}",
+            result.initial_mass, result.selected_mass, result.gates, started.elapsed().as_secs_f64());
+        println!("SIC return residual={} tolerance={} signed_residuals={:?}",
+            result.sic.reconstruction.maximum_residual, result.sic.reconstruction.tolerance,
+            result.sic.signed_residuals);
+        println!("SIC return rational denominator={} signed_residual_numerators={:?}",
+            result.sic.rational_denominator, result.sic.rational_signed_residuals);
+    } else { println!("empty proper product support"); }
+    Ok(())
+}

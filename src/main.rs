@@ -577,10 +577,6 @@ pub fn heap_used() -> (usize, usize) {
 
 #[cfg(feature = "hosted")]
 fn main() {
-    if let Err(error) = lean_kernel::ensure_default() {
-        eprintln!("Lean kernel admission failed: {error}");
-        std::process::exit(2);
-    }
     if option_env!("PHASE_UNBRAID_BAKED_EXECUTE") == Some("1") {
         let base = option_env!("PHASE_UNBRAID_BAKED_BASE").unwrap_or("2");
         let shots = option_env!("PHASE_UNBRAID_BAKED_SHOTS").unwrap_or("8");
@@ -591,10 +587,26 @@ fn main() {
         std::process::exit(if closed { 0 } else { 2 });
     }
     let argv: Vec<String> = std::env::args().skip(1).collect();
+    // Admit the hosted kernel only after a command has been supplied. Help
+    // remains available without starting Lean; the interactive REPL admits
+    // lazily when its first operational command is entered.
+    let help_request = argv.iter().any(|arg| matches!(arg.as_str(), "help" | "--help" | "-h"));
+    if !argv.is_empty() && !help_request {
+        if let Err(error) = lean_kernel::ensure_default() {
+            eprintln!("Lean kernel admission failed: {error}");
+            std::process::exit(2);
+        }
+    }
     if matches!(argv.first().map(String::as_str), Some("reentry" | "lean-kernel")) {
         std::process::exit(if argv.get(1).map(String::as_str) == Some("word") {
             lean_kernel::run_word(&argv[1..], vox_core::phase_word::native_transition_table)
         } else { lean_kernel::run(&argv[1..]) });
+    }
+    if argv.first().map(String::as_str) == Some("y_divisor") {
+        use std::io::Write as _;
+        std::process::exit(run_y_divisor(&argv[1..], |bytes| {
+            let _ = std::io::stdout().lock().write_all(bytes);
+        }));
     }
     if !argv.is_empty() {
         // Direct CLI: word-valued factoring routes bypass the REPL line reader.
@@ -791,6 +803,131 @@ fn main() {
 }
 
 #[cfg(feature = "hosted")]
+fn run_y_divisor(args: &[String], emit: impl FnOnce(&[u8])) -> i32 {
+    let usage = "y_divisor factor N [both] | factors N [both] | from N D [both] | bitfold N [both] | winding N [BASE] [both]";
+    let Some(route) = args.first().map(String::as_str) else {
+        eprintln!("{usage}");
+        return 2;
+    };
+    if matches!(route, "factors" | "from" | "profile") {
+        let bridge_args = std::iter::once("divisor".to_owned())
+            .chain(args.iter().cloned()).collect::<Vec<_>>();
+        return lean_kernel::run_to(&bridge_args, emit);
+    }
+
+    let (n_index, both) = match route {
+        "factor" => (1, args.last().is_some_and(|arg| arg == "both")),
+        "bitfold" => (1, args.last().is_some_and(|arg| arg == "both")),
+        "winding" => (1, args.last().is_some_and(|arg| arg == "both")),
+        _ => {
+            eprintln!("{usage}");
+            return 2;
+        }
+    };
+    let Some(n_text) = args.get(n_index) else {
+        eprintln!("{usage}");
+        return 2;
+    };
+    let Ok(n) = n_text.parse::<num_bigint::BigUint>() else {
+        eprintln!("y_divisor: N must be a non-negative decimal integer");
+        return 2;
+    };
+
+    let (candidate, route_report) = match route {
+        "factor" => {
+            if args.len() > 3 || (args.len() == 3 && !both) {
+                eprintln!("{usage}");
+                return 2;
+            }
+            if n < num_bigint::BigUint::from(2u8) {
+                let bridge_args = std::iter::once("divisor".to_owned())
+                    .chain(args.iter().cloned()).collect::<Vec<_>>();
+                return lean_kernel::run_to(&bridge_args, emit);
+            }
+            let resident = match g_momonados::factor_synthesis::FactorSynthesis::new(n.clone()) {
+                Ok(resident) => resident,
+                Err(error) => { eprintln!("y_divisor factor: {error}"); return 2; }
+            };
+            let result = match resident.readout(|_, _| {}) {
+                Ok(result) => result,
+                Err(error) => { eprintln!("y_divisor factor: {error}"); return 2; }
+            };
+            match result {
+                Some(result) => (result.divisor, format!(
+                    "candidate-source=resident-glut producer={} quotient={} SIC-residual={} SIC-tolerance={}\n",
+                    result.producer, result.quotient, result.sic.reconstruction.maximum_residual,
+                    result.sic.reconstruction.tolerance)),
+                None => (n.clone(), "candidate-source=resident-glut empty-proper-product-support\n".to_owned()),
+            }
+        }
+        "bitfold" => {
+            let Some(tape) = vox_core::morphism_factor::decimal_to_tape(&n.to_string()) else {
+                eprintln!("y_divisor bitfold: could not encode N as a numeral tape");
+                return 2;
+            };
+            let word = vox_core::morphism_factor::emit_numeral(&tape);
+            let (left, right) = match vox_core::morphism_factor::unbraid_semiprime(&word) {
+                Ok(pair) => pair,
+                Err(error) => {
+                    eprintln!("y_divisor bitfold: {error}");
+                    return 2;
+                }
+            };
+            let Some(left) = crate::native_numeral::decode(&left) else {
+                eprintln!("y_divisor bitfold: left factor tape did not decode");
+                return 2;
+            };
+            let Some(right) = crate::native_numeral::decode(&right) else {
+                eprintln!("y_divisor bitfold: right factor tape did not decode");
+                return 2;
+            };
+            if &left * &right != n {
+                eprintln!("y_divisor bitfold: candidate pair failed exact product closure");
+                return 2;
+            }
+            let d = left.min(right);
+            (d, "candidate-source=recursive-bitfold product-interval-pruned\n".to_owned())
+        }
+        "winding" => {
+            let base_arg = args.get(2).filter(|arg| arg.as_str() != "both");
+            let base = match base_arg {
+                Some(value) => match value.parse::<u64>() {
+                    Ok(value) => Some(value),
+                    Err(_) => {
+                        eprintln!("y_divisor winding: BASE must fit an unsigned 64-bit integer");
+                        return 2;
+                    }
+                },
+                None => None,
+            };
+            let report = crate::trilattice_factor::winding(&n.to_string(), base);
+            let candidate_text = report.lines().find_map(|line| {
+                let tail = line.rsplit_once(" = ")?.1;
+                let first = tail.split(" × ").next()?.trim();
+                first.parse::<num_bigint::BigUint>().ok()
+            });
+            let Some(d) = candidate_text.filter(|d| *d > num_bigint::BigUint::from(1u8)
+                && *d < n && (&n % d).eq(&num_bigint::BigUint::from(0u8))) else {
+                let _ = emit(report.as_bytes());
+                return 2;
+            };
+            (d, format!("candidate-source=double-exponent-halving winding\n{report}\n"))
+        }
+        _ => unreachable!(),
+    };
+
+    let mut bridge_args = vec!["divisor".to_owned(), "from".to_owned(), n.to_string(), candidate.to_string()];
+    if both { bridge_args.push("both".to_owned()); }
+    let mut bridge_output = Vec::new();
+    let code = lean_kernel::run_to(&bridge_args, |bytes| bridge_output.extend_from_slice(bytes));
+    let mut output = route_report.into_bytes();
+    output.extend_from_slice(format!("Y-seed={candidate}\n").as_bytes());
+    output.extend_from_slice(&bridge_output);
+    emit(&output);
+    code
+}
+
+#[cfg(feature = "hosted")]
 fn arbitrary_anyon_factor(args: &[&str]) -> Result<arbitrary_factor::Extraction, String> {
     use num_bigint::BigUint;
     let usage = "usage: arbitrary_anyon_factor <natural|canonical-cell-binary-word> <base> <max_shots> <unix_socket>";
@@ -816,7 +953,7 @@ fn arbitrary_anyon_factor(args: &[&str]) -> Result<arbitrary_factor::Extraction,
 fn anyon_factor(args: &[&str]) -> Result<String, String> {
     use num_bigint::BigUint;
 
-    const MAX_TOTAL_SHOTS: u32 = 32;
+    const DEFAULT_MAX_TOTAL_SHOTS: u32 = 32;
     const DEFAULT_SOCKET: &str = "/tmp/g-momonados-fibonacci.sock";
 
     let usage = "usage: g-momonados anyon_factor <N>=128-bit-semiprime";
@@ -831,15 +968,24 @@ fn anyon_factor(args: &[&str]) -> Result<String, String> {
 
     let socket = std::env::var("G_MOMONADOS_ANYON_SOCKET")
         .unwrap_or_else(|_| DEFAULT_SOCKET.to_string());
+    let max_shots = match std::env::var("G_MOMONADOS_ANYON_MAX_SHOTS") {
+        Ok(value) => value.parse::<u32>().map_err(|_| "invalid anyon shot budget")?,
+        Err(std::env::VarError::NotPresent) => DEFAULT_MAX_TOTAL_SHOTS,
+        Err(error) => return Err(error.to_string()),
+    };
+    if max_shots == 0 { return Err("anyon shot budget must be positive".into()); }
     let mut service = anyon_device::FibonacciGenerator::connect(&socket)?;
-    let result = service.factor_source(&n, &BigUint::from(2u8), MAX_TOTAL_SHOTS)?
+    let result = service.factor_source(&n, &BigUint::from(2u8), max_shots)?
         .ok_or("factor service exhausted its shot budget")?;
 
     Ok(format!(
-        "Fibonacci anyon N-only closure\nsource={}\nbase={}\norder={}\nfactors={} x {}\nshots={}\nproduct_closed={}",
+        "Fibonacci anyon N-only closure\nsource={}\nbase={}\norder={}\nphase={} / {} ({} ququart digits)\nfactors={} x {}\nshots={}\nproduct_closed={}",
         n,
         2,
         result.order,
+        result.phase_numerator,
+        result.phase_denominator,
+        result.phase_digits,
         result.p,
         result.q,
         result.shots,

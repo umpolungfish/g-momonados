@@ -222,11 +222,25 @@ pub struct SicGramReconstruction {
     pub tolerance: BigInt,
 }
 
+/// Rational dual synthesis before terminal integer rounding. The signed
+/// remainders retain the finite-precision analytic frame's actual discrepancy.
+pub struct SicRationalReconstruction {
+    pub rounded: SicGramReconstruction,
+    pub denominator: BigInt,
+    pub signed_residual_numerators: [(BigInt, BigInt); 16],
+}
+
 impl FixedQuquartSic {
     /// All sixteen projector masses from a shared work Gram matrix. The POVM
     /// effect masses are these values divided by four.
     pub fn gram_masses(&self, gram: &[(BigInt,BigInt);16]) -> Result<[BigUint;16],String> {
-        let scale_squared = self.format.scale().pow(2);
+        let denominator = self.format.scale().pow(2).to_biguint().unwrap();
+        Ok(self.gram_mass_numerators(gram)?.map(|mass| mass / &denominator))
+    }
+
+    /// Projector masses with common denominator scale², retaining every
+    /// remainder until the complete analytic dual frame has acted.
+    pub fn gram_mass_numerators(&self, gram: &[(BigInt,BigInt);16]) -> Result<[BigUint;16],String> {
         let mut masses = core::array::from_fn(|_| BigUint::zero());
         for (mass,ray) in masses.iter_mut().zip(&self.rays) {
             let mut real = BigInt::zero();
@@ -238,9 +252,70 @@ impl FixedQuquartSic {
                     real += coefficient_re*gr - coefficient_im*gi;
                 }
             }
-            *mass = (real / &scale_squared).to_biguint().ok_or("negative SIC Gram mass")?;
+            *mass = real.to_biguint().ok_or("negative SIC Gram mass")?;
         }
         Ok(masses)
+    }
+
+    /// Full mass-only dual reconstruction: the negative trace correction is
+    /// recovered from sum(m_i)/4 rather than supplied from the reference Gram.
+    /// Only the completed synthesis is rounded to the nearest integer.
+    pub fn certify_gram_frame_unrounded_masses(&self,
+        gram: &[(BigInt, BigInt); 16], numerators: &[BigUint; 16])
+        -> Result<SicRationalReconstruction, String> {
+        // Retain the established Hermitian/population and frame checks.
+        for row in 0..4 {
+            if !gram[5*row].1.is_zero() || gram[5*row].0 < BigInt::zero() {
+                return Err("invalid control Gram diagonal".into());
+            }
+            for col in 0..row {
+                if gram[4*row+col].0 != gram[4*col+row].0
+                    || gram[4*row+col].1 != -&gram[4*col+row].1 {
+                    return Err("control Gram is not Hermitian".into());
+                }
+            }
+        }
+        let scale_squared = self.format.scale().pow(2);
+        let denominator = &scale_squared * &scale_squared * 4u8;
+        let total: BigInt = numerators.iter().cloned().map(BigInt::from).sum();
+        let recovered_numerators: [(BigInt, BigInt); 16] = core::array::from_fn(|entry| {
+            let row = entry / 4;
+            let col = entry % 4;
+            let mut real = BigInt::zero();
+            let mut imaginary = BigInt::zero();
+            for (ray, mass) in self.rays.iter().zip(numerators) {
+                let mass = BigInt::from(mass.clone());
+                real += &mass * (&ray[row].re*&ray[col].re + &ray[row].im*&ray[col].im);
+                imaginary += mass * (&ray[row].re*&ray[col].im - &ray[row].im*&ray[col].re);
+            }
+            let correction = if row == col { &total * &scale_squared } else { BigInt::zero() };
+            (real * 5u8 - correction, imaginary * 5u8)
+        });
+        let round = |value: &BigInt| {
+            let magnitude = (value.abs() + &denominator / 2u8) / &denominator;
+            if value < &BigInt::zero() { -magnitude } else { magnitude }
+        };
+        let recovered = core::array::from_fn(|i| (
+            round(&recovered_numerators[i].0), round(&recovered_numerators[i].1)));
+        let signed_residual_numerators = core::array::from_fn(|i| (
+            &recovered_numerators[i].0 - &gram[i].0 * &denominator,
+            &recovered_numerators[i].1 - &gram[i].1 * &denominator));
+        let trace: BigInt = (0..4).map(|i| gram[5*i].0.clone()).sum();
+        let tolerance = core::cmp::max(BigInt::from(1u8), &trace >> (self.format.w_bits/2) as usize);
+        let maximum_residual = recovered.iter().zip(gram).map(|((re,im),(gr,gi))|
+            (re-gr).abs().max((im-gi).abs())).max().unwrap();
+        if maximum_residual > tolerance {
+            return Err("unrounded-mass SIC dual reconstruction differs from the full control Gram".into());
+        }
+        // Certify the rational error too: terminal rounding cannot conceal
+        // a discrepancy larger than the existing tolerance plus half a unit.
+        let limit_twice = (&tolerance * 2u8 + 1u8) * &denominator;
+        if signed_residual_numerators.iter().any(|(re, im)|
+            re.abs() * 2u8 > limit_twice || im.abs() * 2u8 > limit_twice) {
+            return Err("SIC rational residual exceeds the terminal rounding tolerance".into());
+        }
+        Ok(SicRationalReconstruction { rounded: SicGramReconstruction {
+            recovered, maximum_residual, tolerance }, denominator, signed_residual_numerators })
     }
 
     /// Certify all populations and coherences from the sixteen projector masses.

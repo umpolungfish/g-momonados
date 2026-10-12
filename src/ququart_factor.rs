@@ -456,6 +456,18 @@ impl<D: QuquartPhaseDevice> QuquartFactorExecutor<D> {
         &self.device
     }
     pub fn shot(&mut self, source: &BigUint, base: &BigUint) -> Result<QuquartFactorShot, String> {
+        self.shot_with_orientations(source, base, None)
+    }
+
+    /// Execute a source-bound Fourier orientation word. Each pair gives the
+    /// forward and return orientation for one measured phase digit. `None`
+    /// preserves the ordinary forward/adjoint pair used by `shot`.
+    pub fn shot_with_orientations(
+        &mut self,
+        source: &BigUint,
+        base: &BigUint,
+        orientations: Option<&[(bool, bool)]>,
+    ) -> Result<QuquartFactorShot, String> {
         if self.schedule.as_ref().map(|schedule| &schedule.source != source || &schedule.base != base).unwrap_or(true) {
             self.schedule = Some(QuquartPowerSchedule::prepare(source, base)?);
             self.evidence = PhaseReadoutAccumulator::default();
@@ -464,6 +476,9 @@ impl<D: QuquartPhaseDevice> QuquartFactorExecutor<D> {
         }
         let powers = &self.schedule.as_ref().unwrap().powers;
         let count = powers.len();
+        if orientations.map(|word| word.len() != count).unwrap_or(false) {
+            return Err(format!("Fourier orientation word must contain {count} pairs"));
+        }
         if let Err(e) = self.device.begin(source, base, count) {
             self.device.abort();
             return Err(e);
@@ -471,13 +486,18 @@ impl<D: QuquartPhaseDevice> QuquartFactorExecutor<D> {
         let result = (|| {
             let mut phase = QuquartPhaseReadout::default();
             for (i, power) in powers.iter().rev().enumerate() {
-                self.device.fourier(false)?;
+                let (forward, inverse) = orientations.map(|word| word[i]).unwrap_or((false, true));
+                self.device.fourier(forward)?;
                 self.device.controlled_multiply(power)?;
                 if !phase.numerator().is_zero() {
                     self.device.feedback(phase.numerator(), i + 1)?;
                 }
-                self.device.fourier(true)?;
+                self.device.fourier(inverse)?;
                 let digit = self.device.measure_phase_digit()?;
+                #[cfg(feature = "hosted")]
+                if std::env::var_os("QUQUART_PHASE_TRACE").is_some() {
+                    std::eprintln!("phase_digit index={i} forward={forward} inverse={inverse} digit={}", digit as u8);
+                }
                 phase.push(digit)?;
                 self.device.reset_control(digit)?;
             }
@@ -864,6 +884,56 @@ mod tests {
                 2 * (n.bits() + 4) + 1
             );
         }
+    }
+
+    #[test]
+    fn source_orientation_word_controls_both_fourier_legs_per_phase_digit() {
+        #[derive(Default)]
+        struct OrientedSchedule {
+            expected: usize,
+            measured: usize,
+            orientations: Vec<bool>,
+        }
+        impl QuquartPhaseDevice for OrientedSchedule {
+            fn begin(&mut self, _: &BigUint, _: &BigUint, count: usize) -> Result<(), String> {
+                self.expected = count;
+                self.measured = 0;
+                self.orientations.clear();
+                Ok(())
+            }
+            fn fourier(&mut self, inverse: bool) -> Result<(), String> {
+                self.orientations.push(inverse);
+                Ok(())
+            }
+            fn controlled_multiply(&mut self, _: &BigUint) -> Result<(), String> { Ok(()) }
+            fn feedback(&mut self, _: &BigUint, _: usize) -> Result<(), String> { Ok(()) }
+            fn measure_phase_digit(&mut self) -> Result<QuquartDigit, String> {
+                self.measured += 1;
+                Ok(QuquartDigit::T)
+            }
+            fn reset_control(&mut self, _: QuquartDigit) -> Result<(), String> { Ok(()) }
+            fn finish(&mut self) -> Result<(), String> {
+                if self.measured == self.expected { Ok(()) }
+                else { Err("orientation test did not measure every phase digit".into()) }
+            }
+            fn abort(&mut self) {}
+        }
+
+        let source = BigUint::parse_bytes(b"296650821743515430283258444261036507151", 10).unwrap();
+        let base = BigUint::from(2u8);
+        let prepared = QuquartPowerSchedule::prepare(&source, &base).unwrap();
+        let count = prepared.powers().len();
+        let word: Vec<_> = (0..count).map(|index| (index & 1 != 0, index & 2 != 0)).collect();
+        let expected: Vec<_> = word.iter().flat_map(|&(forward, inverse)| [forward, inverse]).collect();
+        let mut executor = QuquartFactorExecutor::with_prepared_schedule(OrientedSchedule::default(), prepared);
+        let result = executor.shot_with_orientations(&source, &base, Some(&word)).unwrap();
+        assert!(result.closure.is_none());
+        assert_eq!(executor.device().orientations, expected);
+        assert_eq!(executor.device().measured, count);
+
+        let invalid = vec![(false, true); count - 1];
+        assert!(matches!(executor.shot_with_orientations(&source, &base, Some(&invalid)),
+            Err(error) if error.contains("must contain")));
     }
 
     #[test]
