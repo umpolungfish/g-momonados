@@ -6,6 +6,7 @@ use crate::phase_unbraid::{FixedComplex, FixedPointFormat, PhaseReadoutAccumulat
 use alloc::string::String;
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Signed, Zero};
+use crate::word_tape::{SignedWordTape, WordTape};
 
 fn zero() -> FixedComplex {
     FixedComplex {
@@ -14,12 +15,14 @@ fn zero() -> FixedComplex {
     }
 }
 fn mass(z: &FixedComplex) -> BigUint {
-    (&z.re * &z.re + &z.im * &z.im).to_biguint().unwrap()
+    let re = SignedWordTape::from_bigint(&z.re);
+    let im = SignedWordTape::from_bigint(&z.im);
+    re.magnitude().mul(re.magnitude()).add(&im.magnitude().mul(im.magnitude())).to_biguint()
 }
 fn conjugate(z: &FixedComplex) -> FixedComplex {
     FixedComplex {
         re: z.re.clone(),
-        im: -&z.im,
+        im: SignedWordTape::from_bigint(&z.im).negate().to_bigint(),
     }
 }
 
@@ -211,6 +214,7 @@ impl SicPhaseEvidence {
 pub struct FixedQuquartSic {
     format: FixedPointFormat,
     rays: [[FixedComplex; 4]; 16],
+    projectors: [[(SignedWordTape,SignedWordTape);16];16],
 }
 
 /// Complete dual synthesis in the shared-work convention <work_i|work_j>.
@@ -231,28 +235,96 @@ pub struct SicRationalReconstruction {
 }
 
 impl FixedQuquartSic {
+    pub(crate) fn from_baked(frame:&crate::baked_resident::BakedSic)->Result<Self,String> {
+        let format=FixedPointFormat::for_modulus_bits(frame.modulus_bits)?;
+        let rays=frame.rays.map(|ray|ray.map(|z|z.value()));
+        let mut projectors=core::array::from_fn(|_|core::array::from_fn(|_|
+            (SignedWordTape::zero(),SignedWordTape::zero())));
+        for (out,row) in projectors.iter_mut().zip(frame.projectors) {
+            for (pair,z) in out.iter_mut().zip(row) {*pair=(z.re.value()?,z.im.value()?);}
+        }
+        Ok(Self {format,rays,projectors})
+    }
+    fn compile_projectors(rays: &[[FixedComplex;4];16])
+        -> [[(SignedWordTape,SignedWordTape);16];16] {
+        core::array::from_fn(|outcome| {
+            let ray = rays[outcome].clone().map(|z|
+                (SignedWordTape::from_bigint(&z.re),SignedWordTape::from_bigint(&z.im)));
+            core::array::from_fn(|entry| {
+                let (row,col)=(entry/4,entry%4);
+                (ray[row].0.mul(&ray[col].0).add(&ray[row].1.mul(&ray[col].1)),
+                 ray[row].0.mul(&ray[col].1).sub(&ray[row].1.mul(&ray[col].0)))
+            })
+        })
+    }
+
+    #[cfg(feature = "hosted")]
+    pub(crate) fn prepared_record(&self) -> serde_json::Value {
+        serde_json::json!({"modulus_bits":self.format.modulus_bits,
+            "rays":self.rays.iter().map(|ray| ray.iter().map(|z|
+                serde_json::json!({"re":SignedWordTape::from_bigint(&z.re).prepared_record(),
+                    "im":SignedWordTape::from_bigint(&z.im).prepared_record()})).collect::<Vec<_>>()).collect::<Vec<_>>(),
+            "projectors":self.projectors.iter().map(|row| row.iter().map(|(re,im)|
+                serde_json::json!({"re":re.prepared_record(),"im":im.prepared_record()})).collect::<Vec<_>>()).collect::<Vec<_>>()})
+    }
+
+    #[cfg(feature = "hosted")]
+    pub(crate) fn from_prepared_record(record: &serde_json::Value) -> Result<Self,String> {
+        let format = FixedPointFormat::for_modulus_bits(record["modulus_bits"].as_u64()
+            .ok_or("prepared SIC lost its precision")?)?;
+        let rows = record["rays"].as_array().ok_or("prepared SIC lost its frame")?;
+        if rows.len()!=16 { return Err("prepared SIC must retain sixteen rays".into()); }
+        let mut rays = core::array::from_fn(|_| core::array::from_fn(|_| zero()));
+        for (ray,row) in rays.iter_mut().zip(rows) {
+            let entries = row.as_array().ok_or("invalid prepared SIC ray")?;
+            if entries.len()!=4 { return Err("prepared SIC ray must retain four coordinates".into()); }
+            for (z,entry) in ray.iter_mut().zip(entries) {
+                z.re = SignedWordTape::from_prepared_record(&entry["re"])?.to_bigint();
+                z.im = SignedWordTape::from_prepared_record(&entry["im"])?.to_bigint();
+            }
+        }
+        let projectors = if let Some(rows) = record.get("projectors") {
+            let rows = rows.as_array().ok_or("invalid prepared SIC projectors")?;
+            if rows.len()!=16 { return Err("prepared SIC projector count changed".into()); }
+            let mut result = core::array::from_fn(|_| core::array::from_fn(|_|
+                (SignedWordTape::zero(),SignedWordTape::zero())));
+            for (output,row) in result.iter_mut().zip(rows) {
+                let entries = row.as_array().ok_or("invalid prepared SIC projector")?;
+                if entries.len()!=16 { return Err("prepared SIC projector lost coordinates".into()); }
+                for (pair,entry) in output.iter_mut().zip(entries) {
+                    *pair=(SignedWordTape::from_prepared_record(&entry["re"])?,
+                        SignedWordTape::from_prepared_record(&entry["im"])?);
+                }
+            }
+            result
+        } else { Self::compile_projectors(&rays) };
+        Ok(Self { format,rays,projectors })
+    }
+
     /// All sixteen projector masses from a shared work Gram matrix. The POVM
     /// effect masses are these values divided by four.
     pub fn gram_masses(&self, gram: &[(BigInt,BigInt);16]) -> Result<[BigUint;16],String> {
-        let denominator = self.format.scale().pow(2).to_biguint().unwrap();
-        Ok(self.gram_mass_numerators(gram)?.map(|mass| mass / &denominator))
+        Ok(self.gram_mass_words(gram)?.map(|mass| mass.shr(2 * self.format.w_bits as usize).to_biguint()))
     }
 
     /// Projector masses with common denominator scale², retaining every
     /// remainder until the complete analytic dual frame has acted.
     pub fn gram_mass_numerators(&self, gram: &[(BigInt,BigInt);16]) -> Result<[BigUint;16],String> {
-        let mut masses = core::array::from_fn(|_| BigUint::zero());
-        for (mass,ray) in masses.iter_mut().zip(&self.rays) {
-            let mut real = BigInt::zero();
-            for i in 0..4 {
-                for j in 0..4 {
-                    let coefficient_re = &ray[i].re*&ray[j].re + &ray[i].im*&ray[j].im;
-                    let coefficient_im = &ray[i].im*&ray[j].re - &ray[i].re*&ray[j].im;
-                    let (gr,gi) = &gram[4*i+j];
-                    real += coefficient_re*gr - coefficient_im*gi;
-                }
+        Ok(self.gram_mass_words(gram)?.map(|mass| mass.to_biguint()))
+    }
+
+    fn gram_mass_words(&self, gram: &[(BigInt,BigInt);16]) -> Result<[WordTape;16],String> {
+        let gram = (*gram).clone().map(|(ref re, ref im)|
+            (SignedWordTape::from_bigint(re), SignedWordTape::from_bigint(im)));
+        let mut masses = core::array::from_fn(|_| WordTape::zero());
+        for (mass,projector) in masses.iter_mut().zip(&self.projectors) {
+            let mut real = SignedWordTape::zero();
+            for ((re,im),(gr,gi)) in projector.iter().zip(&gram) {
+                if !gr.is_zero() && !re.is_zero() { real=real.add(&re.mul(gr)); }
+                if !gi.is_zero() && !im.is_zero() { real=real.add(&im.mul(gi)); }
             }
-            *mass = real.to_biguint().ok_or("negative SIC Gram mass")?;
+            if real.is_negative() { return Err("negative SIC Gram mass".into()); }
+            *mass = real.magnitude().clone();
         }
         Ok(masses)
     }
@@ -263,59 +335,71 @@ impl FixedQuquartSic {
     pub fn certify_gram_frame_unrounded_masses(&self,
         gram: &[(BigInt, BigInt); 16], numerators: &[BigUint; 16])
         -> Result<SicRationalReconstruction, String> {
+        let gram_words = (*gram).clone().map(|(re, im)|
+            (SignedWordTape::from_bigint(&re), SignedWordTape::from_bigint(&im)));
         // Retain the established Hermitian/population and frame checks.
         for row in 0..4 {
-            if !gram[5*row].1.is_zero() || gram[5*row].0 < BigInt::zero() {
+            if !gram_words[5*row].1.is_zero() || gram_words[5*row].0.is_negative() {
                 return Err("invalid control Gram diagonal".into());
             }
             for col in 0..row {
-                if gram[4*row+col].0 != gram[4*col+row].0
-                    || gram[4*row+col].1 != -&gram[4*col+row].1 {
+                if gram_words[4*row+col].0 != gram_words[4*col+row].0
+                    || gram_words[4*row+col].1 != gram_words[4*col+row].1.negate() {
                     return Err("control Gram is not Hermitian".into());
                 }
             }
         }
-        let scale_squared = self.format.scale().pow(2);
-        let denominator = &scale_squared * &scale_squared * 4u8;
-        let total: BigInt = numerators.iter().cloned().map(BigInt::from).sum();
-        let recovered_numerators: [(BigInt, BigInt); 16] = core::array::from_fn(|entry| {
+        let denominator_bits = usize::try_from(self.format.w_bits.checked_mul(4)
+            .and_then(|bits| bits.checked_add(2)).ok_or("SIC dual denominator overflow")?)
+            .map_err(|_| "SIC dual denominator exceeds word indexing")?;
+        let denominator = SignedWordTape::from_magnitude(WordTape::one_at(denominator_bits),false);
+        let mass_words=(*numerators).clone().map(|ref mass| WordTape::from_biguint(mass));
+        // Extract an exact shared binary factor from fresh measured masses.
+        // Restore it in every dual numerator before residual comparison.
+        let shared_shift=mass_words.iter().filter(|mass| !mass.is_zero()).map(|mass|
+            (0..mass.bit_len()).find(|&bit| mass.bit_at(bit)).unwrap()).min().unwrap_or(0);
+        let masses = mass_words.map(|mass| SignedWordTape::from_magnitude(mass.shr(shared_shift),false));
+        let total = masses.iter().fold(SignedWordTape::zero(), |sum, mass| sum.add(mass));
+        let recovered_numerators: [(SignedWordTape, SignedWordTape); 16] = core::array::from_fn(|entry| {
             let row = entry / 4;
             let col = entry % 4;
-            let mut real = BigInt::zero();
-            let mut imaginary = BigInt::zero();
-            for (ray, mass) in self.rays.iter().zip(numerators) {
-                let mass = BigInt::from(mass.clone());
-                real += &mass * (&ray[row].re*&ray[col].re + &ray[row].im*&ray[col].im);
-                imaginary += mass * (&ray[row].re*&ray[col].im - &ray[row].im*&ray[col].re);
+            let mut real = SignedWordTape::zero();
+            let mut imaginary = SignedWordTape::zero();
+            for (projector, mass) in self.projectors.iter().zip(&masses) {
+                if !mass.is_zero() {
+                    if !projector[entry].0.is_zero() { real=real.add(&mass.mul(&projector[entry].0)); }
+                    if !projector[entry].1.is_zero() { imaginary=imaginary.add(&mass.mul(&projector[entry].1)); }
+                }
             }
-            let correction = if row == col { &total * &scale_squared } else { BigInt::zero() };
-            (real * 5u8 - correction, imaginary * 5u8)
+            let correction = if row == col { total.shl(2 * self.format.w_bits as usize) } else { SignedWordTape::zero() };
+            (real.shl(2).add(&real).sub(&correction).shl(shared_shift),
+                imaginary.shl(2).add(&imaginary).shl(shared_shift))
         });
-        let round = |value: &BigInt| {
-            let magnitude = (value.abs() + &denominator / 2u8) / &denominator;
-            if value < &BigInt::zero() { -magnitude } else { magnitude }
-        };
-        let recovered = core::array::from_fn(|i| (
+        let round = |value: &SignedWordTape| value.rounded_shr(denominator_bits);
+        let recovered: [(SignedWordTape, SignedWordTape);16] = core::array::from_fn(|i| (
             round(&recovered_numerators[i].0), round(&recovered_numerators[i].1)));
-        let signed_residual_numerators = core::array::from_fn(|i| (
-            &recovered_numerators[i].0 - &gram[i].0 * &denominator,
-            &recovered_numerators[i].1 - &gram[i].1 * &denominator));
-        let trace: BigInt = (0..4).map(|i| gram[5*i].0.clone()).sum();
-        let tolerance = core::cmp::max(BigInt::from(1u8), &trace >> (self.format.w_bits/2) as usize);
-        let maximum_residual = recovered.iter().zip(gram).map(|((re,im),(gr,gi))|
-            (re-gr).abs().max((im-gi).abs())).max().unwrap();
+        let signed_residual_numerators: [(SignedWordTape, SignedWordTape);16] = core::array::from_fn(|i| (
+            recovered_numerators[i].0.sub(&gram_words[i].0.shl(denominator_bits)),
+            recovered_numerators[i].1.sub(&gram_words[i].1.shl(denominator_bits))));
+        let trace = (0..4).fold(SignedWordTape::zero(), |sum, i| sum.add(&gram_words[5*i].0));
+        let tolerance = core::cmp::max(SignedWordTape::from_small(1), trace.shr((self.format.w_bits/2) as usize));
+        let maximum_residual = recovered.iter().zip(&gram_words).map(|((re,im),(gr,gi))|
+            re.sub(gr).abs().max(im.sub(gi).abs())).max().unwrap();
         if maximum_residual > tolerance {
             return Err("unrounded-mass SIC dual reconstruction differs from the full control Gram".into());
         }
         // Certify the rational error too: terminal rounding cannot conceal
         // a discrepancy larger than the existing tolerance plus half a unit.
-        let limit_twice = (&tolerance * 2u8 + 1u8) * &denominator;
+        let limit_twice = tolerance.shl(1).add(&SignedWordTape::from_small(1)).shl(denominator_bits);
         if signed_residual_numerators.iter().any(|(re, im)|
-            re.abs() * 2u8 > limit_twice || im.abs() * 2u8 > limit_twice) {
+            re.abs().shl(1) > limit_twice || im.abs().shl(1) > limit_twice) {
             return Err("SIC rational residual exceeds the terminal rounding tolerance".into());
         }
         Ok(SicRationalReconstruction { rounded: SicGramReconstruction {
-            recovered, maximum_residual, tolerance }, denominator, signed_residual_numerators })
+            recovered: recovered.map(|(re, im)| (re.to_bigint(), im.to_bigint())),
+            maximum_residual: maximum_residual.to_bigint(), tolerance: tolerance.to_bigint() },
+            denominator: denominator.to_bigint(),
+            signed_residual_numerators: signed_residual_numerators.map(|(re, im)| (re.to_bigint(), im.to_bigint())) })
     }
 
     /// Certify all populations and coherences from the sixteen projector masses.
@@ -370,32 +454,36 @@ impl FixedQuquartSic {
     }
 
     pub fn new(format: &FixedPointFormat) -> Result<Self, String> {
-        let scale = format.scale();
-        let sqrt =
-            |x: BigInt| -> BigInt { BigInt::from((x * &scale).to_biguint().unwrap().sqrt()) };
-        let mul = |x: &BigInt, y: &BigInt| -> BigInt { (x * y) / &scale };
-        let root2 = sqrt(&scale * 2u8);
-        let root5 = sqrt(&scale * 5u8);
-        let a = sqrt((&scale * 5u8 - &root5) / 40u8);
-        let c = sqrt(&scale * 2u8 + &root2) / 2u8;
-        let s = sqrt(&scale * 2u8 - &root2) / 2u8;
-        let u = sqrt(&scale * 2u8 + &root5);
+        let scale = SignedWordTape::from_magnitude(WordTape::one_at(format.w_bits as usize), false);
+        let two = SignedWordTape::from_small(2);
+        let five = SignedWordTape::from_small(5);
+        let sqrt = |x: SignedWordTape| -> SignedWordTape {
+            assert!(!x.is_negative(), "analytic SIC square root requires nonnegative support");
+            SignedWordTape::from_magnitude(x.mul(&scale).magnitude().isqrt(), false)
+        };
+        let mul = |x: &SignedWordTape, y: &SignedWordTape| x.mul(y).div(&scale);
+        let root2 = sqrt(scale.mul(&two));
+        let root5 = sqrt(scale.mul(&five));
+        let a = sqrt(scale.mul(&five).sub(&root5).div(&SignedWordTape::from_small(40)));
+        let c = sqrt(scale.mul(&two).add(&root2)).div(&two);
+        let s = sqrt(scale.mul(&two).sub(&root2)).div(&two);
+        let u = sqrt(scale.mul(&two).add(&root5));
         let ray = [
             FixedComplex {
-                re: mul(&a, &c) * 2u8,
+                re: mul(&a, &c).mul(&two).to_bigint(),
                 im: BigInt::zero(),
             },
             FixedComplex {
-                re: mul(&a, &mul(&(&scale - &u), &s)),
-                im: mul(&a, &mul(&(&scale + &u), &c)),
+                re: mul(&a, &mul(&scale.sub(&u), &s)).to_bigint(),
+                im: mul(&a, &mul(&scale.add(&u), &c)).to_bigint(),
             },
             FixedComplex {
                 re: BigInt::zero(),
-                im: mul(&a, &s) * 2u8,
+                im: mul(&a, &s).mul(&two).to_bigint(),
             },
             FixedComplex {
-                re: mul(&a, &mul(&(&scale + &u), &s)),
-                im: mul(&a, &mul(&(&scale - &u), &c)),
+                re: mul(&a, &mul(&scale.add(&u), &s)).to_bigint(),
+                im: mul(&a, &mul(&scale.sub(&u), &c)).to_bigint(),
             },
         ];
         let mut rays = core::array::from_fn(|_| core::array::from_fn(|_| zero()));
@@ -417,6 +505,7 @@ impl FixedQuquartSic {
         }
         Ok(Self {
             format: format.clone(),
+            projectors:Self::compile_projectors(&rays),
             rays,
         })
     }
@@ -643,6 +732,163 @@ impl QuquartCarrier {
 mod tests {
     use super::*;
     use num_traits::Signed;
+    #[test]
+    fn compiled_sic_words_preserve_locked_source_complex_frame_and_signed_residuals() {
+        use crate::baked_resident::{BakedInteger,BakedComplex,BakedSignedWord,BakedWordComplex,BakedSic};
+        let source=WordTape::from_canonical_word(include_str!(
+            "../measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm").trim()).unwrap();
+        assert!(source.bit_len()>=200);
+        let format=FixedPointFormat::for_modulus_bits(source.bit_len() as u64).unwrap();
+        let frame=FixedQuquartSic::new(&format).unwrap();
+        let integer=|value:&BigInt| {
+            let (sign,digits)=value.to_u32_digits();
+            BakedInteger {negative:sign==num_bigint::Sign::Minus,digits:Box::leak(digits.into_boxed_slice())}
+        };
+        let word=|value:&SignedWordTape| BakedSignedWord {negative:value.is_negative(),
+            word:Box::leak(value.magnitude().as_word().to_owned().into_boxed_str())};
+        let rays=Box::leak(Box::new(core::array::from_fn(|i|core::array::from_fn(|j|
+            BakedComplex {re:integer(&frame.rays[i][j].re),im:integer(&frame.rays[i][j].im)}))));
+        let projectors=Box::leak(Box::new(core::array::from_fn(|i|core::array::from_fn(|j|
+            BakedWordComplex {re:word(&frame.projectors[i][j].0),im:word(&frame.projectors[i][j].1)}))));
+        let compiled=BakedSic {modulus_bits:source.bit_len() as u64,rays,projectors};
+        let restored=FixedQuquartSic::from_baked(&compiled).unwrap();
+        assert_eq!(frame.projectors,restored.projectors);
+        for (a,b) in frame.rays.iter().flatten().zip(restored.rays.iter().flatten()) {
+            assert_eq!(a.re,b.re);assert_eq!(a.im,b.im);
+        }
+        let amplitudes=[(2i64,1i64),(3,-2),(-1,4),(5,1)];
+        let gram=core::array::from_fn(|entry| {
+            let (a,b)=(amplitudes[entry/4],amplitudes[entry%4]);
+            (BigInt::from(a.0*b.0+a.1*b.1),BigInt::from(a.0*b.1-a.1*b.0))
+        });
+        let masses=frame.gram_mass_numerators(&gram).unwrap();
+        assert_eq!(masses,restored.gram_mass_numerators(&gram).unwrap());
+        let before=frame.certify_gram_frame_unrounded_masses(&gram,&masses).unwrap();
+        let after=restored.certify_gram_frame_unrounded_masses(&gram,&masses).unwrap();
+        assert_eq!(before.rounded,after.rounded);
+        assert_eq!(before.denominator,after.denominator);
+        assert_eq!(before.signed_residual_numerators,after.signed_residual_numerators);
+        let mut changed=restored;
+        changed.projectors[0][0].0=changed.projectors[0][0].0.shl(1);
+        assert_ne!(changed.gram_mass_numerators(&gram).unwrap(),masses);
+    }
+    #[test]
+    fn prepared_projectors_preserve_exact_masses_and_signed_dual_residuals() {
+        let format = FixedPointFormat::for_modulus_bits(32).unwrap();
+        let frame = FixedQuquartSic::new(&format).unwrap();
+        let amplitudes = [(2i64,1i64),(3,-2),(-1,4),(5,1)];
+        let gram = core::array::from_fn(|entry| {
+            let (a,b)=(amplitudes[entry/4],amplitudes[entry%4]);
+            (BigInt::from(a.0*b.0+a.1*b.1),BigInt::from(a.0*b.1-a.1*b.0))
+        });
+        let masses = frame.gram_mass_numerators(&gram).unwrap();
+        for (outcome,ray) in frame.rays.iter().enumerate() {
+            let mut expected = BigInt::zero();
+            for i in 0..4 { for j in 0..4 {
+                let re = &ray[i].re*&ray[j].re+&ray[i].im*&ray[j].im;
+                let im = &ray[i].im*&ray[j].re-&ray[i].re*&ray[j].im;
+                expected += re*&gram[4*i+j].0-im*&gram[4*i+j].1;
+            }}
+            assert_eq!(masses[outcome],expected.to_biguint().unwrap());
+        }
+        let restored = FixedQuquartSic::from_prepared_record(&frame.prepared_record()).unwrap();
+        assert_eq!(frame.projectors,restored.projectors);
+        assert_eq!(masses,restored.gram_mass_numerators(&gram).unwrap());
+        let original=frame.certify_gram_frame_unrounded_masses(&gram,&masses).unwrap();
+        let loaded=restored.certify_gram_frame_unrounded_masses(&gram,&masses).unwrap();
+        let denominator=BigInt::one() << (4*format.w_bits as usize+2);
+        assert_eq!(original.denominator,denominator);
+        let total: BigInt=masses.iter().cloned().map(BigInt::from).sum();
+        let round=|value: &BigInt| {
+            let magnitude=(value.abs()+(&denominator >> 1usize))/&denominator;
+            if value.is_negative() { -magnitude } else { magnitude }
+        };
+        for entry in 0..16 {
+            let (row,col)=(entry/4,entry%4);
+            let (mut re,mut im)=(BigInt::zero(),BigInt::zero());
+            for (ray,mass) in frame.rays.iter().zip(&masses) {
+                let mass=BigInt::from(mass.clone());
+                re+=&mass*(&ray[row].re*&ray[col].re+&ray[row].im*&ray[col].im);
+                im+=mass*(&ray[row].re*&ray[col].im-&ray[row].im*&ray[col].re);
+            }
+            re*=5u8; im*=5u8;
+            if row==col { re-=&total*(BigInt::one() << (2*format.w_bits as usize)); }
+            assert_eq!(original.rounded.recovered[entry],(round(&re),round(&im)));
+            assert_eq!(original.signed_residual_numerators[entry],
+                (re-&gram[entry].0*&denominator,im-&gram[entry].1*&denominator));
+        }
+        assert_eq!(original.rounded,loaded.rounded);
+        assert_eq!(original.denominator,loaded.denominator);
+        assert_eq!(original.signed_residual_numerators,loaded.signed_residual_numerators);
+        let scaled_gram=gram.clone().map(|(re,im)|(re << 256usize,im << 256usize));
+        let scaled_masses=masses.clone().map(|mass| mass << 256usize);
+        assert_eq!(frame.gram_mass_numerators(&scaled_gram).unwrap(),scaled_masses);
+        let scaled=frame.certify_gram_frame_unrounded_masses(&scaled_gram,&scaled_masses).unwrap();
+        assert_eq!(scaled.denominator,original.denominator);
+        assert_eq!(scaled.signed_residual_numerators,
+            original.signed_residual_numerators.clone().map(|(re,im)|(re << 256usize,im << 256usize)));
+        let mut changed=restored;
+        for projector in &mut changed.projectors { for (re,im) in projector {
+            *re=re.shl(1); *im=im.shl(1);
+        }}
+        assert!(changed.certify_gram_frame_unrounded_masses(&gram,&masses).is_err());
+    }
+    #[test]
+    fn word_sic_dual_preserves_every_signed_rational_residual() {
+        let format = FixedPointFormat::for_modulus_bits(20).unwrap();
+        let frame = FixedQuquartSic::new(&format).unwrap();
+        let work = [[(1i32,0i32),(0,2)], [(2,1),(1,0)], [(-1,2),(3,-1)], [(0,-1),(2,2)]];
+        let gram: [(BigInt,BigInt);16] = core::array::from_fn(|entry| {
+            let (row,col) = (entry/4,entry%4);
+            let mut re = BigInt::zero(); let mut im = BigInt::zero();
+            for component in 0..2 {
+                let (ar,ai) = work[row][component]; let (br,bi) = work[col][component];
+                re += BigInt::from(ar*br+ai*bi); im += BigInt::from(ar*bi-ai*br);
+            }
+            (re,im)
+        });
+        // Host arithmetic is confined to this independent comparison instrument.
+        let expected_masses: [BigUint;16] = core::array::from_fn(|i| {
+            let ray = &frame.rays[i]; let mut value = BigInt::zero();
+            for row in 0..4 { for col in 0..4 {
+                let cr = &ray[row].re*&ray[col].re + &ray[row].im*&ray[col].im;
+                let ci = &ray[row].im*&ray[col].re - &ray[row].re*&ray[col].im;
+                value += cr*&gram[4*row+col].0-ci*&gram[4*row+col].1;
+            }}
+            value.to_biguint().unwrap()
+        });
+        let actual_masses = frame.gram_mass_numerators(&gram).unwrap();
+        assert_eq!(actual_masses, expected_masses);
+        let result = frame.certify_gram_frame_unrounded_masses(&gram, &actual_masses).unwrap();
+        let scale_squared = format.scale().pow(2);
+        let denominator = &scale_squared * &scale_squared * 4u8;
+        let total: BigInt = expected_masses.iter().cloned().map(BigInt::from).sum();
+        assert_eq!(result.denominator, denominator);
+        for entry in 0..16 {
+            let (row,col)=(entry/4,entry%4); let mut re=BigInt::zero(); let mut im=BigInt::zero();
+            for (ray,mass) in frame.rays.iter().zip(&expected_masses) {
+                let mass=BigInt::from(mass.clone());
+                re += &mass*(&ray[row].re*&ray[col].re+&ray[row].im*&ray[col].im);
+                im += mass*(&ray[row].re*&ray[col].im-&ray[row].im*&ray[col].re);
+            }
+            re *= 5u8; im *= 5u8;
+            if row==col { re -= &total*&scale_squared; }
+            let round=|v:&BigInt| {
+                let mag=(v.abs()+&denominator/2u8)/&denominator;
+                if v.is_negative() { -mag } else { mag }
+            };
+            assert_eq!(result.rounded.recovered[entry], (round(&re),round(&im)));
+            assert_eq!(result.signed_residual_numerators[entry],
+                (re-&gram[entry].0*&denominator, im-&gram[entry].1*&denominator));
+        }
+        let mut changed=gram.clone();
+        for col in 1..4 {
+            let (re,im)=&gram[col]; changed[col]=(-im,re.clone()); changed[4*col]=(-im,-re);
+        }
+        let changed_masses=frame.gram_mass_numerators(&changed).unwrap();
+        frame.certify_gram_frame_unrounded_masses(&changed,&changed_masses).unwrap();
+        assert!(frame.certify_gram_frame_unrounded_masses(&changed,&actual_masses).is_err());
+    }
     #[test]
     fn four_phase_digits_keep_leading_zero_and_resolution() {
         let mut readout = QuquartPhaseReadout::default();

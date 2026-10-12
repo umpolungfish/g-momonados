@@ -30,6 +30,8 @@ pub mod arbitrary_factor;
 #[cfg(feature = "hosted")]
 pub mod runtime_nesting;
 pub mod word_tape;
+pub mod reentry_powerset;
+pub mod baked_resident;
 #[cfg(feature = "hosted")]
 pub mod gpu_ecm_word;
 #[cfg(feature = "hosted")]

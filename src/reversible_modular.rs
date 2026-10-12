@@ -5,8 +5,10 @@
 //! execution requirements. This module does not manufacture a phase sample.
 use alloc::string::String;
 use alloc::vec::Vec;
-use num_bigint::{BigInt, BigUint, Sign};
+use num_bigint::BigUint;
+#[cfg(test)]
 use num_traits::{One, Zero};
+use crate::word_tape::{SignedWordTape, WordTape};
 
 /// A reversible X controlled by conjunction of positive or negative literals.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,12 +34,15 @@ impl NestedOperation {
         match self {
             Self::Toggle(_) | Self::Compare { .. } => self.clone(),
             Self::Add { register, value, controls } => {
-                let radix = BigUint::one() << register.len();
-                let value = (radix.clone() - value % &radix) % radix;
+                let radix = WordTape::one_at(register.len());
+                let value = WordTape::from_biguint(value).divmod(&radix).unwrap().1;
+                let value = radix.sub(&value).unwrap().divmod(&radix).unwrap().1.to_biguint();
                 Self::Add { register: register.clone(), value, controls: controls.clone() }
             }
             Self::ModularAdd { register, digit, value, modulus, controls } => {
-                let value = (modulus - value % modulus) % modulus;
+                let n = WordTape::from_biguint(modulus);
+                let value = WordTape::from_biguint(value).divmod(&n).unwrap().1;
+                let value = n.sub(&value).unwrap().divmod(&n).unwrap().1.to_biguint();
                 Self::ModularAdd { register: register.clone(), digit: digit.clone(), value,
                     modulus: modulus.clone(), controls: controls.clone() }
             }
@@ -292,8 +297,8 @@ where
 /// On y < N, add c modulo N. The extra high bit and flag both return to zero.
 fn add_mod<F>(
     register: &[usize],
-    c: &BigUint,
-    n: &BigUint,
+    c: &WordTape,
+    n: &WordTape,
     controls: &[(usize, bool)],
     flag: usize,
     emit: &mut F,
@@ -304,49 +309,44 @@ where
     if c.is_zero() {
         return Ok(());
     }
-    let radix = BigUint::one() << register.len();
-    emit(NestedOperation::Add { register: register.to_vec(), value: c.clone(), controls: controls.to_vec() })?;
-    emit(NestedOperation::Add { register: register.to_vec(), value: &radix - n, controls: controls.to_vec() })?;
+    let radix = WordTape::one_at(register.len());
+    emit(NestedOperation::Add { register: register.to_vec(), value: c.to_biguint(), controls: controls.to_vec() })?;
+    emit(NestedOperation::Add { register: register.to_vec(), value: radix.sub(n).ok_or("modulus escaped register radix")?.to_biguint(), controls: controls.to_vec() })?;
     let mut sign = controls.to_vec();
     sign.push((*register.last().ok_or("empty modular register")?, true));
     emit(NestedOperation::Toggle(ControlledX { controls: sign, target: flag }))?;
-    emit(NestedOperation::Add { register: register.to_vec(), value: n.clone(), controls: alloc::vec![(flag,true)] })?;
+    emit(NestedOperation::Add { register: register.to_vec(), value: n.to_biguint(), controls: alloc::vec![(flag,true)] })?;
     // Underflow means no wrap; the final result < c means wrap. These are
     // complementary on the valid input subspace, so erase the borrow flag.
     emit(NestedOperation::Toggle(ControlledX { controls: controls.to_vec(), target: flag }))?;
-    emit(NestedOperation::Compare { register: register.to_vec(), value: c.clone(), controls: controls.to_vec(), flag })
+    emit(NestedOperation::Compare { register: register.to_vec(), value: c.to_biguint(), controls: controls.to_vec(), flag })
 }
 
-fn inverse(value: &BigUint, n: &BigUint) -> Result<BigUint, String> {
-    let modulus = BigInt::from_biguint(Sign::Plus, n.clone());
-    let (mut old_r, mut r) = (
-        modulus.clone(),
-        BigInt::from_biguint(Sign::Plus, value.clone()),
-    );
-    let (mut old_t, mut t) = (BigInt::zero(), BigInt::one());
+fn inverse(value: &WordTape, n: &WordTape) -> Result<WordTape, String> {
+    let modulus = SignedWordTape::from_magnitude(n.clone(), false);
+    let (mut old_r, mut r) = (n.clone(),value.clone());
+    let (mut old_t, mut t) = (SignedWordTape::zero(),SignedWordTape::from_small(1));
     while !r.is_zero() {
-        let quotient = &old_r / &r;
-        let next_r = &old_r - &quotient * &r;
-        let next_t = &old_t - &quotient * &t;
+        let (quotient, next_r) = old_r.divmod(&r).unwrap();
+        let next_t = old_t.sub(&SignedWordTape::from_magnitude(quotient,false).mul(&t));
         old_r = r;
         r = next_r;
         old_t = t;
         t = next_t;
     }
-    if old_r != BigInt::one() {
+    if old_r != WordTape::one() {
         return Err("modular multiplier must be coprime to N".into());
     }
-    let result = ((old_t % &modulus) + &modulus) % &modulus;
-    result
-        .to_biguint()
-        .ok_or_else(|| "negative modular inverse".into())
+    let result = old_t.rem(&modulus).add(&modulus).rem(&modulus);
+    if result.is_negative() { return Err("negative modular inverse".into()); }
+    Ok(result.magnitude().clone())
 }
 
 /// Logical register layout for a recycled control and reversible multiply.
 /// Requires 2n+3 qubits including the control and clean arithmetic workspace.
 /// The workspace is returned clean after each controlled multiplication.
 pub struct ModularMultiply {
-    n: BigUint,
+    n: WordTape,
     width: usize,
 }
 
@@ -362,16 +362,17 @@ impl ModularMultiply {
     /// register. Small moduli are allowed here for operator controls; the
     /// production factor route retains its 128-bit admission through `new`.
     pub fn new_phase_register(n: &BigUint) -> Result<Self, String> {
-        if n < &BigUint::from(2u8) {
+        let n = WordTape::from_biguint(n);
+        if !n.gt(&WordTape::one()) {
             return Err("phase-register modulus must exceed one".into());
         }
-        let width = usize::try_from(n.bits()).map_err(|_| "source width exceeds host indexing")?;
+        let width = n.bit_len();
         width
             .checked_mul(3)
             .and_then(|w| w.checked_add(4))
             .ok_or("qubit layout overflow")?;
         Ok(Self {
-            n: n.clone(),
+            n,
             width,
         })
     }
@@ -507,8 +508,8 @@ impl ModularMultiply {
 
     fn emit_nested<F>(&self, multiplier: &BigUint, whole_modular: bool, digit_bits: usize, mut emit: F) -> Result<(), String>
     where F: FnMut(NestedOperation) -> Result<(), String> {
-        let multiplier = multiplier % &self.n;
-        if multiplier.is_one() {
+        let multiplier = WordTape::from_biguint(multiplier).divmod(&self.n).unwrap().1;
+        if multiplier == WordTape::one() {
             return Ok(());
         }
         let inverse = inverse(&multiplier, &self.n)?;
@@ -519,11 +520,11 @@ impl ModularMultiply {
         for group in source.chunks(digit_bits) {
             if whole_modular {
                 emit(NestedOperation::ModularAdd { register: workspace.clone(), digit: group.to_vec(),
-                    value: power.clone(), modulus: self.n.clone(), controls: alloc::vec![(0,true)] })?;
+                    value: power.to_biguint(), modulus: self.n.to_biguint(), controls: alloc::vec![(0,true)] })?;
             } else {
                 add_mod(&workspace,&power,&self.n,&[(0,true),(group[0],true)],flag,&mut emit)?;
             }
-            power = (&power << group.len()) % &self.n;
+            power = power.shl(group.len()).divmod(&self.n).unwrap().1;
         }
         for (&x, &y) in source.iter().zip(&workspace) {
             for (control, target) in [(x,y), (y,x), (x,y)] {
@@ -534,14 +535,14 @@ impl ModularMultiply {
         }
         let mut power = inverse;
         for group in source.chunks(digit_bits) {
-            let negative = if power.is_zero() { BigUint::zero() } else { &self.n - &power };
+            let negative = if power.is_zero() { WordTape::zero() } else { self.n.sub(&power).unwrap() };
             if whole_modular {
                 emit(NestedOperation::ModularAdd { register: workspace.clone(), digit: group.to_vec(),
-                    value: negative, modulus: self.n.clone(), controls: alloc::vec![(0,true)] })?;
+                    value: negative.to_biguint(), modulus: self.n.to_biguint(), controls: alloc::vec![(0,true)] })?;
             } else {
                 add_mod(&workspace,&negative,&self.n,&[(0,true),(group[0],true)],flag,&mut emit)?;
             }
-            power = (&power << group.len()) % &self.n;
+            power = power.shl(group.len()).divmod(&self.n).unwrap().1;
         }
         Ok(())
     }

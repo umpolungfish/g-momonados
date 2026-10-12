@@ -4,3 +4,6 @@
 # whole build.
 [build]
 rustflags = ["-D", "warnings"]
+
+[alias]
+resident-static = ["build", "--offline", "--release", "--target", "x86_64-unknown-linux-musl", "--example", "resident_prepared", "-j", "1"]

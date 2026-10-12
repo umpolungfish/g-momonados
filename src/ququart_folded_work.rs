@@ -11,6 +11,7 @@ use crate::reversible_modular::ElementaryGate;
 use alloc::{string::String, vec::Vec};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
+use crate::word_tape::WordTape;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 // Read by Vox while the native process is stopped. These counters observe the
@@ -46,10 +47,16 @@ impl PreparedModularWork {
         if self.source != *source || self.digit_bits != digit_bits || digit_bits == 0 {
             return Err("prepared work source or radix differs from the resident register".into());
         }
-        if source < &BigUint::from(2u8)
-            || base <= &BigUint::one()
-            || base >= source
-            || crate::factor_routes::big_gcd(base.clone(), source.clone()) != BigUint::one()
+        let source_word = WordTape::from_biguint(source);
+        let base_word = WordTape::from_biguint(base);
+        let mut gcd = source_word.clone();
+        let mut remainder = base_word.clone();
+        while !remainder.is_zero() {
+            let next = gcd.divmod(&remainder).unwrap().1;
+            gcd = remainder; remainder = next;
+        }
+        if !source_word.ge(&WordTape::from_small(2)) || !base_word.gt(&WordTape::one())
+            || base_word.ge(&source_word) || !gcd.is_one()
         {
             return Err("prepared work base must be a source-bound unit".into());
         }
@@ -58,14 +65,15 @@ impl PreparedModularWork {
         }
         let arithmetic = ModularMultiply::new_phase_register(source)?;
         let mut result = Vec::with_capacity(digits);
-        let mut expected = base % source;
+        let mut expected = base_word.divmod(&source_word).unwrap().1;
         for (height, (multiplier, references)) in self.stages.iter().enumerate() {
-            if multiplier != &expected {
+            if WordTape::from_biguint(multiplier) != expected {
                 return Err(alloc::format!("prepared work multiplier changed at stack height {}", height));
             }
             let mut lanes: [Vec<NestedOperation>; 2] = [Vec::new(), Vec::new()];
-            for (lane, power) in [(0, multiplier.clone()), (1, multiplier * multiplier % source)] {
-                arithmetic.emit_ququart_nested_radix(&power, lane, digit_bits, |operation| {
+            let square = expected.mul(&expected).divmod(&source_word).unwrap().1;
+            for (lane, power) in [(0, expected.clone()), (1, square.clone())] {
+                arithmetic.emit_ququart_nested_radix(&power.to_biguint(), lane, digit_bits, |operation| {
                     lanes[lane].push(operation);
                     Ok(())
                 })?;
@@ -80,8 +88,7 @@ impl PreparedModularWork {
                 }
             }
             result.push((multiplier.clone(), lanes[0].clone(), lanes[1].clone()));
-            let square = &expected * &expected % source;
-            expected = &square * &square % source;
+            expected = square.mul(&square).divmod(&source_word).unwrap().1;
         }
         Ok(result)
     }
