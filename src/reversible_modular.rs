@@ -355,6 +355,16 @@ impl ModularMultiply {
         if n.bits() < 128 {
             return Err("modular factorization source must be at least 128 bits".into());
         }
+        Self::new_phase_register(n)
+    }
+
+    /// Prepare the reversible modular permutation for the coherent phase
+    /// register. Small moduli are allowed here for operator controls; the
+    /// production factor route retains its 128-bit admission through `new`.
+    pub fn new_phase_register(n: &BigUint) -> Result<Self, String> {
+        if n < &BigUint::from(2u8) {
+            return Err("phase-register modulus must exceed one".into());
+        }
         let width = usize::try_from(n.bits()).map_err(|_| "source width exceeds host indexing")?;
         width
             .checked_mul(3)

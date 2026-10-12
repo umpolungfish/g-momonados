@@ -33,39 +33,65 @@ pub struct PreparedModularWork {
     pub stages: Vec<(BigUint,Vec<usize>)>,
 }
 impl PreparedModularWork {
+    /// Return the already-wired operation references as the two control lanes
+    /// at each radix-four phase position. Recovery is checked against the
+    /// source-bound emitter before any reference is exposed to execution.
+    pub fn validated_lane_stages(
+        &self,
+        source: &BigUint,
+        base: &BigUint,
+        digit_bits: usize,
+        digits: usize,
+    ) -> Result<Vec<(BigUint, Vec<NestedOperation>, Vec<NestedOperation>)>, String> {
+        if self.source != *source || self.digit_bits != digit_bits || digit_bits == 0 {
+            return Err("prepared work source or radix differs from the resident register".into());
+        }
+        if source < &BigUint::from(2u8)
+            || base <= &BigUint::one()
+            || base >= source
+            || crate::factor_routes::big_gcd(base.clone(), source.clone()) != BigUint::one()
+        {
+            return Err("prepared work base must be a source-bound unit".into());
+        }
+        if self.stages.len() != digits {
+            return Err("prepared work has incomplete stack height".into());
+        }
+        let arithmetic = ModularMultiply::new_phase_register(source)?;
+        let mut result = Vec::with_capacity(digits);
+        let mut expected = base % source;
+        for (height, (multiplier, references)) in self.stages.iter().enumerate() {
+            if multiplier != &expected {
+                return Err(alloc::format!("prepared work multiplier changed at stack height {}", height));
+            }
+            let mut lanes: [Vec<NestedOperation>; 2] = [Vec::new(), Vec::new()];
+            for (lane, power) in [(0, multiplier.clone()), (1, multiplier * multiplier % source)] {
+                arithmetic.emit_ququart_nested_radix(&power, lane, digit_bits, |operation| {
+                    lanes[lane].push(operation);
+                    Ok(())
+                })?;
+            }
+            let expected_len = lanes[0].len() + lanes[1].len();
+            if references.len() != expected_len {
+                return Err(alloc::format!("prepared work has an incomplete operation stage at stack height {}", height));
+            }
+            for (position, (id, expected_op)) in references.iter().zip(lanes.iter().flatten()).enumerate() {
+                if self.operations.get(*id) != Some(expected_op) {
+                    return Err(alloc::format!("prepared work recovery changed operation {} at stack height {}", position, height));
+                }
+            }
+            result.push((multiplier.clone(), lanes[0].clone(), lanes[1].clone()));
+            let square = &expected * &expected % source;
+            expected = &square * &square % source;
+        }
+        Ok(result)
+    }
+
     /// Recover every source-bound operation at every phase-stack stage. This
     /// checks the executable map, not just the shape of the serialized pool.
     pub fn verify_recovery(&self, source: &BigUint, base: &BigUint, digit_bits: usize, digits: usize)
         -> Result<(),String>
     {
-        if self.source != *source || self.digit_bits != digit_bits || digit_bits == 0 {
-            return Err("prepared work source or radix differs from the resident register".into());
-        }
-        let schedule = crate::ququart_factor::QuquartPowerSchedule::prepare(source,base)?;
-        if self.stages.len() != digits || schedule.powers().len() != digits {
-            return Err("prepared work has incomplete stack height".into());
-        }
-        let arithmetic = ModularMultiply::new(source)?;
-        for (height,((multiplier,references),expected)) in self.stages.iter().zip(schedule.powers()).enumerate() {
-            if multiplier != expected {
-                return Err(alloc::format!("prepared work multiplier changed at stack height {}",height));
-            }
-            let mut position = 0usize;
-            for (lane,power) in [(0,multiplier.clone()),(1,multiplier*multiplier%source)] {
-                arithmetic.emit_ququart_nested_radix(&power,lane,digit_bits,|operation| {
-                    let observed = references.get(position).and_then(|&id|self.operations.get(id));
-                    if observed != Some(&operation) {
-                        return Err(alloc::format!("prepared work recovery changed operation {} at stack height {}",position,height));
-                    }
-                    position += 1;
-                    Ok(())
-                })?;
-            }
-            if position != references.len() {
-                return Err(alloc::format!("prepared work has an extra operation at stack height {}",height));
-            }
-        }
-        Ok(())
+        self.validated_lane_stages(source, base, digit_bits, digits).map(|_| ())
     }
 }
 

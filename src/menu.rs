@@ -226,6 +226,12 @@ pub static IMASM_MENU: &[MenuItem] = &[
 
 pub static KERNEL_MENU: &[MenuItem] = &[
     MenuItem { name: "reentry", cmd: "reentry", desc: "Lean kernel SIXTEEN_3, certified S/K/I/Y reduction, lattice bounds and feedback clocks", example: "reentry orbit 2 1000000000000 negation", submenu: None },
+    MenuItem { name: "y_divisor factor", cmd: "y_divisor factor", desc: "N-only resident glut divisor production with SIC closure and Y/SIXTEEN_3 validation; append both for contradictory evidence", example: "y_divisor factor 91", submenu: None },
+    MenuItem { name: "y_divisor factors", cmd: "y_divisor factors", desc: "Y-reentrant accumulator for every nontrivial divisor; append both for contradictory evidence", example: "y_divisor factors 36", submenu: None },
+    MenuItem { name: "y_divisor from", cmd: "y_divisor from", desc: "Seed Y-reentry at D and continue to the next divisor of N; append both for contradictory evidence", example: "y_divisor from 91 13", submenu: None },
+    MenuItem { name: "y_divisor bitfold", cmd: "y_divisor bitfold", desc: "Recursively split factor bits with product-interval pruning and validate the candidate in Y/SIXTEEN_3", example: "y_divisor bitfold 91", submenu: None },
+    MenuItem { name: "y_divisor winding", cmd: "y_divisor winding", desc: "Propose a factor from double-exponent/halve-base winding and verify it through seeded Y re-entry", example: "y_divisor winding 91", submenu: None },
+    MenuItem { name: "y_divisor profile", cmd: "y_divisor profile", desc: "Count certified Y contractions and sample residual term size at powers-of-two checkpoints", example: "y_divisor profile 1009", submenu: None },
     MenuItem { name: "ask", cmd: "ask", desc: "kernel structural ask (dry). Full wet: host ./ask --file | -i", example: "ask What is the distance to CLINK L8?", submenu: None },
     MenuItem { name: "spine", cmd: "spine", desc: "manuscript spine: PROVE->UNIFY->PORT x vessel (no Python)", example: "spine", submenu: None },
     MenuItem { name: "vessel", cmd: "vessel", desc: "witness-vessel transport: Clay payloads x 88 dialects, frob-gated", example: "vessel", submenu: None },

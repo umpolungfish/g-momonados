@@ -30,6 +30,10 @@ pub mod arbitrary_factor;
 #[cfg(feature = "hosted")]
 pub mod runtime_nesting;
 pub mod word_tape;
+#[cfg(feature = "hosted")]
+pub mod gpu_ecm_word;
+#[cfg(feature = "hosted")]
+pub mod gpu_ecm;
 pub mod gpu_rho;
 pub mod gpu_rho_ml;
 pub mod native_numeral;
@@ -85,3 +89,6 @@ mod godel_calculus_tests {
 
 pub mod ququart_decision;
 pub mod ququart_folded_work;
+pub mod whole_register_phase;
+pub mod factor_synthesis;
+pub mod resident_glut;

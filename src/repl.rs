@@ -94,6 +94,9 @@ fn awaiting_bigint_arg(line: &str) -> bool {
         ["prime_winding", "factor"] => true,
         ["trilattice_factor", "factor"] | ["tfactor", "factor"] => true,
         ["winding", "factor"] => true,
+        ["y_divisor", "factor"] | ["y_divisor", "factors"] => true,
+        ["y_divisor", "from"] | ["y_divisor", "bitfold"] | ["y_divisor", "winding"]
+        | ["y_divisor", "profile"] => true,
         _ => false,
     }
 }
@@ -129,6 +132,8 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
     let mut ask_paste = crate::ask::AskPaste::new();
     // Held incomplete bigint verb (`gpu_ecm bsgs`, …); digit-only lines extend it.
     let mut bigint_cont: Option<String> = None;
+    #[cfg(feature = "hosted")]
+    let mut kernel_admitted = false;
     let mut pending_lines: alloc::collections::VecDeque<String> = seed;
 
     sprintln!("   {}ask{} runs a structural dry-run here; the full wet-run is on the host:",
@@ -169,6 +174,20 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             }
         };
         let line = line_owned.as_str();
+        #[cfg(feature = "hosted")]
+        if !kernel_admitted
+            && !line.trim().is_empty()
+            && !matches!(line.split_whitespace().next(), Some("quit" | "exit" | "halt"))
+            && !line.split_whitespace().any(|arg| matches!(arg, "help" | "--help" | "-h"))
+        {
+            match crate::lean_kernel::ensure_default() {
+                Ok(_) => kernel_admitted = true,
+                Err(error) => {
+                    sprintln!("Lean kernel admission failed: {}", error);
+                    continue;
+                }
+            }
+        }
         let _vessel = crate::runtime_nesting::CommandVessel::admit(line);
         #[cfg(feature = "hosted")]
         if matches!(line.split_whitespace().next(), Some("reentry" | "lean-kernel")) {
@@ -176,6 +195,12 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             if args.first().map(String::as_str) == Some("word") {
                 crate::lean_kernel::run_word_to(&args, vox_core::phase_word::native_transition_table, crate::runtime_nesting::write_stdout);
             } else { crate::lean_kernel::run_to(&args, crate::runtime_nesting::write_stdout); }
+            continue;
+        }
+        #[cfg(feature = "hosted")]
+        if line.split_whitespace().next() == Some("y_divisor") {
+            let args = line.split_whitespace().skip(1).map(str::to_owned).collect::<Vec<_>>();
+            crate::run_y_divisor(&args, crate::runtime_nesting::write_stdout);
             continue;
         }
 
