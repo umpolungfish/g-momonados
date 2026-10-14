@@ -1,0 +1,97 @@
+//! Host-testable surface of the kernel.
+//!
+//! The kernel is a bare-metal binary, which is why `braid_protocol`'s dual pair
+//! was written correctly and then never checked: there was nowhere to run it.
+//! A dual that has never been closed is a claim, not a verification, and the
+//! Frobenius condition is the one thing this module exists to make checkable.
+//!
+//! Only the portable modules are carried here. Nothing that touches serial,
+//! interrupts, the entry point or the halt is included, but cargo does build
+//! this target alongside the binary.
+//!
+//! Author: Lando⊗⊙perator
+
+#![cfg_attr(not(feature = "hosted"), no_std)]
+#![allow(uncommon_codepoints)]
+#![allow(dead_code)]
+#![allow(non_snake_case)]
+
+extern crate alloc;
+
+// Local godel modules (copied from Vox)
+pub mod godel_calculus;
+pub mod godel_analyzer;
+// godel_support is a submodule of godel_calculus
+pub mod prime_tool_logic;
+pub mod semiprime_tool_logic;
+pub mod factor_routes;
+pub mod arbitrary_factor;
+
+#[cfg(feature = "hosted")]
+pub mod runtime_nesting;
+pub mod word_tape;
+pub mod reentry_powerset;
+pub mod baked_resident;
+#[cfg(feature = "hosted")]
+pub mod gpu_ecm_word;
+#[cfg(feature = "hosted")]
+pub mod gpu_ecm;
+pub mod gpu_rho;
+pub mod gpu_rho_ml;
+pub mod native_numeral;
+pub mod phase_unbraid;
+pub mod reversible_modular;
+pub mod fibonacci_shor_plan;
+pub mod recycled_carrier;
+pub mod anyon_local;
+pub mod anyon_pair;
+pub mod anyon_fusion_kernel;
+pub mod anyon_qutrit;
+pub mod anyon_ququart;
+pub mod ququart_factor;
+pub mod ququart_reentry_clock;
+pub mod ququart_work;
+#[cfg(feature = "hosted")]
+pub mod sic;
+#[cfg(feature = "hosted")]
+pub mod belnap_residual;
+#[cfg(feature = "hosted")]
+pub mod belnap_integration;
+pub mod anyon_weave;
+pub mod factor_phase;
+pub mod tokens;
+pub mod word_nesting;
+pub mod token_refinement;
+pub mod factor_relation;
+#[cfg(feature = "hosted")]
+pub mod gpu_graph;
+pub mod braid_protocol;
+pub mod vox;
+pub mod period_finding_ecdlp;
+pub mod secp256k1_unwinder;
+pub mod factor_membrane;
+
+#[cfg(feature = "hosted")]
+pub mod membrane_family;
+
+#[cfg(all(test, feature = "hosted"))]
+mod braid_frobenius_tests;
+mod btc_key_deriver;
+
+#[cfg(test)]
+mod godel_calculus_tests {
+    use super::{godel_analyzer, godel_calculus};
+
+    #[test]
+    fn vendored_godel_calculus_selftest() {
+        assert!(godel_calculus::selftest_report().is_ok());
+        assert!(godel_analyzer::selftest_report().is_ok());
+    }
+}
+
+pub mod ququart_decision;
+pub mod ququart_folded_work;
+pub mod whole_register_phase;
+pub mod factor_synthesis;
+pub mod resident_glut;
+pub mod resident_frame;

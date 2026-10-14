@@ -1,0 +1,134 @@
+resident-import stage=source
+resident-import stage=membrane
+resident-import stage=compiled-work operations=133120 stages=512
+resident-import stage=register nodes=400411
+resident-import stage=phase-ready
+resident-import stage=SIC-projectors
+resident-import stage=circuit-braid circuit=HTSX generators=25 target_residual=0.0q¼·|q¼¶uq¼}¾q¼z word_residual=q.¼pºq¼t¼q¼t¼q¼te-15 changed_gram_coordinates=16
+resident-import stage=Y-clock
+prepared-before-compile nanoseconds=339585945027
+baked-state-loaded seconds=110.864252783
+resident-trigger elapsed=5.019 product_rows=(0, 512, 0) phase=Some((0, 80, 400925))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((19, 10, 1, 1, 0))
+resident-monadic-binds=80 lanes_started=1 recent_lanes=[(0, false)]
+resident-digit-prefix calls_zero_returns_words=(64, 63, 1)
+resident-trigger elapsed=10.035 product_rows=(0, 512, 0) phase=Some((0, 1072, 400925))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((143, 134, 1, 1, 0))
+resident-monadic-binds=1072 lanes_started=1 recent_lanes=[(0, false)]
+resident-digit-prefix calls_zero_returns_words=(64, 63, 1)
+resident-trigger elapsed=18.511 product_rows=(0, 512, 0) phase=Some((0, 1608, 400414))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((210, 201, 1, 1, 0))
+resident-monadic-binds=1608 lanes_started=1 recent_lanes=[(0, false)]
+resident-digit-prefix calls_zero_returns_words=(72, 70, 2)
+resident-trigger elapsed=26.808 product_rows=(0, 512, 0) phase=Some((1023, 8, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((218, 209, 2, 1, 1))
+resident-monadic-binds=1672 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(136, 133, 4)
+resident-trigger elapsed=32.536 product_rows=(0, 512, 0) phase=Some((1023, 88, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((228, 219, 2, 1, 1))
+resident-monadic-binds=1752 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=38.830 product_rows=(0, 512, 0) phase=Some((1023, 120, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((232, 223, 2, 1, 1))
+resident-monadic-binds=1784 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=44.775 product_rows=(0, 512, 0) phase=Some((1023, 152, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((236, 227, 2, 1, 1))
+resident-monadic-binds=1816 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=49.999 product_rows=(0, 512, 0) phase=Some((1023, 184, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((240, 231, 2, 1, 1))
+resident-monadic-binds=1848 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=55.007 product_rows=(0, 512, 0) phase=Some((1023, 208, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((243, 234, 2, 1, 1))
+resident-monadic-binds=1872 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=60.957 product_rows=(0, 512, 0) phase=Some((1023, 232, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((246, 237, 2, 1, 1))
+resident-monadic-binds=1896 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=66.537 product_rows=(0, 512, 0) phase=Some((1023, 256, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((249, 240, 2, 1, 1))
+resident-monadic-binds=1920 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=71.691 product_rows=(0, 512, 0) phase=Some((1023, 288, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((253, 244, 2, 1, 1))
+resident-monadic-binds=1952 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=77.213 product_rows=(0, 512, 0) phase=Some((1023, 304, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((255, 246, 2, 1, 1))
+resident-monadic-binds=1968 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=83.305 product_rows=(0, 512, 0) phase=Some((1023, 336, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((259, 250, 2, 1, 1))
+resident-monadic-binds=2000 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=88.442 product_rows=(0, 512, 0) phase=Some((1023, 352, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((261, 252, 2, 1, 1))
+resident-monadic-binds=2016 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=93.758 product_rows=(0, 512, 0) phase=Some((1023, 376, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((264, 255, 2, 1, 1))
+resident-monadic-binds=2040 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=100.687 product_rows=(0, 512, 0) phase=Some((1023, 400, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((267, 258, 2, 1, 1))
+resident-monadic-binds=2064 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=105.783 product_rows=(0, 512, 0) phase=Some((1023, 432, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((271, 262, 2, 1, 1))
+resident-monadic-binds=2096 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=113.031 product_rows=(0, 512, 0) phase=Some((1023, 456, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((274, 265, 2, 1, 1))
+resident-monadic-binds=2120 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=118.366 product_rows=(0, 512, 0) phase=Some((1023, 480, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((277, 268, 2, 1, 1))
+resident-monadic-binds=2144 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=123.499 product_rows=(0, 512, 0) phase=Some((1023, 496, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((279, 270, 2, 1, 1))
+resident-monadic-binds=2160 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=129.617 product_rows=(0, 512, 0) phase=Some((1023, 520, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((282, 273, 2, 1, 1))
+resident-monadic-binds=2184 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=135.099 product_rows=(0, 512, 0) phase=Some((1023, 536, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((284, 275, 2, 1, 1))
+resident-monadic-binds=2200 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=142.138 product_rows=(0, 512, 0) phase=Some((1023, 560, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((287, 278, 2, 1, 1))
+resident-monadic-binds=2224 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=148.623 product_rows=(0, 512, 0) phase=Some((1023, 592, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((291, 282, 2, 1, 1))
+resident-monadic-binds=2256 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=155.153 product_rows=(0, 512, 0) phase=Some((1023, 616, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((294, 285, 2, 1, 1))
+resident-monadic-binds=2280 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=161.820 product_rows=(0, 512, 0) phase=Some((1023, 640, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((297, 288, 2, 1, 1))
+resident-monadic-binds=2304 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=166.934 product_rows=(0, 512, 0) phase=Some((1023, 656, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((299, 290, 2, 1, 1))
+resident-monadic-binds=2320 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=172.999 product_rows=(0, 512, 0) phase=Some((1023, 680, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((302, 293, 2, 1, 1))
+resident-monadic-binds=2344 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=179.165 product_rows=(0, 512, 0) phase=Some((1023, 704, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((305, 296, 2, 1, 1))
+resident-monadic-binds=2368 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+resident-trigger elapsed=185.336 product_rows=(0, 512, 0) phase=Some((1023, 728, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((308, 299, 2, 1, 1))
+resident-monadic-binds=2392 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)

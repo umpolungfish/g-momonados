@@ -1,0 +1,7 @@
+dqi_ambient — de-interlacing in the four-valued Belnap ambient 𝟒={N,T,F,B}
+  dqi_ambient noncommute    exhaustive proof r∘¬≠¬∘r, c∘¬≠¬∘c exactly on {N,B}
+  dqi_ambient jcore         J(a,b)=(a,¬b) on the Boolean core vs ambient
+  dqi_ambient hierarchy <m>  recursive 𝟒^m → (𝟒^{⌈m/2⌉})² → … ladder (default 862)
+  dqi_ambient diag <N/T/F/B> de-interlace + per-cell commutation diagnostic
+  dqi_ambient numeral <0/1>  lift a Boolean numeral to 𝟒 and run the diagnostic
+  dqi_ambient report        full report

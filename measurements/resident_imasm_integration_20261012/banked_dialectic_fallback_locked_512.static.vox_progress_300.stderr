@@ -1,0 +1,76 @@
+vox-loading stage=read
+vox-loading stage=module seconds=0.132945 bytes=391829805
+vox-loading stage=ready seconds=2.775224
+vox-execution seconds=0.004705 steps=0 pc=0x329883
+resident-import stage=source
+resident-import stage=membrane
+resident-import stage=compiled-work operations=133120 stages=512
+resident-import stage=register nodes=400411
+vox-execution seconds=5.036506 steps=13631488 pc=0x35af02
+vox-execution seconds=10.406372 steps=26214400 pc=0x33fe6f
+vox-execution seconds=15.411111 steps=37748736 pc=0x340d19
+vox-execution seconds=20.840151 steps=50331648 pc=0x3385ab
+vox-execution seconds=26.272788 steps=62914560 pc=0x35f85b
+vox-execution seconds=31.726337 steps=75497472 pc=0x33f95c
+vox-execution seconds=36.738041 steps=87031808 pc=0x33fed0
+vox-execution seconds=41.803310 steps=98566144 pc=0x33f8d4
+vox-execution seconds=47.213501 steps=111149056 pc=0x35f71f
+vox-execution seconds=52.566035 steps=123731968 pc=0x32117e
+vox-execution seconds=57.816906 steps=136314880 pc=0x3385ba
+vox-execution seconds=63.179513 steps=148897792 pc=0x33f979
+vox-execution seconds=68.180092 steps=160432128 pc=0x33fb56
+vox-execution seconds=73.200287 steps=171966464 pc=0x35f657
+vox-execution seconds=78.215142 steps=183500800 pc=0x35f69c
+vox-execution seconds=83.525156 steps=196083712 pc=0x33fed7
+vox-execution seconds=88.827954 steps=208666624 pc=0x35f6f5
+vox-execution seconds=94.145908 steps=221249536 pc=0x340ba1
+vox-execution seconds=99.418662 steps=233832448 pc=0x3211bd
+resident-import stage=phase-ready
+resident-import stage=SIC-projectors
+resident-import stage=circuit-braid circuit=HTSX generators=25 target_residual=0.0q¼·|q¼¶uq¼}¾q¼z word_residual=q.¼pºq¼t¼q¼t¼q¼te-15 changed_gram_coordinates=16
+resident-import stage=Y-clock
+prepared-before-compile nanoseconds=551145930329
+baked-state-loaded seconds=104.281317750
+resident-modular-operator composed=true
+vox-execution seconds=104.687721 steps=247463936 pc=0x3bde9b
+vox-execution seconds=109.882583 steps=262144000 pc=0x3ae87f
+vox-execution seconds=114.937129 steps=274726912 pc=0x3ae90c
+vox-execution seconds=120.197883 steps=288358400 pc=0x3ae88a
+vox-execution seconds=125.345121 steps=300941312 pc=0x3adfb0
+vox-execution seconds=130.453292 steps=313524224 pc=0x3a65e7
+vox-execution seconds=135.463748 steps=326107136 pc=0x3adf22
+vox-execution seconds=140.531457 steps=338690048 pc=0x3ae376
+vox-execution seconds=145.583626 steps=351272960 pc=0x3a657a
+vox-execution seconds=150.684320 steps=363855872 pc=0x3ae95f
+vox-execution seconds=155.740657 steps=376438784 pc=0x3a65e0
+vox-execution seconds=160.764198 steps=389021696 pc=0x3ae8da
+vox-execution seconds=165.779293 steps=401604608 pc=0x3a657a
+vox-execution seconds=170.864992 steps=414187520 pc=0x344bfb
+resident-trigger elapsed=68.421 product_rows=(0, 512, 0) phase=Some((1, 0, 401439))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((11, 2, 2, 1, 1))
+resident-monadic-binds=2 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(0, 0, 0)
+vox-execution seconds=175.918480 steps=426770432 pc=0x34c9a2
+vox-execution seconds=181.008763 steps=440401920 pc=0x3a657a
+vox-execution seconds=186.279479 steps=455081984 pc=0x3a65e7
+vox-execution seconds=191.484310 steps=469762048 pc=0x3adc79
+vox-execution seconds=196.537501 steps=484442112 pc=0x34c9a2
+vox-execution seconds=201.857242 steps=500170752 pc=0x3adca3
+vox-execution seconds=207.098506 steps=514850816 pc=0x3adc76
+vox-execution seconds=212.385597 steps=529530880 pc=0x3a65e4
+vox-execution seconds=217.616255 steps=544210944 pc=0x3ae4b5
+vox-execution seconds=222.682879 steps=559939584 pc=0x34c9af
+vox-execution seconds=227.754250 steps=577765376 pc=0x34c9a2
+vox-execution seconds=232.754371 steps=592445440 pc=0x34c9af
+vox-execution seconds=238.039690 steps=607125504 pc=0x3a65ce
+vox-execution seconds=243.358433 steps=621805568 pc=0x3bccfc
+vox-execution seconds=248.517000 steps=636485632 pc=0x3378a1
+vox-execution seconds=253.634129 steps=651165696 pc=0x3a65e7
+vox-execution seconds=258.795690 steps=665845760 pc=0x34c9a5
+vox-execution seconds=263.874287 steps=680525824 pc=0x34c9d1
+vox-execution seconds=269.061823 steps=695205888 pc=0x3adc71
+vox-execution seconds=274.290723 steps=711983104 pc=0x34c9cb
+vox-execution seconds=279.572122 steps=730857472 pc=0x34c9ba
+vox-execution seconds=284.858432 steps=749731840 pc=0x34c99f
+vox-execution seconds=290.078487 steps=768606208 pc=0x34c9d1
+vox-execution seconds=295.328352 steps=787480576 pc=0x34c9ac

@@ -737,7 +737,7 @@ pub fn search_commands(keyword: &str) {
 
     // Also match known sub-commands not carried as menu items
     let known: &[(&str, &str)] = &[
-        ("ovm", "OVM Computation Tools (eigen, frame, overlap, belnap, help)"),
+        ("ovm", "OVM tools (compute, eigen, frame, overlap, measure, spectral, duals, born, cycle, belnap, list)"),
         ("hqe", "Hadron-Quark-Electron formal homology"),
         ("dyson", "Dyson RD/A formal decomposition"),
         ("afdmc", "AFDMC nuclear many-body theory"),

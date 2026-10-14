@@ -1,0 +1,92 @@
+vox-loading stage=read
+vox-loading stage=module seconds=0.140397 bytes=391809464
+vox-loading stage=ready seconds=2.803136
+vox-execution seconds=0.004916 steps=0 pc=0x3292f3
+resident-import stage=source
+resident-import stage=membrane
+resident-import stage=compiled-work operations=133120 stages=512
+resident-import stage=register nodes=400411
+vox-execution seconds=5.175494 steps=13631488 pc=0x35bb8f
+vox-execution seconds=10.636065 steps=26214400 pc=0x3410bd
+vox-execution seconds=16.071250 steps=38797312 pc=0x33f661
+vox-execution seconds=21.511834 steps=51380224 pc=0x35ef48
+vox-execution seconds=26.920830 steps=63963136 pc=0x341aa8
+vox-execution seconds=32.339887 steps=76546048 pc=0x34110e
+vox-execution seconds=37.340018 steps=88080384 pc=0x35f047
+vox-execution seconds=42.806012 steps=100663296 pc=0x35effb
+vox-execution seconds=48.121855 steps=113246208 pc=0x340d92
+vox-execution seconds=53.447303 steps=125829120 pc=0x3bd7ac
+vox-execution seconds=58.678719 steps=138412032 pc=0x35f047
+vox-execution seconds=64.048474 steps=150994944 pc=0x340a06
+vox-execution seconds=69.455046 steps=163577856 pc=0x33f24f
+vox-execution seconds=74.850474 steps=176160768 pc=0x35f288
+vox-execution seconds=80.280920 steps=188743680 pc=0x3211a8
+vox-execution seconds=85.542806 steps=201326592 pc=0x341a9d
+vox-execution seconds=90.818790 steps=213909504 pc=0x32115e
+vox-execution seconds=96.119224 steps=226492416 pc=0x35f0ad
+resident-import stage=phase-ready
+resident-import stage=SIC-projectors
+vox-execution seconds=101.343473 steps=240123904 pc=0x37c73b
+resident-import stage=circuit-braid circuit=HTSX generators=25 target_residual=0.0q¼·|q¼¶uq¼}¾q¼z word_residual=q.¼pºq¼t¼q¼t¼q¼te-15 changed_gram_coordinates=16
+resident-import stage=Y-clock
+prepared-before-compile nanoseconds=502425505432
+baked-state-loaded seconds=103.995397494
+resident-source-stage dialectic-enter
+resident-dialectic stage=dialectic-init-start steps=0
+resident-dialectic stage=dialectic-init-complete steps=0
+resident-dialectic stage=dialectic-step-start steps=1
+resident-dialectic stage=dialectic-step-complete steps=1
+resident-dialectic stage=dialectic-step-start steps=2
+vox-execution seconds=106.635386 steps=253755392 pc=0x3a33df
+vox-execution seconds=111.768446 steps=268435456 pc=0x3a3135
+vox-execution seconds=116.921081 steps=283115520 pc=0x3a33e2
+vox-execution seconds=122.077783 steps=297795584 pc=0x3bd770
+vox-execution seconds=127.258250 steps=312475648 pc=0x3bd751
+vox-execution seconds=132.429257 steps=327155712 pc=0x3a3124
+vox-execution seconds=137.603734 steps=341835776 pc=0x3a312e
+vox-execution seconds=142.773505 steps=356515840 pc=0x3bd4d2
+vox-execution seconds=147.923450 steps=371195904 pc=0x3a311f
+vox-execution seconds=153.065977 steps=385875968 pc=0x3a33c5
+vox-execution seconds=158.227850 steps=400556032 pc=0x3a3139
+vox-execution seconds=163.452453 steps=415236096 pc=0x3a3132
+vox-execution seconds=168.552989 steps=429916160 pc=0x3bd7f5
+vox-execution seconds=173.675395 steps=444596224 pc=0x3bd82f
+resident-dialectic stage=dialectic-step-complete steps=2
+resident-dialectic stage=dialectic-step-start steps=3
+resident-dialectic stage=dialectic-step-complete steps=3
+resident-dialectic stage=dialectic-step-start steps=4
+resident-dialectic stage=dialectic-step-complete steps=4
+resident-dialectic stage=dialectic-window-exhausted steps=4
+resident-source-stage dialectic-open
+resident-modular-operator composed=true
+vox-execution seconds=179.039086 steps=459276288 pc=0x36699f
+vox-execution seconds=184.389715 steps=473956352 pc=0x3ae2f7
+vox-execution seconds=189.618519 steps=486539264 pc=0x3ad624
+vox-execution seconds=194.792186 steps=499122176 pc=0x3a5f97
+vox-execution seconds=199.931799 steps=511705088 pc=0x3ad640
+vox-execution seconds=204.957236 steps=524288000 pc=0x3ad621
+vox-execution seconds=209.985587 steps=536870912 pc=0x3ae2e7
+vox-execution seconds=215.056594 steps=549453824 pc=0x3a5f82
+vox-execution seconds=220.119386 steps=562036736 pc=0x3a5f85
+vox-execution seconds=225.217059 steps=574619648 pc=0x340723
+resident-trigger elapsed=123.862 product_rows=(0, 512, 0) phase=Some((1, 0, 401439))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((11, 2, 2, 1, 1))
+resident-monadic-binds=2 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(0, 0, 0)
+vox-execution seconds=230.499258 steps=587202560 pc=0x3a5f40
+vox-execution seconds=235.827405 steps=600834048 pc=0x3ad8d2
+vox-execution seconds=241.017961 steps=614465536 pc=0x3ad65b
+vox-execution seconds=246.083798 steps=628097024 pc=0x3a5f39
+vox-execution seconds=251.099775 steps=641728512 pc=0x3ad621
+vox-execution seconds=256.156145 steps=655360000 pc=0x3a5f9c
+vox-execution seconds=261.457364 steps=668991488 pc=0x3a5f40
+vox-execution seconds=266.760535 steps=682622976 pc=0x3a5f21
+vox-execution seconds=271.903873 steps=696254464 pc=0x3ad629
+vox-execution seconds=277.014069 steps=709885952 pc=0x3adee8
+vox-execution seconds=282.355129 steps=724566016 pc=0x3a5f1a
+vox-execution seconds=287.365581 steps=738197504 pc=0x3a5f2d
+resident-trigger elapsed=186.306 product_rows=(0, 512, 0) phase=Some((2, 0, 402469))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((12, 3, 3, 2, 1))
+resident-monadic-binds=3 lanes_started=3 recent_lanes=[(0, false), (1023, true), (1, false)]
+resident-digit-prefix calls_zero_returns_words=(0, 0, 0)
+vox-execution seconds=292.784277 steps=750780416 pc=0x3238f8

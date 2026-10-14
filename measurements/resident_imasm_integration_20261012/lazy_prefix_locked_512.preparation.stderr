@@ -1,0 +1,11 @@
+prepared-SIC residual=0 tolerance=1 seconds=4.720192
+preparation-stage relation-materialize seconds=4.720230
+preparation-stage SIC-coordinate-operation seconds=11.231263
+preparation-stage whole-phase-prepare seconds=20.854585
+preparation-stage whole-phase-bind seconds=23.733035
+preparation-stage whole-phase-bound seconds=47.951651
+preparation-stage joint-support-measured seconds=68.093686
+preparation-stage joint-SIC-prepared seconds=146.206946
+preparation-stage source-phase-relation-bound seconds=146.206982
+prepared-modular-program seconds=245.852353
+prepared-support-cache verified_nodes=400411 masks=166536 seconds=3.300597

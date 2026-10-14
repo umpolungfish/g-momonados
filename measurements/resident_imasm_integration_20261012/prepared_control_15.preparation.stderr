@@ -1,0 +1,9 @@
+prepared-source-prefix seconds=0.000363
+prepared-SIC residual=0 tolerance=1 seconds=0.045598
+preparation-stage relation-materialize seconds=0.045621
+preparation-stage SIC-coordinate-operation seconds=0.045626
+preparation-stage whole-phase-prepare seconds=0.077626
+preparation-stage whole-phase-bind seconds=0.078071
+preparation-stage candidate-work-bound seconds=0.147385
+prepared-modular-program seconds=0.154304
+preparation-complete seconds=0.154782 source=measurements/resident_imasm_integration_20261012/inputs/control_15.imasm state=measurements/resident_imasm_integration_20261012/prepared_control_15.json

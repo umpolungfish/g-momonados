@@ -65,6 +65,16 @@ path = "src/bin/ququart_prepare_operator.rs"
 required-features = ["hosted"]
 
 [[bin]]
+name = "resident_circuit_braid_probe"
+path = "src/bin/resident_circuit_braid_probe.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "resident_frobenius_exact_probe"
+path = "src/bin/resident_frobenius_exact_probe.rs"
+required-features = ["hosted"]
+
+[[bin]]
 name = "anyon_generator"
 path = "src/bin/anyon_generator.rs"
 required-features = ["hosted"]

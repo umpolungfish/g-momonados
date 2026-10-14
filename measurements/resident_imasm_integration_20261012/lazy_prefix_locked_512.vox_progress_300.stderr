@@ -1,0 +1,193 @@
+vox-loading stage=read
+vox-loading stage=module seconds=0.151328 bytes=389027191
+vox-loading stage=ready seconds=2.880733
+vox-execution seconds=0.004361 steps=0 pc=0x3292c3
+resident-import stage=source
+resident-import stage=membrane
+resident-import stage=compiled-work operations=133120 stages=512
+resident-import stage=register nodes=400411
+vox-execution seconds=5.102099 steps=13631488 pc=0x3592f8
+vox-execution seconds=10.217085 steps=25165824 pc=0x321139
+vox-execution seconds=15.232827 steps=36700160 pc=0x341685
+vox-execution seconds=20.669920 steps=49283072 pc=0x341582
+vox-execution seconds=25.730421 steps=60817408 pc=0x340bcb
+vox-execution seconds=30.785476 steps=72351744 pc=0x35c73c
+vox-execution seconds=35.822389 steps=83886080 pc=0x32121b
+vox-execution seconds=40.851446 steps=95420416 pc=0x34167a
+vox-execution seconds=46.254971 steps=108003328 pc=0x340be0
+vox-execution seconds=51.630015 steps=120586240 pc=0x3416c3
+vox-execution seconds=57.021073 steps=133169152 pc=0x34026a
+vox-execution seconds=62.418210 steps=145752064 pc=0x3404b5
+vox-execution seconds=67.425870 steps=157286400 pc=0x340855
+vox-execution seconds=72.870360 steps=169869312 pc=0x3408f2
+vox-execution seconds=77.882430 steps=181403648 pc=0x3416d4
+vox-execution seconds=83.306523 steps=193986560 pc=0x340be7
+vox-execution seconds=88.659128 steps=206569472 pc=0x3408d8
+vox-execution seconds=93.975280 steps=219152384 pc=0x3404ae
+vox-execution seconds=99.325250 steps=231735296 pc=0x34159a
+resident-import stage=phase-ready
+resident-import stage=SIC-projectors
+resident-import stage=Y-clock
+prepared-before-compile nanoseconds=245852392467
+baked-state-loaded seconds=102.327940688
+vox-execution seconds=104.531006 steps=244318208 pc=0x34b5af
+resident-trigger elapsed=5.016 product_rows=(0, 512, 0) phase=Some((0, 80, 400925))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((19, 10, 1, 1, 0))
+resident-monadic-binds=80 lanes_started=1 recent_lanes=[(0, false)]
+resident-digit-prefix calls_zero_returns_words=(64, 63, 1)
+vox-execution seconds=109.879153 steps=256901120 pc=0x33f8c2
+resident-trigger elapsed=10.032 product_rows=(0, 512, 0) phase=Some((0, 1128, 400925))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((150, 141, 1, 1, 0))
+resident-monadic-binds=1128 lanes_started=1 recent_lanes=[(0, false)]
+resident-digit-prefix calls_zero_returns_words=(64, 63, 1)
+vox-execution seconds=115.267702 steps=268435456 pc=0x39e6aa
+resident-trigger elapsed=17.821 product_rows=(0, 512, 0) phase=Some((0, 1608, 400414))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((210, 201, 1, 1, 0))
+resident-monadic-binds=1608 lanes_started=1 recent_lanes=[(0, false)]
+resident-digit-prefix calls_zero_returns_words=(72, 70, 2)
+vox-execution seconds=120.383287 steps=282066944 pc=0x343ce3
+vox-execution seconds=125.588989 steps=295698432 pc=0x3416c8
+resident-trigger elapsed=25.821 product_rows=(0, 512, 0) phase=Some((1023, 8, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((218, 209, 2, 1, 1))
+resident-monadic-binds=1672 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(136, 133, 4)
+vox-execution seconds=130.842005 steps=308281344 pc=0x34b5fd
+resident-trigger elapsed=31.419 product_rows=(0, 512, 0) phase=Some((1023, 88, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((228, 219, 2, 1, 1))
+resident-monadic-binds=1752 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=136.265644 steps=319815680 pc=0x3406de
+resident-trigger elapsed=37.544 product_rows=(0, 512, 0) phase=Some((1023, 120, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((232, 223, 2, 1, 1))
+resident-monadic-binds=1784 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=141.717736 steps=331350016 pc=0x3af26c
+resident-trigger elapsed=43.490 product_rows=(0, 512, 0) phase=Some((1023, 152, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((236, 227, 2, 1, 1))
+resident-monadic-binds=1816 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=146.723174 steps=341835776 pc=0x361f23
+resident-trigger elapsed=48.521 product_rows=(0, 512, 0) phase=Some((1023, 184, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((240, 231, 2, 1, 1))
+resident-monadic-binds=1848 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=152.175897 steps=353370112 pc=0x370043
+resident-trigger elapsed=55.099 product_rows=(0, 512, 0) phase=Some((1023, 216, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((244, 235, 2, 1, 1))
+resident-monadic-binds=1880 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=157.609848 steps=364904448 pc=0x3af20c
+vox-execution seconds=163.053774 steps=376438784 pc=0x342e69
+resident-trigger elapsed=61.463 product_rows=(0, 512, 0) phase=Some((1023, 240, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((247, 238, 2, 1, 1))
+resident-monadic-binds=1904 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=168.078898 steps=386924544 pc=0x34125b
+resident-trigger elapsed=67.045 product_rows=(0, 512, 0) phase=Some((1023, 272, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((251, 242, 2, 1, 1))
+resident-monadic-binds=1936 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=173.148888 steps=397410304 pc=0x34020a
+resident-trigger elapsed=72.110 product_rows=(0, 512, 0) phase=Some((1023, 296, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((254, 245, 2, 1, 1))
+resident-monadic-binds=1960 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=178.188240 steps=407896064 pc=0x3ae5de
+resident-trigger elapsed=79.207 product_rows=(0, 512, 0) phase=Some((1023, 328, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((258, 249, 2, 1, 1))
+resident-monadic-binds=1992 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=183.684731 steps=419430400 pc=0x342aae
+resident-trigger elapsed=86.377 product_rows=(0, 512, 0) phase=Some((1023, 352, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((261, 252, 2, 1, 1))
+resident-monadic-binds=2016 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=189.162629 steps=430964736 pc=0x342de0
+resident-trigger elapsed=91.790 product_rows=(0, 512, 0) phase=Some((1023, 376, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((264, 255, 2, 1, 1))
+resident-monadic-binds=2040 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=194.208475 steps=441450496 pc=0x362a90
+vox-execution seconds=199.666211 steps=452984832 pc=0x34157b
+resident-trigger elapsed=98.637 product_rows=(0, 512, 0) phase=Some((1023, 400, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((267, 258, 2, 1, 1))
+resident-monadic-binds=2064 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=204.717572 steps=463470592 pc=0x3af241
+resident-trigger elapsed=103.779 product_rows=(0, 512, 0) phase=Some((1023, 432, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((271, 262, 2, 1, 1))
+resident-monadic-binds=2096 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=209.763459 steps=473956352 pc=0x342b1a
+resident-trigger elapsed=110.984 product_rows=(0, 512, 0) phase=Some((1023, 456, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((274, 265, 2, 1, 1))
+resident-monadic-binds=2120 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=215.252054 steps=485490688 pc=0x33feb4
+resident-trigger elapsed=116.164 product_rows=(0, 512, 0) phase=Some((1023, 480, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((277, 268, 2, 1, 1))
+resident-monadic-binds=2144 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=220.259848 steps=495976448 pc=0x34bae7
+resident-trigger elapsed=121.241 product_rows=(0, 512, 0) phase=Some((1023, 496, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((279, 270, 2, 1, 1))
+resident-monadic-binds=2160 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=225.271608 steps=506462208 pc=0x3402d4
+resident-trigger elapsed=127.307 product_rows=(0, 512, 0) phase=Some((1023, 520, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((282, 273, 2, 1, 1))
+resident-monadic-binds=2184 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=230.763631 steps=517996544 pc=0x33fc89
+resident-trigger elapsed=132.659 product_rows=(0, 512, 0) phase=Some((1023, 536, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((284, 275, 2, 1, 1))
+resident-monadic-binds=2200 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=235.767936 steps=528482304 pc=0x3af249
+vox-execution seconds=240.833919 steps=538968064 pc=0x3af2cf
+resident-trigger elapsed=139.730 product_rows=(0, 512, 0) phase=Some((1023, 560, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((287, 278, 2, 1, 1))
+resident-monadic-binds=2224 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=245.873146 steps=549453824 pc=0x3ae329
+resident-trigger elapsed=146.252 product_rows=(0, 512, 0) phase=Some((1023, 592, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((291, 282, 2, 1, 1))
+resident-monadic-binds=2256 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=250.911444 steps=559939584 pc=0x3af596
+resident-trigger elapsed=152.821 product_rows=(0, 512, 0) phase=Some((1023, 616, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((294, 285, 2, 1, 1))
+resident-monadic-binds=2280 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=255.952134 steps=570425344 pc=0x3af617
+vox-execution seconds=260.971747 steps=580911104 pc=0x3af5eb
+resident-trigger elapsed=159.468 product_rows=(0, 512, 0) phase=Some((1023, 640, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((297, 288, 2, 1, 1))
+resident-monadic-binds=2304 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=265.993150 steps=591396864 pc=0x33ed74
+resident-trigger elapsed=164.528 product_rows=(0, 512, 0) phase=Some((1023, 656, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((299, 290, 2, 1, 1))
+resident-monadic-binds=2320 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=271.006646 steps=601882624 pc=0x34031f
+resident-trigger elapsed=170.491 product_rows=(0, 512, 0) phase=Some((1023, 680, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((302, 293, 2, 1, 1))
+resident-monadic-binds=2344 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=276.464417 steps=613416960 pc=0x340909
+resident-trigger elapsed=176.491 product_rows=(0, 512, 0) phase=Some((1023, 704, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((305, 296, 2, 1, 1))
+resident-monadic-binds=2368 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=281.882340 steps=624951296 pc=0x33fc98
+resident-trigger elapsed=182.539 product_rows=(0, 512, 0) phase=Some((1023, 728, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((308, 299, 2, 1, 1))
+resident-monadic-binds=2392 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=287.294938 steps=636485632 pc=0x3af602
+resident-trigger elapsed=188.779 product_rows=(0, 512, 0) phase=Some((1023, 752, 402463))
+resident-Y-clock contractions_calls_ticks_forward_reverse=Some((311, 302, 2, 1, 1))
+resident-monadic-binds=2416 lanes_started=2 recent_lanes=[(0, false), (1023, true)]
+resident-digit-prefix calls_zero_returns_words=(192, 189, 4)
+vox-execution seconds=292.714519 steps=648019968 pc=0x3af5d4

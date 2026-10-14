@@ -29,6 +29,8 @@ fn main() {
     fs::write(out.join("ququart_prepared.rs"), contents).unwrap();
     println!("cargo:rerun-if-env-changed=RESIDENT_SOURCE_FILE");
     println!("cargo:rerun-if-env-changed=RESIDENT_PREPARED_FILE");
+    println!("cargo:rerun-if-env-changed=RESIDENT_CIRCUIT_OPERATOR_FILE");
+    println!("cargo:rerun-if-env-changed=RESIDENT_COMPOSED_MODULAR");
     println!("cargo:rerun-if-changed=src");
     println!("cargo:rerun-if-changed=resident_build.rs");
     println!("cargo:rerun-if-changed=build.rs");
@@ -36,6 +38,10 @@ fn main() {
         Some(path) => {
             let path = fs::canonicalize(path).expect("N-only IMASM source file must exist");
             println!("cargo:rerun-if-changed={}", path.display());
+            if let Some(operator) = env::var_os("RESIDENT_CIRCUIT_OPERATOR_FILE") {
+                let operator = fs::canonicalize(operator).expect("circuit operator receipt must exist");
+                println!("cargo:rerun-if-changed={}", operator.display());
+            }
             let source = fs::read_to_string(&path).expect("read N-only IMASM source");
             assert!(env::var_os("RESIDENT_PREPARED_FILE").is_none(),
                 "Cargo constructs resident state from N alone; a separate prepared input is not admitted");
@@ -43,9 +49,12 @@ fn main() {
             let file=fs::File::create(out.join("resident_prepared.rs")).expect("compiled resident output");
             let mut writer=std::io::BufWriter::new(file);
             resident_build::emit_baked(&prepared,&mut writer,&out).expect("emit typed resident word and register");
+            let composed=env::var("RESIDENT_COMPOSED_MODULAR").as_deref()==Ok("1");
+            std::io::Write::write_fmt(&mut writer,format_args!("const BAKED_COMPOSED_MODULAR:bool={composed};\n"))
+                .expect("retain the compiled modular execution mode");
             std::io::Write::flush(&mut writer).expect("flush compiled resident tables");
         }
         None => {fs::write(out.join("resident_prepared.rs"),
-            "const BAKED_SOURCE_WORD:&str=\"\";\nconst BAKED_PREPARATION_NS:u64=0;\nfn baked_membrane()->Result<g_momonados::resident_glut::ResidentPhaseCarrier,String>{Err(\"compile with the N-only resident source\".into())}\n").unwrap();}
+            "const BAKED_SOURCE_WORD:&str=\"\";\nconst BAKED_PREPARATION_NS:u64=0;\nconst BAKED_COMPOSED_MODULAR:bool=false;\nfn baked_membrane()->Result<g_momonados::resident_glut::ResidentPhaseCarrier,String>{Err(\"compile with the N-only resident source\".into())}\n").unwrap();}
     }
 }

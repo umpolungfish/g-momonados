@@ -314,7 +314,7 @@ mod tests {
             let (re,im) = &recovered.rounded.recovered[4*(entry%4)+entry/4];
             (SignedWordTape::from_bigint(re),SignedWordTape::from_bigint(im))
         });
-        let result = arena.apply_control_matrix(root,[0,1],&matrix).unwrap();
+        let result = arena.apply_control_matrix(root,[0,1],&matrix,0).unwrap();
         for address in 0u8..8 {
             let expected = match address {
                 0 => (BigInt::from(2),BigInt::zero()),
@@ -324,7 +324,89 @@ mod tests {
             };
             assert_eq!(arena.amplitude(result,&BigUint::from(address)), expected);
         }
-        assert!(arena.apply_control_matrix(root,[1,0],&matrix).is_err());
+        assert!(arena.apply_control_matrix(root,[1,0],&matrix,0).is_err());
+    }
+
+    #[test]
+    fn fractional_control_matrix_preserves_norm_at_its_fixed_point_scale() {
+        let mut arena = DecisionArena::new(2);
+        let scale = 1i64 << 52;
+        let coefficient = 3_184_525_836_262_886i64;
+        let root = arena.basis(&BigUint::zero(), BigInt::from(scale));
+        let matrix = core::array::from_fn(|entry| {
+            let row = entry / 4;
+            let col = entry % 4;
+            if (row & 2) != (col & 2) { (SignedWordTape::zero(), SignedWordTape::zero()) }
+            else {
+                let sign = if row & 1 != 0 && col & 1 != 0 { -1 } else { 1 };
+                (SignedWordTape::from_bigint(&BigInt::from(coefficient * sign)), SignedWordTape::zero())
+            }
+        });
+        let result = arena.apply_control_matrix(root, [0, 1], &matrix, 52).unwrap();
+        assert_eq!(arena.amplitude(result, &BigUint::zero()).0, BigInt::from(coefficient));
+        assert_eq!(arena.amplitude(result, &BigUint::one()).0, BigInt::from(coefficient));
+        assert_eq!(arena.amplitude(result, &BigUint::from(2u8)).0, BigInt::zero());
+        let before = arena.mass_word(root).to_biguint();
+        let after = arena.mass_word(result).to_biguint();
+        let error = if after >= before { after - before } else { before - after };
+        assert!(error < BigUint::from(scale as u64 * 4), "fixed-point norm drift: {error}");
+
+        let mut superposed = arena.zero();
+        for (address, amplitude) in [(0u8, 7i64), (1, -3), (2, 5), (3, 11)] {
+            let term = arena.basis(&BigUint::from(address), BigInt::from(amplitude * scale));
+            superposed = arena.sum(superposed, term);
+        }
+        let before = arena.mass_word(superposed).to_biguint();
+        let result = arena.apply_control_matrix(superposed, [0, 1], &matrix, 52).unwrap();
+        let after = arena.mass_word(result).to_biguint();
+        let error = if after >= before { after - before } else { before - after };
+        assert!(error < BigUint::from(scale as u64 * 1024), "superposed fixed-point norm drift: {error}");
+
+        let mut sparse = DecisionArena::new(8);
+        let mut root = sparse.zero();
+        for (address, amplitude) in [(0u8, 3i64), (3, -5), (16, 7), (19, 11)] {
+            let term = sparse.basis(&BigUint::from(address), BigInt::from(amplitude * scale));
+            root = sparse.sum(root, term);
+        }
+        let before = sparse.mass_word(root).to_biguint();
+        let result = sparse.apply_control_matrix(root, [4, 5], &matrix, 52).unwrap();
+        let after = sparse.mass_word(result).to_biguint();
+        let error = if after >= before { after - before } else { before - after };
+        assert!(error < BigUint::from(scale as u64 * 1024), "sparse fixed-point norm drift: {error}");
+
+        let mut correlated = DecisionArena::new(3);
+        let mut root = correlated.zero();
+        for address in 0u8..8 {
+            let term = correlated.basis(&BigUint::from(address),
+                BigInt::from((address as i64 - 3) * scale));
+            root = correlated.sum(root, term);
+        }
+        let before = correlated.mass_word(root).to_biguint();
+        let result = correlated.apply_control_matrix(root, [1, 2], &matrix, 52).unwrap();
+        let after = correlated.mass_word(result).to_biguint();
+        let error = if after >= before { after - before } else { before - after };
+        assert!(error < BigUint::from(scale as u64 * 1024), "correlated fixed-point norm drift: {error}");
+
+        let local = [
+            (278_949_943_647_933i64, 3_315_102_584_218_166i64),
+            (-272_670_073_255_518i64, -3_023_299_922_245_773i64),
+            (1_997_645_830_674_221i64, -2_285_629_568_388_190i64),
+            (2_174_243_653_831_216i64, -2_518_011_665_724_728i64),
+        ];
+        let matrix = core::array::from_fn(|entry| {
+            let row = entry / 4;
+            let col = entry % 4;
+            if (row & 2) != (col & 2) { (SignedWordTape::zero(), SignedWordTape::zero()) }
+            else {
+                let (re, im) = local[2 * (row & 1) + (col & 1)];
+                (SignedWordTape::from_bigint(&BigInt::from(re)), SignedWordTape::from_bigint(&BigInt::from(im)))
+            }
+        });
+        let before = correlated.mass_word(root).to_biguint();
+        let result = correlated.apply_control_matrix(root, [1, 2], &matrix, 52).unwrap();
+        let after = correlated.mass_word(result).to_biguint();
+        let error = if after >= before { after - before } else { before - after };
+        assert!(error < (BigUint::from(scale as u64) << 12usize), "synthesized-matrix norm drift: {error}");
     }
 
     #[test]
@@ -649,6 +731,83 @@ mod tests {
         }
     }
 }
+#[cfg(test)]
+mod composed_modular_tests {
+    use super::*;
+    use crate::reversible_modular::{ModularMultiply,NestedOperation};
+
+    #[test]
+    fn composed_lane_matches_nested_work_and_recovers_source_bound_complex_state() {
+        for text in [
+            include_str!("../measurements/resident_imasm_integration_20261012/inputs/htsx_balanced_control_208.imasm"),
+            include_str!("../measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm"),
+        ] {
+            let source = WordTape::from_canonical_word(text.trim()).unwrap();
+            assert!(source.bit_len()>=200);
+            let arithmetic = ModularMultiply::new_phase_register(&source.to_biguint()).unwrap();
+            let width = arithmetic.width();
+            let spectator = arithmetic.elementary_qubits()+3;
+            let mut arena = DecisionArena::new(spectator+width);
+            let values = [source.shr(1),source.sub(&WordTape::from_small(3)).unwrap(),source.shr(3)];
+            let zero = arena.zero();
+            let mut input = zero;
+            let mut expected = zero;
+            let multiplier = WordTape::from_small(2);
+            for (index,value) in values.iter().enumerate() {
+                for enabled in [false,true] {
+                    let address = (source.to_biguint()<<spectator)
+                        | (BigUint::from(index)<<arithmetic.elementary_qubits())
+                        | (value.to_biguint()<<2) | BigUint::from(u8::from(enabled));
+                    let scalar = (SignedWordTape::from_bigint(&BigInt::from(2*index as i32-3)),
+                                  SignedWordTape::from_bigint(&BigInt::from(index+1)));
+                    let basis = arena.basis(&address,BigInt::one());
+                    let arm = arena.scale_words_numerator(basis,&scalar);
+                    input = arena.sum(input,arm);
+                    let output = if enabled {value.mul(&multiplier).divmod(&source).unwrap().1}
+                                 else {value.clone()};
+                    let address = (source.to_biguint()<<spectator)
+                        | (BigUint::from(index)<<arithmetic.elementary_qubits())
+                        | (output.to_biguint()<<2) | BigUint::from(u8::from(enabled));
+                    let basis = arena.basis(&address,BigInt::one());
+                    let arm = arena.scale_words_numerator(basis,&scalar);
+                    expected = arena.sum(expected,arm);
+                }
+            }
+            let register:Vec<_> = (2..width+2).collect();
+            let composed = arena.controlled_modular_permutation(input,&register,&multiplier,&source,0).unwrap();
+            let unit = (BigInt::one(),BigInt::zero());
+            assert!(arena.equals_complex_scaled(expected,composed,&unit));
+            assert_eq!(arena.mass_word(input),arena.mass_word(composed));
+            let mut nested = input;
+            arithmetic.emit_ququart_nested_radix(&multiplier.to_biguint(),0,8,|operation| {
+                nested = match operation {
+                    NestedOperation::Toggle(gate)=>{
+                        let enabled=arena.conditional_literals(zero,nested,&gate.controls);
+                        let changed=arena.flip(enabled,gate.target);
+                        arena.conditional_literals(nested,changed,&gate.controls)
+                    },
+                    NestedOperation::ModularAdd {register,digit,value,modulus,controls}=>
+                        arena.modular_digit_add(nested,&register,&digit,&value,&modulus,&controls),
+                    _=>return Err(String::from("unexpected prepared modular operation")),
+                };
+                Ok(())
+            }).unwrap();
+            assert!(arena.equals_complex_scaled(nested,composed,&unit));
+            // N is odd, so (N+1)/2 is the exact inverse of the fixed base 2.
+            let inverse = source.add(&WordTape::one()).shr(1);
+            let returned = arena.controlled_modular_permutation(composed,&register,&inverse,&source,0).unwrap();
+            assert!(arena.equals_complex_scaled(input,returned,&unit));
+            let bank = composed;
+            let mut live = arena.zero();
+            assert!(arena.mass_word(live).is_zero());
+            live = arena.sum(live,bank);
+            assert!(arena.equals_complex_scaled(composed,live,&unit));
+            assert!(arena.controlled_modular_permutation(input,&register,&source,&source,0).is_err());
+            std::println!("source_bits={} nested_equals_composed=true full_complex_return=true banked_clear_return=true",width);
+        }
+    }
+}
+
 /// Bits fixed on every basis state with a nonzero complex amplitude.
 /// This is exact support information, independent of amplitude magnitude.
 // Empty support masks are value zero, with no allocation or atomic references.
@@ -1014,11 +1173,38 @@ impl DecisionArena {
         visit(self, id, scalar, fractional_bits, &mut OperationCache::default())
     }
 
+    /// Apply a complex integer numerator without dividing or rounding. The
+    /// caller carries the common denominator as part of the operator witness.
+    pub(crate) fn scale_words_numerator(&mut self, id: usize,
+        scalar: &(SignedWordTape, SignedWordTape)) -> usize {
+        if scalar.0.is_zero() && scalar.1.is_zero() { return self.zero(); }
+        fn visit(a: &mut DecisionArena, id: usize,
+            scalar: &(SignedWordTape, SignedWordTape),
+            memo: &mut OperationCache<usize, usize>) -> usize {
+            if let Some(&result) = memo.get(&id) { return result; }
+            let result = match a.node(id).clone() {
+                Node::Leaf(re, im) => {
+                    let real = re.mul(&scalar.0).sub(&im.mul(&scalar.1));
+                    let imaginary = re.mul(&scalar.1).add(&im.mul(&scalar.0));
+                    a.intern(Node::Leaf(real, imaginary))
+                }
+                Node::Branch { wire, low, high } => {
+                    let low = visit(a, low, scalar, memo);
+                    let high = visit(a, high, scalar, memo);
+                    a.branch(wire, low, high)
+                }
+            };
+            memo.insert(id, result);
+            result
+        }
+        visit(self, id, scalar, &mut OperationCache::default())
+    }
+
     /// A complete complex coordinate operator on two cells of the resident
     /// register. Work branches stay attached while the four control arms are
     /// aligned, transformed and returned to their original cell addresses.
     pub(crate) fn apply_control_matrix(&mut self, root: usize, wires: [usize; 2],
-        matrix: &[(SignedWordTape, SignedWordTape); 16]) -> Result<usize, String> {
+        matrix: &[(SignedWordTape, SignedWordTape); 16], fractional_bits: usize) -> Result<usize, String> {
         if wires[0] >= wires[1] || wires[1] >= self.cells {
             return Err("coordinate operator needs two ordered resident cells".into());
         }
@@ -1035,7 +1221,7 @@ impl DecisionArena {
         for row in 0..4 {
             let mut arm = zero;
             for col in 0..4 {
-                let transformed = self.scale_words(aligned[col], &matrix[4*row+col], 0);
+                let transformed = self.scale_words(aligned[col], &matrix[4*row+col], fractional_bits);
                 arm = self.sum(arm, transformed);
             }
             for (bit, wire) in wires.into_iter().enumerate() {
@@ -1044,6 +1230,63 @@ impl DecisionArena {
             result = self.sum(result, arm);
         }
         Ok(result)
+    }
+
+    /// Apply an integer complex matrix to two resident cells with exact
+    /// Gaussian-integer arithmetic. The matrix's denominator stays external.
+    pub(crate) fn apply_control_matrix_numerator(&mut self, root: usize, wires: [usize; 2],
+        matrix: &[(SignedWordTape, SignedWordTape); 16]) -> Result<usize, String> {
+        if wires[0] >= wires[1] || wires[1] >= self.cells {
+            return Err("coordinate operator needs two ordered resident cells".into());
+        }
+        let zero = self.zero();
+        let mut aligned = [zero; 4];
+        for (label, arm) in aligned.iter_mut().enumerate() {
+            let controls = [(wires[0], label & 1 != 0), (wires[1], label & 2 != 0)];
+            *arm = self.conditional_literals(zero, root, &controls);
+            for (wire, active) in controls { if active { *arm = self.flip(*arm, wire); } }
+        }
+        let mut result = zero;
+        for row in 0..4 {
+            let mut arm = zero;
+            for col in 0..4 {
+                let transformed = self.scale_words_numerator(aligned[col], &matrix[4 * row + col]);
+                arm = self.sum(arm, transformed);
+            }
+            for (bit, wire) in wires.into_iter().enumerate() {
+                if row & (1 << bit) != 0 { arm = self.flip(arm, wire); }
+            }
+            result = self.sum(result, arm);
+        }
+        Ok(result)
+    }
+
+    /// Compare complete canonical decision diagrams after an exact complex
+    /// scalar normalization. This checks every retained work branch.
+    pub(crate) fn equals_complex_scaled(&self, expected: usize, actual: usize,
+        scalar: &(BigInt, BigInt)) -> bool {
+        fn visit(arena: &DecisionArena, expected: usize, actual: usize,
+            scalar: &(SignedWordTape, SignedWordTape),
+            memo: &mut OperationCache<(usize, usize), bool>) -> bool {
+            if let Some(&equal) = memo.get(&(expected, actual)) { return equal; }
+            let equal = match (arena.node(expected).clone(), arena.node(actual).clone()) {
+                (Node::Leaf(re, im), Node::Leaf(out_re, out_im)) => {
+                    out_re == re.mul(&scalar.0).sub(&im.mul(&scalar.1))
+                        && out_im == re.mul(&scalar.1).add(&im.mul(&scalar.0))
+                }
+                (Node::Branch { wire: left_wire, low: left_low, high: left_high },
+                 Node::Branch { wire: right_wire, low: right_low, high: right_high }) => {
+                    left_wire == right_wire
+                        && visit(arena, left_low, right_low, scalar, memo)
+                        && visit(arena, left_high, right_high, scalar, memo)
+                }
+                _ => false,
+            };
+            memo.insert((expected, actual), equal);
+            equal
+        }
+        let scalar = (SignedWordTape::from_bigint(&scalar.0), SignedWordTape::from_bigint(&scalar.1));
+        visit(self, expected, actual, &scalar, &mut OperationCache::default())
     }
 
     /// Apply one normalized Hadamard to a wire of the shared register. The
@@ -1380,6 +1623,78 @@ impl DecisionArena {
     /// maintained by every branch constructor. Empty arms are vacuously clean.
     pub fn wire_is_zero(&self, root: usize, wire: usize) -> bool {
         self.fixed[root].empty || self.fixed[root].zero.bit(wire as u64)
+    }
+
+    /// Contract the complete controlled modular permutation on carried work
+    /// branches. Cofactors keep all phase and factor spectators attached;
+    /// only the work coordinates are replaced at the enclosing fuse.
+    pub fn controlled_modular_permutation(&mut self, root: usize, register: &[usize],
+        multiplier: &WordTape, modulus: &WordTape, control: usize) -> Result<usize,String> {
+        if modulus.is_zero() || register.len() < modulus.bit_len() || control >= self.cells
+            || register.iter().any(|&wire|wire >= self.cells || wire == control) {
+            return Err("composed modular operator escaped its source register".into());
+        }
+        let mut distinct = register.to_vec();
+        distinct.sort_unstable(); distinct.dedup();
+        if distinct.len() != register.len() {
+            return Err("composed modular operator repeats a work coordinate".into());
+        }
+        let mut gcd = modulus.clone();
+        let mut remainder = multiplier.divmod(modulus)
+            .ok_or("composed modular operator lost its source modulus")?.1;
+        while !remainder.is_zero() {
+            let next = gcd.divmod(&remainder).unwrap().1;
+            gcd = remainder; remainder = next;
+        }
+        if !gcd.is_one() {
+            return Err("composed modular operator requires a source-bound unit".into());
+        }
+        if !self.controls_possible(root,&[(control,true)]) { return Ok(root); }
+        let zero = self.zero();
+        let enabled = self.conditional_literals(zero,root,&[(control,true)]);
+        let disabled = self.conditional_literals(zero,root,&[(control,false)]);
+        fn visit(arena: &mut DecisionArena, root: usize, register: &[usize], at: usize,
+            prefix: &WordTape, multiplier: &WordTape, modulus: &WordTape,
+            cofactors: &mut OperationCache<(usize,usize),(usize,usize)>) -> Result<usize,String> {
+            if arena.fixed[root].empty { return Ok(arena.zero()); }
+            // Each (at, prefix) occurs on exactly one traversal path: a split
+            // appends a distinct bit and fixed coordinates have one successor.
+            // Caching that prefix cannot yield a hit. Keep the shared cofactor
+            // cache, whose (root, wire) keys can recur across different prefixes.
+            let result = if at == register.len() {
+                if prefix.ge(modulus) {
+                    return Err("composed modular operator received work outside its source interval".into());
+                }
+                let output = prefix.mul(multiplier).divmod(modulus)
+                    .ok_or("composed modular operator lost its source modulus")?.1;
+                let mut controls:Vec<_> = register.iter().enumerate()
+                    .map(|(bit,&wire)|(wire,output.bit_at(bit))).collect();
+                controls.sort_unstable();
+                let zero = arena.zero();
+                arena.conditional_literals(zero,root,&controls)
+            } else {
+                let wire = register[at];
+                let fixed_zero = arena.fixed[root].zero.bit(wire as u64);
+                let fixed_one = arena.fixed[root].one.bit(wire as u64);
+                let (low,high) = arena.source_cofactors(root,wire,cofactors);
+                if fixed_zero {
+                    visit(arena,low,register,at+1,prefix,multiplier,modulus,cofactors)?
+                } else if fixed_one {
+                    visit(arena,high,register,at+1,&prefix.add(&WordTape::one_at(at)),
+                        multiplier,modulus,cofactors)?
+                } else {
+                    let low = visit(arena,low,register,at+1,prefix,
+                        multiplier,modulus,cofactors)?;
+                    let high = visit(arena,high,register,at+1,&prefix.add(&WordTape::one_at(at)),
+                        multiplier,modulus,cofactors)?;
+                    arena.sum(low,high)
+                }
+            };
+            Ok(result)
+        }
+        let transformed = visit(self,enabled,register,0,&WordTape::zero(),multiplier,modulus,
+            &mut OperationCache::default())?;
+        Ok(self.sum(disabled,transformed))
     }
 
     /// Trace the shared work coordinates once per paired decision branch.

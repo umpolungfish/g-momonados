@@ -33,7 +33,7 @@
 //! ```text
 //!     EVALT sets T (constructive truth touched)
 //!     EVALF sets F (constructive falsity touched)
-//!     EVALI sets BOTH t and f (the acceptable/rejectable pair IS the
+//!     ENGAGR sets BOTH t and f (the acceptable/rejectable pair IS the
 //!           information layer beyond classical T/F)
 //!     AREV  the reverse morphism, T↔F and t↔f together (bilattice negation:
 //!           inverts ≤_t, leaves ≤_i exactly — a swap preserves |x|). It factors
@@ -66,7 +66,7 @@ pub enum Token16_3 {
     Ffuse3,  // ∋  3→1  3-way fuse: merges T, F, I arms
     Evalt,   // ⊤  1→1  evaluates the True axis (≤_t), WORK
     Evalf,   // ⊥  1→1  evaluates the False axis (≤_t), WORK
-    Evali,   // ⊞  1→1  evaluates the Information axis (≤_i), WORK
+    Engagr,   // ⊞  1→1  evaluates the Information axis (≤_i), WORK
     Ifix,    // ⊡  1→1  irreversible commit, WORK
 }
 
@@ -78,7 +78,7 @@ use Token16_3::*;
 // acts ON a word, not a token in it.
 pub const ALL_TOKENS: [Token16_3; 12] = [
     Vinit, Tanch, Afwd, Arev, Clink, Imscrib, Fsplit3, Ffuse3,
-    Evalt, Evalf, Evali, Ifix,
+    Evalt, Evalf, Engagr, Ifix,
 ];
 
 impl Token16_3 {
@@ -86,7 +86,7 @@ impl Token16_3 {
         match self {
             Vinit => '⊢', Tanch => '⊣', Afwd => '≻', Arev => '≺', Clink => '⋈',
             Imscrib => '⊙', Fsplit3 => '∈', Ffuse3 => '∋', Evalt => '⊤',
-            Evalf => '⊥', Evali => '⊞', Ifix => '⊡',
+            Evalf => '⊥', Engagr => '⊞', Ifix => '⊡',
         }
     }
 
@@ -95,12 +95,12 @@ impl Token16_3 {
             Vinit => "VINIT", Tanch => "TANCH", Afwd => "AFWD", Arev => "AREV",
             Clink => "CLINK", Imscrib => "IMSCRIB", Fsplit3 => "FSPLIT3",
             Ffuse3 => "FFUSE3", Evalt => "EVALT", Evalf => "EVALF",
-            Evali => "EVALI", Ifix => "IFIX",
+            Engagr => "ENGAGR", Ifix => "IFIX",
         }
     }
 
     pub fn is_work(self) -> bool {
-        matches!(self, Afwd | Arev | Clink | Evalt | Evalf | Evali | Ifix)
+        matches!(self, Afwd | Arev | Clink | Evalt | Evalf | Engagr | Ifix)
     }
 
     fn from_glyph(c: char) -> Option<Token16_3> {
@@ -192,7 +192,7 @@ impl Reg16_3 {
         Reg16_3 { big_t: self.big_t, big_f: self.big_f, ..Reg16_3::default() }
     }
 
-    /// The information part x ∩ {t, f} — the third δ arm, and what EVALI sets.
+    /// The information part x ∩ {t, f} — the third δ arm, and what ENGAGR sets.
     ///
     /// It is one arm rather than two because ⊞ sets t and f together, so the
     /// non-constructive pair can only ever be entered as a block. That is where
@@ -224,7 +224,7 @@ impl Reg16_3 {
     }
 
     /// ENGAGR (⊞) — the house name for what this file's own interpreter
-    /// step calls EVALI: pins both information-axis lanes true, leaving
+    /// step calls ENGAGR: pins both information-axis lanes true, leaving
     /// the truth-axis lanes exactly as they were. `touch()`'s inline call
     /// (`self.union(Reg16_3 { small_t: true, small_f: true, ..none })`) is
     /// this same operation, extracted here as a first-class gate rather
@@ -408,7 +408,7 @@ impl Machine {
             }
             Evalt => self.touch(Reg16_3 { big_t: true, ..none }, Axis::T),
             Evalf => self.touch(Reg16_3 { big_f: true, ..none }, Axis::F),
-            Evali => self.touch(Reg16_3 { small_t: true, small_f: true, ..none }, Axis::I),
+            Engagr => self.touch(Reg16_3 { small_t: true, small_f: true, ..none }, Axis::I),
             Ifix => { self.fixed = true; }
         }
     }
@@ -610,6 +610,41 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn engagr_gate_pairs_asymmetric_information_coordinates() {
+        // ENGAGR is the paired information-axis write {t,f}; this deliberately
+        // audits that gate in isolation. It is not the Fsplit3 information-arm
+        // map, which carries both coordinates in the graph-flow interpreter.
+        let mut mismatches = Vec::new();
+        for bits in 0..16 {
+            let input = Reg16_3 {
+                big_t: bits & 1 != 0,
+                big_f: bits & 2 != 0,
+                small_t: bits & 4 != 0,
+                small_f: bits & 8 != 0,
+            };
+            let mut machine = Machine { reg: input, fixed: false, split_stack: Vec::new() };
+            machine.step(Token16_3::Fsplit3);
+            if input.big_t { machine.step(Token16_3::Evalt); }
+            if input.big_f { machine.step(Token16_3::Evalf); }
+            if input.small_t || input.small_f { machine.step(Token16_3::Engagr); }
+            machine.step(Token16_3::Arev);
+            machine.step(Token16_3::Ffuse3);
+            if machine.reg != input {
+                assert!(input.small_t ^ input.small_f);
+                assert!(machine.reg.small_t && machine.reg.small_f);
+                assert_eq!(machine.reg.big_t, input.big_t);
+                assert_eq!(machine.reg.big_f, input.big_f);
+                mismatches.push(bits);
+            }
+        }
+        // This is a gate diagnostic, not a Frobenius round-trip test.
+        assert_eq!(mismatches.len(), 8);
+        assert!(mismatches.iter().all(|bits| {
+            *bits & 0b1100 == 0b0100 || *bits & 0b1100 == 0b1000
+        }));
     }
     use super::*;
 
