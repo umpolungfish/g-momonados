@@ -1,3 +1,5 @@
 I run membrane words through a CUDA arithmetic carrier.
 
 I move frontier preparation, multi-limb gap and square-root operations, candidate formation, and exact product closure onto the device. The membrane CLI, heterogeneous hyperstack, and Shor B4 wrapper share that device path; GPU errors return instead of falling back to host factorization. I retain two N-only CUDA receipts, including a multi-limb square-gap run.
+
+I route membrane-word admission through the canonical IMASM protocol graph and close-condition engine. I repair the missing outer fuse in imscribing_factorizer and record its nested-fuse GPU run with the kernel verdict and exact product check. The CUDA arithmetic carrier remains distinct from canonical trilattice gate evaluation.

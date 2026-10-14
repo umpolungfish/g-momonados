@@ -104,6 +104,8 @@ extern "C" __global__ void membrane_word_factor(
     unsigned root[MF_WIDE] = {0}, rem[MF_WIDE+1] = {0};
     unsigned p[MF_WIDE] = {0}, q[MF_WIDE] = {0}, product[MF_WIDE] = {0};
     unsigned nwide[MF_WIDE] = {0}, hiwide[MF_WIDE] = {0}, two[MF_WIDE] = {2};
+    unsigned split_stack[256]; int split_depth=0, fusion_count=0;
+    bool all_fusions_closed=true;
     for (int i=0;i<nlimbs;++i) { a[i]=start[i]; nwide[i]=nval[i]; hiwide[i]=hi[i]; }
     unsigned long long add = lane;
     for (int i=0;i<nlimbs && add;++i) {
@@ -115,7 +117,26 @@ extern "C" __global__ void membrane_word_factor(
         unsigned op=ops[oi];
         atomicAdd(ticks, 1ULL);
         if (op==0) { for(int i=0;i<2*MF_LIMBS;++i){delta[i]=0;p[i]=0;q[i]=0;}
-            square=false;root_exact=false;have=false;fixed=false;emitted=false; }
+            square=false;root_exact=false;have=false;fixed=false;emitted=false;
+            split_depth=0;fusion_count=0;all_fusions_closed=true; }
+        else if (op==6 || op==12) {
+            if (split_depth>=256) all_fusions_closed=false;
+            else split_stack[split_depth++]=op==6 ? 2u : 3u;
+        }
+        else if (op==7 || op==13) {
+            unsigned arity=op==7 ? 2u : 3u;
+            if (split_depth==0 || split_stack[split_depth-1]!=arity) {
+                all_fusions_closed=false;
+            } else {
+                --split_depth;
+                ++fusion_count;
+                mf_mul(p,q,product,nlimbs);
+                if (!have || mf_cmp(p,two,2*nlimbs)<0
+                    || mf_cmp(q,hiwide,2*nlimbs)>0
+                    || mf_cmp(product,nwide,2*nlimbs)!=0)
+                    all_fusions_closed=false;
+            }
+        }
         else if (op==2) mf_add_small(a,nlimbs,1u);
         else if (op==5) {
             for(int i=0;i<nlimbs;++i) delta_a[i]=a[i];
@@ -138,7 +159,7 @@ extern "C" __global__ void membrane_word_factor(
             mf_mul(p,q,product,nlimbs);
             if(!inrange || mf_cmp(product,nwide,2*nlimbs)!=0) have=false;
         }
-        else if (op==11) fixed=have;
+        else if (op==11) fixed=have && split_depth==0 && fusion_count>0 && all_fusions_closed;
         else if (op==1 && fixed) {
             mf_mul(p,q,product,nlimbs);
             emitted=mf_cmp(p,two,2*nlimbs)>=0
