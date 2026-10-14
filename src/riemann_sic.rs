@@ -475,7 +475,7 @@ pub fn sixteen3_breakdown() -> String {
         ("5", "+", "EVALT",   "EVALT",    "N  →  T"),
         ("6", "=", "CLINK",   "CLINK",    "T  →  T"),
         ("7", "⊙", "IMSCRIB", "IMSCRIB",  "T  →  T"),
-        ("8", "⊞", "ENGAGR",  "EVALI",    "T  →  Ttf"),
+        ("8", "⊞", "ENGAGR",  "ENGAGR",    "T  →  Ttf"),
         ("9", "∋", "FFUSE",   "FFUSE3",   "Ttf → Ttf"),
         ("10","¬", "IFIX",    "IFIX",     "Ttf → Ttf"),
         ("11","⊣", "TANCH",   "TANCH",    "Ttf → Ttf"),

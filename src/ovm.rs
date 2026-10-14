@@ -856,11 +856,48 @@ pub fn ovm_belnap() -> String {
 }
 
 /// Help text for the ovm computation tools.
+/// Shared command surface for the existing operator and recovery reports.
+pub fn dispatch(args: &[&str]) -> String {
+    let sub = args.first().copied().unwrap_or("help");
+    let name = args.get(1).copied().unwrap_or("");
+    match sub {
+        "help" | "--help" | "-h" | "" => ovm_help(),
+        "list" => ops_names().join("\n") + "\n",
+        "frame" => ovm_frame(name),
+        "overlap" => ovm_overlap(name),
+        "measure" | "map" | "measurement" => ovm_measurement_report(name),
+        "spectral" => ovm_spectral_report(name),
+        "duals" => ovm_duals_report(name),
+        "belnap" => ovm_belnap(),
+        "compute" | "report" => ovm_compute(name),
+        "born" | "cycle" => {
+            let values: Option<Vec<f64>> = args.get(2..).filter(|v| v.len() == 3)
+                .and_then(|v| v.iter().map(|x| x.parse::<f64>().ok()
+                    .filter(|x| x.is_finite())).collect());
+            match values {
+                Some(v) if !name.is_empty() => {
+                    if sub == "born" { ovm_born_report(name, v[0], v[1], v[2]) }
+                    else { ovm_measure_cycle(name, v[0], v[1], v[2]) }
+                }
+                _ => format!("Usage: ovm {sub} <name> <sx> <sy> <sz> (finite coordinates)\n"),
+            }
+        }
+        "eigen" => {
+            let value = |i: usize, default: f64| args.get(i)
+                .and_then(|x| x.parse::<f64>().ok()).unwrap_or(default);
+            ovm_eigen(value(1, 0.0), value(2, 0.0), value(3, 0.0),
+                value(4, 1.0), value(5, 1.0))
+        }
+        name => ovm_compute(name),
+    }
+}
+
 pub fn ovm_help() -> String {
     let mut out = String::new();
     out.push_str("═══ OVM Computation Tools ═══\n\n");
     out.push_str("ovm <name>              — full computation report (eigenvalues, frame,\n");
     out.push_str("                           overlap, equiangularity, positivity, completeness)\n");
+    out.push_str("ovm list                — list available operator sets\n");
     out.push_str("ovm eigen <x> <y> <z> <norm> <trace>\n");
     out.push_str("                         — compute eigenvalues from Bloch parameters\n");
     out.push_str("ovm frame <name>         — frame operator S (4×4 in Pauli basis)\n");

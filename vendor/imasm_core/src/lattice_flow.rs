@@ -356,7 +356,7 @@ pub fn banked_walk(word: &str) -> Option<Banked> {
                 let touched: &[usize] = match t {
                     Token16_3::Evalt => &[0],
                     Token16_3::Evalf => &[1],
-                    Token16_3::Evali => &[2, 3],
+                    Token16_3::Engagr => &[2, 3],
                     _ => &[],
                 };
                 if !touched.is_empty() { deposits += 1; }
@@ -604,12 +604,12 @@ pub fn weight_report(word: &str) -> String {
             Token16_3::Ifix => { fixed = true; }
             _ => {
                 // The evaluators are the only depositors: EVALT touches T,
-                // EVALF touches F, EVALI touches t and f together, which is
+                // EVALF touches F, ENGAGR touches t and f together, which is
                 // why the constructive pair is never seen split.
                 let touched: &[usize] = match t {
                     Token16_3::Evalt => &[0],
                     Token16_3::Evalf => &[1],
-                    Token16_3::Evali => &[2, 3],
+                    Token16_3::Engagr => &[2, 3],
                     _ => &[],
                 };
                 if !touched.is_empty() {

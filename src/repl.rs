@@ -3733,28 +3733,9 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
 
             // ── m3iosis tool ports (native Rust implementations) ──────
             "ovm" => {
-                let sub = parts.next().unwrap_or("");
-                match sub {
-                    "eigen" => {
-                        let x: f64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0.0);
-                        let y: f64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0.0);
-                        let z: f64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0.0);
-                        let norm: f64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(1.0);
-                        let trace: f64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(1.0);
-                        sprintln!("{}", crate::ovm::ovm_eigen(x, y, z, norm, trace));
-                    }
-                    "frame" => {
-                        let name = parts.next().unwrap_or("");
-                        sprintln!("{}", crate::ovm::ovm_frame(name));
-                    }
-                    "overlap" => {
-                        let name = parts.next().unwrap_or("");
-                        sprintln!("{}", crate::ovm::ovm_overlap(name));
-                    }
-                    "belnap" => sprintln!("{}", crate::ovm::ovm_belnap()),
-                    "help" | "--help" | "-h" | "" => sprintln!("{}", crate::ovm::ovm_help()),
-                    name => sprintln!("{}", crate::ovm::ovm_compute(name)),
-                }
+                let tail = parts.collect::<Vec<_>>().join(" ");
+                let args: Vec<_> = tail.split_whitespace().collect();
+                sprintln!("{}", crate::ovm::dispatch(&args));
             }
             "hqe" => {
                 let sub = parts.next().unwrap_or("");

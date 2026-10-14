@@ -1,0 +1,44 @@
+vox-loading stage=read
+vox-loading stage=module seconds=0.134033 bytes=391811906
+vox-loading stage=ready seconds=2.778588
+vox-execution seconds=0.004568 steps=0 pc=0x3292f3
+resident-import stage=source
+resident-import stage=membrane
+resident-import stage=compiled-work operations=133120 stages=512
+resident-import stage=register nodes=400411
+vox-execution seconds=5.252705 steps=13631488 pc=0x35bb74
+vox-execution seconds=10.657187 steps=26214400 pc=0x3410a3
+vox-execution seconds=15.737522 steps=37748736 pc=0x35f26c
+vox-execution seconds=21.178734 steps=50331648 pc=0x35f288
+vox-execution seconds=26.622622 steps=62914560 pc=0x3407d4
+vox-execution seconds=32.064425 steps=75497472 pc=0x340a00
+vox-execution seconds=37.064559 steps=87031808 pc=0x341a57
+vox-execution seconds=42.475607 steps=99614720 pc=0x35ef24
+vox-execution seconds=47.760485 steps=112197632 pc=0x32120a
+vox-execution seconds=53.053360 steps=124780544 pc=0x321205
+vox-execution seconds=58.286316 steps=137363456 pc=0x3410d2
+vox-execution seconds=63.697250 steps=149946368 pc=0x35ef46
+vox-execution seconds=69.111495 steps=162529280 pc=0x3211d5
+vox-execution seconds=74.543968 steps=175112192 pc=0x340a57
+vox-execution seconds=79.621872 steps=186646528 pc=0x35f271
+vox-execution seconds=84.864475 steps=198180864 pc=0x340864
+vox-execution seconds=90.232116 steps=210763776 pc=0x3211af
+vox-execution seconds=95.707342 steps=223346688 pc=0x32120a
+vox-execution seconds=101.109212 steps=235929600 pc=0x35c0e9
+resident-import stage=phase-ready
+resident-import stage=SIC-projectors
+resident-import stage=circuit-braid circuit=HTSX generators=25 target_residual=0.0q¼·|q¼¶uq¼}¾q¼z word_residual=q.¼pºq¼t¼q¼t¼q¼te-15 changed_gram_coordinates=16
+resident-import stage=Y-clock
+prepared-before-compile nanoseconds=529284714457
+baked-state-loaded seconds=105.034965540
+resident-source-stage dialectic-enter
+resident-dialectic stage=dialectic-init-start steps=0
+resident-dialectic stage=dialectic-init-complete steps=0
+resident-dialectic stage=dialectic-step-start steps=1
+vox-execution seconds=106.192400 steps=249561088 pc=0x3bc5f6
+resident-dialectic stage=dialectic-step-complete steps=1
+resident-dialectic stage=dialectic-step-start steps=2
+vox-execution seconds=111.525513 steps=264241152 pc=0x3a33c5
+vox-execution seconds=116.805562 steps=278921216 pc=0x3a3139
+vox-execution seconds=121.812870 steps=292552704 pc=0x3a33df
+vox-execution seconds=127.176427 steps=307232768 pc=0x3a3457

@@ -1,0 +1,12 @@
+prepared-circuit-braid spec=HTSX generators=25 target_residual=3.293533e-2 word_residual=1.540000e-15 matrix_dual_state=true matrix_dual_gram=16/16 matrix_dual_mass=true changed_gram_coordinates=16 seconds=255.471773
+prepared-SIC residual=0 tolerance=30304772161706039122737414628691 seconds=265.052699
+preparation-stage relation-materialize seconds=265.052731
+preparation-stage SIC-coordinate-operation seconds=265.052736
+preparation-stage whole-phase-prepare seconds=289.506220
+preparation-stage whole-phase-bind seconds=292.584214
+preparation-stage whole-phase-bound seconds=319.426198
+preparation-stage joint-support-measured seconds=339.856364
+preparation-stage joint-SIC-prepared seconds=440.985425
+preparation-stage source-phase-relation-bound seconds=440.985480
+prepared-modular-program seconds=539.694341
+prepared-support-cache verified_nodes=400411 masks=166536 seconds=3.300218

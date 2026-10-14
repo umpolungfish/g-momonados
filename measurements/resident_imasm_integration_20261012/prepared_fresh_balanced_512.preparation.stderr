@@ -1,0 +1,6 @@
+prepared-source-prefix seconds=9.851102
+prepared-SIC residual=0 tolerance=1 seconds=32.434324
+preparation-stage relation-materialize seconds=32.434351
+preparation-stage SIC-coordinate-operation seconds=32.434356
+preparation-stage whole-phase-prepare seconds=52.944190
+preparation-stage whole-phase-bind seconds=59.293611

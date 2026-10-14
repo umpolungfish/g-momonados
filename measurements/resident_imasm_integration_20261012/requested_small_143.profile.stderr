@@ -1,0 +1,17 @@
+resident-import stage=source
+resident-import stage=membrane
+resident-import stage=compiled-work operations=44 stages=8
+resident-import stage=register nodes=235
+resident-import stage=phase-ready
+resident-import stage=SIC-projectors
+resident-import stage=circuit-braid circuit=HTSX generators=25 target_residual=0.03293532653991802 word_residual=1.54e-15 changed_gram_coordinates=16
+resident-import stage=Y-clock
+prepared-before-compile nanoseconds=1970314394
+baked-state-loaded seconds=0.006872303
+resident-source-stage dialectic-enter
+resident-dialectic stage=dialectic-init-start steps=0
+resident-dialectic stage=dialectic-init-complete steps=0
+resident-dialectic stage=dialectic-step-start steps=1
+resident-dialectic stage=dialectic-step-complete steps=1
+resident-source-stage dialectic-bound divisor=11 quotient=13
+resident-modular-operator composed=true

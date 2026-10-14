@@ -1204,6 +1204,27 @@ pub fn s_gate() -> Matrix2 {
     )
 }
 
+/// Compose one complete {H,T,S,X} circuit using the same left-to-right
+/// convention as the `qc` REPL command.
+pub fn compose_circuit_matrix(spec: &str) -> Result<Matrix2, String> {
+    let mut target = Matrix2::identity();
+    let mut named = false;
+    for ch in spec.chars() {
+        if ch.is_whitespace() { continue; }
+        let gate = match ch {
+            'H' | 'h' => hadamard(),
+            'T' | 't' => t_gate(),
+            'S' | 's' => s_gate(),
+            'X' | 'x' => pauli_x(),
+            other => return Err(alloc::format!("Unknown gate '{}'. Known: H T S X", other)),
+        };
+        target = gate.mul(target);
+        named = true;
+    }
+    if !named { return Err(String::from("circuit must contain at least one H, T, S, or X gate")); }
+    Ok(target)
+}
+
 /// Pauli-X gate
 pub fn pauli_x() -> Matrix2 {
     Matrix2::new(Complex::zero(), Complex::one(), Complex::one(), Complex::zero())
@@ -2085,31 +2106,13 @@ pub fn run_sample_circuit() {
 /// lives inside the heap scope this function opens and is dropped with it, so
 /// the drawing happens here rather than being handed back.
 pub fn repl_compile(spec: &str, net_depth: usize, sk_depth: usize, render: u8) {
-    let mut target = Matrix2::identity();
-    let mut named = false;
-    // One gate per character. Splitting on whitespace made `qc XTT` an unknown
-    // gate called "XTT" — but nothing about a circuit needs the spaces, and a
-    // caller typing a run of gates should not have to space them out. Whitespace
-    // is still allowed and simply skipped.
-    for ch in spec.chars() {
-        if ch.is_whitespace() { continue; }
-        let g = match ch {
-            'H' | 'h' => hadamard(),
-            'T' | 't' => t_gate(),
-            'S' | 's' => s_gate(),
-            'X' | 'x' => pauli_x(),
-            other => {
-                sprintln!("Unknown gate '{}'. Known: H T S X", other);
-                return;
-            }
-        };
-        target = g.mul(target);   // left-to-right application
-        named = true;
-    }
-    if !named {
-        sprintln!("fibqc compile <gates>   e.g. `fibqc compile H T`");
-        return;
-    }
+    let target = match compose_circuit_matrix(spec) {
+        Ok(target) => target,
+        Err(_error) if spec.chars().all(char::is_whitespace) => {
+            sprintln!("fibqc compile <gates>   e.g. `fibqc compile H T`"); return;
+        }
+        Err(error) => { sprintln!("{}", error); return; }
+    };
 
     // The arena is a bump allocator: it reclaims only in LIFO order and the
     // fuse allocates thousands of word vectors on top of the net. Scope the
@@ -2168,6 +2171,14 @@ pub fn repl_compile(spec: &str, net_depth: usize, sk_depth: usize, render: u8) {
     let m = synthesize_matrix2_4(&w1);
     let d = Matrix2::projective_distance(&m, &g1);
     sprintln!("  word check : {} (residual {:.2e})", if d < 1e-6 { "PASS" } else { "FAIL" }, d);
+    if d < 1e-6 && g1.is_unitary(1e-9) {
+        let encode_matrix = |matrix: &Matrix2| matrix.data.iter()
+            .map(|z| alloc::format!("{{\"re\":{:.17},\"im\":{:.17}}}", z.re, z.im))
+            .collect::<Vec<_>>().join(",");
+        let word = w1.iter().map(i32::to_string).collect::<Vec<_>>().join(",");
+        sprintln!("BRAID_OPERATOR_JSON={{\"circuit\":\"{}\",\"target_matrix\":[{}],\"synthesized_matrix\":[{}],\"braid_word\":[{}],\"target_projective_residual\":{:.17},\"word_matrix_residual\":{:.17},\"unitary\":true}}",
+            spec, encode_matrix(&target), encode_matrix(&g1), word, e1, d);
+    }
     crate::heap_reset(check_mark);
     let (peak, total2) = crate::heap_used();
     sprintln!("  heap peak  : {} of {} KB", peak / 1024, total2 / 1024);

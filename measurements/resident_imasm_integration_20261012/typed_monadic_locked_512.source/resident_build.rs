@@ -1,0 +1,150 @@
+//! Cargo membrane construction, using the same modules as the executable.
+use crate::resident_work as work;
+use g_momonados::{resident_glut::ResidentGlut,word_tape::WordTape};
+use std::time::Instant;
+
+pub struct PreparedCompilation {
+    pub record:serde_json::Value,
+    pub work:g_momonados::ququart_folded_work::PreparedModularWork,
+}
+
+pub fn compile(source_text: &str) -> Result<PreparedCompilation, String> {
+    let source = WordTape::from_canonical_word(source_text.trim()).ok_or("invalid source word")?;
+    let preparation = Instant::now();
+    let mut resident = ResidentGlut::from_word(source.as_word())?;
+    let witness = resident.sic_witness()?;
+    eprintln!("prepared-SIC residual={} tolerance={} seconds={:.6}",witness.reconstruction.maximum_residual,
+        witness.reconstruction.tolerance,preparation.elapsed().as_secs_f64());
+    let mut carrier = resident.into_source_whole_register_phase_observed(|stage|
+        eprintln!("preparation-stage {stage} seconds={:.6}",preparation.elapsed().as_secs_f64()))?;
+    let clock_export: serde_json::Value = serde_json::from_str(include_str!(
+        "measurements/membrane_reentry_20261010/certified_clocks.json")).map_err(|e| e.to_string())?;
+    // The period-two oscillator is a fixed program constant, with no instance
+    // witness. Its executed ticks order complete prepared modular lanes.
+    let clock = clock_export["clocks"].as_array().ok_or("missing certified clock export")?.iter()
+        .find(|r| r["retained"].as_u64()==Some(0) && r["seed"].as_u64()==Some(1))
+        .ok_or("missing certified alternating clock")?;
+    carrier.bind_certified_reentry(clock)?;
+    let mut record = carrier.prepared_record()?;
+    drop(carrier);
+    let mut power = WordTape::from_small(2);
+    let mut powers = Vec::with_capacity(source.bit_len());
+    for _ in 0..source.bit_len() {
+        powers.push(power.as_word().to_owned());
+        let square = power.mul(&power).divmod(&source).unwrap().1;
+        power = square.mul(&square).divmod(&source).unwrap().1;
+    }
+    let mut program = serde_json::json!({"source_word":source.as_word(),"base_word":WordTape::from_small(2).as_word(),
+        "radix_word":WordTape::one_at(8).as_word(),"prepared_operator":{
+            "controlled_power_words":powers,"phase_digits_word":WordTape::from_small(source.bit_len() as u64).as_word()}});
+    program["prepared_work"] = work::compile(&program)?;
+    let recovered=work::decode(&program)?;
+    eprintln!("prepared-modular-program seconds={:.6}",preparation.elapsed().as_secs_f64());
+    record["program"] = program;
+    record["preparation_seconds"] = serde_json::json!(preparation.elapsed().as_secs_f64());
+    record["preparation_nanoseconds"] = serde_json::json!(
+        u64::try_from(preparation.elapsed().as_nanos()).map_err(|_| "preparation clock overflow")?);
+    record["SIC_signed_residuals"] = serde_json::json!(witness.signed_residuals.iter().map(|(re,im)|
+        serde_json::json!({"re_word":signed_word(re),"im_word":signed_word(im)})).collect::<Vec<_>>());
+    record["SIC_rational_denominator_word"] = serde_json::json!(signed_word(&witness.rational_denominator));
+    record["SIC_rational_residual_words"] = serde_json::json!(witness.rational_signed_residuals.iter().map(|(re,im)|
+        serde_json::json!({"re_word":signed_word(re),"im_word":signed_word(im)})).collect::<Vec<_>>());
+    record["SIC_gram_words"]=serde_json::json!(witness.gram.iter().map(|(re,im)|
+        serde_json::json!({"re_word":signed_word(re),"im_word":signed_word(im)})).collect::<Vec<_>>());
+    record["SIC_mass_numerator_words"]=serde_json::json!(witness.mass_numerators.iter().map(|mass|
+        work::word_for_record(mass)).collect::<Vec<_>>());
+    Ok(PreparedCompilation {record,work:recovered})
+}
+
+pub fn emit_baked(prepared:&PreparedCompilation,out:&mut impl std::io::Write)->std::io::Result<()> {
+    use num_bigint::{BigUint,BigInt};
+    use g_momonados::reversible_modular::NestedOperation;
+    use std::collections::HashMap;
+    let record=&prepared.record;
+    let phase=&record["phase"];
+    let sic=&record["sic_frame"];
+    let index=|value:&serde_json::Value| usize::try_from(value.as_u64().expect("prepared address")).unwrap();
+    let signed=|row:&serde_json::Value| crate::word_tape::SignedWordTape::from_prepared_record(row).expect("host-verified signed word");
+    let integer=|value:BigInt| {let (sign,digits)=value.to_u32_digits();
+        format!("BakedInteger {{negative:{},digits:&{:?}}}",sign==num_bigint::Sign::Minus,digits)};
+    let complex=|row:&serde_json::Value| format!("BakedComplex {{re:{},im:{}}}",
+        integer(signed(&row["re"]).to_bigint()),integer(signed(&row["im"]).to_bigint()));
+    let word_complex=|row:&serde_json::Value| {
+        let word=|r:&serde_json::Value| {let value=signed(r);
+            format!("BakedSignedWord {{negative:{},word:{:?}}}",value.is_negative(),value.magnitude().as_word())};
+        format!("BakedWordComplex {{re:{},im:{}}}",word(&row["re"]),word(&row["im"]))
+    };
+    writeln!(out,"use g_momonados::baked_resident::*;")?;
+    writeln!(out,"const BAKED_SOURCE_WORD:&str={:?};",record["source_word"].as_str().unwrap())?;
+    writeln!(out,"const BAKED_PREPARATION_NS:u64={};",record["preparation_nanoseconds"].as_u64().unwrap())?;
+    writeln!(out,"static BAKED_NODES:&[BakedNode]=&[")?;
+    for row in phase["register"]["nodes"].as_array().unwrap() {
+        if row.get("re").is_some() {writeln!(out,"BakedNode::Leaf({}),",word_complex(row))?;}
+        else {writeln!(out,"BakedNode::Branch {{wire:{},low:{},high:{}}},",index(&row["wire"]),index(&row["low"]),index(&row["high"]))?;}
+    }
+    writeln!(out,"];")?;
+    let mut values:Vec<BigUint>=Vec::new();let mut value_ids=HashMap::new();
+    let mut wires:Vec<Vec<usize>>=Vec::new();let mut wire_ids=HashMap::new();
+    let mut controls:Vec<Vec<(usize,bool)>>=Vec::new();let mut control_ids=HashMap::new();
+    fn intern<T:Clone+Eq+std::hash::Hash>(value:&T,pool:&mut Vec<T>,ids:&mut HashMap<T,usize>)->usize {
+        if let Some(&id)=ids.get(value) {return id;}
+        let id=pool.len();pool.push(value.clone());ids.insert(value.clone(),id);id
+    }
+    writeln!(out,"static BAKED_OPERATIONS:&[BakedOperation]=&[")?;
+    for op in &prepared.work.operations {
+        match op {
+            NestedOperation::Toggle(gate)=>{
+                let c=intern(&gate.controls,&mut controls,&mut control_ids);
+                writeln!(out,"BakedOperation::Toggle {{target:{},controls:{c}}},",gate.target)?;
+            }
+            NestedOperation::ModularAdd {register,digit,value,modulus,controls:c}=>{
+                assert_eq!(modulus,&prepared.work.source);
+                let r=intern(register,&mut wires,&mut wire_ids);let d=intern(digit,&mut wires,&mut wire_ids);
+                let v=intern(value,&mut values,&mut value_ids);let c=intern(c,&mut controls,&mut control_ids);
+                writeln!(out,"BakedOperation::ModularAdd {{register:{r},digit:{d},value:{v},controls:{c}}},")?;
+            }
+            _=>panic!("N-only compiler produced an unexpected operation"),
+        }
+    }
+    writeln!(out,"];")?;
+    writeln!(out,"static BAKED_STAGES:&[(usize,&[usize])]=&[")?;
+    for (power,refs) in &prepared.work.stages {
+        let id=intern(power,&mut values,&mut value_ids);
+        writeln!(out,"({id},&{refs:?}),")?;
+    }
+    writeln!(out,"];")?;
+    writeln!(out,"static BAKED_VALUES:&[&[u32]]=&[")?;
+    for value in values {let digits=value.to_u32_digits();assert_eq!(BigUint::new(digits.clone()),value);
+        writeln!(out,"&{digits:?},")?;}
+    writeln!(out,"];\nstatic BAKED_WIRES:&[&[usize]]=&[")?;
+    for row in wires {writeln!(out,"&{row:?},")?;}
+    writeln!(out,"];\nstatic BAKED_CONTROLS:&[&[(usize,bool)]]=&[")?;
+    for row in controls {writeln!(out,"&{row:?},")?;}
+    writeln!(out,"];")?;
+    writeln!(out,"static BAKED_WORK:BakedWork=BakedWork {{source:&{:?},digit_bits:{},values:BAKED_VALUES,wires:BAKED_WIRES,controls:BAKED_CONTROLS,operations:BAKED_OPERATIONS,stages:BAKED_STAGES}};",
+        prepared.work.source.to_u32_digits(),prepared.work.digit_bits)?;
+    writeln!(out,"static BAKED_RAYS:[[BakedComplex;4];16]=[")?;
+    for ray in sic["rays"].as_array().unwrap() {write!(out,"[")?;for row in ray.as_array().unwrap() {write!(out,"{},",complex(row))?;}writeln!(out,"],")?;}
+    writeln!(out,"];\nstatic BAKED_PROJECTORS:[[BakedWordComplex;16];16]=[")?;
+    for projector in sic["projectors"].as_array().unwrap() {write!(out,"[")?;for row in projector.as_array().unwrap() {write!(out,"{},",word_complex(row))?;}writeln!(out,"],")?;}
+    writeln!(out,"];")?;
+    writeln!(out,"static BAKED_SIC:BakedSic=BakedSic {{modulus_bits:{},rays:&BAKED_RAYS,projectors:&BAKED_PROJECTORS}};",sic["modulus_bits"])?;
+    writeln!(out,"static BAKED_FOURIER:&[BakedComplex]=&[")?;
+    for row in phase["fourier"].as_array().unwrap() {writeln!(out,"{},",complex(row))?;}
+    writeln!(out,"];")?;
+    let work_wires:Vec<_>=phase["work_wires"].as_array().unwrap().iter().map(index).collect();
+    writeln!(out,"static BAKED_PHASE:BakedPhase=BakedPhase {{source_word:BAKED_SOURCE_WORD,base_word:{:?},width:{},modulus_bits:{},work_wires:&{:?},hadamard:{},fourier:BAKED_FOURIER,cells:{},root:{},nodes:BAKED_NODES,work:&BAKED_WORK}};",
+        phase["base_word"].as_str().unwrap(),phase["width"],phase["modulus_bits"],work_wires,complex(&phase["hadamard"]),phase["register"]["cells"],phase["register"]["root"])?;
+    let wire_map:Vec<_>=record["wire_map"].as_array().unwrap().iter().map(index).collect();
+    let ancestry=serde_json::json!({"signed":record["SIC_signed_residuals"],"denominator":record["SIC_rational_denominator_word"],
+        "rational":record["SIC_rational_residual_words"],"gram":record["SIC_gram_words"],"masses":record["SIC_mass_numerator_words"]});
+    writeln!(out,"static BAKED_RESIDENT:BakedResident=BakedResident {{source_word:BAKED_SOURCE_WORD,initial_mass_word:{:?},wire_map:&{:?},constraint_gates:{},product_closure_prepared:{},phase_source_relation:{},sic_modulus_bits:{},sic:&BAKED_SIC,phase:&BAKED_PHASE,reentry_json:{:?},preparation_sic_json:{:?},preparation_nanoseconds:BAKED_PREPARATION_NS}};",
+        record["initial_mass_word"].as_str().unwrap(),wire_map,record["constraint_gates"],record["product_closure_prepared"],record["phase_source_relation"],record["sic_modulus_bits"],record["reentry"].to_string(),ancestry.to_string())?;
+    writeln!(out,"fn baked_membrane()->Result<g_momonados::resident_glut::ResidentPhaseCarrier,String> {{g_momonados::resident_glut::ResidentPhaseCarrier::from_baked(&BAKED_RESIDENT)}}")?;
+    Ok(())
+}
+
+fn signed_word(value: &num_bigint::BigInt) -> String {
+    use num_traits::Signed;
+    format!("{}{}",if value.is_negative() { "≺" } else { "≻" },work::word_for_record(value.magnitude()))
+}

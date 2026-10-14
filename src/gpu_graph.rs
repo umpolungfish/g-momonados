@@ -60,7 +60,7 @@ fn graph(word: &str, arity: usize, depth: usize) -> Result<Graph, String> {
         let t = Token::parse(&ch.to_string()).ok_or_else(|| format!("unrecognized mark {ch}"))?;
         ops.push(match (arity,t) {
             (3,Token::Fsplit)=>Token::Fsplit3, (3,Token::Ffuse)=>Token::Ffuse3,
-            (3,Token::Engagr)=>Token::Evali, _=>t,
+            _=>t,
         });
     }
     if ops.is_empty() { return Err("provide a committed IMASM word".into()); }
@@ -165,6 +165,27 @@ mod tests {
                 for (f,j) in g.frobenius_closures().0 {assert!(ni[f]==ni[j]);}
             }
         }}
+    }
+    #[test]
+    fn branchwise_arev_roundtrip_is_exact_on_all_sixteen_states() {
+        // The tuple face's four independent register coordinates must survive
+        // the recursive three-arm word face. AREV is applied twice on the
+        // carried arm (its own inverse); the two sibling arms stay in the same
+        // graph carrier and rejoin at each enclosing fuse.
+        for depth in 0..=8 {
+            let g=graph("⊢∈≺≺∋⊣",3,depth).unwrap();
+            let (pairs,fully_closed)=g.frobenius_closures();
+            assert!(fully_closed,"depth {depth} left a split or fuse unpaired");
+            assert!(!pairs.is_empty());
+            for seed in 0..16 {
+                let input=unpack(seed);
+                let (ni,_)=flow_values(&g,input);
+                assert!(ni[g.nodes.len()-1]==input,"depth {depth}, seed {}: {:?}",input.name(),ni[g.nodes.len()-1].name());
+                for &(fork,fuse) in &pairs {
+                    assert!(ni[fork]==ni[fuse],"depth {depth}, seed {}: dyad {fork}->{fuse} changed the carrier",input.name());
+                }
+            }
+        }
     }
     #[test]
     fn identity_and_loss_are_distinct() {
