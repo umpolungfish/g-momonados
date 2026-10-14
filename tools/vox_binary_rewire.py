@@ -579,7 +579,7 @@ def rewire(metadata: dict, instructions: list[Instruction], dispatch: dict[int, 
                    "arm_entries_without_work_witness": sum(not p["arm_entry_work_witness"] for p in all_pairs),
                    "frobenius_transformation_witness": transformation_witness,
                    "open_pairs": sum(p["status"] == "OPEN" for p in all_pairs),
-                   "unresolved_indirect_transfers": len(unresolved),
+                   "unresolved_transfers": len(unresolved),
                    "symbolic_transfers_preserved": symbolic_transfers_complete,
                    "symbolic_transfer_count": len(dynamic_frames),
                    "frobenius_scope": "interprocedural control-flow closure; value-level Frobenius identity requires a semantic witness",
@@ -861,7 +861,7 @@ def main(argv: list[str] | None = None) -> int:
         checks = result["checks"]
         print(f"rewired {result['source']['instruction_count']} instructions in {result['source']['function_count']} functions")
         print(f"Frobenius wiring: {checks['closed_pairs']} closed, {checks['open_pairs']} open; arm-entry work witness: {checks['arm_entry_work_witness_pairs']}/{checks['closed_pairs']}")
-        print(f"coverage: {result['source']['accounted_bytes']}/{result['source']['total_bytes']} bytes; opaque bytes: {result['source']['opaque_byte_count']}; unresolved transfers: {checks['unresolved_indirect_transfers']}; symbolic transfers preserved: {checks['symbolic_transfer_count']}")
+        print(f"coverage: {result['source']['accounted_bytes']}/{result['source']['total_bytes']} bytes; opaque bytes: {result['source']['opaque_byte_count']}; unresolved transfers: {checks['unresolved_transfers']}; symbolic transfers preserved: {checks['symbolic_transfer_count']}")
         print(f"Diagrammar: {diagrammar_output}")
         print(f"IMASM tape: {imasm_output if checks['rewritten_imasm_tape'] else 'not emitted'}")
         print(f"result: {'PASS' if checks['publishable'] else 'INCOMPLETE'} ({args.output})")

@@ -81,6 +81,14 @@ class RewireTests(unittest.TestCase):
         self.assertFalse(result["checks"]["whole_image_decoded"])
         self.assertFalse(result["checks"]["publishable"])
 
+    def test_unresolved_fallthrough_is_counted_as_an_unresolved_transfer(self) -> None:
+        metadata, instructions = fixture_program()
+        metadata["executable_ranges"] = [(0x100, 0x106)]
+        instructions[1] = rewirer.Instruction(0x100, 0x101, 1, "⋈", "mov", "rax, rbx", None, 0x105)
+        result = rewirer.rewire(metadata, instructions, {}, fixture_diagram())
+        self.assertEqual(result["checks"]["unresolved_transfers"], 1)
+        self.assertEqual(result["unresolved"][0]["kind"], "fallthrough_into_undecoded_image")
+
     def test_shared_callee_returns_only_through_recorded_call_frames(self) -> None:
         metadata = {
             "entry": 0x100,

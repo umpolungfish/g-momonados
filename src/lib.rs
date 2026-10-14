@@ -94,3 +94,4 @@ pub mod ququart_folded_work;
 pub mod whole_register_phase;
 pub mod factor_synthesis;
 pub mod resident_glut;
+pub mod resident_frame;

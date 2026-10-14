@@ -318,12 +318,24 @@ impl PreparedWork {
     fn digit_bits(&self)->usize {match self {Self::Owned(w)=>w.digit_bits,Self::Compiled(w)=>w.digit_bits}}
     fn operation_count(&self)->usize {match self {Self::Owned(w)=>w.operations.len(),Self::Compiled(w)=>w.operations.len()}}
     fn references(&self,stage:usize)->&[usize] {match self {Self::Owned(w)=>&w.stages[stage].1,Self::Compiled(w)=>w.stages[stage].1}}
+    fn multiplier(&self,stage:usize)->Result<WordTape,String> {
+        match self {
+            Self::Owned(work)=>work.stages.get(stage).map(|row|WordTape::from_biguint(&row.0))
+                .ok_or_else(||String::from("composed operator escaped its prepared stack")),
+            Self::Compiled(work)=>{
+                let &(id,_) = work.stages.get(stage).ok_or("composed operator escaped its prepared stack")?;
+                let value = work.values.get(id).ok_or("composed operator lost its prepared multiplier")?;
+                Ok(WordTape::from_biguint(&BigUint::new(value.to_vec())))
+            }
+        }
+    }
     fn operation(&self,id:usize)->Result<NestedOperation,String> {
         match self {Self::Owned(w)=>w.operations.get(id).cloned().ok_or_else(||String::from("prepared instruction escaped its pool")),Self::Compiled(w)=>w.operation(id)}
     }
 }
 
 struct StreamingWork {
+    contracted: bool,
     digit_bits: usize,
     phase_wire: usize,
     multiplier: WordTape,
@@ -722,7 +734,7 @@ impl WholeRegisterPhaseCircuit {
         }
         if self.streaming_work.is_none() {
             if self.banked_roots.is_empty() {self.banked_roots.push(self.root);}
-            self.streaming_work = Some(StreamingWork { digit_bits, phase_wire: 0,
+            self.streaming_work = Some(StreamingWork { contracted:false, digit_bits, phase_wire: 0,
                 multiplier: self.base_word.clone(), operations: Vec::new(), cursor: 0,
                 pending_wires: (0..self.width).collect() });
         }
@@ -735,6 +747,10 @@ impl WholeRegisterPhaseCircuit {
             if work.phase_wire == self.width {
                 self.streaming_work = Some(work);
                 return Ok(true);
+            }
+            if work.contracted {
+                self.streaming_work = Some(work);
+                return Err("nested replay cannot replace the retained composed operator".into());
             }
             if let Some(baked) = &self.baked_work {
                 if digit_bits!=baked.digit_bits() {
@@ -785,6 +801,55 @@ impl WholeRegisterPhaseCircuit {
             self.streaming_work = Some(work);
         }
         Ok(self.streaming_work.as_ref().unwrap().phase_wire == self.width)
+    }
+
+    /// Execute one complete prepared modular lane as a coherent permutation.
+    /// Y invokes this action on the resident root and the certified clock
+    /// selects its control wire. The source product/factor spectators remain
+    /// attached through each work cofactor and its transformed fuse.
+    pub fn advance_contracted_work_with_selector(&mut self,
+        mut select:impl FnMut()->Result<bool,String>) -> Result<bool,String> {
+        if self.fired || self.prepared_stages.is_some() || self.baked_work.is_none() {
+            return Err("composed work requires the retained prepared modular pool".into());
+        }
+        let bits = self.baked_work.as_ref().unwrap().digit_bits();
+        if self.streaming_work.is_none() {
+            if self.banked_roots.is_empty() { self.banked_roots.push(self.root); }
+            self.streaming_work = Some(StreamingWork { contracted:true, digit_bits:bits,
+                phase_wire:0, multiplier:self.base_word.clone(), operations:Vec::new(),cursor:0,
+                pending_wires:(0..self.width).collect() });
+        }
+        let mut work = self.streaming_work.take().unwrap();
+        if !work.contracted {
+            self.streaming_work = Some(work);
+            return Err("composed work cannot replace a partially executed nested lane".into());
+        }
+        if work.pending_wires.is_empty() {
+            self.streaming_work = Some(work);
+            return Ok(true);
+        }
+        let reverse = select()?;
+        let wire = if reverse { *work.pending_wires.last().unwrap() } else { work.pending_wires[0] };
+        let mut multiplier = self.baked_work.as_ref().unwrap().multiplier(wire/2)?;
+        if wire%2 == 1 { multiplier = multiplier.mul(&multiplier).divmod(&self.source_word).unwrap().1; }
+        let register = &self.work_wires[..self.arithmetic.width()];
+        if self.work_wires[self.arithmetic.width()..].iter().any(|&wire|!self.arena.wire_is_zero(self.root,wire)) {
+            return Err("composed modular action crossed a nonzero prepared workspace".into());
+        }
+        let result = crate::reentry_powerset::bind_one(self.root,|root|
+            self.arena.controlled_modular_permutation(root,register,&multiplier,&self.source_word,wire));
+        let root = match result {
+            Ok(root)=>root,
+            Err(error)=>{self.streaming_work=Some(work);return Err(error);}
+        };
+        self.root = root;
+        self.monadic_binds += 1;
+        self.lane_order.push((wire,reverse));
+        work.pending_wires.retain(|&candidate|candidate!=wire);
+        work.phase_wire = work.pending_wires.first().copied().unwrap_or(self.width);
+        self.streaming_work = Some(work);
+        self.fold();
+        Ok(self.streaming_work.as_ref().unwrap().pending_wires.is_empty())
     }
 
     fn fold(&mut self) {
@@ -958,7 +1023,11 @@ impl WholeRegisterPhaseCircuit {
             if streaming_digit_bits.is_some_and(|given| given!=bits) {
                 return Err("readout changed the baked work radix".into());
             }
-            while !self.advance_nested_work(bits,8)? {}
+            if self.streaming_work.as_ref().is_some_and(|work|work.contracted) {
+                while !self.advance_contracted_work_with_selector(||Ok(false))? {}
+            } else {
+                while !self.advance_nested_work(bits,8)? {}
+            }
         } else if let Some(work) = &self.streaming_work {
             let bits = work.digit_bits;
             if streaming_digit_bits != Some(bits) {

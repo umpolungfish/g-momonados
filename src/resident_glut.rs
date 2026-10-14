@@ -4,7 +4,7 @@
 use alloc::{string::String, vec::Vec};
 use alloc::boxed::Box;
 use num_bigint::{BigInt, BigUint};
-use num_traits::{One, Zero};
+use num_traits::{One, Signed, Zero};
 use crate::ququart_decision::DecisionArena;
 use crate::word_tape::{SignedWordTape, WordTape};
 use crate::{anyon_ququart::{FixedQuquartSic, SicGramReconstruction}, phase_unbraid::FixedPointFormat};
@@ -105,6 +105,16 @@ impl ResidentPhaseCarrier {
         let mut arena=DecisionArena::new(0);let root=arena.zero();
         let sic_format=FixedPointFormat::for_modulus_bits(data.sic_modulus_bits)?;
         eprintln!("resident-import stage=SIC-projectors");
+        if let Ok(ancestry) = serde_json::from_str::<serde_json::Value>(data.preparation_sic_json) {
+            let circuit = &ancestry["circuit_braid"];
+            if !circuit.is_null() {
+                eprintln!("resident-import stage=circuit-braid circuit={} generators={} target_residual={} word_residual={} changed_gram_coordinates={}",
+                    circuit["circuit"].as_str().unwrap_or(""),
+                    circuit["braid_word"].as_array().map_or(0, |word| word.len()),
+                    circuit["target_projective_residual"], circuit["word_matrix_residual"],
+                    circuit["changed_gram_coordinates"]);
+            }
+        }
         let sic_frame=FixedQuquartSic::from_baked(data.sic)?;
         let next_product_columns=if data.product_closure_prepared {tape.len()+1} else {0};
         let reentry_record:serde_json::Value=serde_json::from_str(data.reentry_json).map_err(|e|e.to_string())?;
@@ -182,7 +192,8 @@ impl ResidentPhaseCarrier {
         let next_product_columns = if product_closure_prepared { tape.len()+1 } else { 0 };
         Ok(Self { resident:ResidentGlut { source,tape,arena,root,initial:root,banked_roots:Vec::new(),
             preparation_sic_ancestry:Some(serde_json::json!({"signed":record["SIC_signed_residuals"],
-                "denominator":record["SIC_rational_denominator_word"],"rational":record["SIC_rational_residual_words"]}).to_string()),wire_map,diagram_ready:true,
+                "denominator":record["SIC_rational_denominator_word"],"rational":record["SIC_rational_residual_words"],
+                "circuit_braid":record["circuit_braid"]}).to_string()),wire_map,diagram_ready:true,
             initial_mass,boundary,constraint_gates,sic_format,sic_frame:Some(sic_frame) },
             circuit,next_product_columns,source_producer:None,
             phase_source_relation:record["phase_source_relation"].as_bool().unwrap_or(false),
@@ -234,6 +245,26 @@ impl ResidentPhaseCarrier {
         let divisor=WordTape::from_parity_cells(cells).ok_or("source divisor has invalid IMASM cells")?;
         self.bind_source_divisor(&divisor.to_biguint(),producer)
     }
+
+    /// Enter the recovered N-only source port on the live prepared carrier.
+    /// A returned divisor refines the circuit's actual root, with its phase
+    /// coordinates and banked roots retained by refine_resident_support.
+    pub fn refine_dialectic_boundary(&mut self) -> Result<bool,String> {
+        eprintln!("resident-source-stage dialectic-enter");
+        let Some(split) = vox_core::morphism_factor::dialectic_source_divisor_observed(
+            &self.resident.tape, |stage,steps| {
+                eprintln!("resident-dialectic stage={stage} steps={steps}");
+            }) else {
+                eprintln!("resident-source-stage dialectic-open");
+                return Ok(false);
+            };
+        let divisor = WordTape::from_parity_cells(&split.divisor)
+            .ok_or("dialectic source returned invalid divisor marks")?;
+        let quotient = self.bind_source_divisor(&divisor.to_biguint(),split.producer)?;
+        eprintln!("resident-source-stage dialectic-bound divisor={} quotient={}",
+            divisor.to_biguint(),quotient.to_biguint());
+        Ok(true)
+    }
     pub fn advance(&mut self) -> Result<bool, String> {
         #[cfg(feature = "hosted")]
         if self.reentry.is_some() {
@@ -248,6 +279,24 @@ impl ResidentPhaseCarrier {
             return result;
         }
         self.advance_clocked(false)
+    }
+
+    /// Carry the prepared whole modular operator through the same Y/clock
+    /// continuation. This path retains source-phase geometry and performs no
+    /// gate-by-gate source product materialization.
+    pub fn advance_contracted(&mut self) -> Result<bool,String> {
+        if !self.phase_source_relation {
+            return Err("composed phase work requires its prepared source relation".into());
+        }
+        #[cfg(feature="hosted")]
+        if let Some(mut reentry) = self.reentry.take() {
+            let mut driver = reentry.driver.take().ok_or("resident Y is already executing its payload")?;
+            let result = driver.advance(|| self.circuit.advance_contracted_work_with_selector(||reentry.tick()));
+            reentry.driver=Some(driver);
+            self.reentry=Some(reentry);
+            return result;
+        }
+        self.circuit.advance_contracted_work_with_selector(||Ok(false))
     }
 
     fn advance_clocked(&mut self, reverse: bool) -> Result<bool, String> {
@@ -308,12 +357,14 @@ impl ResidentPhaseReturn {
             || self.program.source_word()!=self.resident.source.as_word() {
             return Err("phase return changed the held membrane's source binding".into());
         }
-        if self.phase_source_relation {
+        if self.phase_source_relation && self.source_producer.is_none() {
             eprintln!("resident-return-stage complete-phase-winding");
             let Some((order, divisor, quotient)) = self.phase_evidence.close_word_fraction(
                 &WordTape::from_biguint(&self.phase.numerator),
                 &WordTape::from_biguint(&self.phase.denominator),
-                &WordTape::from_biguint(&self.phase.base), &self.resident.source)? else { return Ok(ResidentClosure::Open(self)); };
+                &WordTape::from_biguint(&self.phase.base), &self.resident.source)? else {
+                return Ok(ResidentClosure::Open(self));
+            };
             eprintln!("resident-return-stage certified-winding");
             if divisor.mul(&quotient)!=self.resident.source {
                 return Err("joint word winding changed its source product".into());
@@ -575,6 +626,34 @@ pub struct GlutSicWitness {
     pub rational_signed_residuals: [(BigInt, BigInt); 16],
 }
 
+/// Full complex readback on the two resident factor cells transformed by the
+/// compiled circuit braid.
+pub struct GlutCircuitWitness {
+    pub wires: [usize; 2],
+    pub gram_before: [(BigInt, BigInt); 16],
+    pub gram_after: [(BigInt, BigInt); 16],
+    pub mass_before: BigUint,
+    pub mass_after: BigUint,
+    pub changed_coordinates: usize,
+    pub coefficient_fraction_bits: usize,
+    pub input_amplitude_scale_bits: usize,
+    pub banked_frame: Option<crate::resident_frame::ResidentFrameWitness>,
+}
+
+pub struct ResidentMatrixDualWitness {
+    pub determinant: (BigInt, BigInt),
+    pub denominator_bits: usize,
+    pub exact_full_state_return: bool,
+    pub exact_prepared_state_restoration: bool,
+    pub exact_complex_gram_coordinates: usize,
+    pub total_complex_gram_coordinates: usize,
+    pub maximum_absolute_gram_delta: BigInt,
+    pub exact_mass_return: bool,
+    pub mass_delta: BigInt,
+    pub forward_frame: crate::resident_frame::ResidentFrameWitness,
+    pub reverse_frame: crate::resident_frame::ResidentFrameWitness,
+}
+
 struct BoundOracle<'a, F> {
     arena: &'a mut DecisionArena,
     root: &'a mut usize,
@@ -653,6 +732,158 @@ impl<F: FnMut(usize, usize)> FactorSupportSink for BoundOracle<'_, F> {
 }
 
 impl ResidentGlut {
+    /// Lift the circuit's synthesized 2x2 unitary onto the first resident
+    /// coordinate cell while retaining the second cell as the ququart frame.
+    /// The operator acts on the same source-bound factor diagram read by SIC.
+    pub fn apply_circuit_braid(&mut self, operator: &[(f64, f64); 4])
+        -> Result<GlutCircuitWitness, String> {
+        self.materialize()?;
+        let layout = FactorPhaseOracle::from_n(&self.tape).map_err(String::from)?.layout().clone();
+        let offset = usize::from(layout.p.len() > 1);
+        let wires = [self.wire_map[layout.p.start + offset], self.wire_map[layout.q.start + offset]];
+        if wires[0] >= wires[1] {
+            return Err(String::from("circuit braid coordinates are not in canonical ququart order"));
+        }
+        let read_gram = |arena: &mut DecisionArena, root: usize| {
+            let zero = arena.zero();
+            let mut aligned = [zero; 4];
+            for (label, arm) in aligned.iter_mut().enumerate() {
+                let controls = [(wires[0], label & 1 != 0), (wires[1], label & 2 != 0)];
+                *arm = arena.conditional_literals(zero, root, &controls);
+                for (wire, active) in controls { if active { *arm = arena.flip(*arm, wire); } }
+            }
+            arena.control_gram(&aligned)
+        };
+        const FRACTION_BITS: usize = 52;
+        let scale = (1u64 << FRACTION_BITS) as f64;
+        let amplitude_scale = SignedWordTape::from_bigint(&(BigInt::one() << FRACTION_BITS));
+        self.root = self.arena.scale_words(self.root,
+            &(amplitude_scale, SignedWordTape::zero()), 0);
+        let gram_before = read_gram(&mut self.arena, self.root);
+        let mass_before = self.arena.mass_word(self.root).to_biguint();
+        let quantize = |value: f64| SignedWordTape::from_bigint(&BigInt::from((value * scale).round() as i64));
+        let local = operator.map(|(re, im)| (quantize(re), quantize(im)));
+        // DecisionArena's two-cell operator uses little-endian coordinate
+        // labels. This is U tensor I on the ordered pair [factor-p, factor-q].
+        let matrix = core::array::from_fn(|entry| {
+            let row = entry / 4;
+            let col = entry % 4;
+            if (row & 2) != (col & 2) { (SignedWordTape::zero(), SignedWordTape::zero()) }
+            else { local[2 * (row & 1) + (col & 1)].clone() }
+        });
+        self.root = crate::reentry_powerset::bind_one(self.root, |root|
+            self.arena.apply_control_matrix(root, wires, &matrix, FRACTION_BITS))?;
+        if self.arena.mass_word(self.root).is_zero() {
+            return Err(String::from("circuit braid returned an empty resident factor diagram"));
+        }
+        self.initial = self.root;
+        let zero = self.arena.zero();
+        let mut roots = [self.root, zero, zero, zero, zero];
+        self.arena.fold(&mut roots);
+        self.root = roots[0];
+        let gram_after = read_gram(&mut self.arena, self.root);
+        let mass_after = self.arena.mass_word(self.root).to_biguint();
+        let changed_coordinates = gram_before.iter().zip(&gram_after)
+            .filter(|(left, right)| left != right).count();
+        Ok(GlutCircuitWitness { wires, gram_before, gram_after, mass_before, mass_after,
+            changed_coordinates, coefficient_fraction_bits: FRACTION_BITS,
+            input_amplitude_scale_bits: FRACTION_BITS, banked_frame:None })
+    }
+
+    /// Apply an exact Gaussian-integer matrix numerator on the resident
+    /// ququart. Its common denominator remains explicit to the caller, so the
+    /// decision diagram performs no fixed-point rounding during the action.
+    pub fn apply_circuit_braid_numerator(&mut self, operator: &[(BigInt, BigInt); 4], denominator_bits: usize)
+        -> Result<GlutCircuitWitness, String> {
+        self.materialize()?;
+        let layout = FactorPhaseOracle::from_n(&self.tape).map_err(String::from)?.layout().clone();
+        let offset = usize::from(layout.p.len() > 1);
+        let wires = [self.wire_map[layout.p.start + offset], self.wire_map[layout.q.start + offset]];
+        if wires[0] >= wires[1] {
+            return Err(String::from("circuit braid coordinates are not in canonical ququart order"));
+        }
+        let read_gram = |arena: &mut DecisionArena, root: usize| {
+            let zero = arena.zero();
+            let mut aligned = [zero; 4];
+            for (label, arm) in aligned.iter_mut().enumerate() {
+                let controls = [(wires[0], label & 1 != 0), (wires[1], label & 2 != 0)];
+                *arm = arena.conditional_literals(zero, root, &controls);
+                for (wire, active) in controls { if active { *arm = arena.flip(*arm, wire); } }
+            }
+            arena.control_gram(&aligned)
+        };
+        let gram_before = read_gram(&mut self.arena, self.root);
+        let mass_before = self.arena.mass_word(self.root).to_biguint();
+        let mut frame = None;
+        self.root = crate::reentry_powerset::bind_one(self.root, |root|
+            crate::resident_frame::apply(&mut self.arena,root,wires,operator).map(|(returned,witness)| {
+                frame = Some(witness);
+                returned
+            }))?;
+        if self.arena.mass_word(self.root).is_zero() {
+            return Err(String::from("integer circuit braid returned an empty resident factor diagram"));
+        }
+        let zero = self.arena.zero();
+        let mut roots = [self.root, self.initial, zero, zero, zero];
+        self.arena.fold(&mut roots);
+        self.root = roots[0];
+        let gram_after = read_gram(&mut self.arena, self.root);
+        let mass_after = self.arena.mass_word(self.root).to_biguint();
+        let changed_coordinates = gram_before.iter().zip(&gram_after)
+            .filter(|(left, right)| left != right).count();
+        Ok(GlutCircuitWitness { wires, gram_before, gram_after, mass_before, mass_after,
+            changed_coordinates, coefficient_fraction_bits: denominator_bits,
+            input_amplitude_scale_bits: 0, banked_frame:frame })
+    }
+
+    /// Execute the integer matrix and its exact adjugate on one resident
+    /// diagram. This audits the matrix dual on the resident representation;
+    /// it does not stand in for the Grammar's banked ∈/⊞/∋ Frobenius map.
+    pub fn audit_circuit_braid_dual(&mut self, matrix: &[(BigInt, BigInt); 4], denominator_bits: usize)
+        -> Result<ResidentMatrixDualWitness, String> {
+        self.materialize()?;
+        let root_before = self.root;
+        let initial_before = self.initial;
+        let (a,b,c,d) = (&matrix[0],&matrix[1],&matrix[2],&matrix[3]);
+        let product = |x: &(BigInt,BigInt), y: &(BigInt,BigInt)|
+            (&x.0 * &y.0 - &x.1 * &y.1, &x.0 * &y.1 + &x.1 * &y.0);
+        let ad = product(a,d);
+        let bc = product(b,c);
+        let determinant = (&ad.0 - &bc.0, &ad.1 - &bc.1);
+        if determinant.0.is_zero() && determinant.1.is_zero() {
+            return Err("resident circuit matrix has no exact adjugate dual: determinant is zero".into());
+        }
+        let forward = self.apply_circuit_braid_numerator(matrix, denominator_bits)?;
+        let adjugate = [(d.0.clone(),d.1.clone()),(-b.0.clone(),-b.1.clone()),
+            (-c.0.clone(),-c.1.clone()),(a.0.clone(),a.1.clone())];
+        let reverse = self.apply_circuit_braid_numerator(&adjugate, denominator_bits)?;
+        let exact_full_state_return = self.arena.equals_complex_scaled(root_before,self.root,&determinant);
+        let determinant_norm = &determinant.0 * &determinant.0 + &determinant.1 * &determinant.1;
+        let deltas: Vec<_> = forward.gram_before.iter().zip(&reverse.gram_after).map(|(before,after)| {
+            (&after.0 - &before.0 * &determinant_norm, &after.1 - &before.1 * &determinant_norm)
+        }).collect();
+        let exact_complex_gram_coordinates = deltas.iter().filter(|(re,im)| re.is_zero() && im.is_zero()).count();
+        let maximum_absolute_gram_delta = deltas.iter()
+            .map(|(re,im)| re.abs().max(im.abs())).max().unwrap_or_default();
+        let determinant_norm = determinant_norm.to_biguint()
+            .ok_or("complex determinant norm became negative")?;
+        let expected_mass = &forward.mass_before * &determinant_norm;
+        let mass_delta = BigInt::from(reverse.mass_after) - BigInt::from(expected_mass);
+        // Audit the morphism on the production carrier, then restore its
+        // prepared roots so the caller can apply the certified forward map
+        // exactly once as part of preparation.
+        self.root = root_before;
+        self.initial = initial_before;
+        let exact_prepared_state_restoration = self.arena.equals_complex_scaled(
+            root_before, self.root, &(BigInt::one(), BigInt::zero()));
+        Ok(ResidentMatrixDualWitness { determinant, denominator_bits, exact_full_state_return,
+            exact_prepared_state_restoration,
+            exact_complex_gram_coordinates, total_complex_gram_coordinates: deltas.len(),
+            maximum_absolute_gram_delta, exact_mass_return: mass_delta.is_zero(), mass_delta,
+            forward_frame:forward.banked_frame.ok_or("forward circuit lost its frame witness")?,
+            reverse_frame:reverse.banked_frame.ok_or("reverse circuit lost its frame witness")? })
+    }
+
     /// Observe one ququart coordinate slice of this same glut. Conditional
     /// branches are aligned onto zero control slots before taking work overlaps,
     /// preserving their signed coherences rather than treating them as mixtures.
@@ -1035,7 +1266,7 @@ impl ResidentGlut {
                     !value.magnitude().bit_at(bit)).count()).min().unwrap_or(0);
         for (re,im) in &mut matrix { *re = re.shr(common_shift); *im = im.shr(common_shift); }
         self.root = crate::reentry_powerset::bind_one(self.root,|root|
-            self.arena.apply_control_matrix(root,wires,&matrix))?;
+            self.arena.apply_control_matrix(root,wires,&matrix,0))?;
         if self.arena.mass_word(self.root).is_zero() {
             return Err("SIC coordinate operator closed to empty resident support".into());
         }

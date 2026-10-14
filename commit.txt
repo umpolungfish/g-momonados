@@ -1,1 +1,7 @@
-I correct the resident HTSX Frobenius probe to compare the inverse result at the scale actually applied to the retained Gram snapshot. I record the locked 512-bit round-trip measurement, including exact coordinate recovery, mass drift, and SIC residual, and map it beside the braid-presentation and modular-work closure instruments.
+I compose modular lanes on the retained source-bound register
+
+I carry whole modular permutations through the existing powerset binder and Y/clock continuation. I check signed complex recovery, banked clears, and agreement with the retained nested operator on the locked 512-bit source and balanced 208-bit control. I preserve compilation and bounded Vox receipts across WSL recovery.
+
+I trace the reachable dialectic entry with Vox and exercise the requested small N-only source through the current prepared membrane. I compile the existing arithmetic-cell words into their complete carry and borrow returns. I retain each build and execution boundary.
+
+I stream each supervised Vox run's stdout and stderr to the terminal, retain their bytes in memory for verification, and keep the factor words in view without saving raw output logs.
