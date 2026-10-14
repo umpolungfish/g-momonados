@@ -22,6 +22,7 @@ use alloc::vec::Vec;
 use alloc::format;
 use num_bigint::BigUint;
 use num_traits::One;
+use imasm_core::{classic::Token, check::{self, ClosureState}};
 use cudarc::driver::{CudaContext, CudaFunction, LaunchConfig, PushKernelArg};
 use cudarc::nvrtc::compile_ptx;
 use alloc::sync::Arc;
@@ -62,6 +63,25 @@ pub fn word_ops(word:&str)->Vec<u32> {
     ).collect()
 }
 
+/// Admit a linear spelling through the canonical IMASM protocol graph builder
+/// and close-condition engine. A local stack check is insufficient: it can
+/// approve a word whose actual protocol graph is open or ill-typed.
+fn validate_protocol_word(word:&str)->Result<(char,ClosureState),String> {
+    let mut tokens=Vec::new();
+    for glyph in word.chars() {
+        let token=Token::parse(&glyph.to_string())
+            .ok_or_else(|| format!("protocol contains non-IMASM mark {glyph}"))?;
+        tokens.push(token);
+    }
+    let verdict=check::word_verdict(&tokens);
+    match verdict.1 {
+        ClosureState::Closed(_) => Ok(verdict),
+        ClosureState::Identity => Err(String::from("protocol reconnects without work")),
+        ClosureState::Open => Err(String::from("protocol has an unreconnected fork or fuse")),
+        ClosureState::None => Err(String::from("protocol has no fork/fuse closure")),
+    }
+}
+
 /// Run one word through the device factor register. CUDA prepares floor(sqrt(N))
 /// and N/2, then each lane executes the complete word on one successive value
 /// of the frontier until a product-closed pair returns or the legal band ends.
@@ -71,6 +91,7 @@ pub fn run_membrane(word:&str, n:&BigUint, depth:u32)
     let ops = word_ops(word);
     let one = BigUint::one();
     if ops.is_empty() { return Err(String::from("membrane word has no executable marks")); }
+    validate_protocol_word(word)?;
     let (ctx, prepare, func, device) = membrane_gpu()?;
     if *n < BigUint::from(4u8) { return Ok((None,0,device)); }
     let nlimbs = n.to_u32_digits();
@@ -137,7 +158,7 @@ pub fn family()->Vec<(&'static str,&'static str)> {
     alloc::vec![
         ("aggregate_phase_morphism",      "⊢≻⋈⊙∈⊤≻⋈⊥≺⋈⊞∋⊡⋈⊙⊣"),
         ("closed_divisor_search",         "⊢⊣≻∈⊤⋈≺⊥⊞⊙∋⋈∈⊤≺⊥∋⊡⊣"),
-        ("imscribing_factorizer",         "⊢⊣≻∈⊤⋈≺⊥⊞⊙⋈∈⊤≺⊥∋⊡⊣"),
+        ("imscribing_factorizer",         "⊢⊣≻∈⊤⋈≺⊥⊞⊙⋈∈⊤≺⊥∋∋⊡⊣"),
         ("factor_separating_crossing",    "⊢∈≻⊤≺⊥⊞⋈∋⊙⊡⊣"),
         ("nested_instant_tower",          "⊢∈⊤≻⋈⊙⊥≺⊞∋⋈⊙⊡⊣"),
         ("instant_nested_phase",          "⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⊣"),
@@ -158,6 +179,16 @@ pub fn repl_membrane(args:&[&str])->String {
         Some("list") => {
             let mut out=String::from("membrane family (name : word):\n");
             for (nm,w) in family() { out.push_str(&format!("  {nm:28} {w}\n")); }
+            out
+        }
+        Some("wiring") => {
+            let mut out=String::from("protocol graph admission (name : wiring result):\n");
+            for (name,word) in family() {
+                let result=validate_protocol_word(word)
+                    .map(|(verdict,state)| format!("kernel {verdict}: {state:?}"))
+                    .unwrap_or_else(|error| format!("refused: {error}"));
+                out.push_str(&format!("  {name:28} {result}\n"));
+            }
             out
         }
         Some("run") if args.len()>=3 => {
