@@ -10,122 +10,49 @@
 //! same carrier in a different order; some close a factor pair, some do not, and
 //! that difference is the reading.
 //!
-//! The tokens (classic discriminants): 0 VINIT reset, 1 TANCH emit, 2 AFWD
-//! advance a, 3 AREV root of the gap, 4 CLINK form the pair (a-b,a+b), 5 IMSCRIB
-//! gap delta=a^2-N, 6 FSPLIT, 7 FFUSE, 8 EVALT band-validate, 9 EVALF square
-//! test, 10 ENGAGR, 11 IFIX fix. Arithmetic is `native_numeral` word ops on the
-//! numeral's own marks; BigUint is only the host boundary in and out.
+//! Each word is interpreted on the CUDA device as a state transition over a
+//! multi-limb factor register. The device prepares the initial frontier, runs
+//! every candidate through the word's opcode order, and checks the exact product
+//! before returning a pair. The host loads N and the word, schedules bounded
+//! batches, and reads the closed result; it has no factor-search fallback.
 #![allow(dead_code)]
 extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::format;
 use num_bigint::BigUint;
-use num_traits::{One, Zero};
-use crate::native_numeral::{add_via_word, subtract_via_word, multiply_via_word};
-use cudarc::driver::{CudaContext, LaunchConfig, PushKernelArg};
-use cudarc::nvrtc::{compile_ptx_with_opts, CompileOptions};
+use num_traits::One;
+use cudarc::driver::{CudaContext, CudaFunction, LaunchConfig, PushKernelArg};
+use cudarc::nvrtc::compile_ptx;
+use alloc::sync::Arc;
+use core::cell::OnceCell;
 
-/// The nested fixed-point emit as a device kernel. The complete enclosure acts
-/// as μ∘δ=id on the mark carrier: its two arms are the same banked morphism, so
-/// fusion and fixation return the mark exactly. One thread per token writes the
-/// mark back and ticks the device counter once, so the emit runs on the card and
-/// the pass tick count is read from the GPU, not assumed.
-const EMIT_PTX: &str = r#"
-extern "C" __global__ void nested_emit(const unsigned* marks, unsigned* out,
-                                       unsigned long long* ticks, int n) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= n) return;
-    out[i] = marks[i];                       // μ∘δ = id on this carrier
-    atomicAdd(ticks, 1ULL);
-}
-"#;
+/// Device source for the word interpreter and its multi-limb arithmetic.
+const MF_GPU_SRC: &str = include_str!("membrane_family_gpu.cuh");
 
-/// Run the word's whole op stream through the nested fixed-point emit on the GPU,
-/// once. Returns the emitted marks (identity on the carrier) and the tick count
-/// the device accumulated for one pass. Self-contained in the gpu_rho style: its
-/// own kernel, no reach into the bare-metal kernel tree. None when no CUDA context
-/// is present, so a headless host still runs the membrane through the id fallback.
-fn gpu_nested_emit(ops:&[u32], device:usize) -> Option<(Vec<u32>, u64)> {
-    if ops.is_empty() { return Some((Vec::new(), 0)); }
-    // The context, kernel and loaded function are all fixed, so they are built
-    // once per process and every later pass reuses them. Rebuilding the context
-    // and recompiling the kernel per call was the whole per-call cost.
-    use alloc::sync::Arc;
-    use cudarc::driver::CudaFunction;
-    thread_local! {
-        static GPU: std::cell::OnceCell<(Arc<CudaContext>, CudaFunction)> = std::cell::OnceCell::new();
-    }
-    let (ctx, func) = GPU.with(|c| c.get_or_init(|| {
-        let ctx = CudaContext::new(device).expect("CUDA context");
-        let ptx = compile_ptx_with_opts(EMIT_PTX, CompileOptions::default())
-            .expect("membrane emit kernel compiles");
-        let module = ctx.load_module(ptx).expect("load emit module");
-        let func = module.load_function("nested_emit").expect("load nested_emit");
-        (ctx, func)
-    }).clone());
-    let stream = ctx.default_stream();
-    let n = ops.len() as i32;
-    let d_marks = stream.clone_htod(&ops.to_vec()).ok()?;
-    let mut d_out = stream.alloc_zeros::<u32>(ops.len()).ok()?;
-    let mut d_ticks = stream.alloc_zeros::<u64>(1).ok()?;
-    let cfg = LaunchConfig { grid_dim:(((n as u32)+127)/128,1,1), block_dim:(128,1,1), shared_mem_bytes:0 };
-    let mut b = stream.launch_builder(&func);
-    b.arg(&d_marks); b.arg(&mut d_out); b.arg(&mut d_ticks); b.arg(&n);
-    if unsafe { b.launch(cfg) }.is_err() { return None; }
-    let out = stream.clone_dtoh(&d_out).ok()?;
-    let ticks = stream.clone_dtoh(&d_ticks).ok()?;
-    Some((out, ticks[0]))
+thread_local! {
+    static MF_GPU: OnceCell<Result<(Arc<CudaContext>, CudaFunction, CudaFunction, usize), String>> = OnceCell::new();
 }
 
-/// The math-register factor carrier. The value N and its band are built in; the
-/// live morphism state (a, gap, root, the candidate pair) rides the tokens.
-struct MathCarrier<'a> {
-    n:&'a BigUint, lo:&'a BigUint, hi:&'a BigUint,
-    a:BigUint, delta:BigUint, b:BigUint, square:bool,
-    candidate:Option<(BigUint,BigUint)>, fixed:Option<(BigUint,BigUint)>,
-    emitted:Option<(BigUint,BigUint)>,
-}
-
-/// The one token->process table of the math register. Byte-identical in effect
-/// to `gpu_kernel::factor_phase_leaf`; kept here so the family runner is
-/// self-contained and every membrane in the census rides exactly this register.
-fn math_leaf(op:u32, s:&mut MathCarrier<'_>) {
-    match op {
-        0 => { s.delta=BigUint::zero(); s.b=BigUint::zero(); s.square=false;
-               s.candidate=None; s.fixed=None; s.emitted=None; }
-        2 => s.a = add_via_word(&s.a, &BigUint::one()),
-        5 => s.delta = subtract_via_word(&multiply_via_word(&s.a,&s.a), s.n)
-                        .unwrap_or(BigUint::zero()),
-        3 => s.b = isqrt_floor(&s.delta),
-        9 => s.square = multiply_via_word(&s.b,&s.b) == s.delta,
-        4 if s.square && s.candidate.is_none() => {
-            s.candidate = Some((
-                subtract_via_word(&s.a,&s.b).unwrap_or(BigUint::zero()),
-                add_via_word(&s.a,&s.b)));
-        }
-        8 => if let Some((p,q))=s.candidate.take() {
-                if p>=*s.lo && q<=*s.hi && multiply_via_word(&p,&q)==*s.n {
-                    s.candidate=Some((p,q));
+fn membrane_gpu() -> Result<(Arc<CudaContext>, CudaFunction, CudaFunction, usize), String> {
+    MF_GPU.with(|slot| slot.get_or_init(|| {
+        let mut last = String::from("no CUDA device initialized");
+        for device in [1usize, 0] {
+            match CudaContext::new(device) {
+                Ok(ctx) => {
+                    let ptx = compile_ptx(MF_GPU_SRC).map_err(|e| format!("membrane NVRTC: {e}"))?;
+                    let module = ctx.load_module(ptx).map_err(|e| format!("membrane module: {e}"))?;
+                    let prepare = module.load_function("membrane_prepare")
+                        .map_err(|e| format!("membrane prepare kernel: {e}"))?;
+                    let func = module.load_function("membrane_word_factor")
+                        .map_err(|e| format!("membrane kernel: {e}"))?;
+                    return Ok((ctx, prepare, func, device));
                 }
-             },
-        11 => s.fixed = s.candidate.take(),
-        1 => s.emitted = s.fixed.take(),
-        _ => {}
-    }
-}
-
-/// Newton floor-root, host arithmetic only for the descent bound. The membrane's
-/// own gap test (op 9) reconfirms b*b via word multiply, so the root is only a
-/// seed the register verifies for itself.
-fn isqrt_floor(n:&BigUint)->BigUint {
-    if n.is_zero() { return BigUint::zero(); }
-    let mut x = BigUint::one() << ((n.bits() as usize + 1)/2);
-    loop {
-        let y = (&x + n/&x) >> 1;
-        if y >= x { return x; }
-        x = y;
-    }
+                Err(e) => last = format!("CUDA device {device}: {e}"),
+            }
+        }
+        Err(format!("membrane requires CUDA on device 0 or 1: {last}"))
+    }).clone())
 }
 
 /// Parse a glyph word to its classic token discriminants, boundary marks kept.
@@ -135,43 +62,73 @@ pub fn word_ops(word:&str)->Vec<u32> {
     ).collect()
 }
 
-/// Run one ob3ect WORD as a membrane in the math register: mount the value N,
-/// seed a at ceil(sqrt(N)), and step the whole word through the nested
-/// fixed-point vessel once per frontier position until the word's own processes
-/// fix and emit a pair, or the band is exhausted. Returns the pair and the
-/// nested mark tick count.
+/// Run one word through the device factor register. CUDA prepares floor(sqrt(N))
+/// and N/2, then each lane executes the complete word on one successive value
+/// of the frontier until a product-closed pair returns or the legal band ends.
 pub fn run_membrane(word:&str, n:&BigUint, depth:u32)
-    -> (Option<(BigUint,BigUint)>, u64)
+    -> Result<(Option<(BigUint,BigUint)>, u64, usize), String>
 {
     let ops = word_ops(word);
     let one = BigUint::one();
-    if *n < BigUint::from(4u8) { return (None,0); }
-    let lo = &one + &one;                 // 2
-    let hi = n / (&one + &one);            // N/2, the whole legal band
-    let mut a = isqrt_floor(n);
-    if multiply_via_word(&a,&a) < *n { a = &a + &one; }
-    let mut c = MathCarrier { n, lo:&lo, hi:&hi, a, delta:BigUint::zero(),
-        b:BigUint::zero(), square:false, candidate:None, fixed:None, emitted:None };
+    if ops.is_empty() { return Err(String::from("membrane word has no executable marks")); }
+    let (ctx, prepare, func, device) = membrane_gpu()?;
+    if *n < BigUint::from(4u8) { return Ok((None,0,device)); }
+    let nlimbs = n.to_u32_digits();
+    if nlimbs.len() > 32 { return Err(format!("CUDA membrane supports up to 1024 source bits, received {}", n.bits())); }
+    let nlimbs_len = nlimbs.len();
     let _ = depth;
-    // The nested fixed-point emit of the word's op stream, run once on the GPU.
-    // The emit is μ∘δ=id, so the emitted marks equal the ops; the device also
-    // returns the per-pass tick count. When no card is present, the id fallback
-    // gives the same marks and per-pass ticks, so the membrane still runs headless.
-    let (emitted_ops, pass_ticks) = gpu_nested_emit(&ops, 0)
-        .unwrap_or_else(|| (ops.clone(), ops.len() as u64));
-    let mut ticks=0u64;
-    // Self-bounded: the frontier walks a up from ceil(sqrt(N)); the pair, if any,
-    // fixes by the time a reaches (p+q)/2, which never exceeds N/2. The band a>N/2
-    // is the whole legal range, so the walk bounds itself on N with no step cap.
-    loop {
-        for &op in &emitted_ops {
-            math_leaf(op, &mut c);
+    let stream = ctx.default_stream();
+    let nlimbs_i32 = nlimbs_len as i32;
+    let n_words = nlimbs.clone();
+    let d_n = stream.clone_htod(&n_words).map_err(|e| format!("membrane upload N: {e}"))?;
+    let mut d_start = stream.alloc_zeros::<u32>(nlimbs_len).map_err(|e| format!("membrane allocate start: {e}"))?;
+    let mut d_hi = stream.alloc_zeros::<u32>(nlimbs_len).map_err(|e| format!("membrane allocate bound: {e}"))?;
+    let mut prepare_launch = stream.launch_builder(&prepare);
+    prepare_launch.arg(&d_n); prepare_launch.arg(&nlimbs_i32);
+    prepare_launch.arg(&mut d_start); prepare_launch.arg(&mut d_hi);
+    let prep_cfg = LaunchConfig { grid_dim:(1,1,1), block_dim:(1,1,1), shared_mem_bytes:0 };
+    unsafe { prepare_launch.launch(prep_cfg) }.map_err(|e| format!("membrane GPU preparation: {e}"))?;
+    let start_words = stream.clone_dtoh(&d_start).map_err(|e| format!("membrane read initial frontier: {e}"))?;
+    let hi_words = stream.clone_dtoh(&d_hi).map_err(|e| format!("membrane read frontier bound: {e}"))?;
+    let mut start = BigUint::new(start_words);
+    let hi = BigUint::new(hi_words);
+    let d_ops = stream.clone_htod(&ops).map_err(|e| format!("membrane upload word: {e}"))?;
+    let nops_i32 = ops.len() as i32;
+    const BATCH: u64 = 256;
+    let mut ticks = 0u64;
+    while start <= hi {
+        let remaining = &hi - &start + &one;
+        let count = if remaining > BigUint::from(BATCH) { BATCH }
+                    else { remaining.to_u64_digits().first().copied().unwrap_or(BATCH) };
+        let start_words_raw = start.to_u32_digits();
+        let mut start_words = start_words_raw; start_words.resize(nlimbs_len, 0);
+        let d_start_batch = stream.clone_htod(&start_words).map_err(|e| format!("membrane upload frontier: {e}"))?;
+        let mut d_winner = stream.clone_htod(&alloc::vec![u64::MAX]).map_err(|e| format!("membrane allocate winner: {e}"))?;
+        let mut d_ticks = stream.clone_htod(&alloc::vec![0u64]).map_err(|e| format!("membrane allocate ticks: {e}"))?;
+        let output_words = count as usize * nlimbs_len;
+        let mut d_p = stream.alloc_zeros::<u32>(output_words).map_err(|e| format!("membrane allocate p: {e}"))?;
+        let mut d_q = stream.alloc_zeros::<u32>(output_words).map_err(|e| format!("membrane allocate q: {e}"))?;
+        let cfg = LaunchConfig { grid_dim: (((count as u32)+127)/128,1,1), block_dim:(128,1,1), shared_mem_bytes:0 };
+        let mut launch = stream.launch_builder(&func);
+        launch.arg(&d_n); launch.arg(&d_hi); launch.arg(&nlimbs_i32);
+        launch.arg(&d_ops); launch.arg(&nops_i32); launch.arg(&d_start_batch);
+        launch.arg(&count); launch.arg(&mut d_winner); launch.arg(&mut d_ticks);
+        launch.arg(&mut d_p); launch.arg(&mut d_q);
+        unsafe { launch.launch(cfg) }.map_err(|e| format!("membrane GPU launch: {e}"))?;
+        let batch_ticks = stream.clone_dtoh(&d_ticks).map_err(|e| format!("membrane read ticks: {e}"))?;
+        ticks = ticks.saturating_add(batch_ticks[0]);
+        let winner = stream.clone_dtoh(&d_winner).map_err(|e| format!("membrane read winner: {e}"))?[0];
+        if winner != u64::MAX {
+            let ps = stream.clone_dtoh(&d_p).map_err(|e| format!("membrane read p: {e}"))?;
+            let qs = stream.clone_dtoh(&d_q).map_err(|e| format!("membrane read q: {e}"))?;
+            let begin = winner as usize * nlimbs_len;
+            let p = BigUint::new(ps[begin..begin+nlimbs_len].to_vec());
+            let q = BigUint::new(qs[begin..begin+nlimbs_len].to_vec());
+            return Ok((Some((p,q)), ticks, device));
         }
-        ticks += pass_ticks;
-        if let Some(pq) = c.emitted.take() { return (Some(pq), ticks); }
-        if c.a > hi { break; }
+        start += BigUint::from(count);
     }
-    (None, ticks)
+    Ok((None, ticks, device))
 }
 
 /// The factorizer ob3ect family: name -> canonical glyph word, pulled from
@@ -206,25 +163,23 @@ pub fn repl_membrane(args:&[&str])->String {
         Some("run") if args.len()>=3 => {
             let word=args[1];
             let n = match args[2].parse::<BigUint>() { Ok(v)=>v, Err(_)=>return String::from("N must be decimal") };
-            let (pq,ticks)=run_membrane(word,&n,depth);
+            let (pq,ticks,device)=match run_membrane(word,&n,depth) { Ok(v)=>v, Err(e)=>return format!("membrane GPU error: {e}") };
             match pq {
-                Some((p,q))=>format!("membrane {word}\n  N={n}\n  {n} = {p} x {q} (verified={})\n  nested mark ticks={ticks}",
-                    &multiply_via_word(&p,&q)==&n),
-                None=>format!("membrane {word}\n  N={n}\n  no pair fixed across the full band (this word does not close N in the math register)\n  nested mark ticks={ticks}"),
+                Some((p,q))=>format!("membrane {word}\n  N={n}\n  {n} = {p} x {q} (GPU product closure verified)\n  CUDA device={device}; nested mark ticks={ticks}"),
+                None=>format!("membrane {word}\n  N={n}\n  no pair fixed across the full band (this word does not close N in the math register)\n  CUDA device={device}; nested mark ticks={ticks}"),
             }
         }
         Some("family") if args.len()>=2 => {
             let n = match args[1].parse::<BigUint>() { Ok(v)=>v, Err(_)=>return String::from("N must be decimal") };
-            let mut out=format!("math-register membrane family on N={n}\n");
+            let mut out=format!("GPU math-register membrane family on N={n}\n");
             out.push_str(&format!("{:28} {:>10} {:>12} {}\n","MEMBRANE","TICKS","FACTORED","PAIR"));
             for (nm,w) in family() {
-                let (pq,ticks)=run_membrane(w,&n,depth);
+                let (pq,ticks,device)=match run_membrane(w,&n,depth) { Ok(v)=>v, Err(e)=>return format!("membrane GPU error: {e}") };
                 match pq {
                     Some((p,q))=>{
-                        let ok = &multiply_via_word(&p,&q)==&n;
-                        out.push_str(&format!("{nm:28} {ticks:>10} {:>12} {p} x {q}\n", if ok {"yes"} else {"BADVERIFY"}));
+                        out.push_str(&format!("{nm:28} GPU{device} {ticks:>10} {:>12} {p} x {q}\n","yes"));
                     }
-                    None=>out.push_str(&format!("{nm:28} {ticks:>10} {:>12} -\n","no")),
+                    None=>out.push_str(&format!("{nm:28} GPU{device} {ticks:>10} {:>12} -\n","no")),
                 }
             }
             out
