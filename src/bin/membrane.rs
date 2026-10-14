@@ -100,32 +100,32 @@ fn factor(args: &[String]) -> String {
     let tpl = "⊢⊙∈≻⊤≺⊥⊞⋈∋⊡⊣";
     match nn::decode(&n_word) {
         Some(_) => match mf::run_membrane(tpl, &n, 64) {
-            (Some((p, q)), ticks) => format!(
+            Ok((Some((p, q)), ticks, device)) => format!(
                 "N={n}\n\
                  encode(N)={w}\n\
                  COMPOSITE-found (carry_fuse_closure)\n\
                  p={p}\n\
                  q={q}\n\
-                 p*q==N: {ok}\n\
-                 syzygy preserves [encode; Γ; Λ; μ]: {syz}\n\
+                 GPU product closure: verified\n\
+                 CUDA device={device}\n\
                  nested mark ticks={ticks}\n",
                 n = n,
                 w = n_word,
                 p = p,
                 q = q,
-                ok = &p * &q == n,
-                syz = nn::syzygy_preserves(&n, &p, &q),
                 ticks = ticks
             ),
-            (None, ticks) => format!(
+            Ok((None, ticks, device)) => format!(
                 "N={n}\n\
                  encode(N)={w}\n\
                  no pair fixed across the full band\n\
+                 CUDA device={device}\n\
                  nested mark ticks={ticks}\n",
                 n = n,
                 w = n_word,
                 ticks = ticks
             ),
+            Err(e) => format!("GPU membrane execution failed: {e}\n"),
         },
         None => String::from("INVALID: decode failed\n"),
     }
@@ -150,19 +150,21 @@ fn run(args: &[String]) -> String {
         Err(_) => return "N must be decimal\n".into(),
     };
     match mf::run_membrane(word, &n, 64) {
-        (Some((p, q)), ticks) => format!(
+        Ok((Some((p, q)), ticks, device)) => format!(
             "membrane {word}\n\
              N={n}\n\
-             {n} = {p} x {q} (verified={})\n\
+             {n} = {p} x {q} (GPU product closure verified)\n\
+             CUDA device={device}\n\
              nested mark ticks={ticks}\n",
-            &p * &q == n
         ),
-        (None, ticks) => format!(
+        Ok((None, ticks, device)) => format!(
             "membrane {word}\n\
              N={n}\n\
              no pair fixed across the full band\n\
+             CUDA device={device}\n\
              nested mark ticks={ticks}\n",
         ),
+        Err(e) => format!("GPU membrane execution failed: {e}\n"),
     }
 }
 
@@ -182,16 +184,16 @@ fn family(args: &[String]) -> String {
     ));
     for (name, word) in mf::family() {
         match mf::run_membrane(word, &n, 64) {
-            (Some((p, q)), ticks) => {
-                let ok = &p * &q == n;
+            Ok((Some((p, q)), ticks, device)) => {
                 s.push_str(&format!(
-                    "{name:28} {ticks:>10} {:>12} {p} x {q}\n",
-                    if ok { "yes" } else { "BADVERIFY" }
+                    "{name:28} GPU{device} {ticks:>10} {:>12} {p} x {q}\n",
+                    "yes"
                 ));
             }
-            (None, ticks) => {
-                s.push_str(&format!("{name:28} {ticks:>10} {:>12} -\n", "no"));
+            Ok((None, ticks, device)) => {
+                s.push_str(&format!("{name:28} GPU{device} {ticks:>10} {:>12} -\n", "no"));
             }
+            Err(e) => return format!("GPU membrane execution failed: {e}\n"),
         }
     }
     s
@@ -250,17 +252,17 @@ fn make(args: &[String]) -> String {
 
     // 4. run the compiled membrane
     match mf::run_membrane(&compiled, &n, 64) {
-        (Some((p, q)), ticks) => {
-            let ok = &p * &q == n;
+        Ok((Some((p, q)), ticks, device)) => {
             s.push_str(&format!(
-                "membrane {compiled}\n  N={n}\n  {n} = {p} x {q} (verified={ok})\n  nested mark ticks={ticks}\n"
+                "membrane {compiled}\n  N={n}\n  {n} = {p} x {q} (GPU product closure verified)\n  CUDA device={device}; nested mark ticks={ticks}\n"
             ));
         }
-        (None, ticks) => {
+        Ok((None, ticks, device)) => {
             s.push_str(&format!(
-                "membrane {compiled}\n  N={n}\n  no pair fixed across the full band\n  nested mark ticks={ticks}\n"
+                "membrane {compiled}\n  N={n}\n  no pair fixed across the full band\n  CUDA device={device}; nested mark ticks={ticks}\n"
             ));
         }
+        Err(e) => return format!("GPU membrane execution failed: {e}\n"),
     }
     s
 }

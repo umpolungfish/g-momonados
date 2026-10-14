@@ -55,7 +55,7 @@ pub fn repl_shor_b4_membrane(args: &[&str]) -> String {
 
 /// Run the chimera WORD as a membrane on N (delegates to the math register).
 pub fn run_chimera(n: &BigUint, depth: u32)
-    -> (Option<(BigUint, BigUint)>, u64)
+    -> Result<(Option<(BigUint, BigUint)>, u64, usize), String>
 {
     crate::membrane_family::run_membrane(WORD, n, depth)
 }

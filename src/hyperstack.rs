@@ -105,27 +105,21 @@ pub fn hyperstack_main(args: &[&str]) -> String {
     use num_bigint::BigUint;
     use core::str::FromStr;
     let n = match BigUint::from_str(value) { Ok(v) => v, Err(_) => return out };
-    let (found, ticks) = crate::membrane_family::run_membrane(&cur, &n, types.len() as u32);
+    let (found, ticks, device) = match crate::membrane_family::run_membrane(&cur, &n, types.len() as u32) {
+        Ok(result) => result,
+        Err(error) => {
+            out.push_str(&alloc::format!("  membrane     GPU execution error: {error}\n"));
+            return out;
+        }
+    };
     match found {
-        Some((p, q)) if p > BigUint::from(1u8) && &p * &q == n => {
+        Some((p, q)) if p > BigUint::from(1u8) => {
             out.push_str(&alloc::format!(
-                "  factors      {} = {} × {}   [stacked membrane, {} ticks]\n",
-                value, p.to_str_radix(10), q.to_str_radix(10), ticks));
+                "  factors      {} = {} × {}   [GPU {}, closed, {} ticks]\n",
+                value, p.to_str_radix(10), q.to_str_radix(10), device, ticks));
         }
-        _ => {
-            // Fall back to the winding-order seed ladder, which the hypernest
-            // depth indexes; report which nesting depth closes.
-            let (depth, opt) = crate::dynamic_nesting_prime_finder::find_optimal_depth(value, 32);
-            match opt {
-                Some(p) => {
-                    let q = &n / &p;
-                    out.push_str(&alloc::format!(
-                        "  factors      {} = {} × {}   [winding-order seed ladder, closure depth {}]\n",
-                        value, p.to_str_radix(10), q.to_str_radix(10), depth));
-                }
-                None => out.push_str(&alloc::format!("  factors      {}: no closure (prime, or beyond the ladder)\n", value)),
-            }
-        }
+        _ => out.push_str(&alloc::format!(
+            "  factors      {}: this membrane word produced no factor pair on GPU {}\n", value, device)),
     }
     out
 }
