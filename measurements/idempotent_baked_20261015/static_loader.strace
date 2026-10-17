@@ -1,0 +1,231 @@
+16833 execve("measurements/idempotent_baked_20261015/source_300_gpu_r3", ["measurements/idempotent_baked_20"...], 0x7ffe1e93c9c8 /* 89 vars */) = 0
+16833 arch_prctl(0x3001 /* ARCH_??? */, 0x7ffef6735cb0) = -1 EINVAL (Invalid argument)
+16833 brk(NULL)                         = 0x555589bde000
+16833 brk(0x555589bdee00)               = 0x555589bdee00
+16833 arch_prctl(ARCH_SET_FS, 0x555589bde400) = 0
+16833 set_tid_address(0x555589bde6d0)   = 16833
+16833 set_robust_list(0x555589bde6e0, 24) = 0
+16833 rseq(0x555589bdeda0, 0x20, 0, 0x53053053) = 0
+16833 uname({sysname="Linux", nodename="devilsdevice", ...}) = 0
+16833 prlimit64(0, RLIMIT_STACK, NULL, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY}) = 0
+16833 readlink("/proc/self/exe", "/home/mrnob0dy666/imsgct/G-mOMon"..., 4096) = 93
+16833 getrandom("\x16\x6a\x12\xa1\xfd\xd0\x73\x36", 8, GRND_NONBLOCK) = 8
+16833 brk(0x555589bffe00)               = 0x555589bffe00
+16833 brk(0x555589c00000)               = 0x555589c00000
+16833 mprotect(0x76eb10ce6000, 32768, PROT_READ) = 0
+16833 poll([{fd=0, events=0}, {fd=1, events=0}, {fd=2, events=0}], 3, 0) = 0 (Timeout)
+16833 rt_sigaction(SIGPIPE, {sa_handler=SIG_IGN, sa_mask=[PIPE], sa_flags=SA_RESTORER|SA_RESTART, sa_restorer=0x76eb10c2ef40}, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+16833 openat(AT_FDCWD, "/proc/self/maps", O_RDONLY|O_CLOEXEC) = 3
+16833 prlimit64(0, RLIMIT_STACK, NULL, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY}) = 0
+16833 newfstatat(3, "", {st_mode=S_IFREG|0444, st_size=0, ...}, AT_EMPTY_PATH) = 0
+16833 read(3, "555589bde000-555589c00000 rw-p 0"..., 1024) = 1024
+16833 read(3, "p 00000000 00:00 0 \n7ffef6717000"..., 1024) = 101
+16833 close(3)                          = 0
+16833 sched_getaffinity(16833, 32, [0, 1, 2, 3, 4, 5, 6, 7]) = 8
+16833 rt_sigaction(SIGSEGV, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+16833 sigaltstack(NULL, {ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=0}) = 0
+16833 mmap(NULL, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_STACK, -1, 0) = 0x76eb10b35000
+16833 mprotect(0x76eb10b35000, 4096, PROT_NONE) = 0
+16833 sigaltstack({ss_sp=0x76eb10b36000, ss_flags=0, ss_size=8192}, NULL) = 0
+16833 rt_sigaction(SIGSEGV, {sa_handler=0x76eb10c0a3a0, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_SIGINFO, sa_restorer=0x76eb10c2ef40}, NULL, 8) = 0
+16833 rt_sigaction(SIGBUS, NULL, {sa_handler=SIG_DFL, sa_mask=[], sa_flags=0}, 8) = 0
+16833 rt_sigaction(SIGBUS, {sa_handler=0x76eb10c0a3a0, sa_mask=[], sa_flags=SA_RESTORER|SA_ONSTACK|SA_SIGINFO, sa_restorer=0x76eb10c2ef40}, NULL, 8) = 0
+16833 openat(AT_FDCWD, "/usr/lib/wsl/lib/libcuda.so", O_RDONLY|O_CLOEXEC) = 3
+16833 read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\300\0\1\0\0\0\0\0"..., 832) = 832
+16833 newfstatat(3, "", {st_mode=S_IFREG|0555, st_size=187984, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 190232, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76eb10b06000
+16833 mmap(0x76eb10b16000, 94208, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x10000) = 0x76eb10b16000
+16833 mmap(0x76eb10b2d000, 20480, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x27000) = 0x76eb10b2d000
+16833 mmap(0x76eb10b32000, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2b000) = 0x76eb10b32000
+16833 close(3)                          = 0
+16833 openat(AT_FDCWD, "/usr/lib/wsl/lib/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/purl_diver/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 newfstatat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/purl_diver", {st_mode=S_IFDIR|0755, st_size=4096, ...}, 0) = 0
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/byvalver/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 newfstatat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/byvalver", {st_mode=S_IFDIR|0755, st_size=4096, ...}, 0) = 0
+16833 openat(AT_FDCWD, "libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+16833 newfstatat(3, "", {st_mode=S_IFREG|0644, st_size=100864, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 100864, PROT_READ, MAP_PRIVATE, 3, 0) = 0x76eb10aed000
+16833 close(3)                          = 0
+16833 openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+16833 read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0P\237\2\0\0\0\0\0"..., 832) = 832
+16833 pread64(3, "\6\0\0\0\4\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0\0"..., 784, 64) = 784
+16833 pread64(3, "\4\0\0\0 \0\0\0\5\0\0\0GNU\0\2\0\0\300\4\0\0\0\3\0\0\0\0\0\0\0"..., 48, 848) = 48
+16833 pread64(3, "\4\0\0\0\24\0\0\0\3\0\0\0GNU\0jl\265\250\17\325\345\273[\363\256\252\21\32\335\230"..., 68, 896) = 68
+16833 newfstatat(3, "", {st_mode=S_IFREG|0755, st_size=2220400, ...}, AT_EMPTY_PATH) = 0
+16833 pread64(3, "\6\0\0\0\4\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0\0"..., 784, 64) = 784
+16833 mmap(NULL, 2264656, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76eb10800000
+16833 mprotect(0x76eb10828000, 2023424, PROT_NONE) = 0
+16833 mmap(0x76eb10828000, 1658880, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x28000) = 0x76eb10828000
+16833 mmap(0x76eb109bd000, 360448, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1bd000) = 0x76eb109bd000
+16833 mmap(0x76eb10a16000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x215000) = 0x76eb10a16000
+16833 mmap(0x76eb10a1c000, 52816, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x76eb10a1c000
+16833 close(3)                          = 0
+16833 openat(AT_FDCWD, "/usr/lib/wsl/lib/libdl.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/purl_diver/libdl.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/byvalver/libdl.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "libdl.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libdl.so.2", O_RDONLY|O_CLOEXEC) = 3
+16833 read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\0\0\0\0\0\0\0\0"..., 832) = 832
+16833 newfstatat(3, "", {st_mode=S_IFREG|0644, st_size=14432, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 16424, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76eb10ae8000
+16833 mmap(0x76eb10ae9000, 4096, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1000) = 0x76eb10ae9000
+16833 mmap(0x76eb10aea000, 4096, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2000) = 0x76eb10aea000
+16833 mmap(0x76eb10aeb000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2000) = 0x76eb10aeb000
+16833 close(3)                          = 0
+16833 openat(AT_FDCWD, "/usr/lib/wsl/lib/libpthread.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/purl_diver/libpthread.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/byvalver/libpthread.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "libpthread.so.0", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libpthread.so.0", O_RDONLY|O_CLOEXEC) = 3
+16833 read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\0\0\0\0\0\0\0\0"..., 832) = 832
+16833 newfstatat(3, "", {st_mode=S_IFREG|0644, st_size=21448, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 16424, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76eb10ae3000
+16833 mmap(0x76eb10ae4000, 4096, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1000) = 0x76eb10ae4000
+16833 mmap(0x76eb10ae5000, 4096, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2000) = 0x76eb10ae5000
+16833 mmap(0x76eb10ae6000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2000) = 0x76eb10ae6000
+16833 close(3)                          = 0
+16833 openat(AT_FDCWD, "/usr/lib/wsl/lib/ld-linux-x86-64.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/purl_diver/ld-linux-x86-64.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/byvalver/ld-linux-x86-64.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "ld-linux-x86-64.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2", O_RDONLY|O_CLOEXEC) = 3
+16833 read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\220\2\2\0\0\0\0\0"..., 832) = 832
+16833 newfstatat(3, "", {st_mode=S_IFREG|0755, st_size=240936, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 242392, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76eb10aa7000
+16833 mprotect(0x76eb10aa9000, 221184, PROT_NONE) = 0
+16833 mmap(0x76eb10aa9000, 172032, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2000) = 0x76eb10aa9000
+16833 mmap(0x76eb10ad3000, 45056, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2c000) = 0x76eb10ad3000
+16833 mmap(0x76eb10adf000, 16384, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x37000) = 0x76eb10adf000
+16833 close(3)                          = 0
+16833 arch_prctl(0x3001 /* ARCH_??? */, 0x7ffef6734c20) = -1 EINVAL (Invalid argument)
+16833 mprotect(0x76eb10adf000, 8192, PROT_READ) = 0
+16833 mprotect(0x76eb10a16000, 16384, PROT_READ) = 0
+16833 mprotect(0x76eb10ae6000, 4096, PROT_READ) = 0
+16833 mprotect(0x76eb10aeb000, 4096, PROT_READ) = 0
+16833 mprotect(0x76eb10b32000, 4096, PROT_READ) = 0
+16833 prlimit64(0, RLIMIT_STACK, NULL, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY}) = 0
+16833 munmap(0x76eb10aed000, 100864)    = 0
+16833 getrandom("\xba\x7a\x5b\x77\xd9\xaa\xb4\xd2", 8, GRND_NONBLOCK) = 8
+16833 mmap(NULL, 1048576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x76eb10700000
+16833 openat(AT_FDCWD, "/usr/lib/wsl/lib/libdxcore.so", O_RDONLY|O_CLOEXEC) = 3
+16833 read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\0\0\0\0\0\0\0\0"..., 832) = 832
+16833 newfstatat(3, "", {st_mode=S_IFREG|0555, st_size=942048, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 968348, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76eb10613000
+16833 mmap(0x76eb10676000, 512000, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x62000) = 0x76eb10676000
+16833 mmap(0x76eb106f3000, 32768, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0xde000) = 0x76eb106f3000
+16833 mmap(0x76eb106fb000, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0xe5000) = 0x76eb106fb000
+16833 mmap(0x76eb106fc000, 13980, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x76eb106fc000
+16833 close(3)                          = 0
+16833 openat(AT_FDCWD, "/usr/lib/wsl/lib/libm.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/purl_diver/libm.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/byvalver/libm.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "libm.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+16833 newfstatat(3, "", {st_mode=S_IFREG|0644, st_size=100864, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 100864, PROT_READ, MAP_PRIVATE, 3, 0) = 0x76eb10aed000
+16833 close(3)                          = 0
+16833 openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libm.so.6", O_RDONLY|O_CLOEXEC) = 3
+16833 read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\0\0\0\0\0\0\0\0"..., 832) = 832
+16833 newfstatat(3, "", {st_mode=S_IFREG|0644, st_size=940560, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 942344, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x76eb1052c000
+16833 mmap(0x76eb1053a000, 507904, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0xe000) = 0x76eb1053a000
+16833 mmap(0x76eb105b6000, 372736, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x8a000) = 0x76eb105b6000
+16833 mmap(0x76eb10611000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0xe4000) = 0x76eb10611000
+16833 close(3)                          = 0
+16833 mprotect(0x76eb10611000, 4096, PROT_READ) = 0
+16833 mprotect(0x76eb106f3000, 32768, PROT_READ) = 0
+16833 openat(AT_FDCWD, "/dev/dxg", O_RDONLY|O_CLOEXEC) = 3
+16833 munmap(0x76eb10aed000, 100864)    = 0
+16833 ioctl(3, _IOC(_IOC_READ|_IOC_WRITE, 0x47, 0x3e, 0x18), 0x7ffef6735580) = 0
+16833 ioctl(3, _IOC(_IOC_READ|_IOC_WRITE, 0x47, 0x3e, 0x18), 0x7ffef6735580) = 0
+16833 ioctl(3, _IOC(_IOC_READ|_IOC_WRITE, 0x47, 0x9, 0x18), 0x7ffef67344e0) = 0
+16833 ioctl(3, _IOC(_IOC_READ|_IOC_WRITE, 0x47, 0x9, 0x18), 0x7ffef67344e0) = 0
+16833 openat(AT_FDCWD, "/usr/lib/wsl/drivers/nvmdi.inf_amd64_d9379a506a4c3691/libcuda.so.1.1", O_RDONLY|O_CLOEXEC) = 4
+16833 read(4, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\300\274\31\0\0\0\0\0"..., 832) = 832
+16833 newfstatat(4, "", {st_mode=S_IFREG|0555, st_size=27803920, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 28157312, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 4, 0) = 0x76eb0ea51000
+16833 mprotect(0x76eb0ebec000, 24567808, PROT_NONE) = 0
+16833 mmap(0x76eb0ebec000, 18432000, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0x19b000) = 0x76eb0ebec000
+16833 mmap(0x76eb0fd80000, 6131712, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0x132f000) = 0x76eb0fd80000
+16833 mmap(0x76eb1035a000, 1556480, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0x1908000) = 0x76eb1035a000
+16833 mmap(0x76eb104d6000, 349568, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x76eb104d6000
+16833 close(4)                          = 0
+16833 openat(AT_FDCWD, "/usr/lib/wsl/lib/librt.so.1", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/purl_diver/librt.so.1", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/home/mrnob0dy666/shucker/lib/byvalver/librt.so.1", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "librt.so.1", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+16833 openat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 4
+16833 newfstatat(4, "", {st_mode=S_IFREG|0644, st_size=100864, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 100864, PROT_READ, MAP_PRIVATE, 4, 0) = 0x76eb10aed000
+16833 close(4)                          = 0
+16833 openat(AT_FDCWD, "/lib/x86_64-linux-gnu/librt.so.1", O_RDONLY|O_CLOEXEC) = 4
+16833 read(4, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\0\0\0\0\0\0\0\0"..., 832) = 832
+16833 newfstatat(4, "", {st_mode=S_IFREG|0644, st_size=14664, ...}, AT_EMPTY_PATH) = 0
+16833 mmap(NULL, 16440, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 4, 0) = 0x76eb10aa2000
+16833 mmap(0x76eb10aa3000, 4096, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0x1000) = 0x76eb10aa3000
+16833 mmap(0x76eb10aa4000, 4096, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0x2000) = 0x76eb10aa4000
+16833 mmap(0x76eb10aa5000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0x2000) = 0x76eb10aa5000
+16833 close(4)                          = 0
+16833 mprotect(0x76eb10aa5000, 4096, PROT_READ) = 0
+16833 mprotect(0x76eb1035a000, 1540096, PROT_READ) = 0
+16833 sched_get_priority_max(SCHED_RR)  = 99
+16833 sched_get_priority_min(SCHED_RR)  = 1
+16833 munmap(0x76eb10aed000, 100864)    = 0
+16833 futex(0x76eb10b346a8, FUTEX_WAKE_PRIVATE, 2147483647) = 0
+16833 getpid()                          = 16833
+16833 openat(AT_FDCWD, "/sys/devices/system/cpu/online", O_RDONLY|O_CLOEXEC) = 4
+16833 read(4, "0-7\n", 1024)            = 4
+16833 close(4)                          = 0
+16833 openat(AT_FDCWD, "/sys/devices/system/cpu/online", O_RDONLY|O_CLOEXEC) = 4
+16833 read(4, "0-7\n", 1024)            = 4
+16833 close(4)                          = 0
+16833 clock_gettime(CLOCK_MONOTONIC_RAW, {tv_sec=4277, tv_nsec=518726000}) = 0
+16833 openat(AT_FDCWD, "/proc/sys/vm/mmap_min_addr", O_RDONLY) = 4
+16833 newfstatat(4, "", {st_mode=S_IFREG|0644, st_size=0, ...}, AT_EMPTY_PATH) = 0
+16833 read(4, "65536\n", 1024)          = 6
+16833 close(4)                          = 0
+16833 openat(AT_FDCWD, "/proc/cpuinfo", O_RDONLY) = 4
+16833 newfstatat(4, "", {st_mode=S_IFREG|0444, st_size=0, ...}, AT_EMPTY_PATH) = 0
+16833 read(4, "processor\t: 0\nvendor_id\t: Genuin"..., 1024) = 1024
+16833 read(4, "ment\t: 64\naddress sizes\t: 39 bit"..., 1024) = 1024
+16833 close(4)                          = 0
+16833 openat(AT_FDCWD, "/proc/self/maps", O_RDONLY) = 4
+16833 newfstatat(4, "", {st_mode=S_IFREG|0444, st_size=0, ...}, AT_EMPTY_PATH) = 0
+16833 read(4, "555589bde000-555589c00000 rw-p 0"..., 1024) = 1024
+16833 read(4, "30 3358521                    /u"..., 1024) = 1024
+16833 read(4, "            /usr/lib/x86_64-linu"..., 1024) = 1024
+16833 read(4, "6                    /usr/lib/x8"..., 1024) = 1024
+16833 read(4, "5000 r-xp 00001000 08:30 3360154"..., 1024) = 1024
+16833 read(4, "0000 00:39 10133099161917099    "..., 1024) = 1024
+16833 read(4, ":30 3289624                    /"..., 1024) = 589
+16833 read(4, "", 1024)                 = 0
+16833 close(4)                          = 0
+16833 openat(AT_FDCWD, "/sys/devices/system/cpu/online", O_RDONLY|O_CLOEXEC) = 4
+16833 read(4, "0-7\n", 1024)            = 4
+16833 close(4)                          = 0
+16833 getpid()                          = 16833
+16833 getpid()                          = 16833
+16833 futex(0x76eb104e0f8c, FUTEX_WAKE_PRIVATE, 2147483647) = 0
+16833 gettimeofday({tv_sec=1792064097, tv_usec=973799}, NULL) = 0
+16833 openat(AT_FDCWD, "/etc/localtime", O_RDONLY|O_CLOEXEC) = 4
+16833 newfstatat(4, "", {st_mode=S_IFREG|0644, st_size=2852, ...}, AT_EMPTY_PATH) = 0
+16833 newfstatat(4, "", {st_mode=S_IFREG|0644, st_size=2852, ...}, AT_EMPTY_PATH) = 0
+16833 read(4, "TZif2\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\6\0\0\0\6\0\0\0\0"..., 4096) = 2852
+16833 lseek(4, -1810, SEEK_CUR)         = 1042
+16833 read(4, "TZif2\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\6\0\0\0\6\0\0\0\0"..., 4096) = 1810
+16833 close(4)                          = 0
+16833 write(2, "Error: ", 7)            = 7
+16833 write(2, "\"", 1)                 = 1
+16833 write(2, "DriverError(CUDA_ERROR_OPERATING"..., 41) = 41
+16833 write(2, "\\\"", 2)               = 2
+16833 write(2, "OS call failed or operation not "..., 52) = 52
+16833 write(2, "\\\"", 2)               = 2
+16833 write(2, ")", 1)                  = 1
+16833 write(2, "\"", 1)                 = 1
+16833 write(2, "\n", 1)                 = 1
+16833 sigaltstack({ss_sp=NULL, ss_flags=SS_DISABLE, ss_size=8192}, NULL) = 0
+16833 munmap(0x76eb10b35000, 12288)     = 0
+16833 exit_group(1)                     = ?
+16833 +++ exited with 1 +++

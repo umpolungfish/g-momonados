@@ -1,0 +1,7 @@
+[package]
+name = "verify-idempotent-device-return"
+version = "0.1.0"
+edition = "2021"
+[workspace]
+[dependencies]
+g-momonados = { path = "../../.." }

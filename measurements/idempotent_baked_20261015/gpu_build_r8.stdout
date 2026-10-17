@@ -1,0 +1,5 @@
+baked membrane = /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/idempotent_baked_20261015/source_300_gpu_r8
+source bits = 300
+instance inputs at execution = none
+execution device = GPU 1 / RTX 4070
+compilation_seconds = 5.974674422
