@@ -1,0 +1,11 @@
+[package]
+name = "resident-kernel-check"
+version = "0.1.0"
+edition = "2021"
+[dependencies]
+g-momonados = {path = "../../../.."}
+serde_json = "1"
+num-bigint = "0.4"
+[[test]]
+name = "membrane_kernel"
+path = "../../../../tests/membrane_kernel.rs"

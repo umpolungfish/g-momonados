@@ -1,0 +1,24 @@
+error: no bin target named `vox` in default-run packages
+help: available bin targets:
+    anyon_cnot_compile
+    anyon_generator
+    anyon_stack_audit
+    g-momonados
+    godel
+    imasm_phase_factor
+    membrane
+    membrane-factor
+    prime-tool
+    qpe_semiprime_cases
+    ququart_baked
+    ququart_factor
+    ququart_factor_baked
+    ququart_prepare_operator
+    ququart_verify_readout
+    ququart_work_probe_baked
+    resident_circuit_braid_probe
+    resident_frobenius_exact_probe
+    semiprime-tool
+    sic-tool
+    test_source_256
+    vox_disasm_region

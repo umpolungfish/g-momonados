@@ -1,0 +1,21 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+error: failed to run custom build command for `g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)`
+
+Caused by:
+  process didn't exit successfully: `/home/mrnob0dy666/imsgct/G-mOMonadOS/target/release/build/g-momonados-5088666286ef8916/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-env-changed=QUQUART_PREPARED_FILE
+  cargo:rerun-if-env-changed=RESIDENT_SOURCE_FILE
+  cargo:rerun-if-env-changed=RESIDENT_PREPARED_FILE
+  cargo:rerun-if-env-changed=RESIDENT_CIRCUIT_OPERATOR_FILE
+  cargo:rerun-if-env-changed=RESIDENT_COMPOSED_MODULAR
+  cargo:rerun-if-changed=src
+  cargo:rerun-if-changed=resident_build.rs
+  cargo:rerun-if-changed=build.rs
+  cargo:rerun-if-changed=/home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/baked_resident/factor.8hJSCzu5/input.imasm
+
+  --- stderr
+
+  thread 'main' (45184) panicked at build.rs:48:61:
+  compile resident membrane: "set RESIDENT_CIRCUIT_OPERATOR_FILE to the split/fuse operator receipt"
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

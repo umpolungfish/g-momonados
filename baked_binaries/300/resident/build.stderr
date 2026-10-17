@@ -1,0 +1,38 @@
+   Compiling libm v0.2.16
+   Compiling num-traits v0.2.19
+   Compiling vox v0.1.0 (/home/mrnob0dy666/imsgct/Vox)
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling cfg-if v1.0.4
+   Compiling cudarc v0.19.9
+   Compiling serde_json v1.0.151
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling libloading v0.9.0
+   Compiling imasm_core v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS/vendor/imasm_core)
+   Compiling num-integer v0.1.47
+   Compiling num-bigint v0.4.8
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+error: failed to run custom build command for `g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)`
+
+Caused by:
+  process didn't exit successfully: `/home/mrnob0dy666/imsgct/G-mOMonadOS/target/release/build/g-momonados-55acf034f3be8e0c/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-env-changed=QUQUART_PREPARED_FILE
+  cargo:rerun-if-env-changed=RESIDENT_SOURCE_FILE
+  cargo:rerun-if-changed=/home/mrnob0dy666/imsgct/G-mOMonadOS/baked_binaries/300/resident/input.imasm
+  cargo:rerun-if-env-changed=RESIDENT_PREPARED_FILE
+  cargo:rerun-if-env-changed=RESIDENT_CIRCUIT_OPERATOR_FILE
+  cargo:rerun-if-env-changed=RESIDENT_COMPOSED_MODULAR
+  cargo:rerun-if-changed=src
+  cargo:rerun-if-changed=resident_build.rs
+  cargo:rerun-if-changed=build.rs
+  cargo:rerun-if-changed=/home/mrnob0dy666/imsgct/G-mOMonadOS/baked_binaries/300/resident/input.imasm
+  cargo:rerun-if-changed=/home/mrnob0dy666/imsgct/G-mOMonadOS/baked_binaries/300/resident/operator_receipt.json
+
+  --- stderr
+
+  thread 'main' (293) panicked at build.rs:61:61:
+  compile resident membrane: "operator receipt lacks circuit"
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+warning: build failed, waiting for other jobs to finish...

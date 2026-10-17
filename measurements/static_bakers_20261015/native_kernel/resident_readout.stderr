@@ -1,0 +1,6 @@
+resident-import stage=compiled-work operations=25984 stages=224
+resident-import stage=register nodes=78427
+resident-import stage=phase-ready
+resident-import stage=SIC-projectors
+resident-import stage=circuit-braid circuit=HTSX generators=25 target_residual=0.03293532653991802 word_residual=1.54e-15 changed_gram_coordinates=16
+resident-import stage=Y-clock

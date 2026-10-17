@@ -1,0 +1,1 @@
+idempotent: idempotent GPU compilation: CompileError { nvrtc: NvrtcError(NVRTC_ERROR_COMPILATION), options: [], log: "default_program(129): error: expected an expression\n\ndefault_program(214): error: expected an expression\n\ndefault_program(216): error: expected an expression\n\n3 errors detected in the compilation of \"default_program\".\n" }

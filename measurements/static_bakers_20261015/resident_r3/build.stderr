@@ -1,0 +1,33 @@
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+error: failed to run custom build command for `g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)`
+
+Caused by:
+  process didn't exit successfully: `/home/mrnob0dy666/imsgct/G-mOMonadOS/target/release/build/g-momonados-55acf034f3be8e0c/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-env-changed=QUQUART_PREPARED_FILE
+  cargo:rerun-if-env-changed=RESIDENT_SOURCE_FILE
+  cargo:rerun-if-changed=/home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/static_bakers_20261015/resident_r3/input.imasm
+  cargo:rerun-if-env-changed=RESIDENT_PREPARED_FILE
+  cargo:rerun-if-env-changed=RESIDENT_CIRCUIT_OPERATOR_FILE
+  cargo:rerun-if-env-changed=RESIDENT_COMPOSED_MODULAR
+  cargo:rerun-if-changed=src
+  cargo:rerun-if-changed=resident_build.rs
+  cargo:rerun-if-changed=build.rs
+  cargo:rerun-if-changed=/home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/static_bakers_20261015/resident_r3/input.imasm
+  cargo:rerun-if-changed=/home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/static_bakers_20261015/resident_r3/operator_receipt.json
+
+  --- stderr
+  prepared-circuit-braid spec=HTSX generators=25 target_residual=3.293533e-2 word_residual=1.540000e-15 matrix_dual_state=true matrix_dual_gram=16/16 matrix_dual_mass=true changed_gram_coordinates=16 seconds=33.711604
+  prepared-SIC residual=0 tolerance=13191489058624978966159614022375 seconds=35.420389
+  preparation-stage relation-materialize seconds=35.420427
+  preparation-stage SIC-coordinate-operation seconds=35.420432
+  preparation-stage whole-phase-prepare seconds=39.107223
+  preparation-stage whole-phase-bind seconds=39.514007
+  preparation-stage whole-phase-bound seconds=42.741724
+  preparation-stage joint-support-measured seconds=44.868151
+  preparation-stage joint-SIC-prepared seconds=63.675089
+  preparation-stage source-phase-relation-bound seconds=63.675128
+
+  thread 'main' (64) panicked at build.rs:61:61:
+  compile resident membrane: "expected value at line 1 column 1"
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

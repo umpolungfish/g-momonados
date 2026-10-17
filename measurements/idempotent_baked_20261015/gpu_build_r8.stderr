@@ -1,0 +1,6 @@
+     Locking 4 packages to latest compatible versions
+   Compiling cfg-if v1.0.5
+   Compiling cudarc v0.19.9
+   Compiling libloading v0.9.0
+   Compiling idempotent-membrane v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/idempotent_baked_20261015/source_300_gpu_r8.membrane-source)
+    Finished `release` profile [optimized] target(s) in 5.09s
