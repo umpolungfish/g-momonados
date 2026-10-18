@@ -49,7 +49,7 @@ bool dialect_same_member(const DialectMember &a,const DialectMember &b){
     for(std::size_t i=0;i<a.ancestry.size();++i){const auto &x=a.ancestry[i],&y=b.ancestry[i];
         if(compare(x.before,y.before)||compare(x.residual,y.residual)||x.labels!=y.labels||x.addresses!=y.addresses||x.promotion_axis!=y.promotion_axis||x.promoted_addresses!=y.promoted_addresses||x.rotation!=y.rotation||x.dialect!=y.dialect||
             compare(x.frame_left,y.frame_left)||compare(x.frame_right,y.frame_right)||compare(x.frame_determinant,y.frame_determinant)||
-            x.frame_checked!=y.frame_checked||x.frame_unit!=y.frame_unit||x.frame_changed!=y.frame_changed||x.frame_closed!=y.frame_closed||x.point_updated!=y.point_updated||x.point_closed!=y.point_closed||compare(x.promotion_shift,y.promotion_shift)||compare(x.promotion_point,y.promotion_point)||compare(x.support_other_value,y.support_other_value)||compare(x.support_divided,y.support_divided)||compare(x.support_value,y.support_value)||compare(x.support_derivative,y.support_derivative)||x.support_evaluated!=y.support_evaluated||x.support_unit!=y.support_unit||x.support_closed!=y.support_closed||x.support_reseeded!=y.support_reseeded)return false;}
+            x.frame_checked!=y.frame_checked||x.frame_unit!=y.frame_unit||x.frame_changed!=y.frame_changed||x.frame_closed!=y.frame_closed||x.point_updated!=y.point_updated||x.point_closed!=y.point_closed||compare(x.promotion_shift,y.promotion_shift)||compare(x.promotion_point,y.promotion_point)||compare(x.support_other_value,y.support_other_value)||compare(x.support_divided,y.support_divided)||compare(x.support_value,y.support_value)||compare(x.support_derivative,y.support_derivative)||x.support_evaluated!=y.support_evaluated||x.support_unit!=y.support_unit||x.support_closed!=y.support_closed||x.support_reseeded!=y.support_reseeded||x.support_split!=y.support_split||compare(x.support_corrected,y.support_corrected)||compare(x.support_split_left,y.support_split_left)||compare(x.support_split_right,y.support_split_right))return false;}
     return true;
 }
 void dialect_laws(const std::vector<DialectMember> &family){
@@ -145,9 +145,15 @@ int main(int argc,char **){
         const double elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-trigger).count();
         bool exact=false,paired_ok=false;double verified=0;
         ResidentState readout{};std::size_t readout_member=family.size(),readout_witness=0;
-        unsigned long long readout_count=0,terminal_sic_readbacks=0,terminal_unchanged_members=0,terminal_frame_readbacks=0;
+        unsigned long long readout_count=0,terminal_sic_readbacks=0,terminal_unchanged_members=0,terminal_frame_readbacks=0,terminal_support_parity_returns=0;
         for(std::size_t i=0;i<family.size()&&readout_member==family.size();++i){
             const DialectMember before_readout=family[i];
+            for(const auto &step:before_readout.ancestry)if(step.support_split){
+                for(int cell=0;cell<W;++cell)
+                    if(digit(step.support_corrected,cell)!=digit(cell%2?step.support_split_right:step.support_split_left,cell/2))
+                        throw std::runtime_error("terminal support parity return failed");
+                ++terminal_support_parity_returns;
+            }
             ResidentState frozen;resident_load(family[i].bank(),frozen);
             if(!sic_zeta_resident(frozen.e,frozen.residual,frozen.exponent,frozen.seed,frozen.power,frozen.frame_residual))
                 throw std::runtime_error("terminal SIC recovery failed");
@@ -196,10 +202,12 @@ int main(int argc,char **){
             <<",\"product_frame\":"<<(DIALECT_PRODUCT_FRAME?"true":"false")
             <<",\"terminal_only_frame_recovery\":true,\"terminal_only_source_readout\":true,\"transport_source_probe_calls\":"<<dialect_transport_probe_calls
             <<",\"terminal_witnesses_checked\":"<<readout_count<<",\"terminal_sic_readbacks\":"<<terminal_sic_readbacks
+            <<",\"terminal_support_parity_returns\":"<<terminal_support_parity_returns
             <<",\"terminal_unchanged_members\":"<<terminal_unchanged_members<<",\"terminal_frame_readbacks\":"<<terminal_frame_readbacks
             <<",\"cumulative_product_frame\":"<<(DIALECT_PRODUCT_FRAME?"true":"false")
             <<",\"promotion_return\":"<<(DIALECT_PROMOTION_RETURN?"true":"false")
             <<",\"support_secant\":"<<(DIALECT_SUPPORT_SECANT?"true":"false")
+            <<",\"support_parity\":"<<(DIALECT_SUPPORT_PARITY?"true":"false")
             <<",\"support_newton\":"<<(DIALECT_SUPPORT_NEWTON?"true":"false")
             <<",\"cofactor_feedback\":"<<(DIALECT_COFACTOR_FEEDBACK?"true":"false")
             <<",\"trigger_to_transport_end_seconds\":"<<elapsed<<",\"terminal_readout_seconds\":"<<(readout_elapsed-elapsed)
@@ -256,6 +264,12 @@ int main(int argc,char **){
                         if(DIALECT_SUPPORT_SECANT){
                             std::cout<<",\"support_other_value\":";dialect_array(a.support_other_value.v);
                             std::cout<<",\"support_divided\":";dialect_array(a.support_divided.v);
+                        }
+                        if(DIALECT_SUPPORT_PARITY){
+                            std::cout<<",\"support_split\":"<<(a.support_split?"true":"false");
+                            std::cout<<",\"support_corrected\":";dialect_array(a.support_corrected.v);
+                            std::cout<<",\"support_split_left\":";dialect_array(a.support_split_left.v);
+                            std::cout<<",\"support_split_right\":";dialect_array(a.support_split_right.v);
                         }
                         std::cout<<",\"support_evaluated\":"<<(a.support_evaluated?"true":"false")
                             <<",\"support_unit\":"<<(a.support_unit?"true":"false")

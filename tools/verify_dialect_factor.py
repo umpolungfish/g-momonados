@@ -30,6 +30,11 @@ def bank_value(cells):
     return sum((v == 9) << i for i,v in enumerate(cells))
 
 
+def parity_arm(value, parity, width):
+    return sum(((value >> (2*i+parity)) & 1) << i
+               for i in range(width) if 2*i+parity < width)
+
+
 def image_of(value,n,table,rotation,count,radix,keep_fibres):
     image=0
     for j in range(count):
@@ -84,7 +89,7 @@ def verify(data, tables, prepared, partial=False, prior=None):
     assert n.bit_length() == tables['source_bits'] >= 200
     count = (tables['source_bits']+3)//4
     radix = tables['crystal_radix'] * (256 if data.get('keep_fibres') else 1)
-    distinct=set(); transitions=0; changed=0; closed=[];frames=units=frame_changes=point_updates=support_calls=support_reseeds=0;promotion_steps=promotion_changes=terminal_scanned=secant_calls=secant_changed=0
+    distinct=set(); transitions=0; changed=0; closed=[];frames=units=frame_changes=point_updates=support_calls=support_reseeds=0;promotion_steps=promotion_changes=terminal_scanned=secant_calls=secant_changed=parity_splits=terminal_parity_checked=0
     previous={(m['dialect'],m['operation']):m for m in prior['members']} if prior else {}
     assert 3*len(tables['tables']) == data['held']
     if not partial:assert len(data['members']) == data['held']
@@ -190,7 +195,7 @@ def verify(data, tables, prepared, partial=False, prior=None):
                 frame_left,frame_right=left,right;frame_initialized=True
                 if data.get('cofactor_feedback') and not frame_closed:
                     boundary=right if op==2 else left;parity=1 if op==1 else 0
-                    proposal=sum(((boundary>>(2*i+parity))&1)<<i for i in range(width) if 2*i+parity<width)
+                    proposal=parity_arm(boundary,parity,width)
                     if data.get('support_newton'):
                         support_point=p
                         if data.get('promotion_return'):
@@ -203,7 +208,9 @@ def verify(data, tables, prepared, partial=False, prior=None):
                         tangent_proposal=proposal
                         if math.gcd(derivative,n)==1 and value:
                             tangent_point=(support_point-value*pow(derivative,-1,n))%n
-                            if 1<tangent_point<n:tangent_proposal=tangent_point
+                            if 1<tangent_point<n:
+                                candidate=parity_arm(tangent_point,parity,width) if data.get('support_parity') else tangent_point
+                                if 1<candidate<n:tangent_proposal=candidate
                         denominator=derivative
                         if data.get('support_secant'):
                             other,denominator=support_pair(n,support_point,p)
@@ -218,13 +225,29 @@ def verify(data, tables, prepared, partial=False, prior=None):
                         support_closed=factor is not None and not terminal_only
                         assert step['support_closed']==support_closed, 'source support fuse differs'
                         if support_closed:assert banks[3]==factor and index==len(member['ancestry'])-1
-                        reseeded=False
+                        reseeded=False;parity_split=False
                         if not support_closed:
                             if support_unit and value:
                                 next_point=(support_point-value*pow(denominator,-1,n))%n
-                                if 1<next_point<n:proposal=next_point
+                                if 1<next_point<n:
+                                    if data.get('support_parity'):
+                                        even=parity_arm(next_point,0,width)
+                                        odd=parity_arm(next_point,1,width)
+                                        assert [bank_value(step[k]) for k in ('support_corrected','support_split_left','support_split_right')]==[next_point,even,odd], 'support parity arms changed'
+                                        woven=sum(((even>>i)&1)<<(2*i) | ((odd>>i)&1)<<(2*i+1) for i in range(width))
+                                        assert woven==next_point, 'support parity return lost its preimage'
+                                        parity_split=True;parity_splits+=1
+                                        if terminal_only:pending.extend([even,odd])
+                                        selected=odd if parity else even
+                                        if 1<selected<n:proposal=selected
+                                        else:reseeded=True
+                                    else:proposal=next_point
                                 else:reseeded=True
                             else:reseeded=True
+                        if data.get('support_parity'):
+                            assert step['support_split']==parity_split, 'support parity continuation lost'
+                            if not parity_split:
+                                assert all(bank_value(step[k])==0 for k in ('support_corrected','support_split_left','support_split_right')), 'unexpected support parity preimage'
                         if data.get('support_secant'):
                             secant_calls+=1;secant_changed+=proposal!=tangent_proposal
                         assert step['support_reseeded']==reseeded, 'source support continuation differs'
@@ -302,6 +325,7 @@ def verify(data, tables, prepared, partial=False, prior=None):
             readout=data['terminal_factor_readout'];slot=3*u+op
             limit=readout['member'] if readout['closed'] else data['held']
             if slot<=limit:
+                terminal_parity_checked+=sum(step.get('support_split',False) for step in member['ancestry'])
                 for wi,witness in enumerate(pending):
                     terminal_scanned+=1;divisor=math.gcd(witness,n)
                     if 1<divisor<n:
@@ -319,12 +343,13 @@ def verify(data, tables, prepared, partial=False, prior=None):
             assert receipt[3]==0, 'error status'
             assert banks[3:5]==original[3:5], 'pending paired source banks changed'
     if terminal_only and not partial:assert terminal_scanned==data['terminal_witnesses_checked'], 'terminal witness count changed'
+    if not partial and data.get('support_parity'):assert terminal_parity_checked==data['terminal_support_parity_returns'], 'terminal support parity return count differs'
     if not partial:assert bool(closed)==data['closed'], 'factor status differs from returned banks'
     return {'source_bits':n.bit_length(),'members':len(seen),'transitions_checked':transitions,
             'state_changes':changed,'distinct_returned_candidates':len(distinct),
             'preimage_and_source_recovery':True,'exact_residuals':True,
             'Y_and_banks_retained':True,'closed_pairs':closed,'product_frames_checked':frames,
-            'unit_product_frames':units,'changed_product_frames':frame_changes,'product_point_updates':point_updates,'support_evaluations':support_calls,'support_reseeds':support_reseeds,'promotion_steps':promotion_steps,'promotion_changed_coordinates':promotion_changes,'terminal_witnesses_checked':terminal_scanned,'two_point_support_evaluations':secant_calls,'two_point_changed_operand_updates':secant_changed}
+            'unit_product_frames':units,'changed_product_frames':frame_changes,'product_point_updates':point_updates,'support_evaluations':support_calls,'support_reseeds':support_reseeds,'promotion_steps':promotion_steps,'promotion_changed_coordinates':promotion_changes,'terminal_witnesses_checked':terminal_scanned,'two_point_support_evaluations':secant_calls,'two_point_changed_operand_updates':secant_changed,'support_parity_splits':parity_splits,'terminal_support_parity_returns_checked':terminal_parity_checked}
 
 
 def verify_promotion_tables(tables):
@@ -368,7 +393,7 @@ def main():
             result={'source_bits':tables['source_bits'],'members':0,'transitions_checked':0,
                     'state_changes':0,'preimage_and_source_recovery':True,'exact_residuals':True,
                     'Y_and_banks_retained':True,'closed_pairs':[], 'product_frames_checked':0,
-                    'unit_product_frames':0,'changed_product_frames':0,'product_point_updates':0,'support_evaluations':0,'support_reseeds':0,'promotion_steps':0,'promotion_changed_coordinates':0,'terminal_witnesses_checked':0,'two_point_support_evaluations':0,'two_point_changed_operand_updates':0,'parent_transitions_checked':parent_count}
+                    'unit_product_frames':0,'changed_product_frames':0,'product_point_updates':0,'support_evaluations':0,'support_reseeds':0,'promotion_steps':0,'promotion_changed_coordinates':0,'terminal_witnesses_checked':0,'two_point_support_evaluations':0,'two_point_changed_operand_updates':0,'support_parity_splits':0,'terminal_support_parity_returns_checked':0,'parent_transitions_checked':parent_count}
             identities=set();candidates=set()
             while position<raw.size()-3:
                 next_position=raw.find(b',{"dialect":',position)
@@ -378,12 +403,13 @@ def main():
                 assert (member['dialect'],member['operation']) not in identities
                 identities.add((member['dialect'],member['operation']))
                 local=verify(dict(data,members=[member]),tables,prepared,partial=True,prior=prior)
-                for key in ('members','transitions_checked','state_changes','product_frames_checked','unit_product_frames','changed_product_frames','product_point_updates','support_evaluations','support_reseeds','promotion_steps','promotion_changed_coordinates','terminal_witnesses_checked','two_point_support_evaluations','two_point_changed_operand_updates'):result[key]+=local[key]
+                for key in ('members','transitions_checked','state_changes','product_frames_checked','unit_product_frames','changed_product_frames','product_point_updates','support_evaluations','support_reseeds','promotion_steps','promotion_changed_coordinates','terminal_witnesses_checked','two_point_support_evaluations','two_point_changed_operand_updates','support_parity_splits','terminal_support_parity_returns_checked'):result[key]+=local[key]
                 result['closed_pairs']+=local['closed_pairs']
                 candidates.add(bank_value(member['state'][:tables['source_bits']+10]))
                 if next_position<0:break
                 position=next_position+1
             assert result['members']==data['held'], 'incomplete returned family'
+            if data.get('support_parity'):assert result['terminal_support_parity_returns_checked']==data['terminal_support_parity_returns'], 'terminal support parity return count differs'
             assert bool(result['closed_pairs'])==data['closed']
             result['distinct_returned_candidates']=len(candidates)
             if data.get('terminal_only_source_readout'):assert result['terminal_witnesses_checked']==data['terminal_witnesses_checked'], 'terminal witness count changed'
@@ -408,6 +434,10 @@ def main():
         if data.get('support_secant'):
             controls['altered_divided_support']=lambda d:d['members'][0]['ancestry'][0]['support_divided'].__setitem__(0,8 if d['members'][0]['ancestry'][0]['support_divided'][0]==9 else 9)
             controls['altered_other_support_value']=lambda d:d['members'][0]['ancestry'][0]['support_other_value'].__setitem__(0,8 if d['members'][0]['ancestry'][0]['support_other_value'][0]==9 else 9)
+        if data.get('support_parity'):
+            for field in ('support_corrected','support_split_left','support_split_right'):
+                controls['altered_'+field]=lambda d,field=field:d['members'][0]['ancestry'][0][field].__setitem__(0,8 if d['members'][0]['ancestry'][0][field][0]==9 else 9)
+            controls['lost_support_parity_return']=lambda d:d['members'][0]['ancestry'][0].__setitem__('support_split',False)
         if data.get('terminal_only_frame_recovery'):
             controls['inflight_frame_recovery']=lambda d:d['members'][0]['ancestry'][0].__setitem__('frame_checked',True)
         if data.get('terminal_only_source_readout'):

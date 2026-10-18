@@ -18,6 +18,8 @@ struct FibreStep {
     bool point_updated=false,point_closed=false;
     Word support_value,support_derivative,promotion_shift,promotion_point,support_other_value,support_divided;
     bool support_evaluated=false,support_unit=false,support_closed=false,support_reseeded=false;
+    Word support_corrected,support_split_left,support_split_right;
+    bool support_split=false;
 };
 struct DialectMember {
     unsigned dialect=0, operation=0;
@@ -190,8 +192,24 @@ void dialect_product_frame(FibreStep &step,const ResidentState &input,
             if(step.support_unit&&!zero(step.support_value)){
                 regular_mulmod(step.support_value,inverse_derivative,n,correction);
                 submod(support_point,correction,n,next_point);
-                if(!zero(next_point)&&!one(next_point)&&compare(next_point,n)<0)proposal=next_point;
-                else step.support_reseeded=true;
+                if(!zero(next_point)&&!one(next_point)&&compare(next_point,n)<0){
+                    if(DIALECT_SUPPORT_PARITY){
+                        // Reuse the source's correlated parity construction on
+                        // the complete corrected word. Both arms and their
+                        // preimage stay inside this same resident member.
+                        step.support_corrected=next_point;
+                        for(unsigned i=0;i<unsigned(W);++i){
+                            step.support_split_left.v[i]=2*i<unsigned(W)?digit(next_point,int(2*i)):T;
+                            step.support_split_right.v[i]=2*i+1<unsigned(W)?digit(next_point,int(2*i+1)):T;
+                        }
+                        step.support_split=true;
+                        for(const Word *witness:{&step.support_split_left,&step.support_split_right})
+                            fuse_source_arm(*witness,n,output,paired);
+                        const Word &selected=parity?step.support_split_right:step.support_split_left;
+                        if(!zero(selected)&&!one(selected)&&compare(selected,n)<0)proposal=selected;
+                        else step.support_reseeded=true;
+                    }else proposal=next_point;
+                }else step.support_reseeded=true;
             }else step.support_reseeded=true;
         }
         if(!zero(proposal)&&!one(proposal)&&compare(proposal,n)<0){

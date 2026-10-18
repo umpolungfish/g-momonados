@@ -16,11 +16,17 @@ parent=json.loads(args.returned.read_text());probe=json.loads(args.probe.read_te
 assert parent['source_word']==probe['source_word'], 'source changed across sibling fuse'
 n=numeral(parent['source_word']);assert n.bit_length()>=200
 width=n.bit_length()+10
-candidates=[bank_value(member['state'][:width]) for member in parent['members']]
+coordinate=probe.get('coordinate','candidate')
+assert coordinate in ('candidate','anchor-wedge')
+if coordinate=='anchor-wedge':
+    candidates=[bank_value(member['product_frame_state']['anchor_left']) for member in parent['members']]
+    partners=[bank_value(member['product_frame_state']['anchor_right']) for member in parent['members']]
+else:candidates=[bank_value(member['state'][:width]) for member in parent['members']]
 pairs=nonzero=0;found=None
 for i,a in enumerate(candidates):
     for j in range(i):
-        pairs+=1;difference=abs(a-candidates[j])
+        pairs+=1
+        difference=(a*partners[j]-candidates[j]*partners[i])%n if coordinate=='anchor-wedge' else abs(a-candidates[j])
         if not difference:continue
         nonzero+=1;divisor=math.gcd(difference,n)
         if 1<divisor<n:
@@ -34,6 +40,7 @@ if found:
     assert numeral(probe['divisor_word'])==p and numeral(probe['quotient_word'])==q
     assert n%p==0 and p*q==n
 result={'source_bits':n.bit_length(),'pairs_checked':pairs,'nonzero_differences':nonzero,
+        'coordinate':coordinate,
         'closed':bool(found),'exact_divisibility_readback':True,
         'probe_sha256':hashlib.sha256(args.probe.read_bytes()).hexdigest()}
 if found:
