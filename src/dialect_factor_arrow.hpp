@@ -11,6 +11,8 @@ struct FibreStep {
     Word before, residual;
     std::vector<unsigned char> labels;
     std::vector<unsigned> addresses;
+    std::vector<unsigned> environment_before,environment_after;
+    unsigned environment_conflicts=0,environment_operation=0;
     unsigned rotation=0,dialect=0,promotion_axis=0;
     std::vector<unsigned> promoted_addresses;
     Word frame_left,frame_right,frame_determinant;
@@ -27,6 +29,7 @@ struct DialectMember {
     std::vector<int> continuation=std::vector<int>(Y_CONTINUATION,0);
     std::vector<unsigned long long> receipt=std::vector<unsigned long long>(RESIDENT_RECEIPT,0);
     std::vector<FibreStep> ancestry;
+    std::vector<unsigned> environment_coordinates;
     std::vector<Word> deferred_source_arms;
     ProductFrameState product_frame;
     unsigned conflicts=0;
@@ -40,6 +43,21 @@ unsigned nibble(const Word &w,unsigned index){
     unsigned value=0;
     for(unsigned bit=0;bit<4;++bit){unsigned i=4*index+bit;if(i<W&&digit(w,int(i))==F)value|=1u<<bit;}
     return value;
+}
+// Apply this environment's actual coordinatewise algebra to the tuple left by
+// the previous environment and the new source-bound tuple. Every coordinate
+// is an existing Crystal address; no projection back to numeral labels occurs.
+unsigned dialect_environment_act(unsigned left,unsigned right,unsigned dialect,
+    unsigned operation,unsigned &conflicts){
+    unsigned result=0;
+    for(unsigned axis=0;axis<12;++axis){
+        const unsigned card=DIALECT_PROMOTION_CARDS[axis],stride=DIALECT_PROMOTION_STRIDES[axis];
+        const unsigned a=(left/stride)%card,b=(right/stride)%card;
+        const auto &cell=DIALECT_ENVIRONMENT_ALGEBRA[dialect][operation][axis][a*card+b];
+        result+=cell.coordinate*stride;
+        if(cell.conflict)conflicts|=1u<<axis;
+    }
+    return result;
 }
 // Horner evaluation in the Crystal's actual mixed-radix tensor space,
 // reduced in N's retained parity bank. Tuple coordinates remain in ancestry.
@@ -165,17 +183,21 @@ void dialect_product_frame(FibreStep &step,const ResidentState &input,
         for(unsigned i=0;i<unsigned(W);++i)
             proposal.v[i]=2*i+parity<unsigned(W)?digit(boundary,int(2*i+parity)):T;
         if(DIALECT_SUPPORT_NEWTON){
-            Word support_point=p;
+            // Feed the transformed joint product coordinate into support,
+            // retaining the same two-arm frame and its promotion translation.
+            const Word support_origin=DIALECT_SUPPORT_FRAME_POINT?boundary:p;
+            Word support_point=support_origin;
             if(DIALECT_PROMOTION_RETURN){
-                const Word unpromoted=dialect_tensor_residue(step.addresses,step.labels,n);
+                const auto &coordinates=DIALECT_ENVIRONMENT_CARRY?step.environment_after:step.addresses;
+                const Word unpromoted=dialect_tensor_residue(coordinates,step.labels,n);
                 submod(a,unpromoted,n,step.promotion_shift);
-                addmod(p,step.promotion_shift,n,support_point);
+                addmod(support_origin,step.promotion_shift,n,support_point);
                 step.promotion_point=support_point;
                 Word recovered;submod(support_point,step.promotion_shift,n,recovered);
-                if(!dialect_transport_active&&compare(recovered,p)){output.status=14;return;}
+                if(!dialect_transport_active&&compare(recovered,support_origin)){output.status=14;return;}
             }
             if(DIALECT_SUPPORT_SECANT)
-                dialect_support_pair(n,support_point,p,n,step.support_value,step.support_derivative,step.support_other_value,step.support_divided);
+                dialect_support_pair(n,support_point,support_origin,n,step.support_value,step.support_derivative,step.support_other_value,step.support_divided);
             else dialect_support_polynomial(n,support_point,n,step.support_value,step.support_derivative);
             step.support_evaluated=true;
             Word inverse_derivative,two,root_return,correction,next_point;
@@ -282,10 +304,27 @@ struct DialectArrow {
         if(!dialect_transport_active&&!dialect_recover_fibre(step,n,image,target,member.operation)){
             output.status=11;return powerset_unit(coordinate);
         }
+        if(DIALECT_ENVIRONMENT_CARRY){
+            step.environment_operation=DIALECT_MIXED_ENVIRONMENT
+                ?unsigned((member.operation+input.y_calls-1)%3):member.operation;
+            step.environment_before=member.environment_coordinates;
+            if(!step.environment_before.empty()&&step.environment_before.size()!=count){
+                output.status=15;return powerset_unit(coordinate);
+            }
+            for(unsigned j=0;j<count;++j){
+                const unsigned address=step.environment_before.empty()?step.addresses[j]:
+                    dialect_environment_act(step.environment_before[j],step.addresses[j],target,
+                        step.environment_operation,step.environment_conflicts);
+                step.environment_after.push_back(address);
+            }
+            member.conflicts|=step.environment_conflicts;
+            image=dialect_tensor_residue(step.environment_after,step.labels,n);
+        }
+        const auto &promotion_inputs=DIALECT_ENVIRONMENT_CARRY?step.environment_after:step.addresses;
         if(DIALECT_PROMOTION_RETURN){
             step.promotion_axis=unsigned((input.y_calls-1)%12);
             const unsigned axis=step.promotion_axis,stride=DIALECT_PROMOTION_STRIDES[axis];
-            for(unsigned address:step.addresses){
+            for(unsigned address:promotion_inputs){
                 unsigned from=(address/stride)%DIALECT_PROMOTION_CARDS[axis];
                 unsigned promoted=address-from*stride+DIALECT_PROMOTION_TARGET[axis]*stride;
                 // The original address, signed coordinate change, exact labels,
@@ -297,6 +336,8 @@ struct DialectArrow {
             }
             image=dialect_tensor_residue(step.promoted_addresses,step.labels,n);
         }
+        if(DIALECT_ENVIRONMENT_CARRY)
+            member.environment_coordinates=DIALECT_PROMOTION_RETURN?step.promoted_addresses:step.environment_after;
         member.changed+=compare(image,output.e)!=0;
         output.e=image;
         Word square,unit;small(1,unit);

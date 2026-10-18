@@ -13,6 +13,7 @@ void dialect_step(DialectMember &member,const Word &n){
     next.dialect=member.dialect;next.operation=member.operation;
     next.state=member.state;next.continuation=member.continuation;next.receipt=member.receipt;
     next.product_frame=member.product_frame;
+    next.environment_coordinates=member.environment_coordinates;
     next.conflicts=member.conflicts;next.changed=member.changed;
     next.gate_admitted=member.gate_admitted;next.t_admitted=member.t_admitted;
     next.deferred_source_arms=std::move(member.deferred_source_arms);
@@ -26,6 +27,7 @@ void dialect_step(DialectMember &member,const Word &n){
     member.state=std::move(next.state);member.continuation=std::move(next.continuation);
     member.receipt=std::move(next.receipt);member.conflicts=next.conflicts;
     member.product_frame=next.product_frame;
+    member.environment_coordinates=std::move(next.environment_coordinates);
     member.changed=next.changed;member.gate_admitted=next.gate_admitted;member.t_admitted=next.t_admitted;
     for(auto &fibre:returned)member.ancestry.push_back(std::move(fibre));
 }
@@ -37,6 +39,7 @@ DialectHeld dialect_bind(const DialectHeld &held,const DialectRelation &arrow){
     DialectHeld out;for(auto x:held){const auto &ys=arrow.at(x);out.insert(ys.begin(),ys.end());}return out;
 }
 bool dialect_same_member(const DialectMember &a,const DialectMember &b){
+    if(a.environment_coordinates!=b.environment_coordinates)return false;
     if(a.deferred_source_arms.size()!=b.deferred_source_arms.size())return false;
     for(std::size_t i=0;i<a.deferred_source_arms.size();++i)
         if(compare(a.deferred_source_arms[i],b.deferred_source_arms[i]))return false;
@@ -47,6 +50,7 @@ bool dialect_same_member(const DialectMember &a,const DialectMember &b){
         a.receipt!=b.receipt||a.conflicts!=b.conflicts||a.changed!=b.changed||a.gate_admitted!=b.gate_admitted||
         a.t_admitted!=b.t_admitted||a.ancestry.size()!=b.ancestry.size())return false;
     for(std::size_t i=0;i<a.ancestry.size();++i){const auto &x=a.ancestry[i],&y=b.ancestry[i];
+        if(x.environment_before!=y.environment_before||x.environment_after!=y.environment_after||x.environment_conflicts!=y.environment_conflicts||x.environment_operation!=y.environment_operation)return false;
         if(compare(x.before,y.before)||compare(x.residual,y.residual)||x.labels!=y.labels||x.addresses!=y.addresses||x.promotion_axis!=y.promotion_axis||x.promoted_addresses!=y.promoted_addresses||x.rotation!=y.rotation||x.dialect!=y.dialect||
             compare(x.frame_left,y.frame_left)||compare(x.frame_right,y.frame_right)||compare(x.frame_determinant,y.frame_determinant)||
             x.frame_checked!=y.frame_checked||x.frame_unit!=y.frame_unit||x.frame_changed!=y.frame_changed||x.frame_closed!=y.frame_closed||x.point_updated!=y.point_updated||x.point_closed!=y.point_closed||compare(x.promotion_shift,y.promotion_shift)||compare(x.promotion_point,y.promotion_point)||compare(x.support_other_value,y.support_other_value)||compare(x.support_divided,y.support_divided)||compare(x.support_value,y.support_value)||compare(x.support_derivative,y.support_derivative)||x.support_evaluated!=y.support_evaluated||x.support_unit!=y.support_unit||x.support_closed!=y.support_closed||x.support_reseeded!=y.support_reseeded||x.support_split!=y.support_split||compare(x.support_corrected,y.support_corrected)||compare(x.support_split_left,y.support_split_left)||compare(x.support_split_right,y.support_split_right))return false;}
@@ -95,6 +99,7 @@ int main(int argc,char **){
         for(unsigned dialect=0;dialect<DIALECT_COUNT;++dialect)for(unsigned operation=0;operation<3;++operation){
             DialectMember member;member.dialect=dialect;member.operation=operation;
             const unsigned slot=3*dialect+operation;
+            member.environment_coordinates=dialect_initial_environment(slot);
             std::copy_n(dialect_initial_state(slot),RESIDENT_WORDS*W,member.state.begin());
             std::copy_n(dialect_initial_continuation(slot),Y_CONTINUATION,member.continuation.begin());
             std::copy_n(dialect_initial_receipt(slot),RESIDENT_RECEIPT,member.receipt.begin());
@@ -138,7 +143,7 @@ int main(int argc,char **){
             }
             held=dialect_bind(held,relation);++rounds;
 #ifdef DIALECT_ONE_SWEEP
-            break;
+            if(rounds>=DIALECT_INSTRUMENT_SWEEPS)break;
 #endif
         }while(closed==family.size()&&!dialect_return_requested);
         dialect_transport_active=false;dialect_pending_arms=nullptr;
@@ -208,6 +213,9 @@ int main(int argc,char **){
             <<",\"promotion_return\":"<<(DIALECT_PROMOTION_RETURN?"true":"false")
             <<",\"support_secant\":"<<(DIALECT_SUPPORT_SECANT?"true":"false")
             <<",\"support_parity\":"<<(DIALECT_SUPPORT_PARITY?"true":"false")
+            <<",\"support_frame_point\":"<<(DIALECT_SUPPORT_FRAME_POINT?"true":"false")
+            <<",\"environment_carry\":"<<(DIALECT_ENVIRONMENT_CARRY?"true":"false")
+            <<",\"mixed_environment_operations\":"<<(DIALECT_MIXED_ENVIRONMENT?"true":"false")
             <<",\"support_newton\":"<<(DIALECT_SUPPORT_NEWTON?"true":"false")
             <<",\"cofactor_feedback\":"<<(DIALECT_COFACTOR_FEEDBACK?"true":"false")
             <<",\"trigger_to_transport_end_seconds\":"<<elapsed<<",\"terminal_readout_seconds\":"<<(readout_elapsed-elapsed)
@@ -222,6 +230,7 @@ int main(int argc,char **){
             std::cout<<"{\"dialect\":"<<m.dialect<<",\"operation\":"<<m.operation<<",\"changed\":"<<m.changed
                 <<",\"conflicts\":"<<m.conflicts<<",\"gate_admitted\":"<<m.gate_admitted<<",\"t_admitted\":"<<m.t_admitted<<",\"state\":";
             dialect_array(m.state);std::cout<<",\"continuation\":";dialect_array(m.continuation);
+            if(DIALECT_ENVIRONMENT_CARRY){std::cout<<",\"environment_coordinates\":";dialect_array(m.environment_coordinates);}
             std::cout<<",\"receipt\":";dialect_array(m.receipt);
             std::cout<<",\"deferred_source_arms\":[";
             for(std::size_t j=0;j<m.deferred_source_arms.size();++j){if(j)std::cout<<',';dialect_array(m.deferred_source_arms[j].v);}std::cout<<']';
@@ -240,6 +249,12 @@ int main(int argc,char **){
                 // numeral strings whose values the fibre already retains.
                 std::cout<<"{\"ruleset\":"<<a.dialect<<",\"rotation\":"<<a.rotation<<",\"labels\":";
                 dialect_array(a.labels);std::cout<<",\"addresses\":";dialect_array(a.addresses);
+                if(DIALECT_ENVIRONMENT_CARRY){
+                    std::cout<<",\"environment_operation\":"<<a.environment_operation;
+                    std::cout<<",\"environment_before\":";dialect_array(a.environment_before);
+                    std::cout<<",\"environment_after\":";dialect_array(a.environment_after);
+                    std::cout<<",\"environment_conflicts\":"<<a.environment_conflicts;
+                }
                 if(DIALECT_PROMOTION_RETURN){
                     std::cout<<",\"promotion_axis\":"<<a.promotion_axis<<",\"promoted_addresses\":";
                     dialect_array(a.promoted_addresses);

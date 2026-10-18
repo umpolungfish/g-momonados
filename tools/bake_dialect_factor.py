@@ -18,7 +18,13 @@ def run(argv, log):
                        stderr=subprocess.STDOUT, check=True)
 
 
-def bake(source, output, kernel, keep_fibres, compose_idempotent, hop, product_frame, resume_return=None, resume_verification=None, cofactor_feedback=False, support_newton=False, promotion_return=False, support_secant=False, support_parity=False):
+def bake(source, output, kernel, keep_fibres, compose_idempotent, hop, product_frame, resume_return=None, resume_verification=None, cofactor_feedback=False, support_newton=False, promotion_return=False, support_secant=False, support_parity=False, support_frame_point=False, environment_carry=False, mixed_environment_operations=False):
+    if mixed_environment_operations and not environment_carry:
+        raise ValueError("mixed environment operations require retained environment coordinates")
+    if environment_carry and not promotion_return:
+        raise ValueError("environment carry requires canonical coordinate tables and retained promotion return")
+    if support_frame_point and not support_parity:
+        raise ValueError("frame-bound support requires the retained support parity operation")
     if support_parity and not support_secant:
         raise ValueError("support parity return requires the two-point support operation")
     if support_secant and not promotion_return:
@@ -97,6 +103,10 @@ int main(){
              f'constexpr bool DIALECT_COFACTOR_FEEDBACK={str(cofactor_feedback).lower()};',
              f'constexpr bool DIALECT_SUPPORT_SECANT={str(support_secant).lower()};',
              f'constexpr bool DIALECT_SUPPORT_PARITY={str(support_parity).lower()};',
+             f'constexpr bool DIALECT_SUPPORT_FRAME_POINT={str(support_frame_point).lower()};',
+             f'constexpr bool DIALECT_ENVIRONMENT_CARRY={str(environment_carry).lower()};',
+             f'constexpr bool DIALECT_MIXED_ENVIRONMENT={str(mixed_environment_operations).lower()};',
+             f'constexpr unsigned DIALECT_INSTRUMENT_SWEEPS={3 if mixed_environment_operations else 2 if environment_carry else 1};',
              f'constexpr bool DIALECT_SUPPORT_NEWTON={str(support_newton).lower()};',
              f'constexpr bool DIALECT_PROMOTION_RETURN={str(promotion_return).lower()};',
              'static const DialectCell DIALECT_ALGEBRA[][3][256]={']
@@ -116,6 +126,20 @@ int main(){
     else:target=[0]*12;cards=[1]*12;strides=[1]*12
     for name,values in [('TARGET',target),('CARDS',cards),('STRIDES',strides)]:
         table.append('static const unsigned DIALECT_PROMOTION_'+name+'[]={'+','.join(map(str,values))+'};')
+    table.append('struct DialectAxisCell{unsigned coordinate;bool conflict;};')
+    table.append('static const DialectAxisCell DIALECT_ENVIRONMENT_ALGEBRA[][3][12][25]={')
+    for dialect in data['tables'] if environment_carry else [None]:
+        table.append('{')
+        for op in range(3):
+            table.append('{')
+            for axis in range(12):
+                cells=dialect['axis_operations'][op][axis] if dialect else [[0,False]]
+                if dialect and (len(cells)!=cards[axis]**2 or any(not 0<=cell[0]<cards[axis] for cell in cells)):
+                    raise ValueError('environment primitive table domain differs')
+                table.append('{'+','.join('{'+str(cell[0])+','+str(cell[1]).lower()+'}' for cell in cells)+'},')
+            table.append('},')
+        table.append('},')
+    table.append('};')
     for key, ctype in [('state', 'arm'), ('continuation', 'int'), ('receipt', 'unsigned long long')]:
         table.append(f'static const {ctype} PREPARED_DIALECT_{key.upper()}[]={{' + ','.join(map(str, prepared[key])) + '};')
     parent_sha='';parent_hex='';frame_words=[];frame_ready=[]
@@ -154,6 +178,15 @@ int main(){
         for key,ctype in [('state','arm'),('continuation','int'),('receipt','unsigned long long')]:
             table.append(f'const {ctype} *dialect_initial_{key}(unsigned){{return PREPARED_DIALECT_{key.upper()};}}')
         table.append('const unsigned long long *dialect_initial_metadata(unsigned){static const unsigned long long values[4]={};return values;}')
+    environment_words=[];environment_offsets=[0]
+    for member in members if resume_return else [{} for _ in range(3*len(data['tables']))]:
+        coordinates=member.get('environment_coordinates',[])
+        if coordinates and (not environment_carry or len(coordinates)!=(data['source_bits']+3)//4 or any(not 0<=a<data['crystal_radix'] for a in coordinates)):
+            raise ValueError('cannot discard or change retained environment coordinates')
+        environment_words.extend(coordinates);environment_offsets.append(len(environment_words))
+    table.append('static const unsigned RESUMED_ENVIRONMENT_COORDINATES[]={'+','.join(map(str,environment_words or [0]))+'};')
+    table.append('static const unsigned RESUMED_ENVIRONMENT_OFFSETS[]={'+','.join(map(str,environment_offsets))+'};')
+    table.append('std::vector<unsigned> dialect_initial_environment(unsigned slot){return {RESUMED_ENVIRONMENT_COORDINATES+RESUMED_ENVIRONMENT_OFFSETS[slot],RESUMED_ENVIRONMENT_COORDINATES+RESUMED_ENVIRONMENT_OFFSETS[slot+1]};}')
     if any(frame_ready):
         table.append('static const arm RESUMED_FRAME_WORDS[]={'+','.join(map(str,frame_words))+'};')
         table.append('static const unsigned char RESUMED_FRAME_READY[]={'+','.join(map(str,frame_ready))+'};')
@@ -255,6 +288,9 @@ __device__ bool fuse_source_arm(const Word &arm_word,const Word &n,ResidentState
                'support_newton':support_newton,
                'support_secant':support_secant,
                'support_parity':support_parity,
+               'support_frame_point':support_frame_point,
+               'environment_carry':environment_carry,
+               'mixed_environment_operations':mixed_environment_operations,
                'promotion_return':promotion_return,
                'source_readout_boundary':'after transport; retained witnesses read without altering family',
                'resumed_from_sha256':parent_sha,
@@ -281,5 +317,8 @@ if __name__ == '__main__':
     parser.add_argument('--promotion-return',action='store_true',help='apply one kernel promotion axis to the carried exact fibre and retain its return certificate')
     parser.add_argument('--support-secant',action='store_true',help='advance the retained point using the source polynomial divided difference across its promotion displacement')
     parser.add_argument('--support-parity',action='store_true',help='carry the corrected support word through correlated parity arms with exact retained interlace return before quotient feedback')
+    parser.add_argument('--support-frame-point',action='store_true',help='apply support correction to the selected transformed joint product-frame coordinate before parity and quotient feedback')
+    parser.add_argument('--environment-carry',action='store_true',help='carry full type coordinates between dialect environments and apply each environment algebra to the preceding transformed coordinates')
+    parser.add_argument('--mixed-environment-operations',action='store_true',help='cycle meet, join and tensor on the same retained environment tuples using the carried Y invocation index')
     args = parser.parse_args()
-    bake(args.source, args.output, args.kernel, args.keep_fibres, args.compose_idempotent, args.hop, args.product_frame,args.resume_return,args.resume_verification,args.cofactor_feedback,args.support_newton,args.promotion_return,args.support_secant,args.support_parity)
+    bake(args.source, args.output, args.kernel, args.keep_fibres, args.compose_idempotent, args.hop, args.product_frame,args.resume_return,args.resume_verification,args.cofactor_feedback,args.support_newton,args.promotion_return,args.support_secant,args.support_parity,args.support_frame_point,args.environment_carry,args.mixed_environment_operations)

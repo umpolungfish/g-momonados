@@ -1,3 +1,5 @@
-I execute two-point dialect support on the retained IMASM membrane
+I retain full dialect environments and compose their carried operations
 
-I keep complete parent ancestry and deferred numeral cells in checked read-only payloads. I retain the locked and fresh control builds, returned carriers, independent replay, terminal sibling checks and continuation evidence. I preserve IMASM operand words and the terminal-only readout boundary.
+I carry full primitive coordinates through successive dialect algebras and retain an explicit meet, join and tensor continuation. I independently replay each operation and reject altered continuation, carried state and return evidence.
+
+I recover the 28 shell scripts from the preserved pre-cleanup commit with exact contents and modes, and record their successful syntax checks.
