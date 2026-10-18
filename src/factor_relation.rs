@@ -49,6 +49,18 @@ impl RelationProgram {
     /// emits the same IMASM-token operators regardless of the host integer's
     /// limb count.
     pub fn product_big(n: &BigUint, width: u32) -> Result<Self, &'static str> {
+        Self::compile_product(n, width, false)
+    }
+
+    /// N-only proper-factor relation. Both lanes have the source width, with
+    /// no assumed factor width or leading-bit position. The source product
+    /// and nontriviality constraints determine their actual widths.
+    pub fn proper_product(n: &BigUint) -> Result<Self, &'static str> {
+        let width = u32::try_from(n.bits()).map_err(|_| "source width exceeds wire indexing")?;
+        Self::compile_product(n, width, true)
+    }
+
+    fn compile_product(n: &BigUint, width: u32, proper: bool) -> Result<Self, &'static str> {
         if width<2 || n<&BigUint::from(3u8) || (n & BigUint::one()).is_zero()
             || n.bits()>2*width as u64 {
             return Err("odd N >= 3, factor width >=2, and N < 2^(2m) required");
@@ -62,8 +74,19 @@ impl RelationProgram {
             p.push(graph.emit(8, 2*bit, 0));
             q.push(graph.emit(8, 2*bit+1, 0));
         }
-        for var in [p[0], q[0], p[width as usize-1], q[width as usize-1]] {
+        for var in [p[0], q[0]] {
             graph.require(var, true);
+        }
+        if proper {
+            for lane in [&p, &q] {
+                let mut nontrivial = 0;
+                for &bit in &lane[1..] { nontrivial = graph.or(nontrivial, bit); }
+                graph.require(nontrivial, true);
+            }
+        } else {
+            for var in [p[width as usize-1], q[width as usize-1]] {
+                graph.require(var, true);
+            }
         }
         let mut columns = alloc::vec![Vec::new(); 2*width as usize+1];
         for i in 0..width as usize {
@@ -119,6 +142,15 @@ impl RelationProgram {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn proper_source_relation_retains_unbalanced_factor_widths() {
+        let graph=RelationProgram::proper_product(&BigUint::from(21u8)).unwrap();
+        assert_eq!(graph.width,5);
+        for p in 0..32 { for q in 0..32 {
+            assert_eq!(eval(&graph,p,q),p>1 && q>1 && p*q==21,
+                "proper N-only relation: p={p}, q={q}");
+        }}
+    }
     fn eval(g: &RelationProgram,p:u64,q:u64) -> bool {
         let mut values: Vec<bool>=Vec::new();
         for &[op,a,b,_] in &g.ops {
