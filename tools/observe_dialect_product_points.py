@@ -6,7 +6,7 @@ import json
 import math
 import mmap
 from pathlib import Path
-from verify_dialect_factor import bank_value, numeral, support_polynomial
+from verify_dialect_factor import bank_value, numeral, numeral_word, support_polynomial
 
 
 def main():
@@ -23,7 +23,8 @@ def main():
     assert digest.hexdigest()==binding['receipt_sha256'], 'unverified return'
     tables=json.loads((args.project/'dialect_tables.json').read_text())
     n=numeral(tables['source_word'])
-    residuals=[];support_zeros=roots=unit_derivatives=proper_arms=0
+    residuals=[];support_zeros=roots=unit_derivatives=proper_arms=unit_quotients=0
+    operand_widths={}
     with args.returned.open('rb') as stream,mmap.mmap(stream.fileno(),0,access=mmap.ACCESS_READ) as raw:
         marker=b',"members":[';position=raw.find(marker)
         assert position>=0
@@ -33,6 +34,9 @@ def main():
             end=next_position if next_position>=0 else raw.rfind(b']}')
             member=json.loads(raw[position:end]);frame=member['product_frame_state']
             p,q=bank_value(frame['anchor_left']),bank_value(frame['anchor_right'])
+            unit_quotients+=q==1
+            widths=f'{p.bit_length()}:{q.bit_length()}'
+            operand_widths[widths]=operand_widths.get(widths,0)+1
             residuals.append(n-p*q)
             value,derivative=support_polynomial(n,p)
             support_zeros+=value==0;roots+=p==2
@@ -44,12 +48,13 @@ def main():
     output={'question':__doc__,'source_bits':n.bit_length(),'members':len(residuals),
         'return_sha256':binding['receipt_sha256'],
         'zero_product_residuals':sum(x==0 for x in residuals),
-        'minimum_absolute_product_residual':str(min(map(abs,residuals))),
+        'minimum_absolute_product_residual_word':numeral_word(min(map(abs,residuals))),
         'maximum_absolute_product_residual_bits':max(abs(x).bit_length() for x in residuals),
         'support_zeros':support_zeros,'canonical_root_two':roots,
-        'unit_support_derivatives':unit_derivatives,'proper_source_arms':proper_arms}
-    args.output.write_text(json.dumps(output,indent=2)+'\n')
-    print(json.dumps(output,indent=2))
+        'unit_support_derivatives':unit_derivatives,'proper_source_arms':proper_arms,
+        'unit_quotient_anchors':unit_quotients,'left_right_operand_width_counts':operand_widths}
+    args.output.write_text(json.dumps(output,indent=2,ensure_ascii=False)+'\n')
+    print(json.dumps(output,indent=2,ensure_ascii=False))
 
 
 if __name__=='__main__':main()

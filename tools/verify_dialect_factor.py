@@ -18,6 +18,13 @@ def numeral(word):
     return sum((c == '⊥') << i for i,c in enumerate(cells))
 
 
+def numeral_word(value):
+    """Return canonical IMASM digits directly from binary integer parity."""
+    assert value >= 0
+    return '⊢' + ''.join('≻⋈∈' + ('⊥' if (value >> i) & 1 else '⊤') + '∋'
+                         for i in range(value.bit_length())) + '⊙⊡⊣'
+
+
 def bank_value(cells):
     assert all(v in (8,9) for v in cells), 'invalid parity bank'
     return sum((v == 9) << i for i,v in enumerate(cells))
@@ -38,6 +45,15 @@ def support_polynomial(n,x):
         derivative=(derivative*x+value)%n
         value=(value*x+((n>>i)&1))%n
     return value,derivative
+
+
+def support_pair(n,x,y):
+    px=py=divided=0
+    for i in range(n.bit_length()-1,-1,-1):
+        divided=(y*divided+px)%n
+        bit=(n>>i)&1;px=(x*px+bit)%n;py=(y*py+bit)%n
+    assert (px-py-(x-y)*divided)%n==0
+    return py,divided
 
 
 def verified_parent(data,tables,prepared):
@@ -68,7 +84,7 @@ def verify(data, tables, prepared, partial=False, prior=None):
     assert n.bit_length() == tables['source_bits'] >= 200
     count = (tables['source_bits']+3)//4
     radix = tables['crystal_radix'] * (256 if data.get('keep_fibres') else 1)
-    distinct=set(); transitions=0; changed=0; closed=[];frames=units=frame_changes=point_updates=support_calls=support_reseeds=0;promotion_steps=promotion_changes=terminal_scanned=0
+    distinct=set(); transitions=0; changed=0; closed=[];frames=units=frame_changes=point_updates=support_calls=support_reseeds=0;promotion_steps=promotion_changes=terminal_scanned=secant_calls=secant_changed=0
     previous={(m['dialect'],m['operation']):m for m in prior['members']} if prior else {}
     assert 3*len(tables['tables']) == data['held']
     if not partial:assert len(data['members']) == data['held']
@@ -184,21 +200,33 @@ def verify(data, tables, prepared, partial=False, prior=None):
                         value,derivative=support_polynomial(n,support_point)
                         assert step['support_evaluated'], 'source support evaluation lost'
                         assert [bank_value(step[k]) for k in ('support_value','support_derivative')]==[value,derivative], 'source support polynomial/derivative changed'
-                        support_unit=math.gcd(derivative,n)==1
-                        assert step['support_unit']==support_unit, 'source support derivative inverse differs'
+                        tangent_proposal=proposal
+                        if math.gcd(derivative,n)==1 and value:
+                            tangent_point=(support_point-value*pow(derivative,-1,n))%n
+                            if 1<tangent_point<n:tangent_proposal=tangent_point
+                        denominator=derivative
+                        if data.get('support_secant'):
+                            other,denominator=support_pair(n,support_point,p)
+                            assert [bank_value(step[k]) for k in ('support_other_value','support_divided')]==[other,denominator], 'two-point support coefficient changed'
+                            assert (value-other-(support_point-p)*denominator)%n==0
+                        support_unit=math.gcd(denominator,n)==1
+                        assert step['support_unit']==support_unit, 'source support coefficient inverse differs'
                         probes=[math.gcd(x,n) for x in (derivative,value,(support_point-2)%n)]
                         factor=next((x for x in probes if 1<x<n),None)
                         if terminal_only:pending.extend([derivative,value,(support_point-2)%n])
+                        if terminal_only and data.get('support_secant'):pending.extend([denominator,other,shift])
                         support_closed=factor is not None and not terminal_only
                         assert step['support_closed']==support_closed, 'source support fuse differs'
                         if support_closed:assert banks[3]==factor and index==len(member['ancestry'])-1
                         reseeded=False
                         if not support_closed:
                             if support_unit and value:
-                                next_point=(support_point-value*pow(derivative,-1,n))%n
+                                next_point=(support_point-value*pow(denominator,-1,n))%n
                                 if 1<next_point<n:proposal=next_point
                                 else:reseeded=True
                             else:reseeded=True
+                        if data.get('support_secant'):
+                            secant_calls+=1;secant_changed+=proposal!=tangent_proposal
                         assert step['support_reseeded']==reseeded, 'source support continuation differs'
                         support_calls+=1;support_reseeds+=reseeded
                     update=1<proposal<n and not support_closed
@@ -280,13 +308,13 @@ def verify(data, tables, prepared, partial=False, prior=None):
                         assert readout['closed'] and slot==readout['member'] and wi==readout['witness'], 'terminal source witness identity changed'
                         assert numeral(readout['divisor'])==divisor and numeral(readout['quotient'])==n//divisor
                         assert divisor*(n//divisor)==n and n%divisor==0 and data['paired_boundary']
-                        closed.append({'dialect':u,'operation':op,'divisor':str(divisor),'quotient':str(n//divisor),'boundary':'terminal-only'})
+                        closed.append({'dialect':u,'operation':op,'divisor_word':readout['divisor'],'quotient_word':readout['quotient'],'boundary':'terminal-only'})
                         break
                 else:assert not (readout['closed'] and slot==readout['member']), 'terminal divisor missing'
         if receipt[3] in (1,8):
             p,q=banks[3],banks[4]
             assert 1<p<n and n%p==0 and n//p==q and p*q==n, 'factor product failed'
-            closed.append({'dialect':u,'operation':op,'divisor':str(p),'quotient':str(q)})
+            closed.append({'dialect':u,'operation':op,'divisor_word':numeral_word(p),'quotient_word':numeral_word(q)})
         else:
             assert receipt[3]==0, 'error status'
             assert banks[3:5]==original[3:5], 'pending paired source banks changed'
@@ -296,7 +324,7 @@ def verify(data, tables, prepared, partial=False, prior=None):
             'state_changes':changed,'distinct_returned_candidates':len(distinct),
             'preimage_and_source_recovery':True,'exact_residuals':True,
             'Y_and_banks_retained':True,'closed_pairs':closed,'product_frames_checked':frames,
-            'unit_product_frames':units,'changed_product_frames':frame_changes,'product_point_updates':point_updates,'support_evaluations':support_calls,'support_reseeds':support_reseeds,'promotion_steps':promotion_steps,'promotion_changed_coordinates':promotion_changes,'terminal_witnesses_checked':terminal_scanned}
+            'unit_product_frames':units,'changed_product_frames':frame_changes,'product_point_updates':point_updates,'support_evaluations':support_calls,'support_reseeds':support_reseeds,'promotion_steps':promotion_steps,'promotion_changed_coordinates':promotion_changes,'terminal_witnesses_checked':terminal_scanned,'two_point_support_evaluations':secant_calls,'two_point_changed_operand_updates':secant_changed}
 
 
 def verify_promotion_tables(tables):
@@ -340,7 +368,7 @@ def main():
             result={'source_bits':tables['source_bits'],'members':0,'transitions_checked':0,
                     'state_changes':0,'preimage_and_source_recovery':True,'exact_residuals':True,
                     'Y_and_banks_retained':True,'closed_pairs':[], 'product_frames_checked':0,
-                    'unit_product_frames':0,'changed_product_frames':0,'product_point_updates':0,'support_evaluations':0,'support_reseeds':0,'promotion_steps':0,'promotion_changed_coordinates':0,'terminal_witnesses_checked':0,'parent_transitions_checked':parent_count}
+                    'unit_product_frames':0,'changed_product_frames':0,'product_point_updates':0,'support_evaluations':0,'support_reseeds':0,'promotion_steps':0,'promotion_changed_coordinates':0,'terminal_witnesses_checked':0,'two_point_support_evaluations':0,'two_point_changed_operand_updates':0,'parent_transitions_checked':parent_count}
             identities=set();candidates=set()
             while position<raw.size()-3:
                 next_position=raw.find(b',{"dialect":',position)
@@ -350,7 +378,7 @@ def main():
                 assert (member['dialect'],member['operation']) not in identities
                 identities.add((member['dialect'],member['operation']))
                 local=verify(dict(data,members=[member]),tables,prepared,partial=True,prior=prior)
-                for key in ('members','transitions_checked','state_changes','product_frames_checked','unit_product_frames','changed_product_frames','product_point_updates','support_evaluations','support_reseeds','promotion_steps','promotion_changed_coordinates','terminal_witnesses_checked'):result[key]+=local[key]
+                for key in ('members','transitions_checked','state_changes','product_frames_checked','unit_product_frames','changed_product_frames','product_point_updates','support_evaluations','support_reseeds','promotion_steps','promotion_changed_coordinates','terminal_witnesses_checked','two_point_support_evaluations','two_point_changed_operand_updates'):result[key]+=local[key]
                 result['closed_pairs']+=local['closed_pairs']
                 candidates.add(bank_value(member['state'][:tables['source_bits']+10]))
                 if next_position<0:break
@@ -377,6 +405,9 @@ def main():
             controls['altered_product_frame']=lambda d:d['members'][0]['ancestry'][0]['frame_left'].__setitem__(0,8 if d['members'][0]['ancestry'][0]['frame_left'][0]==9 else 9)
         if data.get('cofactor_feedback'):
             controls['altered_product_anchor']=lambda d:d['members'][0]['product_frame_state']['anchor_left'].__setitem__(0,8 if d['members'][0]['product_frame_state']['anchor_left'][0]==9 else 9)
+        if data.get('support_secant'):
+            controls['altered_divided_support']=lambda d:d['members'][0]['ancestry'][0]['support_divided'].__setitem__(0,8 if d['members'][0]['ancestry'][0]['support_divided'][0]==9 else 9)
+            controls['altered_other_support_value']=lambda d:d['members'][0]['ancestry'][0]['support_other_value'].__setitem__(0,8 if d['members'][0]['ancestry'][0]['support_other_value'][0]==9 else 9)
         if data.get('terminal_only_frame_recovery'):
             controls['inflight_frame_recovery']=lambda d:d['members'][0]['ancestry'][0].__setitem__('frame_checked',True)
         if data.get('terminal_only_source_readout'):
@@ -403,8 +434,8 @@ def main():
     result['verifier_sha256']=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     for key in ('transport_source_probe_calls','terminal_sic_readbacks','terminal_unchanged_members','terminal_frame_readbacks'):
         if key in data:result[key]=data[key]
-    args.output.write_text(json.dumps(result,indent=2)+'\n')
-    print(json.dumps(result,indent=2))
+    args.output.write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n')
+    print(json.dumps(result,indent=2,ensure_ascii=False))
 
 
 if __name__=='__main__':main()

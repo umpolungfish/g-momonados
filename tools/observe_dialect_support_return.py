@@ -6,7 +6,7 @@ import json
 import math
 import mmap
 from pathlib import Path
-from verify_dialect_factor import bank_value, numeral
+from verify_dialect_factor import bank_value, numeral, numeral_word
 
 
 def divided_support(n, x, y):
@@ -63,8 +63,8 @@ def main():
                         quotient, remainder = divmod(n, divisor)
                         assert remainder == 0 and divisor * quotient == n
                         factors.append({'dialect': member['dialect'], 'operation': member['operation'],
-                                        'kind': kind, 'witness': str(witness),
-                                        'divisor': str(divisor), 'quotient': str(quotient)})
+                                        'kind': kind, 'witness_word': numeral_word(witness),
+                                        'divisor_word': numeral_word(divisor), 'quotient_word': numeral_word(quotient)})
             if next_position < 0:
                 break
             position = next_position + 1
@@ -74,8 +74,8 @@ def main():
               'return_sha256': digest, 'execution_boundary': 'completed return only; input file unchanged'}
     with args.returned.open('rb') as stream:
         assert hashlib.file_digest(stream, 'sha256').hexdigest() == digest
-    args.output.write_text(json.dumps(result, indent=2) + '\n')
-    print(json.dumps(result, indent=2))
+    args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+    print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
 if __name__ == '__main__':

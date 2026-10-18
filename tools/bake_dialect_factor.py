@@ -18,7 +18,9 @@ def run(argv, log):
                        stderr=subprocess.STDOUT, check=True)
 
 
-def bake(source, output, kernel, keep_fibres, compose_idempotent, hop, product_frame, resume_return=None, resume_verification=None, cofactor_feedback=False, support_newton=False, promotion_return=False):
+def bake(source, output, kernel, keep_fibres, compose_idempotent, hop, product_frame, resume_return=None, resume_verification=None, cofactor_feedback=False, support_newton=False, promotion_return=False, support_secant=False):
+    if support_secant and not promotion_return:
+        raise ValueError("two-point support requires retained promotion transport")
     if promotion_return and not (keep_fibres and product_frame and support_newton):
         raise ValueError("promotion return requires exact fibres, the carried product frame and support Newton")
     if support_newton and not (cofactor_feedback and product_frame):
@@ -91,6 +93,7 @@ int main(){
              f'constexpr bool DIALECT_HOP={str(hop).lower()};',
              f'constexpr bool DIALECT_PRODUCT_FRAME={str(product_frame).lower()};',
              f'constexpr bool DIALECT_COFACTOR_FEEDBACK={str(cofactor_feedback).lower()};',
+             f'constexpr bool DIALECT_SUPPORT_SECANT={str(support_secant).lower()};',
              f'constexpr bool DIALECT_SUPPORT_NEWTON={str(support_newton).lower()};',
              f'constexpr bool DIALECT_PROMOTION_RETURN={str(promotion_return).lower()};',
              'static const DialectCell DIALECT_ALGEBRA[][3][256]={']
@@ -157,7 +160,12 @@ int main(){
         table.append('const arm *dialect_initial_frame(unsigned){return nullptr;}')
         table.append('bool dialect_initial_frame_ready(unsigned){return false;}')
     table.append('static const char PARENT_RETURN_SHA256[]='+json.dumps(parent_sha)+';')
-    table.append('static const char PARENT_RETURN_GZIP_HEX[]='+json.dumps(parent_hex)+';')
+    # Embed retained data through the assembler, without making GCC parse one
+    # unbounded string literal or millions of numeral-cell initializers.
+    # The static image owns the bytes; no runtime file is opened.
+    parent_payload=project/'parent_return.hex'
+    parent_payload.write_bytes(parent_hex.encode('ascii')+b'\0')
+    table.append('extern "C" const char PARENT_RETURN_GZIP_HEX[];')
     # Divisor readout is separated from transport. The transport wrapper only
     # retains witness words; the real source fuse rejects an in-flight call.
     fuse_declaration='__device__ bool fuse_source_arm(const Word &arm_word,const Word &n,'
@@ -184,7 +192,9 @@ __device__ bool fuse_source_arm(const Word &arm_word,const Word &n,ResidentState
         if any(len(word)!=width or any(cell not in (8,9) for cell in word) for word in words):
             raise ValueError('invalid deferred source witness bank')
         pending.extend(cell for word in words for cell in word);offsets.append(len(pending)//width)
-    table.append('static const arm RESUMED_DEFERRED_ARMS[]={'+(','.join(map(str,pending)) if pending else '8')+'};')
+    deferred_payload=project/'deferred_source_arms.cells'
+    deferred_payload.write_bytes(bytes(pending) if pending else bytes([8]))
+    table.append('extern "C" const arm RESUMED_DEFERRED_ARMS[];')
     table.append('static const unsigned long long RESUMED_DEFERRED_OFFSETS[]={'+','.join(map(str,offsets))+'};')
     table.append('constexpr bool DIALECT_TERMINAL_READOUT=true;')
     # SIC reconstruction and consistency instruments run at the return boundary.
@@ -199,7 +209,17 @@ __device__ bool fuse_source_arm(const Word &arm_word,const Word &n,ResidentState
     rest = rest.replace(call, 'DialectArrow{n,paired}(0,member,successor);')
     program = base + '\n'.join(table) + first + arrow_source + marker + rest + runner_source
     (project / 'membrane.cpp').write_text(program)
-    run(flags + ['-DDIALECT_ONE_SWEEP', project / 'membrane.cpp', '-o', project / 'instrument'], project / 'instrument_build.log')
+    payload_assembly=project/'retained_payload.S'
+    payload_lines=['.section .rodata']
+    for symbol,payload in [('PARENT_RETURN_GZIP_HEX',parent_payload),('RESUMED_DEFERRED_ARMS',deferred_payload)]:
+        payload_lines.extend([f'.global {symbol}',f'.type {symbol}, @object',
+                              f'{symbol}:',f'.incbin {json.dumps(str(payload))}',
+                              f'.size {symbol}, .-{symbol}'])
+    payload_lines.append('.section .note.GNU-stack,"",@progbits')
+    payload_assembly.write_text('\n'.join(payload_lines)+'\n')
+    payload_object=project/'retained_payload.o'
+    run(['g++','-c',payload_assembly,'-o',payload_object],project/'payload_build.log')
+    run(flags + ['-DDIALECT_ONE_SWEEP', project / 'membrane.cpp', payload_object, '-o', project / 'instrument'], project / 'instrument_build.log')
     instrument = subprocess.run([str(project / 'instrument')], cwd=ROOT, capture_output=True, check=False)
     (project / 'instrument.json').write_bytes(instrument.stdout)
     (project / 'instrument.stderr').write_bytes(instrument.stderr)
@@ -208,7 +228,7 @@ __device__ bool fuse_source_arm(const Word &arm_word,const Word &n,ResidentState
     report = json.loads(instrument.stdout)
     if not report['monad_laws'] or report['source_word'] != source_word:
         raise ValueError('resident dialect instrument failed source/law checks')
-    run(flags + [project / 'membrane.cpp', '-o', output], project / 'build.log')
+    run(flags + [project / 'membrane.cpp', payload_object, '-o', output], project / 'build.log')
     run(['readelf', '-l', '-d', output], project / 'linkage.txt')
     linkage = (project / 'linkage.txt').read_text()
     if 'INTERP' in linkage or '(NEEDED)' in linkage:
@@ -217,6 +237,7 @@ __device__ bool fuse_source_arm(const Word &arm_word,const Word &n,ResidentState
              ROOT / 'src/idempotent_gpu.cu', ROOT / 'src/idempotent_cpu_word.hpp',
              ROOT / 'src/dialect_factor_export.rs', ROOT / 'src/dialect_factor_arrow.hpp',
              ROOT / 'src/dialect_factor_runner.hpp', Path(__file__)]
+    bound.extend([parent_payload,deferred_payload,payload_assembly,payload_object])
     if resume_return:bound.extend([resume_return,resume_verification,project/'parent_return.json.gz'])
     if any(p.read_bytes()!=raw for p,raw in source_snapshots.items()):
         raise ValueError('compiler sources changed during compilation; preserve this image and rebuild from a stable snapshot')
@@ -229,9 +250,11 @@ __device__ bool fuse_source_arm(const Word &arm_word,const Word &n,ResidentState
                'product_frame': product_frame,
                'cofactor_feedback':cofactor_feedback,
                'support_newton':support_newton,
+               'support_secant':support_secant,
                'promotion_return':promotion_return,
                'source_readout_boundary':'after transport; retained witnesses read without altering family',
                'resumed_from_sha256':parent_sha,
+               'retained_payload_storage':'static read-only embedded bytes; IMASM cells unchanged',
                'bindings': {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in bound}}
     (project / 'compilation.json').write_text(json.dumps(receipt, indent=2)+'\n')
     print(json.dumps({k:v for k,v in receipt.items() if k != 'bindings'}, indent=2))
@@ -252,5 +275,6 @@ if __name__ == '__main__':
     parser.add_argument('--cofactor-feedback',action='store_true',help='update the paired product point from chart parity and the exact N quotient/residual')
     parser.add_argument('--support-newton',action='store_true',help='advance the retained anchor by the N-bit support polynomial and derivative; fuse nonunits and split returns')
     parser.add_argument('--promotion-return',action='store_true',help='apply one kernel promotion axis to the carried exact fibre and retain its return certificate')
+    parser.add_argument('--support-secant',action='store_true',help='advance the retained point using the source polynomial divided difference across its promotion displacement')
     args = parser.parse_args()
-    bake(args.source, args.output, args.kernel, args.keep_fibres, args.compose_idempotent, args.hop, args.product_frame,args.resume_return,args.resume_verification,args.cofactor_feedback,args.support_newton,args.promotion_return)
+    bake(args.source, args.output, args.kernel, args.keep_fibres, args.compose_idempotent, args.hop, args.product_frame,args.resume_return,args.resume_verification,args.cofactor_feedback,args.support_newton,args.promotion_return,args.support_secant)

@@ -151,4 +151,4 @@ produced a law, are in `memory_backup_2026-08-08.tgz` and
 - [Current Codex context](CURRENT.md): current task and memory ownership. Read first.
 - [Codex rider](rider.md): local working preferences, subject to current instructions.
 
-- [Dialect transport continuation, 2026-10-17](dialect_transport_20261017.md): locked N-only 512-bit goal, verified r18 held return, terminal-only source/SIC/frame readout, unchanged frozen carriers, retained promotion certificates and witness banks, and next two-point support seam.
+- [Dialect transport continuation, 2026-10-18](dialect_transport_20261017.md): verified r20 locked and r14 control held returns; IMASM-cell arithmetic and unprobed transport; two-point support correction; complete embedded-parent/witness byte checks; retained banks and continuation; next source-parity return connection from measured operand geometry.

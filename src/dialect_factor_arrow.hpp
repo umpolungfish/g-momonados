@@ -16,7 +16,7 @@ struct FibreStep {
     Word frame_left,frame_right,frame_determinant;
     bool frame_checked=false,frame_unit=false,frame_changed=false,frame_closed=false;
     bool point_updated=false,point_closed=false;
-    Word support_value,support_derivative,promotion_shift,promotion_point;
+    Word support_value,support_derivative,promotion_shift,promotion_point,support_other_value,support_divided;
     bool support_evaluated=false,support_unit=false,support_closed=false,support_reseeded=false;
 };
 struct DialectMember {
@@ -78,6 +78,21 @@ void dialect_support_polynomial(const Word &source,const Word &x,const Word &n,
         addmod(next_derivative,value,n,derivative);
         regular_mulmod(value,x,n,next_value);
         if(digit(source,i)==F)addmod(next_value,unit,n,value);else value=next_value;
+    }
+}
+// The same coefficient object acts at both retained dialect points. The
+// divided coefficient satisfies P(x)-P(y)=(x-y)D(x,y), including x=y.
+void dialect_support_pair(const Word &source,const Word &x,const Word &y,const Word &n,
+    Word &value,Word &derivative,Word &other,Word &divided){
+    Word nv,nd,no,nq,unit;small(1,unit);
+    clear(value);clear(derivative);clear(other);clear(divided);
+    for(int i=W-11;i>=0;--i){
+        regular_mulmod(divided,y,n,nq);addmod(nq,value,n,divided);
+        regular_mulmod(other,y,n,no);
+        regular_mulmod(derivative,x,n,nd);addmod(nd,value,n,derivative);
+        regular_mulmod(value,x,n,nv);
+        if(digit(source,i)==F){addmod(nv,unit,n,value);addmod(no,unit,n,other);}
+        else{value=nv;other=no;}
     }
 }
 // A finite-ring operator acts on BOTH pending source arms. Its adjugate
@@ -157,13 +172,20 @@ void dialect_product_frame(FibreStep &step,const ResidentState &input,
                 Word recovered;submod(support_point,step.promotion_shift,n,recovered);
                 if(!dialect_transport_active&&compare(recovered,p)){output.status=14;return;}
             }
-            dialect_support_polynomial(n,support_point,n,step.support_value,step.support_derivative);
+            if(DIALECT_SUPPORT_SECANT)
+                dialect_support_pair(n,support_point,p,n,step.support_value,step.support_derivative,step.support_other_value,step.support_divided);
+            else dialect_support_polynomial(n,support_point,n,step.support_value,step.support_derivative);
             step.support_evaluated=true;
             Word inverse_derivative,two,root_return,correction,next_point;
             small(2,two);submod(support_point,two,n,root_return);
-            step.support_unit=inverse(step.support_derivative,n,inverse_derivative);
+            const Word &denominator=DIALECT_SUPPORT_SECANT?step.support_divided:step.support_derivative;
+            step.support_unit=inverse(denominator,n,inverse_derivative);
             for(const Word *probe:{&step.support_derivative,&step.support_value,&root_return}){
                 if(fuse_source_arm(*probe,n,output,paired)){step.support_closed=output.status==8;return;}
+            }
+            if(DIALECT_SUPPORT_SECANT){
+                for(const Word *witness:{&step.support_divided,&step.support_other_value,&step.promotion_shift})
+                    fuse_source_arm(*witness,n,output,paired);
             }
             if(step.support_unit&&!zero(step.support_value)){
                 regular_mulmod(step.support_value,inverse_derivative,n,correction);
