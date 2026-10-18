@@ -1,5 +1,3 @@
-I retain full dialect environments and compose their carried operations
+I trace dialect morphism interactions on shared primitive domains
 
-I carry full primitive coordinates through successive dialect algebras and retain an explicit meet, join and tensor continuation. I independently replay each operation and reject altered continuation, carried state and return evidence.
-
-I recover the 28 shell scripts from the preserved pre-cleanup commit with exact contents and modes, and record their successful syntax checks.
+I compute exact elementary-action compositions and commutation witnesses while carrying conflict evidence. I exhaust coordinate permutations for simultaneous meet, join and tensor transport, preserving the distinction between these laws and divisor production.
