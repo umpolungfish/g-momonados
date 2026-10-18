@@ -1,3 +1,3 @@
-I gate updated large retests on successful small factor controls
+I trace factor witnesses and audit arithmetic distinctions in dialect inputs
 
-I require the corrected six-case small battery to return proper divisors with zero remainder and exact products before rebuilding, executing and independently verifying the 208-bit control and locked 512-bit continuation.
+I explain successful small witnesses through their exact retained operations and compare the same operations in the completed 208-bit return. I check whether type classifications alone distinguish low-product and carry relations, keeping their retained labels separate from the classification result.
