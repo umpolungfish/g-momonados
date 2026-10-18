@@ -11,6 +11,8 @@
 //! a compile error instead of a data sweep.
 
 extern crate alloc;
+#[cfg(test)]
+extern crate std;
 
 pub mod check;
 pub mod flow;
