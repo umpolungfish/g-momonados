@@ -61,14 +61,25 @@ unsigned dialect_environment_act(unsigned left,unsigned right,unsigned dialect,
 }
 // Horner evaluation in the Crystal's actual mixed-radix tensor space,
 // reduced in N's retained parity bank. Tuple coordinates remain in ancestry.
+void dialect_constant_residue(unsigned long long value,const Word &n,Word &result){
+    if constexpr(W<64){
+        // A small diagnostic register can be narrower than a Crystal address.
+        // Reduce the complete constant through parity cells before Horner use.
+        clear(result);Word unit;small(1,unit);
+        for(int bit=63;bit>=0;--bit){
+            addmod(result,result,n,result);
+            if((value>>bit)&1ull)addmod(result,unit,n,result);
+        }
+    }else small(value,result);
+}
 Word dialect_tensor_residue(const std::vector<unsigned> &coordinates,
     const std::vector<unsigned char> &labels,const Word &n){
     Word value,radix,entry,tmp;
     const unsigned long long base=DIALECT_KEEP_FIBRES?256ull*DIALECT_CRYSTAL_RADIX:DIALECT_CRYSTAL_RADIX;
-    small(base,radix);
+    dialect_constant_residue(base,n,radix);
     for(std::size_t i=0;i<coordinates.size();++i){
         const unsigned long long address=DIALECT_KEEP_FIBRES?256ull*coordinates[i]+labels[i]:coordinates[i];
-        regular_mulmod(value,radix,n,tmp);small(address,entry);addmod(tmp,entry,n,value);
+        regular_mulmod(value,radix,n,tmp);dialect_constant_residue(address,n,entry);addmod(tmp,entry,n,value);
     }
     return value;
 }

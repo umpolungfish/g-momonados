@@ -18,7 +18,7 @@ def run(argv, log):
                        stderr=subprocess.STDOUT, check=True)
 
 
-def bake(source, output, kernel, keep_fibres, compose_idempotent, hop, product_frame, resume_return=None, resume_verification=None, cofactor_feedback=False, support_newton=False, promotion_return=False, support_secant=False, support_parity=False, support_frame_point=False, environment_carry=False, mixed_environment_operations=False):
+def bake(source, output, kernel, keep_fibres, compose_idempotent, hop, product_frame, resume_return=None, resume_verification=None, cofactor_feedback=False, support_newton=False, promotion_return=False, support_secant=False, support_parity=False, support_frame_point=False, environment_carry=False, mixed_environment_operations=False, small_control_tables=None):
     if mixed_environment_operations and not environment_carry:
         raise ValueError("mixed environment operations require retained environment coordinates")
     if environment_carry and not promotion_return:
@@ -43,10 +43,23 @@ def bake(source, output, kernel, keep_fibres, compose_idempotent, hop, product_f
     project = Path(str(output) + '.source')
     project.mkdir(parents=True, exist_ok=False)
     tables_path = project / 'dialect_tables.json'
-    run([kernel, 'dialect-factor-export', source, tables_path], project / 'export.log')
-    data = json.loads(tables_path.read_text())
     source_word = source.read_text().strip()
-    if data['source_word'] != source_word or data['source_bits'] < 200:
+    if small_control_tables is not None:
+        # The exported algebra depends on primitive labels, not on N. Only the
+        # two source metadata fields change in this explicitly requested control.
+        from verify_dialect_factor import numeral
+        n = numeral(source_word)
+        if not (3 < n and n % 2 and n.bit_length() < 200):
+            raise ValueError('small-control tables require an odd diagnostic source below 200 bits')
+        data = json.loads(small_control_tables.read_text())
+        data.update(source_word=source_word, source_bits=n.bit_length(), diagnostic_small_control=True,
+                    reused_algebra_sha256=hashlib.sha256(small_control_tables.read_bytes()).hexdigest())
+        tables_path.write_text(json.dumps(data, separators=(',', ':'))+'\n')
+        (project/'export.log').write_text('Explicit small diagnostic: reuse source-independent native algebra tables; bind new N-only source.\n')
+    else:
+        run([kernel, 'dialect-factor-export', source, tables_path], project / 'export.log')
+        data = json.loads(tables_path.read_text())
+    if data['source_word'] != source_word or (data['source_bits'] < 200 and small_control_tables is None):
         raise ValueError('source binding failed')
     width = data['source_bits'] + 10
     # Recover the certified Y and word arithmetic from the retained construction.
@@ -83,6 +96,8 @@ int main(){
  std::cout<<",\"receipt\":";std::vector<unsigned long long>member(r.begin()+10,r.begin()+20);emit(member,10);std::cout<<"}\n";
 }
 '''
+    if small_control_tables is not None:
+        prepare=prepare.replace('if(r[3]!=0)return 1;', 'if(r[3]!=0&&r[3]!=8)return 1;')
     (project / 'prepare.cpp').write_text(base + body + prepare)
     flags = ['g++', '-std=c++17', '-O2', '-static', '-Wall', '-Wextra', '-Werror', '-Wno-unknown-pragmas']
     run(flags + [project / 'prepare.cpp', '-o', project / 'prepare'], project / 'prepare_build.log')
@@ -291,6 +306,8 @@ __device__ bool fuse_source_arm(const Word &arm_word,const Word &n,ResidentState
                'support_frame_point':support_frame_point,
                'environment_carry':environment_carry,
                'mixed_environment_operations':mixed_environment_operations,
+               'diagnostic_small_control':small_control_tables is not None,
+               'prepared_factor':prepared['receipt'][3]==8,
                'promotion_return':promotion_return,
                'source_readout_boundary':'after transport; retained witnesses read without altering family',
                'resumed_from_sha256':parent_sha,
@@ -320,5 +337,6 @@ if __name__ == '__main__':
     parser.add_argument('--support-frame-point',action='store_true',help='apply support correction to the selected transformed joint product-frame coordinate before parity and quotient feedback')
     parser.add_argument('--environment-carry',action='store_true',help='carry full type coordinates between dialect environments and apply each environment algebra to the preceding transformed coordinates')
     parser.add_argument('--mixed-environment-operations',action='store_true',help='cycle meet, join and tensor on the same retained environment tuples using the carried Y invocation index')
+    parser.add_argument('--small-control-tables',type=Path,help='explicit small diagnostic using source-independent tables from a verified native export')
     args = parser.parse_args()
-    bake(args.source, args.output, args.kernel, args.keep_fibres, args.compose_idempotent, args.hop, args.product_frame,args.resume_return,args.resume_verification,args.cofactor_feedback,args.support_newton,args.promotion_return,args.support_secant,args.support_parity,args.support_frame_point,args.environment_carry,args.mixed_environment_operations)
+    bake(args.source, args.output, args.kernel, args.keep_fibres, args.compose_idempotent, args.hop, args.product_frame,args.resume_return,args.resume_verification,args.cofactor_feedback,args.support_newton,args.promotion_return,args.support_secant,args.support_parity,args.support_frame_point,args.environment_carry,args.mixed_environment_operations,args.small_control_tables)
