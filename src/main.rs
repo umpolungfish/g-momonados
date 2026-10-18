@@ -136,6 +136,8 @@ mod frobenius_fuzzer;
 mod oracle;
 mod blackbox;
 mod axis_values;
+#[cfg(feature = "hosted")]
+mod dialect_factor_export;
 mod dialetheic_compiler;
 mod dialetheic_fib_shor;
 mod stark_geometer;
@@ -587,6 +589,13 @@ fn main() {
         std::process::exit(if closed { 0 } else { 2 });
     }
     let argv: Vec<String> = std::env::args().skip(1).collect();
+    if argv.first().map(String::as_str) == Some("dialect-factor-export") {
+        if let Err(error) = dialect_factor_export::export(&argv[1..]) {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     // Admit the hosted kernel only after a command has been supplied. Help
     // remains available without starting Lean; the interactive REPL admits
     // lazily when its first operational command is entered.
