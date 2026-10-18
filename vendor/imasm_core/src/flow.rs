@@ -16,6 +16,7 @@ pub fn gate_out(tok: Token, x: Val, seed: Val, slot: usize, fan: usize) -> Val {
         }
         Token::Evalt => x.truth_part(),
         Token::Evalf => x.falsity_part(),
+        Token::Engagr => x.engagr(),
         Token::Arev => x.invol(),
         _ => x,
     }
@@ -46,4 +47,26 @@ pub fn flow_values(g: &Graph, seed: Val) -> (Vec<Val>, Vec<Val>) {
         if !changed { break; }
     }
     (node_in, edge_val)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn engagement_is_executed_inside_the_reconnected_carrier() {
+        let ops = [Token::Vinit, Token::Fsplit, Token::Engagr,
+                   Token::Ffuse, Token::Tanch];
+        let graph = crate::check::from_sequence(&ops, &[(1, 3)]);
+        assert!(graph.validate().is_empty());
+        let (verdict, _) = crate::check::word_verdict(&ops);
+        assert_eq!(verdict, 'B');
+        for seed in crate::state_order() {
+            let (nodes, _) = flow_values(&graph, seed);
+            // The truth arm engages t/f; the other arm retains the falsity
+            // part. Their fuse must return the complete seed plus t and f.
+            assert_eq!(nodes[4].name(), seed.engagr().name());
+            assert_eq!(nodes[4].invol().invol().name(), nodes[4].name());
+        }
+    }
 }
