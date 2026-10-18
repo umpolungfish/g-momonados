@@ -92,7 +92,10 @@ def verify(data, tables, prepared, partial=False, prior=None):
             expected_readbacks=data['terminal_factor_readout']['member']+1 if data['terminal_factor_readout']['closed'] else data['held']
             assert data['terminal_unchanged_members']==data['terminal_sic_readbacks']==expected_readbacks, 'terminal readout changed frozen family'
             if data.get('terminal_only_frame_recovery'):
-                if 'members' in data:
+                if partial:
+                    assert 0 <= data['terminal_frame_readbacks'] <= expected_readbacks
+                    expected_frames=data['terminal_frame_readbacks']
+                elif 'members' in data:
                     expected_frames=sum(m['product_frame_state']['initialized'] for m in data['members'][:expected_readbacks])
                 else:
                     expected_frames=0 if prepared['receipt'][3]==8 else expected_readbacks
@@ -104,7 +107,7 @@ def verify(data, tables, prepared, partial=False, prior=None):
     assert n.bit_length() == tables['source_bits'] >= (3 if tables.get('diagnostic_small_control') else 200)
     count = (tables['source_bits']+3)//4
     radix = tables['crystal_radix'] * (256 if data.get('keep_fibres') else 1)
-    distinct=set(); transitions=0; changed=0; closed=[];frames=units=frame_changes=point_updates=support_calls=support_reseeds=0;promotion_steps=promotion_changes=terminal_scanned=secant_calls=secant_changed=parity_splits=terminal_parity_checked=0
+    distinct=set(); transitions=0; changed=0; closed=[];frames=units=frame_changes=point_updates=support_calls=support_reseeds=0;promotion_steps=promotion_changes=terminal_scanned=secant_calls=secant_changed=parity_splits=terminal_parity_checked=terminal_frames_checked=0
     previous={(m['dialect'],m['operation']):m for m in prior['members']} if prior else {}
     environment_steps=environment_changes=0
     assert 3*len(tables['tables']) == data['held']
@@ -375,6 +378,7 @@ def verify(data, tables, prepared, partial=False, prior=None):
             readout=data['terminal_factor_readout'];slot=3*u+op
             limit=readout['member'] if readout['closed'] else data['held']
             if slot<=limit:
+                terminal_frames_checked+=int(frame_initialized)
                 terminal_parity_checked+=sum(step.get('support_split',False) for step in member['ancestry'])
                 for wi,witness in enumerate(pending):
                     terminal_scanned+=1;divisor=math.gcd(witness,n)
@@ -393,12 +397,14 @@ def verify(data, tables, prepared, partial=False, prior=None):
             assert receipt[3]==0, 'error status'
             assert banks[3:5]==original[3:5], 'pending paired source banks changed'
     if terminal_only and not partial:assert terminal_scanned==data['terminal_witnesses_checked'], 'terminal witness count changed'
+    if terminal_only and not partial and data.get('terminal_only_frame_recovery'):
+        assert terminal_frames_checked==data['terminal_frame_readbacks'], 'terminal frame readback count differs'
     if not partial and data.get('support_parity'):assert terminal_parity_checked==data['terminal_support_parity_returns'], 'terminal support parity return count differs'
     if not partial:assert bool(closed)==data['closed'], 'factor status differs from returned banks'
     return {'source_bits':n.bit_length(),'members':len(seen),'transitions_checked':transitions,
             'state_changes':changed,'distinct_returned_candidates':len(distinct),
             'preimage_and_source_recovery':True,'exact_residuals':True,
-            'Y_and_banks_retained':True,'closed_pairs':closed,'product_frames_checked':frames,
+            'Y_and_banks_retained':True,'closed_pairs':closed,'product_frames_checked':frames,'terminal_frame_readbacks_checked':terminal_frames_checked,
             'unit_product_frames':units,'changed_product_frames':frame_changes,'product_point_updates':point_updates,'support_evaluations':support_calls,'support_reseeds':support_reseeds,'promotion_steps':promotion_steps,'promotion_changed_coordinates':promotion_changes,'terminal_witnesses_checked':terminal_scanned,'two_point_support_evaluations':secant_calls,'two_point_changed_operand_updates':secant_changed,'support_parity_splits':parity_splits,'terminal_support_parity_returns_checked':terminal_parity_checked,'environment_steps':environment_steps,'environment_changed_coordinates':environment_changes}
 
 
@@ -475,7 +481,7 @@ def main():
             prior,parent_count=verified_parent(data,tables,prepared,parent_certificate)
             result={'source_bits':tables['source_bits'],'members':0,'transitions_checked':0,
                     'state_changes':0,'preimage_and_source_recovery':True,'exact_residuals':True,
-                    'Y_and_banks_retained':True,'closed_pairs':[], 'product_frames_checked':0,
+                    'Y_and_banks_retained':True,'closed_pairs':[], 'product_frames_checked':0,'terminal_frame_readbacks_checked':0,
                     'unit_product_frames':0,'changed_product_frames':0,'product_point_updates':0,'support_evaluations':0,'support_reseeds':0,'promotion_steps':0,'promotion_changed_coordinates':0,'terminal_witnesses_checked':0,'two_point_support_evaluations':0,'two_point_changed_operand_updates':0,'support_parity_splits':0,'terminal_support_parity_returns_checked':0,'parent_transitions_checked':parent_count}
             result.update(environment_steps=0,environment_changed_coordinates=0)
             identities=set();candidates=set()
@@ -488,12 +494,14 @@ def main():
                 identities.add((member['dialect'],member['operation']))
                 local=verify(dict(data,members=[member]),tables,prepared,partial=True,prior=prior)
                 for key in ('members','transitions_checked','state_changes','product_frames_checked','unit_product_frames','changed_product_frames','product_point_updates','support_evaluations','support_reseeds','promotion_steps','promotion_changed_coordinates','terminal_witnesses_checked','two_point_support_evaluations','two_point_changed_operand_updates','support_parity_splits','terminal_support_parity_returns_checked'):result[key]+=local[key]
-                for key in ('environment_steps','environment_changed_coordinates'):result[key]+=local[key]
+                for key in ('environment_steps','environment_changed_coordinates','terminal_frame_readbacks_checked'):result[key]+=local[key]
                 result['closed_pairs']+=local['closed_pairs']
                 candidates.add(bank_value(member['state'][:tables['source_bits']+10]))
                 if next_position<0:break
                 position=next_position+1
             assert result['members']==data['held'], 'incomplete returned family'
+            if data.get('terminal_only_frame_recovery'):
+                assert result['terminal_frame_readbacks_checked']==data['terminal_frame_readbacks'], 'terminal frame readback count differs'
             if data.get('support_parity'):assert result['terminal_support_parity_returns_checked']==data['terminal_support_parity_returns'], 'terminal support parity return count differs'
             assert bool(result['closed_pairs'])==data['closed']
             result['distinct_returned_candidates']=len(candidates)
