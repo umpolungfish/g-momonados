@@ -1,3 +1,5 @@
-I trace dialect morphism interactions on shared primitive domains
+I exercise small factor controls and correct their arithmetic and readout
 
-I compute exact elementary-action compositions and commutation witnesses while carrying conflict evidence. I exhaust coordinate permutations for simultaneous meet, join and tensor transport, preserving the distinction between these laws and divisor production.
+I permit explicitly requested small diagnostics through the same membrane using verified source-independent dialect tables. I distinguish factors already produced in preparation from terminal witness extraction. I reduce complete Crystal constants through parity cells when a diagnostic register is narrower than those constants.
+
+I check each emitted proper divisor, quotient, zero remainder and exact source product before counting a small case as passed.

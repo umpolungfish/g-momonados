@@ -222,8 +222,8 @@ int main(int argc,char **){
             <<",\"trigger_to_readout_seconds\":"<<readout_elapsed<<",\"closed\":"<<(exact?"true":"false")
             <<",\"paired_boundary\":"<<(paired_ok?"true":"false")<<",\"trigger_to_verified_factor_seconds\":"<<verified
             <<",\"parent_return_sha256\":\""<<PARENT_RETURN_SHA256<<"\",\"parent_return_gzip_hex\":\""<<PARENT_RETURN_GZIP_HEX<<"\"";
-        std::cout<<",\"terminal_factor_readout\":{\"closed\":"<<(exact?"true":"false");
-        if(exact){std::cout<<",\"member\":"<<readout_member<<",\"witness\":"<<readout_witness
+        std::cout<<",\"terminal_factor_readout\":{\"closed\":"<<(readout_member<family.size()?"true":"false");
+        if(readout_member<family.size()){std::cout<<",\"member\":"<<readout_member<<",\"witness\":"<<readout_witness
             <<",\"divisor\":\""<<dialect_numeral(readout.divisor.v)<<"\",\"quotient\":\""<<dialect_numeral(readout.quotient.v)<<"\"";}
         std::cout<<"},\"members\":[";
         for(std::size_t i=0;i<family.size();++i){if(i)std::cout<<',';auto &m=family[i];

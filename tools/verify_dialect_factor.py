@@ -89,14 +89,19 @@ def verify(data, tables, prepared, partial=False, prior=None):
     if terminal_only:
         assert data['transport_source_probe_calls']==0, 'source readout occurred during transport'
         if 'terminal_unchanged_members' in data:
-            expected_readbacks=data['terminal_factor_readout']['member']+1 if data['closed'] else data['held']
+            expected_readbacks=data['terminal_factor_readout']['member']+1 if data['terminal_factor_readout']['closed'] else data['held']
             assert data['terminal_unchanged_members']==data['terminal_sic_readbacks']==expected_readbacks, 'terminal readout changed frozen family'
-            if data.get('terminal_only_frame_recovery'):assert data['terminal_frame_readbacks']==expected_readbacks
+            if data.get('terminal_only_frame_recovery'):
+                if 'members' in data:
+                    expected_frames=sum(m['product_frame_state']['initialized'] for m in data['members'][:expected_readbacks])
+                else:
+                    expected_frames=0 if prepared['receipt'][3]==8 else expected_readbacks
+                assert data['terminal_frame_readbacks']==expected_frames, 'terminal frame readback count differs'
             assert 0<=data['trigger_to_transport_end_seconds']<=data['trigger_to_readout_seconds']
             assert abs(data['trigger_to_readout_seconds']-data['trigger_to_transport_end_seconds']-data['terminal_readout_seconds'])<0.002
     n = numeral(data['source_word'])
     width = tables['source_bits']+10
-    assert n.bit_length() == tables['source_bits'] >= 200
+    assert n.bit_length() == tables['source_bits'] >= (3 if tables.get('diagnostic_small_control') else 200)
     count = (tables['source_bits']+3)//4
     radix = tables['crystal_radix'] * (256 if data.get('keep_fibres') else 1)
     distinct=set(); transitions=0; changed=0; closed=[];frames=units=frame_changes=point_updates=support_calls=support_reseeds=0;promotion_steps=promotion_changes=terminal_scanned=secant_calls=secant_changed=parity_splits=terminal_parity_checked=0
