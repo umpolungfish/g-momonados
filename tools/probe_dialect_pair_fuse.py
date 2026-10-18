@@ -52,8 +52,13 @@ int main(int argc,char**){
 }
 '''
 (destination/'probe.cpp').write_text(program)
+payload_object=project/'retained_payload.o'
+link_inputs=[str(payload_object)] if payload_object.exists() else []
+if link_inputs:
+    compiled=json.loads((project/'compilation.json').read_text())
+    assert compiled['bindings'][str(payload_object)]==hashlib.sha256(payload_object.read_bytes()).hexdigest(), 'retained payload binding changed'
 with (destination/'build.log').open('wb') as log:
-    subprocess.run(['g++','-std=c++17','-O2','-static','-Wall','-Wextra','-Werror','-Wno-unknown-pragmas',str(destination/'probe.cpp'),'-o',str(output)],stdout=log,stderr=subprocess.STDOUT,check=True)
+    subprocess.run(['g++','-std=c++17','-O2','-static','-Wall','-Wextra','-Werror','-Wno-unknown-pragmas',str(destination/'probe.cpp'),*link_inputs,'-o',str(output)],stdout=log,stderr=subprocess.STDOUT,check=True)
 compilation=time.monotonic()-started
 with (destination/'linkage.txt').open('wb') as log:subprocess.run(['readelf','-l','-d',str(output)],stdout=log,check=True)
 text=(destination/'linkage.txt').read_text()
@@ -61,6 +66,7 @@ assert 'INTERP' not in text and '(NEEDED)' not in text
 receipt={'parent_return_sha256':digest.hexdigest(),'parent_executable_project':str(project),
          'source_bits':tables['source_bits'],'members':len(states),'compilation_seconds':compilation,
          'binary_sha256':hashlib.sha256(output.read_bytes()).hexdigest(),'static':True,
+         'retained_payload_bindings':{path:hashlib.sha256(Path(path).read_bytes()).hexdigest() for path in link_inputs},
          'boundary':'source-only generated candidate return; no reference factors'}
 (destination/'compilation.json').write_text(json.dumps(receipt,indent=2)+'\n')
 print(json.dumps(receipt,indent=2))

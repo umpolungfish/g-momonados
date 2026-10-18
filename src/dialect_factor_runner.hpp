@@ -49,7 +49,7 @@ bool dialect_same_member(const DialectMember &a,const DialectMember &b){
     for(std::size_t i=0;i<a.ancestry.size();++i){const auto &x=a.ancestry[i],&y=b.ancestry[i];
         if(compare(x.before,y.before)||compare(x.residual,y.residual)||x.labels!=y.labels||x.addresses!=y.addresses||x.promotion_axis!=y.promotion_axis||x.promoted_addresses!=y.promoted_addresses||x.rotation!=y.rotation||x.dialect!=y.dialect||
             compare(x.frame_left,y.frame_left)||compare(x.frame_right,y.frame_right)||compare(x.frame_determinant,y.frame_determinant)||
-            x.frame_checked!=y.frame_checked||x.frame_unit!=y.frame_unit||x.frame_changed!=y.frame_changed||x.frame_closed!=y.frame_closed||x.point_updated!=y.point_updated||x.point_closed!=y.point_closed||compare(x.promotion_shift,y.promotion_shift)||compare(x.promotion_point,y.promotion_point)||compare(x.support_value,y.support_value)||compare(x.support_derivative,y.support_derivative)||x.support_evaluated!=y.support_evaluated||x.support_unit!=y.support_unit||x.support_closed!=y.support_closed||x.support_reseeded!=y.support_reseeded)return false;}
+            x.frame_checked!=y.frame_checked||x.frame_unit!=y.frame_unit||x.frame_changed!=y.frame_changed||x.frame_closed!=y.frame_closed||x.point_updated!=y.point_updated||x.point_closed!=y.point_closed||compare(x.promotion_shift,y.promotion_shift)||compare(x.promotion_point,y.promotion_point)||compare(x.support_other_value,y.support_other_value)||compare(x.support_divided,y.support_divided)||compare(x.support_value,y.support_value)||compare(x.support_derivative,y.support_derivative)||x.support_evaluated!=y.support_evaluated||x.support_unit!=y.support_unit||x.support_closed!=y.support_closed||x.support_reseeded!=y.support_reseeded)return false;}
     return true;
 }
 void dialect_laws(const std::vector<DialectMember> &family){
@@ -199,6 +199,7 @@ int main(int argc,char **){
             <<",\"terminal_unchanged_members\":"<<terminal_unchanged_members<<",\"terminal_frame_readbacks\":"<<terminal_frame_readbacks
             <<",\"cumulative_product_frame\":"<<(DIALECT_PRODUCT_FRAME?"true":"false")
             <<",\"promotion_return\":"<<(DIALECT_PROMOTION_RETURN?"true":"false")
+            <<",\"support_secant\":"<<(DIALECT_SUPPORT_SECANT?"true":"false")
             <<",\"support_newton\":"<<(DIALECT_SUPPORT_NEWTON?"true":"false")
             <<",\"cofactor_feedback\":"<<(DIALECT_COFACTOR_FEEDBACK?"true":"false")
             <<",\"trigger_to_transport_end_seconds\":"<<elapsed<<",\"terminal_readout_seconds\":"<<(readout_elapsed-elapsed)
@@ -252,6 +253,10 @@ int main(int argc,char **){
                         }
                         std::cout<<",\"support_value\":";dialect_array(a.support_value.v);
                         std::cout<<",\"support_derivative\":";dialect_array(a.support_derivative.v);
+                        if(DIALECT_SUPPORT_SECANT){
+                            std::cout<<",\"support_other_value\":";dialect_array(a.support_other_value.v);
+                            std::cout<<",\"support_divided\":";dialect_array(a.support_divided.v);
+                        }
                         std::cout<<",\"support_evaluated\":"<<(a.support_evaluated?"true":"false")
                             <<",\"support_unit\":"<<(a.support_unit?"true":"false")
                             <<",\"support_closed\":"<<(a.support_closed?"true":"false")

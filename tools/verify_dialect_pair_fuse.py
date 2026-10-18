@@ -36,6 +36,8 @@ if found:
 result={'source_bits':n.bit_length(),'pairs_checked':pairs,'nonzero_differences':nonzero,
         'closed':bool(found),'exact_divisibility_readback':True,
         'probe_sha256':hashlib.sha256(args.probe.read_bytes()).hexdigest()}
-if found:result['divisor']=str(found[2]);result['quotient']=str(found[3])
-args.output.write_text(json.dumps(result,indent=2)+'\n')
-print(json.dumps(result,indent=2))
+if found:
+    result['divisor_word']=probe['divisor_word']
+    result['quotient_word']=probe['quotient_word']
+args.output.write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n')
+print(json.dumps(result,indent=2,ensure_ascii=False))
