@@ -41,11 +41,14 @@ def verify(binary, project):
                  project / 'retained_payload.S', project / 'retained_payload.o']:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         assert compilation['bindings'][str(path.resolve())] == digest, 'compilation binding changed'
-    parent_blob = (project / 'parent_return.json.gz').read_bytes()
-    parent_raw = gzip.decompress(parent_blob)
-    assert hashlib.sha256(parent_raw).hexdigest() == compilation['resumed_from_sha256']
-    parent = json.loads(parent_raw)
-    members = sorted(parent['members'], key=lambda m: (m['dialect'], m['operation']))
+    parent_blob = b''
+    members = []
+    if compilation['resumed_from_sha256']:
+        parent_blob = (project / 'parent_return.json.gz').read_bytes()
+        parent_raw = gzip.decompress(parent_blob)
+        assert hashlib.sha256(parent_raw).hexdigest() == compilation['resumed_from_sha256']
+        parent = json.loads(parent_raw)
+        members = sorted(parent['members'], key=lambda m: (m['dialect'], m['operation']))
     cells = bytes(cell for member in members for word in member.get('deferred_source_arms', []) for cell in word)
     assert all(cell in (8, 9) for cell in cells), 'invalid IMASM numeral cell'
     assert (project / 'deferred_source_arms.cells').read_bytes() == (cells or bytes([8]))

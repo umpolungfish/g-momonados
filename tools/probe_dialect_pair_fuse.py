@@ -12,6 +12,7 @@ parser.add_argument('project',type=Path)
 parser.add_argument('returned',type=Path)
 parser.add_argument('verification',type=Path)
 parser.add_argument('output',type=Path)
+parser.add_argument('--coordinate',choices=['candidate','anchor-wedge'],default='candidate')
 args=parser.parse_args()
 project=args.project.resolve();output=args.output.resolve()
 if output.exists() or Path(str(output)+'.source').exists():raise SystemExit('preserve existing probe output')
@@ -23,11 +24,21 @@ if digest.hexdigest()!=verified['receipt_sha256']:raise SystemExit('held return 
 data=json.loads(args.returned.read_text());tables=json.loads((project/'dialect_tables.json').read_text())
 if data['source_word']!=tables['source_word'] or data['closed']:raise SystemExit('probe requires the same open source-bound return')
 width=tables['source_bits']+10
-states=[member['state'][:width] for member in data['members']]
+if args.coordinate=='anchor-wedge':
+    if not all(member.get('product_frame_state',{}).get('initialized') for member in data['members']):
+        raise SystemExit('anchor wedge requires the retained product frame')
+    states=[member['product_frame_state']['anchor_left'] for member in data['members']]
+    partners=[member['product_frame_state']['anchor_right'] for member in data['members']]
+else:
+    states=[member['state'][:width] for member in data['members']]
+    partners=[[8]*width]
 destination=Path(str(output)+'.source');destination.mkdir(parents=True)
 arrays=',\n'.join('{'+','.join(map(str,state))+'}' for state in states)
 program='#define main retained_dialect_main\n#include '+json.dumps(str(project/'membrane.cpp'))+'\n#undef main\n'
 program+=f'static const arm HELD_CANDIDATES[][W]={{{arrays}}};\n'
+program+='static const arm HELD_PARTNERS[][W]={'+',\n'.join('{'+','.join(map(str,state))+'}' for state in partners)+'};\n'
+program+='constexpr bool HELD_ANCHOR_WEDGE='+str(args.coordinate=='anchor-wedge').lower()+';\n'
+program+='static const char HELD_COORDINATE[]='+json.dumps(args.coordinate)+';\n'
 program+=r'''
 int main(int argc,char**){
  if(argc!=1)return 1;
@@ -37,13 +48,16 @@ int main(int argc,char**){
  for(unsigned i=0;i<sizeof(HELD_CANDIDATES)/sizeof(HELD_CANDIDATES[0])&&!closed;++i){
   Word a;load_word(HELD_CANDIDATES[i],a);
   for(unsigned j=0;j<i;++j){Word b,difference;load_word(HELD_CANDIDATES[j],b);++pairs;
-   if(compare(a,b)>=0)subtract(a,b,difference);else subtract(b,a,difference);
+   if(HELD_ANCHOR_WEDGE){
+    Word qa,qb,left,right;load_word(HELD_PARTNERS[i],qa);load_word(HELD_PARTNERS[j],qb);
+    regular_mulmod(a,qb,n,left);regular_mulmod(b,qa,n,right);submod(left,right,n,difference);
+   }else if(compare(a,b)>=0)subtract(a,b,difference);else subtract(b,a,difference);
    if(zero(difference)){continue;}
    ++nonzero;
    if(fuse_source_arm(difference,n,result,paired)){closed=true;left=i;right=j;break;}
   }
  }
- std::cout<<"{\"source_word\":\""<<dialect_numeral(SOURCE_ARMS)<<"\",\"pairs\":"<<pairs
+ std::cout<<"{\"source_word\":\""<<dialect_numeral(SOURCE_ARMS)<<"\",\"coordinate\":\""<<HELD_COORDINATE<<"\",\"pairs\":"<<pairs
   <<",\"nonzero_differences\":"<<nonzero<<",\"closed\":"<<(closed?"true":"false")
   <<",\"left_member\":"<<left<<",\"right_member\":"<<right
   <<",\"trigger_to_readout_seconds\":"<<std::chrono::duration<double>(std::chrono::steady_clock::now()-trigger).count()
@@ -65,6 +79,7 @@ text=(destination/'linkage.txt').read_text()
 assert 'INTERP' not in text and '(NEEDED)' not in text
 receipt={'parent_return_sha256':digest.hexdigest(),'parent_executable_project':str(project),
          'source_bits':tables['source_bits'],'members':len(states),'compilation_seconds':compilation,
+         'coordinate':args.coordinate,
          'binary_sha256':hashlib.sha256(output.read_bytes()).hexdigest(),'static':True,
          'retained_payload_bindings':{path:hashlib.sha256(Path(path).read_bytes()).hexdigest() for path in link_inputs},
          'boundary':'source-only generated candidate return; no reference factors'}

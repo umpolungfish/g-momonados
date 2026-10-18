@@ -18,7 +18,9 @@ def run(argv, log):
                        stderr=subprocess.STDOUT, check=True)
 
 
-def bake(source, output, kernel, keep_fibres, compose_idempotent, hop, product_frame, resume_return=None, resume_verification=None, cofactor_feedback=False, support_newton=False, promotion_return=False, support_secant=False):
+def bake(source, output, kernel, keep_fibres, compose_idempotent, hop, product_frame, resume_return=None, resume_verification=None, cofactor_feedback=False, support_newton=False, promotion_return=False, support_secant=False, support_parity=False):
+    if support_parity and not support_secant:
+        raise ValueError("support parity return requires the two-point support operation")
     if support_secant and not promotion_return:
         raise ValueError("two-point support requires retained promotion transport")
     if promotion_return and not (keep_fibres and product_frame and support_newton):
@@ -94,6 +96,7 @@ int main(){
              f'constexpr bool DIALECT_PRODUCT_FRAME={str(product_frame).lower()};',
              f'constexpr bool DIALECT_COFACTOR_FEEDBACK={str(cofactor_feedback).lower()};',
              f'constexpr bool DIALECT_SUPPORT_SECANT={str(support_secant).lower()};',
+             f'constexpr bool DIALECT_SUPPORT_PARITY={str(support_parity).lower()};',
              f'constexpr bool DIALECT_SUPPORT_NEWTON={str(support_newton).lower()};',
              f'constexpr bool DIALECT_PROMOTION_RETURN={str(promotion_return).lower()};',
              'static const DialectCell DIALECT_ALGEBRA[][3][256]={']
@@ -251,6 +254,7 @@ __device__ bool fuse_source_arm(const Word &arm_word,const Word &n,ResidentState
                'cofactor_feedback':cofactor_feedback,
                'support_newton':support_newton,
                'support_secant':support_secant,
+               'support_parity':support_parity,
                'promotion_return':promotion_return,
                'source_readout_boundary':'after transport; retained witnesses read without altering family',
                'resumed_from_sha256':parent_sha,
@@ -276,5 +280,6 @@ if __name__ == '__main__':
     parser.add_argument('--support-newton',action='store_true',help='advance the retained anchor by the N-bit support polynomial and derivative; fuse nonunits and split returns')
     parser.add_argument('--promotion-return',action='store_true',help='apply one kernel promotion axis to the carried exact fibre and retain its return certificate')
     parser.add_argument('--support-secant',action='store_true',help='advance the retained point using the source polynomial divided difference across its promotion displacement')
+    parser.add_argument('--support-parity',action='store_true',help='carry the corrected support word through correlated parity arms with exact retained interlace return before quotient feedback')
     args = parser.parse_args()
-    bake(args.source, args.output, args.kernel, args.keep_fibres, args.compose_idempotent, args.hop, args.product_frame,args.resume_return,args.resume_verification,args.cofactor_feedback,args.support_newton,args.promotion_return,args.support_secant)
+    bake(args.source, args.output, args.kernel, args.keep_fibres, args.compose_idempotent, args.hop, args.product_frame,args.resume_return,args.resume_verification,args.cofactor_feedback,args.support_newton,args.promotion_return,args.support_secant,args.support_parity)
