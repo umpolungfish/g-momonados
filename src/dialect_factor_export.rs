@@ -4,6 +4,23 @@ use crate::{algebra, dialect, dialect_expansion, imas_ig::IgTuple, tokens};
 use g_momonados::word_tape::WordTape;
 use serde_json::json;
 
+fn axis_slot(tuple: &mut IgTuple, axis: usize) -> &mut crate::imas_ig::IgPrim {
+    match axis {
+        0=>&mut tuple.d, 1=>&mut tuple.t, 2=>&mut tuple.r,
+        3=>&mut tuple.p, 4=>&mut tuple.f, 5=>&mut tuple.k,
+        6=>&mut tuple.g, 7=>&mut tuple.c, 8=>&mut tuple.phi,
+        9=>&mut tuple.h, 10=>&mut tuple.s, _=>&mut tuple.omega,
+    }
+}
+
+fn tuple_at(address: u32, base: IgTuple) -> IgTuple {
+    let mut result=base;
+    for (axis,index) in crate::crystal::decode(address).iter().enumerate() {
+        *axis_slot(&mut result,axis)=crate::axis_values::axis_values(axis)[*index as usize];
+    }
+    result
+}
+
 pub fn export(args: &[String]) -> Result<(), String> {
     if args.len() != 2 {
         return Err("dialect-factor-export N_ONLY_WORD_FILE OUTPUT_JSON".into());
@@ -62,10 +79,52 @@ pub fn export(args: &[String]) -> Result<(), String> {
             promotions.push(certificates);
         }
         let definition=&dialect_expansion::all_dialects()[u as usize];
+        // The live algebra is coordinatewise. Export its complete primitive
+        // domains so a later environment can act on an already transformed
+        // tuple, beyond the sixteen numeral-derived starting tuples.
+        let mut axis_operations = Vec::new();
+        for op in 0..3 {
+            let mut axes = Vec::new();
+            for axis in 0..12 {
+                let values=crate::axis_values::axis_values(axis);
+                let mut cells=Vec::new();
+                for &left in values { for &right in values {
+                    let mut a=target_tuple;
+                    let mut b=target_tuple;
+                    *axis_slot(&mut a,axis)=left;*axis_slot(&mut b,axis)=right;
+                    let (result,conflict)=match op {
+                        0=>{let r=algebra::meet_under(u,&a,&b);(r.tuple,r.conflicts[axis])},
+                        1=>{let r=algebra::join_under(u,&a,&b);(r.tuple,r.conflicts[axis])},
+                        _=>(algebra::tensor_under(u,&a,&b),false),
+                    };
+                    cells.push(json!([result.to_crystal_indices()[axis],conflict]));
+                }}
+                axes.push(cells);
+            }
+            axis_operations.push(axes);
+        }
+        let mut full_tuple_checks=Vec::new();
+        for op in 0..3 {
+            let mut checks=Vec::new();
+            for i in 0..64u32 {
+                let left=(i*104729+u as u32*7919)%crate::crystal::TOTAL;
+                let right=(i*130363+u as u32*15401+65537)%crate::crystal::TOTAL;
+                let a=tuple_at(left,target_tuple);let b=tuple_at(right,target_tuple);
+                let (result,conflicts)=match op {
+                    0=>{let r=algebra::meet_under(u,&a,&b);(r.tuple,r.conflicts)},
+                    1=>{let r=algebra::join_under(u,&a,&b);(r.tuple,r.conflicts)},
+                    _=>(algebra::tensor_under(u,&a,&b),[false;12]),
+                };
+                let mask=conflicts.iter().enumerate().fold(0u16,|m,(axis,&c)|m|((c as u16)<<axis));
+                checks.push(json!([left,right,result.crystal_address(),mask]));
+            }
+            full_tuple_checks.push(checks);
+        }
         tables.push(json!({"id":u,"name":dialect::dialect_name(u),
             "gates":dialect::dialect_gates(u),"absorption_source_name":definition.name,
             "input_addresses":tuples.iter().map(IgTuple::crystal_address).collect::<Vec<_>>(),
-            "operations":operations,"promotion_certificates":promotions}));
+            "operations":operations,"promotion_certificates":promotions,
+            "axis_operations":axis_operations,"full_tuple_checks":full_tuple_checks}));
     }
     let value=json!({"format":"resident-dialect-algebra-v1","source_word":source.as_word(),
         "source_bits":source.bit_len(),"crystal_radix":crate::crystal::TOTAL,

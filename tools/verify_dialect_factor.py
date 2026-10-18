@@ -61,12 +61,22 @@ def support_pair(n,x,y):
     return py,divided
 
 
-def verified_parent(data,tables,prepared):
+def verified_parent(data,tables,prepared,certificate=None):
     encoded=data.get('parent_return_gzip_hex','')
-    if not encoded:return None,0
+    if not encoded:
+        assert certificate is None, 'parent certificate supplied without a retained parent'
+        return None,0
     try:raw=gzip.decompress(bytes.fromhex(encoded));parent=json.loads(raw)
     except (ValueError,OSError) as error:raise AssertionError('invalid retained parent payload') from error
     assert hashlib.sha256(raw).hexdigest()==data['parent_return_sha256'], 'retained parent binding changed'
+    if certificate is not None:
+        assert certificate['receipt_sha256']==data['parent_return_sha256'], 'parent certificate binds a different return'
+        assert certificate['source_bits']==tables['source_bits'] and certificate['members']==parent['held']==len(parent['members']), 'parent certificate domain differs'
+        assert all(certificate[key] for key in ('preimage_and_source_recovery','exact_residuals','Y_and_banks_retained')), 'parent certificate lacks state recovery'
+        assert certificate['negative_controls'] and all(control['rejected'] for control in certificate['negative_controls'].values()), 'parent certificate lacks rejected altered-evidence controls'
+        assert not parent['closed'] and not certificate['closed_pairs'], 'cannot resume an already closed source'
+        assert parent['source_word']==tables['source_word'], 'parent certificate source differs'
+        return parent,0
     earlier,count=verified_parent(parent,tables,prepared)
     report=verify(parent,tables,prepared,prior=earlier)
     assert not parent['closed'], 'cannot resume an already closed source'
@@ -91,6 +101,7 @@ def verify(data, tables, prepared, partial=False, prior=None):
     radix = tables['crystal_radix'] * (256 if data.get('keep_fibres') else 1)
     distinct=set(); transitions=0; changed=0; closed=[];frames=units=frame_changes=point_updates=support_calls=support_reseeds=0;promotion_steps=promotion_changes=terminal_scanned=secant_calls=secant_changed=parity_splits=terminal_parity_checked=0
     previous={(m['dialect'],m['operation']):m for m in prior['members']} if prior else {}
+    environment_steps=environment_changes=0
     assert 3*len(tables['tables']) == data['held']
     if not partial:assert len(data['members']) == data['held']
     seen=set()
@@ -99,6 +110,9 @@ def verify(data, tables, prepared, partial=False, prior=None):
         assert (u,op) not in seen, 'duplicate dialect alternative'
         seen.add((u,op))
         baseline=previous.get((u,op),prepared)
+        environment=baseline.get('environment_coordinates',[])
+        if not data.get('environment_carry'):
+            assert not environment and not member.get('environment_coordinates'), 'carried environment state discarded'
         pending=[bank_value(word) for word in baseline.get('deferred_source_arms',[])]
         original=[bank_value(baseline['state'][i*width:(i+1)*width]) for i in range(14)]
         assert len(member['state']) == 14*width
@@ -135,6 +149,33 @@ def verify(data, tables, prepared, partial=False, prior=None):
                 coordinate=address*256+label if data.get('keep_fibres') else address
                 image=(image*radix+coordinate)%n
             assert rebuilt_n==n and rebuilt_e==e, 'source/preimage recovery failed'
+            promotion_inputs=step['addresses']
+            if data.get('environment_carry'):
+                environment_op=(op+baseline['receipt'][1]+index)%3 if data.get('mixed_environment_operations') else op
+                assert step.get('environment_operation',op)==environment_op, 'environment operation continuation changed'
+                assert step['environment_before']==environment, 'environment preimage changed'
+                cards=list(map(len,tables['axis_values']))
+                strides=[math.prod(cards[i+1:]) for i in range(12)]
+                transformed=[];environment_conflicts=0
+                if environment:
+                    assert len(environment)==count, 'environment coordinate count changed'
+                    for left,right in zip(environment,step['addresses']):
+                        address=0
+                        for axis,(card,stride) in enumerate(zip(cards,strides)):
+                            a=(left//stride)%card;b=(right//stride)%card
+                            cell=tables['tables'][target]['axis_operations'][environment_op][axis][a*card+b]
+                            address+=cell[0]*stride
+                            if cell[1]:environment_conflicts|=1<<axis
+                        transformed.append(address)
+                else:transformed=list(step['addresses'])
+                assert step['environment_after']==transformed, 'environment action changed'
+                assert step['environment_conflicts']==environment_conflicts, 'environment conflict evidence changed'
+                conflicts|=environment_conflicts
+                environment_steps+=1
+                environment_changes+=sum(a!=b for a,b in zip(transformed,step['addresses']))
+                promotion_inputs=transformed
+                image=0
+                for address,label in zip(transformed,step['labels']):image=(image*radix+address*256+label)%n
             unpromoted_image=image
             if data.get('promotion_return'):
                 axis=(baseline['receipt'][1]+index)%12
@@ -142,15 +183,16 @@ def verify(data, tables, prepared, partial=False, prior=None):
                 cards=[len(values) for values in tables['axis_values']]
                 stride=math.prod(cards[axis+1:])
                 target_index=tables['promotion_target_indices'][axis]
-                promoted=[address-(address//stride%cards[axis])*stride+target_index*stride for address in step['addresses']]
+                promoted=[address-(address//stride%cards[axis])*stride+target_index*stride for address in promotion_inputs]
                 assert step['promoted_addresses']==promoted, 'promotion certificate changed'
-                promotion_steps+=1;promotion_changes+=sum(a!=b for a,b in zip(step['addresses'],promoted))
+                promotion_steps+=1;promotion_changes+=sum(a!=b for a,b in zip(promotion_inputs,promoted))
                 image=0
                 for address,label in zip(promoted,step['labels']):
                     image=(image*radix+address*256+label)%n
-                for original_address,returned in zip(step['addresses'],promoted):
+                for original_address,returned in zip(promotion_inputs,promoted):
                     source_index=original_address//stride%cards[axis]
                     assert returned-target_index*stride+source_index*stride==original_address, 'promotion return lost source coordinate'
+            if data.get('environment_carry'):environment=list(step['promoted_addresses'] if data.get('promotion_return') else promotion_inputs)
             local_changes += image!=e;e=image;transitions+=1;exponent+=1
             expected_power=(2*e-1)%n;expected_complement=n+1-e
             def proper_gcd(value):
@@ -197,11 +239,12 @@ def verify(data, tables, prepared, partial=False, prior=None):
                     boundary=right if op==2 else left;parity=1 if op==1 else 0
                     proposal=parity_arm(boundary,parity,width)
                     if data.get('support_newton'):
-                        support_point=p
+                        support_origin=boundary if data.get('support_frame_point') else p
+                        support_point=support_origin
                         if data.get('promotion_return'):
-                            shift=(e-unpromoted_image)%n;support_point=(p+shift)%n
+                            shift=(e-unpromoted_image)%n;support_point=(support_origin+shift)%n
                             assert [bank_value(step[k]) for k in ('promotion_shift','promotion_point')]==[shift,support_point], 'promotion operand transport changed'
-                            assert (support_point-shift)%n==p
+                            assert (support_point-shift)%n==support_origin
                         value,derivative=support_polynomial(n,support_point)
                         assert step['support_evaluated'], 'source support evaluation lost'
                         assert [bank_value(step[k]) for k in ('support_value','support_derivative')]==[value,derivative], 'source support polynomial/derivative changed'
@@ -213,9 +256,9 @@ def verify(data, tables, prepared, partial=False, prior=None):
                                 if 1<candidate<n:tangent_proposal=candidate
                         denominator=derivative
                         if data.get('support_secant'):
-                            other,denominator=support_pair(n,support_point,p)
+                            other,denominator=support_pair(n,support_point,support_origin)
                             assert [bank_value(step[k]) for k in ('support_other_value','support_divided')]==[other,denominator], 'two-point support coefficient changed'
-                            assert (value-other-(support_point-p)*denominator)%n==0
+                            assert (value-other-(support_point-support_origin)*denominator)%n==0
                         support_unit=math.gcd(denominator,n)==1
                         assert step['support_unit']==support_unit, 'source support coefficient inverse differs'
                         probes=[math.gcd(x,n) for x in (derivative,value,(support_point-2)%n)]
@@ -304,6 +347,8 @@ def verify(data, tables, prepared, partial=False, prior=None):
                 if 'anchor_left' in returned_frame:
                     assert bank_value(returned_frame['anchor_left'])==anchor_left and bank_value(returned_frame['anchor_right'])==anchor_right, 'carried product point changed'
         receipt=member['receipt'];steps=len(member['ancestry'])
+        if data.get('environment_carry'):
+            assert member['environment_coordinates']==environment, 'returned environment state changed'
         for field in (0,1,2):
             assert receipt[field]==baseline['receipt'][field]+steps, 'Y/bind/SIC counter mismatch'
         # A successful algebra-image fuse can return before the second SIC.
@@ -349,7 +394,7 @@ def verify(data, tables, prepared, partial=False, prior=None):
             'state_changes':changed,'distinct_returned_candidates':len(distinct),
             'preimage_and_source_recovery':True,'exact_residuals':True,
             'Y_and_banks_retained':True,'closed_pairs':closed,'product_frames_checked':frames,
-            'unit_product_frames':units,'changed_product_frames':frame_changes,'product_point_updates':point_updates,'support_evaluations':support_calls,'support_reseeds':support_reseeds,'promotion_steps':promotion_steps,'promotion_changed_coordinates':promotion_changes,'terminal_witnesses_checked':terminal_scanned,'two_point_support_evaluations':secant_calls,'two_point_changed_operand_updates':secant_changed,'support_parity_splits':parity_splits,'terminal_support_parity_returns_checked':terminal_parity_checked}
+            'unit_product_frames':units,'changed_product_frames':frame_changes,'product_point_updates':point_updates,'support_evaluations':support_calls,'support_reseeds':support_reseeds,'promotion_steps':promotion_steps,'promotion_changed_coordinates':promotion_changes,'terminal_witnesses_checked':terminal_scanned,'two_point_support_evaluations':secant_calls,'two_point_changed_operand_updates':secant_changed,'support_parity_splits':parity_splits,'terminal_support_parity_returns_checked':terminal_parity_checked,'environment_steps':environment_steps,'environment_changed_coordinates':environment_changes}
 
 
 def verify_promotion_tables(tables):
@@ -373,27 +418,61 @@ def verify_promotion_tables(tables):
     return checked
 
 
+def verify_environment_tables(tables):
+    cards=list(map(len,tables['axis_values']))
+    strides=[math.prod(cards[i+1:]) for i in range(12)]
+    checked=0
+    for dialect in tables['tables']:
+        if 'axis_operations' not in dialect:continue
+        for op,axes in enumerate(dialect['axis_operations']):
+            assert len(axes)==12
+            for card,cells in zip(cards,axes):
+                assert len(cells)==card*card and all(0<=cell[0]<card and isinstance(cell[1],bool) for cell in cells), 'environment primitive domain changed'
+            for i,left in enumerate(dialect['input_addresses']):
+                for j,right in enumerate(dialect['input_addresses']):
+                    address=conflicts=0
+                    for axis,(card,stride) in enumerate(zip(cards,strides)):
+                        cell=axes[axis][(left//stride%card)*card+right//stride%card]
+                        address+=cell[0]*stride
+                        if cell[1]:conflicts|=1<<axis
+                    assert [address,conflicts]==dialect['operations'][op][16*i+j][:2], 'full-domain environment algebra differs from native tuple operation'
+                    checked+=1
+            for left,right,expected,expected_conflicts in dialect.get('full_tuple_checks',[[],[],[]])[op]:
+                address=conflicts=0
+                for axis,(card,stride) in enumerate(zip(cards,strides)):
+                    cell=axes[axis][(left//stride%card)*card+right//stride%card]
+                    address+=cell[0]*stride
+                    if cell[1]:conflicts|=1<<axis
+                assert (address,conflicts)==(expected,expected_conflicts), 'environment algebra differs on full native tuples'
+                checked+=1
+    return checked
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('project',type=Path)
     parser.add_argument('receipt',type=Path)
     parser.add_argument('output',type=Path)
     parser.add_argument('--negative-controls',action='store_true')
+    parser.add_argument('--parent-verification',type=Path,help='reuse an independently replayed parent certificate after verifying the complete embedded parent hash; replay all new arrows')
     args=parser.parse_args()
     tables=json.loads((args.project/'dialect_tables.json').read_text())
     prepared=json.loads((args.project/'prepared.json').read_text())
+    parent_certificate=json.loads(args.parent_verification.read_text()) if args.parent_verification else None
     promotion_table_cells=verify_promotion_tables(tables) if 'promotion_target_indices' in tables else 0
+    environment_table_checks=verify_environment_tables(tables)
     control_member=None
     if args.receipt.stat().st_size>128*1024*1024:
         with args.receipt.open('rb') as stream,mmap.mmap(stream.fileno(),0,access=mmap.ACCESS_READ) as raw:
             marker=b',"members":[';position=raw.find(marker)
             assert position>=0, 'missing member array'
             data=json.loads(raw[:position]+b'}');position+=len(marker)
-            prior,parent_count=verified_parent(data,tables,prepared)
+            prior,parent_count=verified_parent(data,tables,prepared,parent_certificate)
             result={'source_bits':tables['source_bits'],'members':0,'transitions_checked':0,
                     'state_changes':0,'preimage_and_source_recovery':True,'exact_residuals':True,
                     'Y_and_banks_retained':True,'closed_pairs':[], 'product_frames_checked':0,
                     'unit_product_frames':0,'changed_product_frames':0,'product_point_updates':0,'support_evaluations':0,'support_reseeds':0,'promotion_steps':0,'promotion_changed_coordinates':0,'terminal_witnesses_checked':0,'two_point_support_evaluations':0,'two_point_changed_operand_updates':0,'support_parity_splits':0,'terminal_support_parity_returns_checked':0,'parent_transitions_checked':parent_count}
+            result.update(environment_steps=0,environment_changed_coordinates=0)
             identities=set();candidates=set()
             while position<raw.size()-3:
                 next_position=raw.find(b',{"dialect":',position)
@@ -404,6 +483,7 @@ def main():
                 identities.add((member['dialect'],member['operation']))
                 local=verify(dict(data,members=[member]),tables,prepared,partial=True,prior=prior)
                 for key in ('members','transitions_checked','state_changes','product_frames_checked','unit_product_frames','changed_product_frames','product_point_updates','support_evaluations','support_reseeds','promotion_steps','promotion_changed_coordinates','terminal_witnesses_checked','two_point_support_evaluations','two_point_changed_operand_updates','support_parity_splits','terminal_support_parity_returns_checked'):result[key]+=local[key]
+                for key in ('environment_steps','environment_changed_coordinates'):result[key]+=local[key]
                 result['closed_pairs']+=local['closed_pairs']
                 candidates.add(bank_value(member['state'][:tables['source_bits']+10]))
                 if next_position<0:break
@@ -416,7 +496,7 @@ def main():
     else:
         data=json.loads(args.receipt.read_text())
         control_member=data['members'][0]
-        prior,parent_count=verified_parent(data,tables,prepared)
+        prior,parent_count=verified_parent(data,tables,prepared,parent_certificate)
         result=verify(data,tables,prepared,prior=prior);result['parent_transitions_checked']=parent_count
     if args.negative_controls:
         controls={
@@ -438,6 +518,16 @@ def main():
             for field in ('support_corrected','support_split_left','support_split_right'):
                 controls['altered_'+field]=lambda d,field=field:d['members'][0]['ancestry'][0][field].__setitem__(0,8 if d['members'][0]['ancestry'][0][field][0]==9 else 9)
             controls['lost_support_parity_return']=lambda d:d['members'][0]['ancestry'][0].__setitem__('support_split',False)
+        if data.get('support_frame_point'):
+            controls['lost_frame_support_origin']=lambda d:d.__setitem__('support_frame_point',False)
+        if data.get('environment_carry'):
+            controls['lost_environment_carry']=lambda d:d.__setitem__('environment_carry',False)
+            if data.get('mixed_environment_operations'):
+                controls['altered_environment_operation']=lambda d:d['members'][0]['ancestry'][0].__setitem__('environment_operation',(d['members'][0]['ancestry'][0]['environment_operation']+1)%3)
+                controls['lost_mixed_environment_operations']=lambda d:d.__setitem__('mixed_environment_operations',False)
+            controls['altered_environment_preimage']=lambda d:d['members'][0]['ancestry'][0]['environment_before'].append(0)
+            controls['altered_environment_action']=lambda d:d['members'][0]['ancestry'][0]['environment_after'].__setitem__(0,(d['members'][0]['ancestry'][0]['environment_after'][0]+1)%tables['crystal_radix'])
+            controls['altered_returned_environment']=lambda d:d['members'][0]['environment_coordinates'].__setitem__(0,(d['members'][0]['environment_coordinates'][0]+1)%tables['crystal_radix'])
         if data.get('terminal_only_frame_recovery'):
             controls['inflight_frame_recovery']=lambda d:d['members'][0]['ancestry'][0].__setitem__('frame_checked',True)
         if data.get('terminal_only_source_readout'):
@@ -457,6 +547,15 @@ def main():
             except AssertionError as error:result['negative_controls'][name]={'rejected':True,'reason':str(error)}
             else:raise AssertionError('negative control accepted: '+name)
     if promotion_table_cells:result['promotion_table_cells_checked']=promotion_table_cells
+    if environment_table_checks:result['environment_table_checks']=environment_table_checks
+    if parent_certificate is not None:
+        result['parent_verification_reused']={
+            'certificate':str(args.parent_verification),
+            'certificate_sha256':hashlib.sha256(args.parent_verification.read_bytes()).hexdigest(),
+            'receipt_sha256':parent_certificate['receipt_sha256'],
+            'transitions_checked_in_parent_certificate':parent_certificate['transitions_checked'],
+            'parent_transitions_checked_in_parent_certificate':parent_certificate['parent_transitions_checked'],
+            'boundary':'complete parent bytes hash-checked; parent arrows use their prior independent replay; all new arrows replayed here'}
     digest=hashlib.sha256()
     with args.receipt.open('rb') as stream:
         for chunk in iter(lambda:stream.read(1024*1024),b''):digest.update(chunk)
