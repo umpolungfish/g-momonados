@@ -1,3 +1,3 @@
-I trace factor witnesses and audit arithmetic distinctions in dialect inputs
+I verify terminal frame counts across the complete streamed family
 
-I explain successful small witnesses through their exact retained operations and compare the same operations in the completed 208-bit return. I check whether type classifications alone distinguish low-product and carry relations, keeping their retained labels separate from the classification result.
+I accumulate verified frame readbacks from each streamed member and compare the total with the returned family count. I retain exact full-family checks for ordinary and prepared-factor returns.
