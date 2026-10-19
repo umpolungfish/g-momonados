@@ -6,12 +6,13 @@ import gzip
 import json
 from pathlib import Path
 import struct
+from packed_relational_return import mapped,file_digest
 
 
-def audit(directory, report, ops, cells):
+def audit(directory, report, ops, cells,states=None):
     binding=json.loads((directory/'binding.json').read_text())
     for name,expected in binding['correlated_artifacts'].items():
-        if hashlib.sha256((directory/name).read_bytes()).hexdigest()!=expected:
+        if file_digest(directory/name)!=expected:
             raise ValueError('changed correlated artifact: '+name)
     native=json.loads((directory/'native_arithmetic.json').read_text())
     from compile_native_arithmetic_bridge import compile_bridge
@@ -33,7 +34,7 @@ def audit(directory, report, ops, cells):
                              for a,b in zip(types[kind],gate['stages'][0]['right'])]
         if saved['native_steps']!=steps or saved['native_types']!=types:
             raise ValueError('returned native tuple bank differs from its executed rule continuation')
-    raw=(directory/'correlated.topology').read_bytes()
+    raw=mapped(directory/'correlated.topology')
     nf,np,nt=struct.unpack_from('<QQQ',raw);at=24;templates=[]
     for _ in range(nt):
         width,count=raw[at:at+2];at+=2
@@ -71,10 +72,11 @@ def audit(directory, report, ops, cells):
     if gates!=expected_gates:raise ValueError('native arithmetic frame omitted or reordered')
     pair_start=at
     if pair_start+16*np!=len(raw):raise ValueError('correlated topology has trailing or missing bytes')
-    prepared=(directory/'correlated.cells').read_bytes()
+    prepared=mapped(directory/'correlated.cells') if states is None else states[0]
     saved=report['resident_dialect']
-    current=(gzip.decompress(bytes.fromhex(saved['state_gzip_hex'])) if 'state_gzip_hex' in saved
-             else bytes.fromhex(saved['state_hex']))
+    current=states[1] if states is not None else (
+        gzip.decompress(bytes.fromhex(saved['state_gzip_hex'])) if 'state_gzip_hex' in saved
+        else bytes.fromhex(saved['state_hex']))
     if len(prepared)!=nf+8*np or len(current)!=len(prepared):raise ValueError('correlated state dimensions changed')
     if any(a&~b for a,b in zip(current,prepared)):raise ValueError('returned correlations exceeded prepared alternatives')
     for i,t in enumerate(template_ids):

@@ -16,7 +16,8 @@ TABLES=Path('/mnt/d/imsgct-progress/artifacts/dialect_small_controls_fixed_20261
 NATIVE=Path('/mnt/d/imsgct-progress/artifacts/imasm_type_bridge_current_20261018/execution.json')
 
 
-def run(stage,base):
+def run(stage,base,product=False,parent_return=None):
+    if stage=='audit':audit_output(base);return
     from verify_dialect_factor import numeral_word
     if stage=='control':
         from sympy import isprime
@@ -39,13 +40,31 @@ def run(stage,base):
         resume=base/'fresh208/return.json'
     else:
         source=ROOT/'G-mOMonadOS/measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm'
-        output=base/'locked512';seconds=300;resume=None
+        output=base/'locked512';seconds=300;resume=parent_return
     command=[sys.executable,str(TOOLS/'bake_relational_imasm_bridge.py'),str(source),str(output),
              '--tables',str(TABLES),'--native-bridges',str(NATIVE),'--joint-cells','--resident-dialects',
              '--seconds',str(seconds)]
     if resume:command+=['--resume',str(resume)]
+    if product:command+=['--source-product-return']
     subprocess.run(command,check=True)
-    subprocess.run([sys.executable,str(TOOLS/'verify_relational_imasm_bridge.py'),str(output),str(output/'verification.json')],check=True)
+    audit_output(output,stage)
+
+
+def audit_output(output,stage='audit'):
+    from packed_relational_return import file_digest
+    certificate=output/'verification.json'
+    if not certificate.exists():
+        subprocess.run([sys.executable,str(TOOLS/'verify_relational_imasm_bridge.py'),str(output),str(certificate)],check=True)
+    else:
+        verified=json.loads(certificate.read_text());binding=json.loads((output/'binding.json').read_text())
+        for filename,key in [('source.imasm','source_sha256'),('membrane','executable_sha256'),
+                             ('return.json','return_sha256'),('relation.ops','relation_sha256'),
+                             ('register.cells','prepared_register_sha256'),('relation.cells','joint_cells_sha256'),
+                             ('cell.rows','native_cell_rows_sha256')]:
+            if file_digest(output/filename)!=binding[key]:raise ValueError('changed previously verified artifact')
+        for filename,expected in binding.get('correlated_artifacts',{}).items():
+            if file_digest(output/filename)!=expected:raise ValueError('changed previously verified joint bank')
+        if verified['return_sha256']!=binding['return_sha256']:raise ValueError('verification binds another return')
     # Altered native rule banks and changed packed continuation bytes must be
     # rejected by the same independent audit that accepts the original.
     from verify_relational_imasm_bridge import verify
@@ -67,11 +86,40 @@ def run(stage,base):
         except (ValueError,AssertionError,IndexError,KeyError):negative.append({'control':label,'rejected':True})
         else:raise ValueError('altered resident evidence was accepted: '+label)
     (output/'negative_controls.json').write_text(json.dumps(negative,indent=2)+'\n')
+    if original.get('source_product_return') is not None:
+        from audit_resident_product_return import audit
+        from verify_dialect_factor import numeral,numeral_word
+        product_negative=[]
+        for label in ('native_quotient_return','possible_lane_removed'):
+            changed=copy.deepcopy(original);item=changed['source_product_return']['banks'][-1]
+            if label=='native_quotient_return':
+                entry=item['bank']['quotient_returns'][0];entry['remainder']=numeral_word(numeral(entry['remainder'])+1)
+            else:
+                bit=next(i for i,v in enumerate(item['p_after']) if v==3);item['p_after'][bit]=0
+            try:audit(output,changed)
+            except ValueError as error:product_negative.append({'control':label,'rejected':True,'reason':str(error)})
+            else:raise ValueError('changed source product return was accepted')
+        (output/'product_negative_controls.json').write_text(json.dumps(product_negative,indent=2)+'\n')
+    if original.get('prepared_dependency_incidence'):
+        import struct
+        from packed_relational_return import PackedRecords
+        from audit_resident_readers import audit as audit_readers
+        raw=bytearray((output/'reader.index').read_bytes());wires=struct.unpack_from('<Q',raw)[0]
+        struct.pack_into('<Q',raw,8+8*(wires+1),0)
+        binding=json.loads((output/'binding.json').read_text())
+        ops=PackedRecords(output/'relation.ops','<IIII')
+        cells=list(struct.iter_unpack('<IIIII',(output/'relation.cells').read_bytes()))
+        try:audit_readers(output,original,binding,ops,cells,raw)
+        except ValueError as error:reader_negative=[{'control':'wrong_dependency_incidence','rejected':True,'reason':str(error)}]
+        else:raise ValueError('wrong source dependency incidence was accepted')
+        (output/'reader_negative_controls.json').write_text(json.dumps(reader_negative,indent=2)+'\n')
     print(json.dumps({'stage':stage,'directory':str(output),'negative_controls':negative}))
 
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('stage',choices=['control','resume','locked'])
+    p.add_argument('stage',choices=['control','resume','locked','audit'])
     p.add_argument('--output',type=Path,default=Path('/mnt/d/imsgct-progress/artifacts/resident_dialect_integration_20261018'))
-    args=p.parse_args();run(args.stage,args.output)
+    p.add_argument('--source-product-return',action='store_true')
+    p.add_argument('--parent-return',type=Path)
+    args=p.parse_args();run(args.stage,args.output,args.source_product_return,args.parent_return)
