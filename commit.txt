@@ -1,3 +1,3 @@
-I execute native dialect composition on joint arithmetic port objects
+I preserve tuple coordinates when restoring dialect continuations
 
-I carry source-bound rows, live operand types, native type-program edge banks and shared wire topology across dialect compositions. I exercise all 88 dialects, transform the complete 208-bit and locked 512-bit relation networks, and resume the saved state through U67. I bind continuations by hash and reject changed returns.
+I normalize restored JSON arrays before comparing semantic type changes. The 208-bit and locked 512-bit returned bytes remain identical; seven type banks and nine terminal banks change under U67.
