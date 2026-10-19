@@ -128,6 +128,35 @@ class TypedJointRelation:
         self.ports = tuple(self.ports)
         self.types = [[tuple(port) for port in row] for row in self.types]
 
+    def observation(self, row, ports):
+        """Read a joint positioned observation without splitting its alternatives."""
+        indices = [self.ports.index(port) for port in ports]
+        return tuple((self.types[row][i], tuple(self.rows[row][i])) for i in indices)
+
+    def pullback(self, ports, observations, supports):
+        """Return the complete source fibre of a set of joint observations.
+
+        Supports are resident arithmetic masks in this relation's port order.
+        Observations must come from an executing readout or constraint, never a
+        chosen row identifier. Equal images retain every compatible ancestor.
+        An empty fibre is a contradiction, not the identity continuation.
+        """
+        ports = tuple(ports)
+        if len(set(ports)) != len(ports) or not ports:
+            raise ValueError('observation requires distinct bound ports')
+        if len(supports) != len(self.ports) or any(v not in (0, 1, 2, 3) for v in supports):
+            raise ValueError('invalid resident arithmetic supports')
+        allowed = set(observations)
+        selected = [i for i, origin in enumerate(self.origins)
+                    if all(value & support for value, support in zip(origin, supports))
+                    and self.observation(i, ports) in allowed]
+        projected = [0] * len(self.ports)
+        for i in selected:
+            for j, value in enumerate(self.origins[i]):
+                projected[j] |= value
+        return {'row_ids': selected, 'supports': projected,
+                'contradiction': not selected}
+
     @classmethod
     def arithmetic(cls, source_word, ports, rows, rules):
         if not source_word or len(set(ports)) != len(ports):
