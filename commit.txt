@@ -1,3 +1,5 @@
-I preserve tuple coordinates when restoring dialect continuations
+I execute native dialect arithmetic on retained source relations
 
-I normalize restored JSON arrays before comparing semantic type changes. The 208-bit and locked 512-bit returned bytes remain identical; seven type banks and nine terminal banks change under U67.
+I connect certified successive native tuple returns to the resident factor/product/carry engine. I retain complete arithmetic row and shared-wire pair masks through propagation, rollback, nested banks and static continuation.
+
+I preserve source-only preparation and terminal readout, pack large continuations, snapshot bound compiler sources, and add independent topology, rule-sensitivity and prepared-orientation instruments. I record the fresh 208-bit control/resume, audited locked 512-bit bounded return, and Vox module execution boundary.

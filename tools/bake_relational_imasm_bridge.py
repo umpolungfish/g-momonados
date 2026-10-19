@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import time
+import os
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -88,6 +89,8 @@ def main():
     p.add_argument('--seconds', type=int, default=5)
     p.add_argument('--resume', type=Path)
     p.add_argument('--joint-cells', action='store_true')
+    p.add_argument('--nested-reentry', action='store_true')
+    p.add_argument('--resident-dialects', action='store_true')
     args = p.parse_args()
     if args.seconds <= 0:
         raise ValueError('positive bounded execution required')
@@ -98,6 +101,10 @@ def main():
     hops, provenance = bridges(args.tables, args.native_bridges)
     (out / 'source.imasm').write_text(source + '\n')
     (out / 'bridge_provenance.json').write_text(json.dumps(provenance, indent=2, ensure_ascii=False) + '\n')
+    if args.resident_dialects:
+        from compile_native_arithmetic_bridge import compile_bridge
+        (out / 'native_arithmetic.json').write_text(json.dumps(
+            compile_bridge(args.tables,args.native_bridges),indent=2)+'\n')
     rust_hops = '[' + ','.join('[' + ','.join(map(str, hop)) + ']' for hop in hops) + ']'
     imports = '#![allow(dead_code)]\nextern crate alloc;\n'
     modules = {'vox': ROOT / 'Vox/src/vox.rs',
@@ -110,6 +117,14 @@ def main():
     for name, path in modules.items():
         imports += f'#[path={json.dumps(str(path))}] mod {name};\n'
     source_hashes = {str(path): digest(path) for path in [Path(__file__), *modules.values()]}
+    for name in ['resident_dialect_relations.rs','compile_native_arithmetic_bridge.py','relational_dialect.py']:
+        path=Path(__file__).with_name(name)
+        source_hashes[str(path)]=digest(path)
+    snapshot=out/'source_snapshot'
+    snapshot.mkdir()
+    for index,path in enumerate(source_hashes):
+        shutil.copyfile(path,snapshot/f'{index:02d}_{Path(path).name}')
+    native_program='Some(include_str!('+json.dumps(str(out/'native_arithmetic.json'))+'))' if args.resident_dialects else 'None'
     imports += f'const HOPS:[[u8;16];{len(hops)}]={rust_hops};\n'
     imports += f'const SOURCE:&str=include_str!({json.dumps(str(out / "source.imasm"))});\n'
     (out / 'src').mkdir()
@@ -122,6 +137,7 @@ edition="2021"
 num-bigint="0.4"
 num-traits="0.2"
 serde_json="1"
+flate2="1"
 [profile.release]
 opt-level=3
 '''
@@ -146,6 +162,13 @@ opt-level=3
                 raise ValueError('resume source relation/prepared bank changed')
         if report['source_word'] != source or report['status'] != 'held':
             raise ValueError('resume requires the same open N-only relation')
+        if args.resident_dialects:
+            if report.get('resident_dialect') is None:
+                raise ValueError('resident dialect resumption needs a correlated parent')
+            if (parent/'native_arithmetic.json').read_bytes() != (out/'native_arithmetic.json').read_bytes():
+                raise ValueError('native arithmetic program changed at continuation')
+            for name in ['correlated.cells','correlated.topology','correlated_prepared.json']:
+                (out/name).symlink_to(parent/name)
         if json.loads((parent / 'bridge_provenance.json').read_text()) != provenance:
             raise ValueError('resume bridge provenance differs')
         for name in ['relation.ops', 'register.cells', 'prepared.json']:
@@ -159,17 +182,19 @@ opt-level=3
             subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
         subprocess.run([str(binary)], check=True, capture_output=True)
     else:
-        main_path.write_text(imports + 'fn main(){bridge_engine::prepare(SOURCE,std::path::Path::new('
+        main_path.write_text(imports + 'fn main(){bridge_engine::prepare_resident(SOURCE,std::path::Path::new('
                              + json.dumps(str(out)) + '),HOPS.to_vec(),'
-                             + str(args.joint_cells).lower() + ');}\n')
+                             + str(args.joint_cells).lower() + ',' + native_program + ');}\n')
         with (out / 'preparation_build.log').open('wb') as log:
             subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
         subprocess.run([str(binary)], check=True, capture_output=True)
-    main_path.write_text(imports + 'fn main(){let report=bridge_engine::execute(SOURCE,include_bytes!('
+    native_bank='Some((include_str!('+json.dumps(str(out/'native_arithmetic.json'))+'),include_bytes!('+json.dumps(str(out/'correlated.topology'))+') as &[u8],include_bytes!('+json.dumps(str(out/'correlated.cells'))+') as &[u8]))' if args.resident_dialects else 'None'
+    main_path.write_text(imports + 'fn main(){let report=bridge_engine::execute_resident(SOURCE,include_bytes!('
                          + json.dumps(str(out / 'relation.ops')) + '),include_bytes!('
                          + json.dumps(str(out / 'register.cells')) + f'),HOPS.to_vec(),{args.seconds},{resumed},include_bytes!('
                          + json.dumps(str(out / 'relation.cells')) + '),include_bytes!('
-                         + json.dumps(str(out / 'cell.rows')) + '));'
+                         + json.dumps(str(out / 'cell.rows')) + '),'
+                         + str(args.nested_reentry).lower() + ',' + native_bank + ');'
                          + 'println!("{}",report);}\n')
     with (out / 'execution_build.log').open('wb') as log:
         subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
@@ -177,14 +202,26 @@ opt-level=3
     executable = out / 'membrane'
     shutil.move(binary, executable)
     compiled = time.monotonic() - started
+    triggered=time.monotonic();first_byte=None;terminal_bytes=0
     with (out / 'return.json').open('wb') as log, (out / 'execution.stderr').open('wb') as err:
-        subprocess.run([str(executable)], stdout=log, stderr=err, check=True)
+        with subprocess.Popen([str(executable)],stdout=subprocess.PIPE,stderr=err) as child:
+            while True:
+                block=os.read(child.stdout.fileno(),1024*1024)
+                if not block:break
+                if first_byte is None:first_byte=time.monotonic()-triggered
+                log.write(block);terminal_bytes+=len(block)
+            if child.wait()!=0:raise subprocess.CalledProcessError(child.returncode,[str(executable)])
+    process_lifetime=time.monotonic()-triggered
     report = json.loads((out / 'return.json').read_text())
     if any(digest(Path(path)) != expected for path, expected in source_hashes.items()):
         raise ValueError('compiler/interpreter source changed during bake or execution')
+    native_bindings={name:digest(out/name) for name in ['native_arithmetic.json','correlated.cells','correlated.topology','correlated_prepared.json']} if args.resident_dialects else {}
     (out / 'binding.json').write_text(json.dumps({
+        'correlated_artifacts':native_bindings,
         'source_sha256': digest(out / 'source.imasm'), 'executable_sha256': digest(executable),
         'return_sha256': digest(out / 'return.json'), 'compilation_seconds': compiled,
+        'first_stdout_byte_seconds':first_byte,'process_lifetime_seconds':process_lifetime,
+        'terminal_record_bytes':terminal_bytes,
         'relation_sha256': digest(out / 'relation.ops'), 'prepared_register_sha256': digest(out / 'register.cells'),
         'joint_cells_sha256': digest(out / 'relation.cells'), 'native_cell_rows_sha256': digest(out / 'cell.rows'),
         'sources': source_hashes, 'parent_return_sha256': digest(args.resume) if args.resume else None,
