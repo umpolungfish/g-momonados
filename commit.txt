@@ -1,3 +1,3 @@
-I verify terminal frame counts across the complete streamed family
+I lift native IMASM morphisms over joint arithmetic relations
 
-I accumulate verified frame readbacks from each streamed member and compare the total with the returned family count. I retain exact full-family checks for ordinary and prepared-factor returns.
+I retain source words, shared port identities and complete row ancestry through native graph execution and successive environments. I verify full-carrier agreement and exercise the lift on the actual prepared 208-bit joint cells.
