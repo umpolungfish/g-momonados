@@ -222,3 +222,71 @@ class TypedJointRelation:
                                'ports': [left_port, right_port, output_port],
                                'rows': observations})
         return result
+
+
+@dataclass
+class FusedJointRelation:
+    """Resident pair relation, including correlations invisible in projections."""
+    left: TypedJointRelation
+    right: TypedJointRelation
+    shared: tuple
+    pairs: list
+    history: list
+
+    def __post_init__(self):
+        if isinstance(self.left, dict):
+            self.left = TypedJointRelation(**self.left)
+        if isinstance(self.right, dict):
+            self.right = TypedJointRelation(**self.right)
+        self.shared = tuple(tuple(binding) for binding in self.shared)
+        self.pairs = [tuple(pair) for pair in self.pairs]
+        if self.left.source_word != self.right.source_word:
+            raise ValueError('resident fusion changed source')
+        if len(set(self.pairs)) != len(self.pairs):
+            raise ValueError('resident fusion has duplicate ancestry pairs')
+        indices = [(self.left.ports.index(a), self.right.ports.index(b)) for a, b in self.shared]
+        if not indices:
+            raise ValueError('resident fusion has no shared binding')
+        for i, j in self.pairs:
+            if not (0 <= i < len(self.left.rows) and 0 <= j < len(self.right.rows)):
+                raise ValueError('resident fusion has an invalid ancestry pair')
+            if any(self.left.origins[i][a] != self.right.origins[j][b] for a, b in indices):
+                raise ValueError('resident pair violates its shared source binding')
+
+    @classmethod
+    def connect(cls, left, right, shared, supports, other_supports):
+        fused = left.fuse_shared(right, shared, supports, other_supports)
+        return cls(deepcopy(left), deepcopy(right), tuple(shared), fused['pairs'], [])
+
+    def compose_into(self, side, rules, dialect, operation, left_port, right_port, output_port):
+        if side not in ('left', 'right'):
+            raise ValueError('unknown resident frame')
+        result = deepcopy(self)
+        changed = getattr(self, side).compose_into(
+            rules, dialect, operation, left_port, right_port, output_port)
+        setattr(result, side, changed)
+        result.history.append({'operator': 'compose', 'side': side, 'dialect': dialect,
+                               'operation': operation, 'ports': [left_port, right_port, output_port]})
+        return result
+
+    def restrict(self, left_ports, right_ports, observations):
+        """Constrain current JOINT observations; never rebuild from marginals."""
+        allowed = set(observations)
+        result = deepcopy(self)
+        result.pairs = [(i, j) for i, j in self.pairs
+                        if (self.left.observation(i, left_ports),
+                            self.right.observation(j, right_ports)) in allowed]
+        result.history.append({'operator': 'observe', 'left_ports': list(left_ports),
+                               'right_ports': list(right_ports),
+                               'before_pairs': len(self.pairs), 'after_pairs': len(result.pairs)})
+        return result
+
+    def supports(self):
+        left = [0] * len(self.left.ports)
+        right = [0] * len(self.right.ports)
+        for i, j in self.pairs:
+            for k, value in enumerate(self.left.origins[i]):
+                left[k] |= value
+            for k, value in enumerate(self.right.origins[j]):
+                right[k] |= value
+        return left, right
