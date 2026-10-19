@@ -122,6 +122,12 @@ class TypedJointRelation:
     types: list
     history: list
 
+    def __post_init__(self):
+        # JSON returns arrays; normalize their representation before measuring
+        # semantic type changes across an executable continuation.
+        self.ports = tuple(self.ports)
+        self.types = [[tuple(port) for port in row] for row in self.types]
+
     @classmethod
     def arithmetic(cls, source_word, ports, rows, rules):
         if not source_word or len(set(ports)) != len(ports):
