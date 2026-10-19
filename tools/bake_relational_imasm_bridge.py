@@ -86,14 +86,15 @@ def main():
     p.add_argument('output', type=Path)
     p.add_argument('--tables', required=True, type=Path)
     p.add_argument('--native-bridges', required=True, type=Path)
-    p.add_argument('--seconds', type=int, default=5)
+    p.add_argument('--seconds', type=int, default=0, help='0 runs until factor production or external termination')
     p.add_argument('--resume', type=Path)
     p.add_argument('--joint-cells', action='store_true')
     p.add_argument('--nested-reentry', action='store_true')
     p.add_argument('--resident-dialects', action='store_true')
+    p.add_argument('--source-product-return', action='store_true')
     args = p.parse_args()
-    if args.seconds <= 0:
-        raise ValueError('positive bounded execution required')
+    if args.seconds < 0:
+        raise ValueError('seconds must be nonnegative; 0 disables the production deadline')
     started = time.monotonic()
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
@@ -117,7 +118,7 @@ def main():
     for name, path in modules.items():
         imports += f'#[path={json.dumps(str(path))}] mod {name};\n'
     source_hashes = {str(path): digest(path) for path in [Path(__file__), *modules.values()]}
-    for name in ['resident_dialect_relations.rs','compile_native_arithmetic_bridge.py','relational_dialect.py']:
+    for name in ['resident_dialect_relations.rs','resident_product_return.rs','resident_reader_index.rs','resident_evidence_store.rs','compile_native_arithmetic_bridge.py','relational_dialect.py']:
         path=Path(__file__).with_name(name)
         source_hashes[str(path)]=digest(path)
     snapshot=out/'source_snapshot'
@@ -137,6 +138,7 @@ edition="2021"
 num-bigint="0.4"
 num-traits="0.2"
 serde_json="1"
+serde="1"
 flate2="1"
 [profile.release]
 opt-level=3
@@ -169,6 +171,9 @@ opt-level=3
                 raise ValueError('native arithmetic program changed at continuation')
             for name in ['correlated.cells','correlated.topology','correlated_prepared.json']:
                 (out/name).symlink_to(parent/name)
+        if args.source_product_return:
+            if (parent/'product.prepared.json').exists():(out/'product.prepared.json').symlink_to(parent/'product.prepared.json')
+            else:(out/'product.prepared.json').write_text('{"banks":[],"visits":0,"contractions":0}\n')
         if json.loads((parent / 'bridge_provenance.json').read_text()) != provenance:
             raise ValueError('resume bridge provenance differs')
         for name in ['relation.ops', 'register.cells', 'prepared.json']:
@@ -182,19 +187,21 @@ opt-level=3
             subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
         subprocess.run([str(binary)], check=True, capture_output=True)
     else:
-        main_path.write_text(imports + 'fn main(){bridge_engine::prepare_resident(SOURCE,std::path::Path::new('
+        main_path.write_text(imports + 'fn main(){bridge_engine::prepare_with_product(SOURCE,std::path::Path::new('
                              + json.dumps(str(out)) + '),HOPS.to_vec(),'
-                             + str(args.joint_cells).lower() + ',' + native_program + ');}\n')
+                             + str(args.joint_cells).lower() + ',' + native_program + ','+str(args.source_product_return).lower()+');}\n')
         with (out / 'preparation_build.log').open('wb') as log:
             subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
         subprocess.run([str(binary)], check=True, capture_output=True)
     native_bank='Some((include_str!('+json.dumps(str(out/'native_arithmetic.json'))+'),include_bytes!('+json.dumps(str(out/'correlated.topology'))+') as &[u8],include_bytes!('+json.dumps(str(out/'correlated.cells'))+') as &[u8]))' if args.resident_dialects else 'None'
-    main_path.write_text(imports + 'fn main(){let report=bridge_engine::execute_resident(SOURCE,include_bytes!('
+    product_bank='Some(include_str!('+json.dumps(str(out/'product.prepared.json'))+'))' if args.source_product_return else 'None'
+    reader_index='Some(include_bytes!('+json.dumps(str(out/'reader.index'))+') as &[u8])'
+    main_path.write_text(imports + 'fn main(){let report=bridge_engine::execute_archived(SOURCE,include_bytes!('
                          + json.dumps(str(out / 'relation.ops')) + '),include_bytes!('
                          + json.dumps(str(out / 'register.cells')) + f'),HOPS.to_vec(),{args.seconds},{resumed},include_bytes!('
                          + json.dumps(str(out / 'relation.cells')) + '),include_bytes!('
                          + json.dumps(str(out / 'cell.rows')) + '),'
-                         + str(args.nested_reentry).lower() + ',' + native_bank + ');'
+                         + str(args.nested_reentry).lower() + ',' + native_bank + ','+product_bank+','+reader_index+',Some('+json.dumps(str(out/'evidence'))+'));'
                          + 'println!("{}",report);}\n')
     with (out / 'execution_build.log').open('wb') as log:
         subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
@@ -202,6 +209,19 @@ opt-level=3
     executable = out / 'membrane'
     shutil.move(binary, executable)
     compiled = time.monotonic() - started
+    # Bind the compiled carrier before triggering it. A killed process still
+    # leaves enough source/executable evidence to certify its saved checkpoint.
+    launch_binding={
+        'source_sha256':digest(out/'source.imasm'),'executable_sha256':digest(executable),
+        'compilation_seconds':compiled,'relation_sha256':digest(out/'relation.ops'),
+        'prepared_register_sha256':digest(out/'register.cells'),
+        'joint_cells_sha256':digest(out/'relation.cells'),'native_cell_rows_sha256':digest(out/'cell.rows'),
+        'correlated_artifacts':{name:digest(out/name) for name in
+            (['native_arithmetic.json','correlated.cells','correlated.topology','correlated_prepared.json'] if args.resident_dialects else [])
+            +(['product.prepared.json'] if args.source_product_return else [])+['reader.index']},
+        'sources':source_hashes,'parent_return_sha256':digest(args.resume) if args.resume else None,
+        'production_deadline_seconds':args.seconds or None}
+    (out/'launch_binding.json').write_text(json.dumps(launch_binding,indent=2)+'\n')
     triggered=time.monotonic();first_byte=None;terminal_bytes=0
     with (out / 'return.json').open('wb') as log, (out / 'execution.stderr').open('wb') as err:
         with subprocess.Popen([str(executable)],stdout=subprocess.PIPE,stderr=err) as child:
@@ -216,6 +236,8 @@ opt-level=3
     if any(digest(Path(path)) != expected for path, expected in source_hashes.items()):
         raise ValueError('compiler/interpreter source changed during bake or execution')
     native_bindings={name:digest(out/name) for name in ['native_arithmetic.json','correlated.cells','correlated.topology','correlated_prepared.json']} if args.resident_dialects else {}
+    if args.source_product_return:native_bindings['product.prepared.json']=digest(out/'product.prepared.json')
+    native_bindings['reader.index']=digest(out/'reader.index')
     (out / 'binding.json').write_text(json.dumps({
         'correlated_artifacts':native_bindings,
         'source_sha256': digest(out / 'source.imasm'), 'executable_sha256': digest(executable),

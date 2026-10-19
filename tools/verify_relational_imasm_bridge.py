@@ -6,13 +6,14 @@ import json
 from pathlib import Path
 import struct
 import bisect
+import itertools
 from array import array
 from verify_dialect_factor import numeral
 
 
 def verify(directory, altered_report=None):
     report = altered_report if altered_report is not None else json.loads((directory / 'return.json').read_text())
-    from packed_relational_return import unpack
+    from packed_relational_return import unpack,PackedRecords,mapped,file_digest
     report=unpack(report)
     binding = json.loads((directory / 'binding.json').read_text())
     if binding.get('first_stdout_byte_seconds') is not None and binding['first_stdout_byte_seconds']<report['trigger_to_readout_seconds']:
@@ -24,10 +25,9 @@ def verify(directory, altered_report=None):
                           ('return.json', 'return_sha256'), ('relation.ops', 'relation_sha256'),
                           ('register.cells', 'prepared_register_sha256'),
                           ('relation.cells', 'joint_cells_sha256'), ('cell.rows', 'native_cell_rows_sha256')]:
-        if key in binding and hashlib.sha256((directory / filename).read_bytes()).hexdigest() != binding[key]:
+        if key in binding and file_digest(directory/filename) != binding[key]:
             raise ValueError(f'changed bound artifact: {filename}')
-    packed = (directory / 'relation.ops').read_bytes()
-    ops = list(struct.iter_unpack('<IIII', packed))
+    ops = PackedRecords(directory/'relation.ops','<IIII')
     prepared = list((directory / 'register.cells').read_bytes())
     domains = report['register']
     if not (len(ops) == len(prepared) == len(domains)) or any(d not in [1, 2, 3] for d in domains):
@@ -65,12 +65,13 @@ def verify(directory, altered_report=None):
     native_audit={};prepared_state=prepared;returned_state=domains
     if report.get('resident_dialect') is not None:
         import gzip
-        native_prepared=(directory/'correlated.cells').read_bytes()
+        native_prepared=mapped(directory/'correlated.cells')
         saved=report['resident_dialect']
         native_returned=(gzip.decompress(bytes.fromhex(saved['state_gzip_hex'])) if 'state_gzip_hex' in saved
                          else bytes.fromhex(saved['state_hex']))
-        prepared_state=bytearray(prepared)+native_prepared
-        returned_state=bytearray(domains)+native_returned
+        prepared_state=bytearray(prepared);prepared_state.extend(memoryview(native_prepared))
+        returned_state=bytearray(domains);returned_state.extend(native_returned)
+        del native_prepared,native_returned
     restored = returned_state[:]
     for wire, previous in reversed(report['continuation']['trail']):
         if not (0 <= wire < len(restored)) or not 0<=previous<=255 or (wire<len(ops) and previous not in [1,2,3]) or restored[wire] & ~previous:
@@ -78,9 +79,11 @@ def verify(directory, altered_report=None):
         restored[wire] = previous
     if restored != prepared_state:
         raise ValueError('continuation does not return to the actual prepared register')
+    del restored
     if report.get('resident_dialect') is not None:
         from audit_resident_dialect import audit
-        _,_,native_audit=audit(directory,report,ops,joint_cells)
+        _,_,native_audit=audit(directory,report,ops,joint_cells,
+            (memoryview(prepared_state)[len(ops):],memoryview(returned_state)[len(ops):]))
     at = 0
     for wire, alternative, boundary in report['continuation']['decisions']:
         if wire not in inputs.values() or alternative not in [0, 2] or not at <= boundary <= len(report['continuation']['trail']):
@@ -93,10 +96,9 @@ def verify(directory, altered_report=None):
                 gate < len(ops) and ops[gate][0] not in [3, 4, 7]):
             raise ValueError('invalid pending relation operation')
     if binding.get('parent_return_sha256'):
-        raw = (directory / 'parent_return.json').read_bytes()
-        if hashlib.sha256(raw).hexdigest() != binding['parent_return_sha256']:
+        if file_digest(directory/'parent_return.json') != binding['parent_return_sha256']:
             raise ValueError('retained parent return changed')
-        parent = json.loads(raw)
+        with (directory/'parent_return.json').open() as stream:parent=json.load(stream)
         if parent['status'] != 'held' or parent['source_word'] != source:
             raise ValueError('continuation parent is not the same open source')
         for counter in ['branches', 'contractions', 'rows_examined', 'bridge_applications']:
@@ -141,6 +143,7 @@ def verify(directory, altered_report=None):
     banks = report.get('register_banks', [[0, '']])
     if not banks or banks[0] != [0, '']:
         raise ValueError('prepared register bank root changed')
+    parents = array("Q",[0])
     decoded = [bytearray()]
     keys = [array("I")]
     def bank_value(bank, wire):
@@ -148,12 +151,15 @@ def verify(directory, altered_report=None):
             at = bisect.bisect_left(keys[bank], wire)
             if at < len(keys[bank]) and keys[bank][at] == wire:
                 return decoded[bank][at]
-            bank = banks[bank][0]
+            bank = parents[bank]
         return prepared_state[wire]
-    for bank, (parent, encoded) in enumerate(banks[1:], 1):
+    for bank, (parent, encoded) in enumerate(itertools.islice(banks,1,None), 1):
         if not 0 <= parent < bank:
             raise ValueError('register bank ancestry changed')
         data = bytes.fromhex(encoded)
+        if report.get("register_banks_encoding") == "gzip-hex":
+            import gzip
+            data = gzip.decompress(data)
         previous = code = shift = 0
         delta = bytearray()
         wires = array("I")
@@ -174,6 +180,7 @@ def verify(directory, altered_report=None):
             previous, code, shift = wire + 1, 0, 0
         if shift:
             raise ValueError('register bank ends inside an encoded cell')
+        parents.append(parent)
         decoded.append(delta)
         keys.append(wires)
     def check_child(base, child, wire, literal, consistent):
@@ -184,7 +191,8 @@ def verify(directory, altered_report=None):
         value = bank_value(child, wire)
         if value & ~literal or (consistent and value != literal):
             raise ValueError('nested child lost its source assumption')
-        if any(mask == 0 and wire<len(ops) for wire,mask in zip(keys[child],decoded[child])) == consistent:
+        contradiction_slots=len(ops)+native_audit.get('native_frames_checked',0)
+        if any(mask == 0 and wire<contradiction_slots for wire,mask in zip(keys[child],decoded[child])) == consistent:
             raise ValueError('nested consistency evidence differs from its bank')
     common_count = factor_count = 0
     for entry in report.get('nested_receipts', []):
@@ -247,7 +255,11 @@ def verify(directory, altered_report=None):
                 raise ValueError('emitted pair violates a retained source relation')
             values.append(value)
         values_checked = len(values)
-    return {**native_audit,'source_bits': numeral(source).bit_length(), 'status': report['status'],
+    from audit_resident_product_return import audit as audit_product
+    product_audit=audit_product(directory,report)
+    from audit_resident_readers import audit as audit_readers
+    reader_audit=audit_readers(directory,report,binding,ops,joint_cells)
+    return {**native_audit,**product_audit,**reader_audit,'source_bits': numeral(source).bit_length(), 'status': report['status'],
             'proper_factor': closure is not None, 'emitted_assignment_gate_checks': values_checked,
             'retained_wires': len(ops), 'prepared_register_recovered_from_trail': True,
             'joint_cells_checked': len(joint_cells),
@@ -255,7 +267,7 @@ def verify(directory, altered_report=None):
             'nested_factor_bit_contractions_checked': factor_count,
             'branch_continuation_checked': True, 'carried_native_bridge_image_checked': True,
             'scope': 'assignment and continuation audit',
-            'return_sha256': hashlib.sha256((directory / 'return.json').read_bytes()).hexdigest()}
+            'return_sha256': file_digest(directory/'return.json')}
 
 
 if __name__ == '__main__':

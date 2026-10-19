@@ -30,19 +30,22 @@ version="0.1.0"
 edition="2021"
 [dependencies]
 serde_json="1"
+serde="1"
 num-bigint="0.4"
 num-traits="0.2"
 flate2="1"
 ''')
     env=dict(os.environ,NATIVE_ARITHMETIC_PROGRAM=str(program.resolve()),
-             CARGO_TARGET_DIR=str(output.parent/'native_instrument_cargo'))
+             RESIDENT_EVIDENCE_TEST_DIR=str(output/'evidence_test'),CARGO_TARGET_DIR=str(output.parent/'native_instrument_cargo'))
     with (output/'unit.log').open('wb') as log:
         result=subprocess.run(['cargo','test','--offline','--release','--manifest-path',str(output/'Cargo.toml'),
-                               'resident_tests','--','--nocapture'],env=env,stdout=log,stderr=subprocess.STDOUT)
+                               'resident_','--','--nocapture'],env=env,stdout=log,stderr=subprocess.STDOUT)
     if result.returncode:raise subprocess.CalledProcessError(result.returncode,'native resident instrument')
     paths=[ROOT/path for path in modules.values()]+[reentry,Path(__file__),
-          Path(__file__).with_name('resident_dialect_relations.rs'),program]
-    receipt={'passed':True,'instrument':'native row-pair correlation, static recovery, rollback and nested fuse',
+          Path(__file__).with_name('resident_dialect_relations.rs'),
+          Path(__file__).with_name('resident_product_return.rs'),
+          Path(__file__).with_name('resident_reader_index.rs'),Path(__file__).with_name('resident_evidence_store.rs'),program]
+    receipt={'passed':True,'instrument':'native row-pair correlation, interval fibres, prepared reader incidence, static recovery, rollback and nested fuse',
              'bindings':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},
              'log_sha256':hashlib.sha256((output/'unit.log').read_bytes()).hexdigest()}
     (output/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt))

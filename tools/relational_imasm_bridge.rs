@@ -9,6 +9,16 @@ use std::io::{Read,Write};
 #[path="resident_dialect_relations.rs"]
 mod resident_dialect_relations;
 use resident_dialect_relations::Resident;
+#[path="resident_product_return.rs"]
+mod resident_product_return;
+#[path="resident_reader_index.rs"]
+mod resident_reader_index;
+use resident_reader_index::ReaderIndex;
+#[path="resident_evidence_store.rs"]
+mod resident_evidence_store;
+use resident_evidence_store::Archive;
+type NestedReceipt=(usize,usize,usize,usize,bool,bool,usize,[u8;2],Vec<(usize,u8)>);
+struct Checkpoint {directory:std::path::PathBuf,source:String,started:Instant,last:Instant}
 
 // Each wire's alternatives are the classical slice of the native carrier:
 // bit 0 = constructive truth T, bit 1 = constructive falsity F. A gate row
@@ -17,7 +27,7 @@ const T: u8 = 1;
 const F: u8 = 2;
 const B: u8 = T | F;
 
-pub struct Engine {
+pub struct Engine<'a> {
     ops: Vec<[u32;4]>, domains: Vec<u8>, uses: Vec<Vec<usize>>,
     inputs: Vec<(usize,usize)>, queue: VecDeque<usize>, queued: Vec<bool>,
     trail: Vec<(usize,u8)>, decisions: Vec<(usize,u8,usize)>,
@@ -32,27 +42,38 @@ pub struct Engine {
     // wire, parent trail boundary, parent bank, child stage, first bank, first consistency
     nested:Option<(usize,usize,usize,u8,usize,bool)>,
     nested_cursor:usize, nested_pass_changed:bool,
-    banks:Vec<(usize,Vec<u8>)>, bank_index:HashMap<u64,Vec<usize>>, bank_cache:Option<usize>,
+    banks:Archive<(usize,Vec<u8>)>, bank_index:HashMap<u64,Vec<usize>>, bank_cache:Option<usize>,
     // wire, parent, T bank, F bank, T/F consistency, phase, image, common deductions
-    nested_receipts:Vec<(usize,usize,usize,usize,bool,bool,usize,[u8;2],Vec<(usize,u8)>)>,
+    nested_receipts:Archive<NestedReceipt>,
     nested_entries:u64, nested_common:u64, nested_factor_common:u64,
     resident:Option<Resident>,
+    product_source:Option<ImasmNumeralWord>,product_banks:Archive<Value>,
+    product_visits:u64,product_contractions:u64,preparing:bool,
+    prepared_readers:Option<ReaderIndex<'a>>,checkpoint:Option<Checkpoint>,checkpoint_ticks:u64,
 }
 
-impl Engine {
+impl<'a> Engine<'a> {
     fn new(ops: Vec<[u32;4]>, domains: Vec<u8>, hops: Vec<[u8;16]>,
         cells:Vec<[usize;5]>, cell_rows:[[u8;5];8]) -> Self {
-        let mut uses=vec![Vec::new();ops.len()]; let mut inputs=Vec::new();
+        Self::new_indexed(ops,domains,hops,cells,cell_rows,None)
+    }
+    fn new_indexed(ops: Vec<[u32;4]>, domains: Vec<u8>, hops: Vec<[u8;16]>,
+        cells:Vec<[usize;5]>, cell_rows:[[u8;5];8],readers:Option<&'a[u8]>) -> Self {
+        let prepared_readers=readers.map(ReaderIndex::new);
+        if let Some(index)=&prepared_readers{assert_eq!(index.wires(),ops.len());}
+        let mut uses=if prepared_readers.is_none(){vec![Vec::new();ops.len()]}else{Vec::new()};
+        let mut inputs=Vec::new();
         for (i, &[op,a,b,_]) in ops.iter().enumerate() {
             if op==8 { inputs.push((a as usize,i)); }
-            if [3,4,7].contains(&op) {
+            if prepared_readers.is_none() && [3,4,7].contains(&op) {
                 uses[a as usize].push(i);
                 if op!=3 { uses[b as usize].push(i); }
                 uses[i].push(i);
             }
         }
-        for (cell,ports) in cells.iter().enumerate() {
+        if prepared_readers.is_none(){for (cell,ports) in cells.iter().enumerate() {
             for &wire in ports {uses[wire].push(ops.len()+cell);}
+        }
         }
         inputs.sort_unstable();
         let count=ops.len()+cells.len();
@@ -61,11 +82,12 @@ impl Engine {
             hops,image:[T,F],phase:0,contractions:0,rows_examined:0,branches:0,
             bridge_applications:0,cells,cell_rows,joint_visits:0,joint_contractions:0,
             nested_enabled:false,nested:None,nested_cursor:0,nested_pass_changed:false,
-            banks:vec![(0,Vec::new())],bank_index:HashMap::new(),bank_cache:Some(0),
-            nested_receipts:Vec::new(),nested_entries:0,nested_common:0,nested_factor_common:0,
-            resident:None };
+            banks:{let mut bank=Archive::new();bank.push((0,Vec::new()));bank},bank_index:HashMap::new(),bank_cache:Some(0),
+            nested_receipts:Archive::new(),nested_entries:0,nested_common:0,nested_factor_common:0,
+            resident:None,product_source:None,product_banks:Archive::new(),
+            product_visits:0,product_contractions:0,preparing:false,prepared_readers,checkpoint:None,checkpoint_ticks:0 };
         result.nested_cursor=result.inputs.len();
-        result.hop(); result.enqueue_all(); result
+        result.hop();if result.prepared_readers.is_none(){result.enqueue_all();}result
     }
     fn hop(&mut self) {
         let table=&self.hops[self.phase % self.hops.len()];
@@ -84,12 +106,13 @@ impl Engine {
         }
     }
     fn attach_resident(&mut self, encoded:&str, prepared:Option<(&[u8],&[u8])>) {
+        let building=prepared.is_none();
         let mut r=if let Some((topology,bank))=prepared {
             Resident::restore_topology(&self.ops,self.cells.len(),encoded,topology,bank)
         } else {Resident::new(&self.ops,&self.cells,&self.cell_rows,encoded)};
         r.seek(self.phase);
         self.queued.resize(self.ops.len()+self.cells.len()+r.pairs.len(),false);
-        self.resident=Some(r);self.enqueue_all();
+        self.resident=Some(r);if building{self.enqueue_all();}
     }
     fn value(&self, slot:usize) -> u8 {
         if slot<self.ops.len(){self.domains[slot]}
@@ -149,8 +172,12 @@ impl Engine {
         if old!=next {
             self.bank_cache=None;
             self.trail.push((wire,old));self.domains[wire]=next;self.contractions+=1;
-            let readers=self.uses[wire].clone();
-            for reader in readers {self.enqueue(reader);}
+            if self.prepared_readers.is_some(){
+                let count=self.prepared_readers.as_ref().unwrap().len(wire);
+                for at in 0..count {let reader=self.prepared_readers.as_ref().unwrap().get(wire,at);self.enqueue(reader);}
+            } else {
+                let readers=self.uses[wire].clone();for reader in readers {self.enqueue(reader);}
+            }
         }
         next!=0
     }
@@ -161,10 +188,33 @@ impl Engine {
             && self.image[alternative]==self.image[fibre as usize]
             && alternative==fibre as usize)
     }
-    fn propagate(&mut self, deadline:Instant) -> Option<bool> {
-        while let Some(i)=self.queue.pop_front() {
+    fn return_product(&mut self)->Result<bool,()> {
+        let Some(source)=self.product_source.as_ref() else{return Ok(false);};
+        let width=self.inputs.len()/2;let mut p=vec![B;width];let mut q=p.clone();
+        for &(variable,wire) in &self.inputs {
+            if variable&1==0{p[variable/2]=self.domains[wire];}else{q[variable/2]=self.domains[wire];}
+        }
+        let returned=resident_product_return::refine(source,&p,&q);
+        self.product_visits+=1;
+        self.product_banks.push(json!({"bank":returned.bank,"p_before":p,"q_before":q,
+            "p_after":returned.p,"q_after":returned.q,"phase":self.phase,
+            "trail_boundary":self.trail.len(),"stage":if self.preparing{"preparation"}else{"execution"}}));
+        let before=self.contractions;
+        // Both quotient arms act on this same retained register. Their support
+        // returns enter the ordinary wire/row/pair queue and its common trail.
+        for index in 0..self.inputs.len(){let(variable,wire)=self.inputs[index];
+            let support=if variable&1==0{returned.p[variable/2]}else{returned.q[variable/2]};
+            if !self.intersect(wire,support){self.product_contractions+=self.contractions-before;return Err(());}
+        }
+        self.product_contractions+=self.contractions-before;
+        Ok(self.contractions!=before)
+    }
+    fn propagate(&mut self, deadline:Option<Instant>) -> Option<bool> {
+        while !self.queue.is_empty() {
+            self.checkpoint_ticks+=1;if self.checkpoint_ticks & 65535==0 {self.maybe_checkpoint();}
+            let i=self.queue.pop_front().unwrap();
             self.queued[i]=false;
-            if Instant::now()>=deadline {
+            if deadline.is_some_and(|limit|Instant::now()>=limit) {
                 self.queue.push_front(i);self.queued[i]=true;return None;
             }
             if self.resident.is_some() {
@@ -232,9 +282,9 @@ impl Engine {
         if parent==0 && bytes.is_empty(){return 0;}
         let mut hash=DefaultHasher::new();parent.hash(&mut hash);bytes.hash(&mut hash);let key=hash.finish();
         if let Some(ids)=self.bank_index.get(&key) {
-            for &id in ids {if self.banks[id].0==parent && self.banks[id].1==bytes {return id;}}
+            for &id in ids {if self.banks.get(id).0==parent && ungzip_bytes(&self.banks.get(id).1)==bytes {return id;}}
         }
-        let id=self.banks.len();self.banks.push((parent,bytes));self.bank_index.entry(key).or_default().push(id);id
+        let id=self.banks.len();self.banks.push((parent,gzip_bytes(&bytes)));self.bank_index.entry(key).or_default().push(id);id
     }
     fn parent_bank(&mut self) -> usize {
         if let Some(bank)=self.bank_cache{return bank;}
@@ -258,7 +308,7 @@ impl Engine {
             self.nested=Some((wire,at,parent,1,child,consistent));self.intersect(wire,F);return true;
         }
         let bits=if self.resident.is_some(){8}else{2};
-        let a=Self::decode(&self.banks[first].1,bits);let b=Self::decode(&self.banks[child].1,bits);
+        let a=Self::decode(&ungzip_bytes(&self.banks.get(first).1),bits);let b=Self::decode(&ungzip_bytes(&self.banks.get(child).1),bits);
         let mut affected:Vec<_>=a.iter().chain(&b).map(|&(wire,_)|wire).collect();
         affected.sort_unstable();affected.dedup();let(mut ai,mut bi)=(0,0);let mut common=Vec::new();
         if first_ok || consistent {
@@ -294,9 +344,13 @@ impl Engine {
         false
     }
     fn search(&mut self, seconds:u64) -> &'static str {
-        let deadline=Instant::now()+Duration::from_secs(seconds);
+        let deadline=if seconds==0 {None}else{Some(Instant::now()+Duration::from_secs(seconds))};
         loop {
-            let outcome=self.propagate(deadline);
+            self.maybe_checkpoint();
+            let mut outcome=self.propagate(deadline);
+            if outcome==Some(true) {
+                match self.return_product(){Ok(true)=>continue,Err(())=>outcome=Some(false),Ok(false)=>{}}
+            }
             if self.nested.is_some() {
                 match outcome {
                     None=>return "held",
@@ -360,7 +414,9 @@ fn joint_bank(ops:&[[u32;4]],out:&std::path::Path,joint:bool) -> (Vec<[usize;5]>
 pub fn compile_joint_bank(packed:&[u8],out:&std::path::Path,joint:bool) {
     let ops:Vec<[u32;4]>=packed.chunks_exact(16).map(|r|core::array::from_fn(|i|
         u32::from_le_bytes(r[4*i..4*i+4].try_into().unwrap()))).collect();
-    joint_bank(&ops,out,joint);
+    let(cells,rows)=joint_bank(&ops,out,joint);
+    let engine=Engine::new(ops,Vec::new(),vec![core::array::from_fn(|i|i as u8)],cells,rows);
+    std::fs::write(out.join("reader.index"),ReaderIndex::encode(&engine.uses)).unwrap();
 }
 
 pub fn prepare(source:&str, out:&std::path::Path, hops:Vec<[u8;16]>,joint:bool) {
@@ -368,6 +424,10 @@ pub fn prepare(source:&str, out:&std::path::Path, hops:Vec<[u8;16]>,joint:bool) 
 }
 
 pub fn prepare_resident(source:&str, out:&std::path::Path, hops:Vec<[u8;16]>,joint:bool,native:Option<&str>) {
+    prepare_with_product(source,out,hops,joint,native,false)
+}
+
+pub fn prepare_with_product(source:&str, out:&std::path::Path, hops:Vec<[u8;16]>,joint:bool,native:Option<&str>,product:bool) {
     let started=Instant::now();
     let word=ImasmNumeralWord::checked(source.trim()).unwrap();
     assert_eq!(arithmetic::add(&word,&arithmetic::zero()).unwrap(),word,
@@ -385,14 +445,24 @@ pub fn prepare_resident(source:&str, out:&std::path::Path, hops:Vec<[u8;16]>,joi
     let(cells,rows)=joint_bank(&program.ops,out,joint);
     let mut engine=Engine::new(program.ops,domains,hops,cells,rows);
     if let Some(program)=native {engine.attach_resident(program,None);}
+    engine.preparing=true;
+    if product{engine.product_source=Some(word.clone());}
     // Preparation really contracts the source-bound register to a fixed point.
     // The one-hour instrument boundary is not a production cutoff.
-    let consistent=engine.propagate(Instant::now()+Duration::from_secs(3600));
-    assert_eq!(consistent,Some(true),"source relation inconsistent or preparation unfinished");
+    let deadline=Instant::now()+Duration::from_secs(3600);
+    loop {
+        assert_eq!(engine.propagate(Some(deadline)),Some(true),"source relation inconsistent or preparation unfinished");
+        match engine.return_product(){Ok(true)=>continue,Ok(false)=>break,Err(())=>panic!("native source product return is inconsistent")}
+    }
+    if product {
+        std::fs::write(out.join("product.prepared.json"),serde_json::to_vec_pretty(&json!({
+            "banks":engine.product_banks,"visits":engine.product_visits,"contractions":engine.product_contractions})).unwrap()).unwrap();
+    }
     let mut bytes=Vec::with_capacity(engine.ops.len()*16);
     for op in &engine.ops {for field in op {bytes.extend_from_slice(&field.to_le_bytes());}}
     std::fs::write(out.join("relation.ops"),bytes).unwrap();
     std::fs::write(out.join("register.cells"),&engine.domains).unwrap();
+    std::fs::write(out.join("reader.index"),ReaderIndex::encode(&engine.uses)).unwrap();
     if let Some(r)=&engine.resident {
         std::fs::write(out.join("correlated.cells"),&r.state).unwrap();
         std::fs::write(out.join("correlated.topology"),r.topology()).unwrap();
@@ -429,6 +499,15 @@ fn unhex(text:&str) -> Vec<u8> {
     assert_eq!(text.len()%2,0);
     text.as_bytes().chunks_exact(2).map(|pair|u8::from_str_radix(std::str::from_utf8(pair).unwrap(),16).unwrap()).collect()
 }
+fn gzip_bytes(bytes:&[u8]) -> Vec<u8> {
+    let mut encoded=flate2::write::GzEncoder::new(Vec::new(),flate2::Compression::fast());
+    encoded.write_all(bytes).unwrap();encoded.finish().unwrap()
+}
+fn ungzip_bytes(bytes:&[u8]) -> Vec<u8> {
+    if bytes.is_empty(){return Vec::new();}
+    let mut reader=flate2::read::GzDecoder::new(bytes);let mut result=Vec::new();
+    reader.read_to_end(&mut result).unwrap();result
+}
 fn gzip_hex(bytes:&[u8]) -> String {
     let mut encoded=flate2::write::GzEncoder::new(Vec::new(),flate2::Compression::fast());
     encoded.write_all(bytes).unwrap();hex(&encoded.finish().unwrap())
@@ -445,6 +524,21 @@ pub fn execute(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;16]>, sec
 
 pub fn execute_resident(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;16]>, seconds:u64,
     resumed:Option<&str>,packed_cells:&[u8],packed_rows:&[u8],nested:bool,native:Option<(&str,&[u8],&[u8])>) -> Value {
+    execute_with_product(source,packed,prepared,hops,seconds,resumed,packed_cells,packed_rows,nested,native,None)
+}
+
+pub fn execute_with_product(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;16]>, seconds:u64,
+    resumed:Option<&str>,packed_cells:&[u8],packed_rows:&[u8],nested:bool,native:Option<(&str,&[u8],&[u8])>,product:Option<&str>) -> Value {
+    execute_indexed(source,packed,prepared,hops,seconds,resumed,packed_cells,packed_rows,nested,native,product,None)
+}
+
+pub fn execute_indexed(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;16]>, seconds:u64,
+    resumed:Option<&str>,packed_cells:&[u8],packed_rows:&[u8],nested:bool,native:Option<(&str,&[u8],&[u8])>,product:Option<&str>,readers:Option<&[u8]>) -> Value {
+    execute_archived(source,packed,prepared,hops,seconds,resumed,packed_cells,packed_rows,nested,native,product,readers,None)
+}
+
+pub fn execute_archived(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;16]>, seconds:u64,
+    resumed:Option<&str>,packed_cells:&[u8],packed_rows:&[u8],nested:bool,native:Option<(&str,&[u8],&[u8])>,product:Option<&str>,readers:Option<&[u8]>,evidence:Option<&str>) -> Value {
     let started=Instant::now();assert_eq!(packed.len()%16,0);
     let ops=packed.chunks_exact(16).map(|row|core::array::from_fn(|i|
         u32::from_le_bytes(row[4*i..4*i+4].try_into().unwrap()))).collect();
@@ -452,8 +546,17 @@ pub fn execute_resident(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;
     let cells=packed_cells.chunks_exact(20).map(|r|core::array::from_fn(|i|
         u32::from_le_bytes(r[4*i..4*i+4].try_into().unwrap()) as usize)).collect();
     let rows=core::array::from_fn(|i|core::array::from_fn(|j|packed_rows[5*i+j]));
-    let mut engine=Engine::new(ops,prepared.to_vec(),hops,cells,rows);
+    let mut engine=Engine::new_indexed(ops,prepared.to_vec(),hops,cells,rows,readers);
     if let Some((program,topology,bank))=native {engine.attach_resident(program,Some((topology,bank)));}
+    if let Some(bank)=product {
+        engine.product_source=Some(ImasmNumeralWord::checked(source.trim()).unwrap());
+        let prepared:Value=serde_json::from_str(bank).unwrap();
+        engine.product_banks=Archive::load(&prepared["banks"]);
+    }
+    // The embedded register and joint banks are already at their preparation
+    // fixed point. A fresh trigger starts with pending transformations; an
+    // exact continuation restores its own pending queue below.
+    if engine.resident.is_some(){engine.queue.clear();engine.queued.fill(false);}
     engine.nested_enabled=nested;
     if let Some(encoded)=resumed {
         let previous:Value=serde_json::from_str(encoded).unwrap();
@@ -478,6 +581,13 @@ pub fn execute_resident(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;
         engine.rows_examined=previous["rows_examined"].as_u64().unwrap();
         engine.branches=previous["branches"].as_u64().unwrap();
         engine.bridge_applications=previous["bridge_applications"].as_u64().unwrap();
+        if product.is_some(){
+            if let Some(saved)=previous.get("source_product_return").filter(|v|!v.is_null()) {
+                engine.product_banks=Archive::load(&saved["banks"]);
+                engine.product_visits=saved["visits"].as_u64().unwrap();
+                engine.product_contractions=saved["contractions"].as_u64().unwrap();
+            }
+        }
         if let Some(r)=&mut engine.resident {
             assert_eq!(previous["bank_value_bits"],8);
             let saved=&previous["resident_dialect"];
@@ -495,11 +605,12 @@ pub fn execute_resident(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;
             r.pair_removals=saved["pair_removals"].as_u64().unwrap();
         }
         engine.bank_cache=None;
-        if let Some(banks)=previous.get("register_banks").and_then(Value::as_array) {
-            assert_eq!(banks[0],json!([0,""]));
-            for (id,bank) in banks.iter().enumerate().skip(1) {
-                let parent=bank[0].as_u64().unwrap() as usize;assert!(parent<id);
-                let bytes=unhex(bank[1].as_str().unwrap());
+        if let Some(value)=previous.get("register_banks") {
+            let banks=Archive::<(usize,Value)>::load(value);assert!(banks.get(0).1==json!("") || banks.get(0).1==json!([]));
+            for (id,(parent,encoded)) in banks.iter().enumerate().skip(1) {
+                assert!(parent<id);
+                let bytes=if previous["register_banks_encoding"]=="gzip-bytes" {ungzip_bytes(&serde_json::from_value::<Vec<u8>>(encoded).unwrap())}
+                    else if previous["register_banks_encoding"]=="gzip-hex" {ungzip_hex(encoded.as_str().unwrap())}else{unhex(encoded.as_str().unwrap())};
                 assert_eq!(engine.intern_bank(parent,bytes),id);
             }
         }
@@ -507,7 +618,7 @@ pub fn execute_resident(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;
         engine.nested_cursor=previous["continuation"]["nested_cursor"].as_u64().map_or(engine.inputs.len(),|v|v as usize);
         assert!(engine.nested_cursor<=engine.inputs.len());
         engine.nested_pass_changed=previous["continuation"]["nested_pass_changed"].as_bool().unwrap_or(false);
-        engine.nested_receipts=serde_json::from_value(previous.get("nested_receipts").cloned().unwrap_or(json!([]))).unwrap();
+        engine.nested_receipts=Archive::load(previous.get("nested_receipts").unwrap_or(&json!([])));
         engine.nested_entries=previous["nested_entries"].as_u64().unwrap_or(0);
         engine.nested_common=previous["nested_common_contractions"].as_u64().unwrap_or(0);
         engine.nested_factor_common=previous["nested_factor_bit_contractions"].as_u64().unwrap_or(0);
@@ -518,6 +629,14 @@ pub fn execute_resident(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;
         if parent_cells==0 {
             for cell in 0..engine.cells.len(){engine.enqueue(engine.ops.len()+cell);}
         }
+    }
+    if let Some(directory)=evidence {
+        let directory=std::path::PathBuf::from(directory);std::fs::create_dir_all(&directory).unwrap();
+        engine.banks.migrate(&directory.join("register.records"));
+        engine.nested_receipts.migrate(&directory.join("nested.records"));
+        engine.product_banks.migrate(&directory.join("product.records"));
+        engine.checkpoint=Some(Checkpoint{directory,source:source.trim().into(),started,last:Instant::now()});
+        engine.write_checkpoint();
     }
     let status=engine.search(seconds);let readout=started.elapsed().as_secs_f64();
     let mut closure=Value::Null;
@@ -537,42 +656,65 @@ pub fn execute_resident(source:&str, packed:&[u8], prepared:&[u8], hops:Vec<[u8;
             "zero_remainder":true,"exact_native_imasm_product":true,"paired_boundary_closure":true,
             "trigger_to_verified_factor_seconds":started.elapsed().as_secs_f64()});
     }
-    let resident=engine.resident.as_ref().map(|r|json!({
-        "route":r.route,"stage":(engine.phase-1)%r.route.as_array().unwrap().len(),
+    engine.report(source,status,closure,readout)
+}
+
+impl<'a> Engine<'a> {
+    fn report(&self,source:&str,status:&str,closure:Value,readout:f64)->Value {
+    let resident=self.resident.as_ref().map(|r|json!({
+        "route":r.route,"stage":(self.phase-1)%r.route.as_array().unwrap().len(),
         "frames":r.frames.len(),"pairs":r.pairs.len(),"state_gzip_hex":gzip_hex(&r.state),
         "native_visits":r.native_visits,"pair_visits":r.pair_visits,
         "native_steps":r.native_steps,"native_types":r.native_types,
         "row_removals":r.row_removals,"pair_removals":r.pair_removals}));
-    let packed_trail=engine.resident.as_ref().map(|_| {
-        let mut raw=Vec::with_capacity(engine.trail.len()*9);
-        for &(slot,old) in &engine.trail {raw.extend_from_slice(&(slot as u64).to_le_bytes());raw.push(old);}
+    let packed_trail=self.resident.as_ref().map(|_| {
+        let mut raw=Vec::with_capacity(self.trail.len()*9);
+        for &(slot,old) in &self.trail {raw.extend_from_slice(&(slot as u64).to_le_bytes());raw.push(old);}
         gzip_hex(&raw)
     });
-    let packed_queue=engine.resident.as_ref().map(|_| {
-        let mut raw=Vec::with_capacity(engine.queue.len()*8);
-        for &gate in &engine.queue {raw.extend_from_slice(&(gate as u64).to_le_bytes());}
+    let packed_queue=self.resident.as_ref().map(|_| {
+        let mut raw=Vec::with_capacity(self.queue.len()*8);
+        for &gate in &self.queue {raw.extend_from_slice(&(gate as u64).to_le_bytes());}
         gzip_hex(&raw)
     });
     json!({"source_word":source.trim(),"status":status,"closure":closure,
-        "resident_dialect":resident,"bank_value_bits":if engine.resident.is_some(){8}else{2},
-        "contractions":engine.contractions,"rows_examined":engine.rows_examined,"branches":engine.branches,
-        "bridge_applications":engine.bridge_applications,"bridge_phase":engine.phase,
-        "joint_cells":engine.cells.len(),"joint_cell_visits":engine.joint_visits,
-        "joint_cell_contractions":engine.joint_contractions,
-        "nested_entries":engine.nested_entries,"nested_common_contractions":engine.nested_common,
-        "nested_factor_bit_contractions":engine.nested_factor_common,
-        "nested_receipts":engine.nested_receipts,
-        "register_banks":engine.banks.iter().map(|(parent,bytes)|json!([parent,hex(bytes)])).collect::<Vec<_>>(),
-        "carried_T_F_images":engine.image,"transport_factor_readouts":0,
-        "trigger_to_readout_seconds":readout,"register":engine.domains,
-        "continuation":{"trail":if packed_trail.is_some(){json!([])}else{json!(engine.trail)},
-            "trail_gzip_hex":packed_trail,"trail_length":engine.trail.len(),
-            "decisions":engine.decisions,"pending_gates":if packed_queue.is_some(){json!([])}else{json!(engine.queue)},
-            "pending_gates_gzip_hex":packed_queue,"pending_gates_length":engine.queue.len(),
-            "nested_frame":engine.nested,"nested_cursor":engine.nested_cursor,
-            "nested_pass_changed":engine.nested_pass_changed},
+        "prepared_dependency_incidence":self.prepared_readers.is_some(),
+        "source_product_return":if self.product_source.is_some(){json!({"banks":self.product_banks.view(),
+            "visits":self.product_visits,"contractions":self.product_contractions})}else{Value::Null},
+        "resident_dialect":resident,"bank_value_bits":if self.resident.is_some(){8}else{2},
+        "contractions":self.contractions,"rows_examined":self.rows_examined,"branches":self.branches,
+        "bridge_applications":self.bridge_applications,"bridge_phase":self.phase,
+        "joint_cells":self.cells.len(),"joint_cell_visits":self.joint_visits,
+        "joint_cell_contractions":self.joint_contractions,
+        "nested_entries":self.nested_entries,"nested_common_contractions":self.nested_common,
+        "nested_factor_bit_contractions":self.nested_factor_common,
+        "nested_receipts":self.nested_receipts.view(),
+        "register_banks_encoding":"gzip-bytes",
+        "register_banks":self.banks.view(),
+        "carried_T_F_images":self.image,"transport_factor_readouts":0,
+        "trigger_to_readout_seconds":readout,"register":self.domains,
+        "continuation":{"trail":if packed_trail.is_some(){json!([])}else{json!(self.trail)},
+            "trail_gzip_hex":packed_trail,"trail_length":self.trail.len(),
+            "decisions":self.decisions,"pending_gates":if packed_queue.is_some(){json!([])}else{json!(self.queue)},
+            "pending_gates_gzip_hex":packed_queue,"pending_gates_length":self.queue.len(),
+            "nested_frame":self.nested,"nested_cursor":self.nested_cursor,
+            "nested_pass_changed":self.nested_pass_changed},
         "source_bank_retained":true,"inverse_fibres_retained":true,
         "scope":"source relation, arithmetic register and retained continuation"})
+    }
+    fn maybe_checkpoint(&mut self) {
+        if self.checkpoint.as_ref().is_some_and(|c|c.last.elapsed()>=Duration::from_secs(60)){self.write_checkpoint();}
+    }
+    fn write_checkpoint(&mut self) {
+        let Some(c)=&self.checkpoint else{return;};
+        let directory=c.directory.clone();let source=c.source.clone();let elapsed=c.started.elapsed().as_secs_f64();
+        self.banks.sync();self.nested_receipts.sync();self.product_banks.sync();
+        let report=self.report(&source,"held",Value::Null,elapsed);
+        let mut file=std::io::BufWriter::with_capacity(1024*1024,std::fs::File::create(directory.join("checkpoint.next")).unwrap());
+        serde_json::to_writer(&mut file,&report).unwrap();file.flush().unwrap();file.get_ref().sync_all().unwrap();
+        std::fs::rename(directory.join("checkpoint.next"),directory.join("checkpoint.json")).unwrap();
+        self.checkpoint.as_mut().unwrap().last=Instant::now();
+    }
 }
 
 #[cfg(test)]
@@ -586,7 +728,7 @@ mod resident_tests {
         let ops=vec![[8,0,0,0],[8,1,0,0],[4,0,1,0],[7,0,1,0]];
         let mut engine=Engine::new(ops,vec![B,B,F,T],vec![core::array::from_fn(|i|i as u8)],Vec::new(),crate::joint_cells::full_adder_rows());
         engine.attach_resident(&native,None);
-        assert_eq!(engine.propagate(Instant::now()+Duration::from_secs(10)),Some(true));
+        assert_eq!(engine.propagate(Some(Instant::now()+Duration::from_secs(10))),Some(true));
         assert_eq!(engine.domains,vec![B,B,F,T]);
         let resident=engine.resident.as_ref().unwrap();
         assert_eq!(resident.state[0].count_ones(),2);
@@ -595,7 +737,7 @@ mod resident_tests {
         let restored=Resident::restore_topology(&engine.ops,0,&native,&topology,&saved);
         assert_eq!(restored.state,saved);assert_eq!(restored.topology(),topology);
         let at=engine.trail.len();engine.intersect(0,T);
-        assert_eq!(engine.propagate(Instant::now()+Duration::from_secs(10)),Some(true));
+        assert_eq!(engine.propagate(Some(Instant::now()+Duration::from_secs(10))),Some(true));
         assert_eq!(engine.domains[1],F);
         engine.restore(at);
         assert_eq!(engine.domains,vec![B,B,F,T]);
@@ -603,9 +745,9 @@ mod resident_tests {
         // Both byte-level pair fibres and their frame supports survive a
         // nested split/fuse on the same parent, rather than being rebuilt.
         engine.begin_nested(0);
-        let first=engine.propagate(Instant::now()+Duration::from_secs(10)).unwrap();
+        let first=engine.propagate(Some(Instant::now()+Duration::from_secs(10))).unwrap();
         assert!(engine.finish_nested(first));
-        let second=engine.propagate(Instant::now()+Duration::from_secs(10)).unwrap();
+        let second=engine.propagate(Some(Instant::now()+Duration::from_secs(10))).unwrap();
         assert!(engine.finish_nested(second));
         assert_eq!(engine.resident.as_ref().unwrap().state,saved);
     }
