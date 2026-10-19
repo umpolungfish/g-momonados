@@ -157,6 +157,42 @@ class TypedJointRelation:
         return {'row_ids': selected, 'supports': projected,
                 'contradiction': not selected}
 
+    def fuse_shared(self, other, shared, supports, other_supports):
+        """Compose correlated frames along explicit source-wire bindings.
+
+        A shared binding is a pair of local port identities. Their dialect
+        images need not be equal. The fibre witnesses implement equality of
+        their carried source value and remain attached to each admitted pair.
+        Pair ancestry is retained even when distinct rows have equal images.
+        """
+        if self.source_word != other.source_word:
+            raise ValueError('cannot fuse frames from different sources')
+        shared = tuple(shared)
+        if not shared or len(set(shared)) != len(shared):
+            raise ValueError('fuse requires distinct shared source bindings')
+        indices = [(self.ports.index(a), other.ports.index(b)) for a, b in shared]
+        left_images = [self.observation(i, self.ports) for i in range(len(self.rows))]
+        right_images = [other.observation(i, other.ports) for i in range(len(other.rows))]
+        left = self.pullback(self.ports, left_images, supports)['row_ids']
+        right = other.pullback(other.ports, right_images, other_supports)['row_ids']
+        pairs, witnesses = [], []
+        for i in left:
+            for j in right:
+                if all(self.origins[i][a] == other.origins[j][b] for a, b in indices):
+                    pairs.append((i, j))
+                    witnesses.append({'left': left_images[i], 'right': right_images[j],
+                                      'shared_values': [self.origins[i][a] for a, _ in indices]})
+        left_allowed = [0] * len(self.ports)
+        right_allowed = [0] * len(other.ports)
+        for i, j in pairs:
+            for k, value in enumerate(self.origins[i]):
+                left_allowed[k] |= value
+            for k, value in enumerate(other.origins[j]):
+                right_allowed[k] |= value
+        return {'pairs': pairs, 'witnesses': witnesses,
+                'left_supports': left_allowed, 'right_supports': right_allowed,
+                'contradiction': not pairs}
+
     @classmethod
     def arithmetic(cls, source_word, ports, rows, rules):
         if not source_word or len(set(ports)) != len(ports):
