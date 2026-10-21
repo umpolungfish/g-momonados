@@ -1,0 +1,407 @@
+HEADER    COMPILED THROUGH VOX
+TITLE     COMPILED THROUGH VOX - B4-RAMACHANDRAN BACKBONE
+TITLE     FROBENIUS-CLOSED: YES
+REMARK   1   WINDING NUMBER: 6
+REMARK   1   FROBENIUS VERIFIED: YES
+REMARK   2   SECONDARY STRUCTURE ELEMENTS: 15
+REMARK   2     turn     [  1-  1] len=1 conf=0.750 seq=Met
+REMARK   2     helix_l  [  2-  2] len=1 conf=0.720 seq=Ala
+REMARK   2     sheet    [  3-  3] len=1 conf=0.850 seq=Arg
+REMARK   2     loop     [  4-  4] len=1 conf=0.420 seq=Asn
+REMARK   2     helix_l  [  5-  5] len=1 conf=0.720 seq=Asp
+REMARK   2     loop     [  6-  8] len=3 conf=0.420 seq=CysGluGly
+REMARK   2     sheet    [  9-  9] len=1 conf=0.850 seq=His
+REMARK   2     loop     [ 10- 12] len=3 conf=0.420 seq=IleLeuLys
+REMARK   2     turn     [ 13- 13] len=1 conf=0.750 seq=Tyr
+REMARK   2     helix    [ 14- 14] len=1 conf=0.880 seq=Pro
+REMARK   2     loop     [ 15- 15] len=1 conf=0.420 seq=Gln
+REMARK   2     helix    [ 16- 16] len=1 conf=0.880 seq=Ser
+REMARK   2     turn     [ 17- 17] len=1 conf=0.750 seq=Thr
+REMARK   2     helix_l  [ 18- 18] len=1 conf=0.720 seq=Val
+REMARK   2     loop     [ 19- 20] len=2 conf=0.420 seq=TrpPhe
+HELIX   1 H1  ALA A   2  ALA A   2 5      1
+HELIX   2 H2  ASP A   5  ASP A   5 5      1
+HELIX   3 H3  PRO A  14  PRO A  14 1      1
+HELIX   4 H4  SER A  16  SER A  16 1      1
+HELIX   5 H5  VAL A  18  VAL A  18 5      1
+SHEET   1 S1    2 ARGA   3  ARG A   3  0
+SHEET   2 S1    2 HISA   9  HIS A   9 -1
+ATOM      1  N   MET A   1       0.000   0.000   0.000  1.00  0.00           N  
+ATOM      2  CA  MET A   1       1.458   0.000   0.000  1.00  0.00           C  
+ATOM      3  C   MET A   1       2.005   0.000   1.424  1.00  0.00           C  
+ATOM      4  O   MET A   1       3.125  -0.447   1.669  1.00  0.00           O  
+ATOM      5  CB  MET A   1       1.994   1.209  -0.770  1.00  0.00           C  
+ATOM      6  CG  MET A   1       1.712   1.030  -2.258  1.00  0.00           C  
+ATOM      7  SD  MET A   1       1.559  -0.733  -2.637  1.00  0.00           S  
+ATOM      8  CE  MET A   1       2.473  -1.697  -1.408  1.00  0.00           C  
+ATOM      9  N   ALA A   2       1.206   0.504   2.359  1.00  0.00           N  
+ATOM     10  CA  ALA A   2       1.608   0.563   3.759  1.00  0.00           C  
+ATOM     11  C   ALA A   2       2.795   1.501   3.948  1.00  0.00           C  
+ATOM     12  O   ALA A   2       3.792   1.139   4.573  1.00  0.00           O  
+ATOM     13  CB  ALA A   2       1.953  -0.835   4.277  1.00  0.00           C  
+ATOM     14  N   ARG A   3       2.681   2.709   3.403  1.00  0.00           N  
+ATOM     15  CA  ARG A   3       3.744   3.701   3.511  1.00  0.00           C  
+ATOM     16  C   ARG A   3       3.179   5.070   3.873  1.00  0.00           C  
+ATOM     17  O   ARG A   3       2.178   5.509   3.306  1.00  0.00           O  
+ATOM     18  CB  ARG A   3       4.532   3.785   2.202  1.00  0.00           C  
+ATOM     19  CG  ARG A   3       6.026   3.813   2.508  1.00  0.00           C  
+ATOM     20  CD  ARG A   3       6.756   2.861   1.568  1.00  0.00           C  
+ATOM     21  NE  ARG A   3       7.961   3.518   1.043  1.00  0.00           N  
+ATOM     22  CZ  ARG A   3       9.115   2.857   1.003  1.00  0.00           C  
+ATOM     23  NH1 ARG A   3       9.876   2.913  -0.087  1.00  0.00           N  
+ATOM     24  NH2 ARG A   3       9.508   2.141   2.052  1.00  0.00           N  
+ATOM     25  N   ASN A   4       3.826   5.740   4.821  1.00  0.00           N  
+ATOM     26  CA  ASN A   4       3.389   7.060   5.260  1.00  0.00           C  
+ATOM     27  C   ASN A   4       4.227   8.157   4.611  1.00  0.00           C  
+ATOM     28  O   ASN A   4       4.278   9.284   5.102  1.00  0.00           O  
+ATOM     29  CB  ASN A   4       3.467   7.170   6.785  1.00  0.00           C  
+ATOM     30  CG  ASN A   4       2.078   6.967   7.381  1.00  0.00           C  
+ATOM     31  OD1 ASN A   4       1.189   6.394   6.715  1.00  0.00           O  
+ATOM     32  ND2 ASN A   4       1.813   7.400   8.610  1.00  0.00           N  
+ATOM     33  N   ASP A   5       4.881   7.818   3.505  1.00  0.00           N  
+ATOM     34  CA  ASP A   5       5.717   8.773   2.787  1.00  0.00           C  
+ATOM     35  C   ASP A   5       6.912   9.198   3.634  1.00  0.00           C  
+ATOM     36  O   ASP A   5       7.184  10.389   3.787  1.00  0.00           O  
+ATOM     37  CB  ASP A   5       4.899   9.998   2.376  1.00  0.00           C  
+ATOM     38  CG  ASP A   5       4.438  10.744   3.624  1.00  0.00           C  
+ATOM     39  OD1 ASP A   5       5.261  11.035   4.519  1.00  0.00           O  
+ATOM     40  OD2 ASP A   5       3.236  11.064   3.753  1.00  0.00           O  
+ATOM     41  N   CYS A   6       7.622   8.218   4.183  1.00  0.00           N  
+ATOM     42  CA  CYS A   6       8.788   8.489   5.015  1.00  0.00           C  
+ATOM     43  C   CYS A   6       9.741   9.457   4.321  1.00  0.00           C  
+ATOM     44  O   CYS A   6      10.379  10.286   4.970  1.00  0.00           O  
+ATOM     45  CB  CYS A   6       9.516   7.188   5.357  1.00  0.00           C  
+ATOM     46  SG  CYS A   6       8.327   5.978   5.989  1.00  0.00           S  
+ATOM     47  N   GLU A   7       9.832   9.345   3.000  1.00  0.00           N  
+ATOM     48  CA  GLU A   7      10.707  10.210   2.217  1.00  0.00           C  
+ATOM     49  C   GLU A   7      10.060  11.570   1.980  1.00  0.00           C  
+ATOM     50  O   GLU A   7      10.708  12.501   1.499  1.00  0.00           O  
+ATOM     51  CB  GLU A   7      11.053   9.551   0.880  1.00  0.00           C  
+ATOM     52  CG  GLU A   7      12.163   8.526   1.090  1.00  0.00           C  
+ATOM     53  CD  GLU A   7      12.728   8.670   2.499  1.00  0.00           C  
+ATOM     54  OE1 GLU A   7      12.404   9.648   3.206  1.00  0.00           O  
+ATOM     55  OE2 GLU A   7      13.516   7.809   2.947  1.00  0.00           O  
+ATOM     56  N   GLY A   8       8.780  11.679   2.320  1.00  0.00           N  
+ATOM     57  CA  GLY A   8       8.044  12.926   2.145  1.00  0.00           C  
+ATOM     58  C   GLY A   8       8.752  14.081   2.845  1.00  0.00           C  
+ATOM     59  O   GLY A   8       8.894  15.167   2.283  1.00  0.00           O  
+ATOM     60  N   HIS A   9       9.193  13.840   4.075  1.00  0.00           N  
+ATOM     61  CA  HIS A   9       9.886  14.859   4.854  1.00  0.00           C  
+ATOM     62  C   HIS A   9      11.124  14.281   5.532  1.00  0.00           C  
+ATOM     63  O   HIS A   9      11.076  13.195   6.111  1.00  0.00           O  
+ATOM     64  CB  HIS A   9       8.947  15.465   5.899  1.00  0.00           C  
+ATOM     65  CG  HIS A   9       9.095  16.983   5.898  1.00  0.00           C  
+ATOM     66  ND1 HIS A   9       9.945  17.720   5.081  1.00  0.00           N  
+ATOM     67  CD2 HIS A   9       8.404  17.872   6.712  1.00  0.00           C  
+ATOM     68  CE1 HIS A   9       9.780  19.064   5.391  1.00  0.00           C  
+ATOM     69  NE2 HIS A   9       8.827  19.158   6.399  1.00  0.00           N  
+ATOM     70  N   ILE A  10      12.230  15.013   5.457  1.00  0.00           N  
+ATOM     71  CA  ILE A  10      13.482  14.575   6.062  1.00  0.00           C  
+ATOM     72  C   ILE A  10      13.713  15.267   7.401  1.00  0.00           C  
+ATOM     73  O   ILE A  10      14.839  15.328   7.894  1.00  0.00           O  
+ATOM     74  CB  ILE A  10      14.657  14.845   5.120  1.00  0.00           C  
+ATOM     75  CG1 ILE A  10      15.036  13.557   4.397  1.00  0.00           C  
+ATOM     76  CG2 ILE A  10      15.851  15.345   5.926  1.00  0.00           C  
+ATOM     77  CD1 ILE A  10      13.866  12.580   4.450  1.00  0.00           C  
+ATOM     78  N   LEU A  11      12.638  15.788   7.986  1.00  0.00           N  
+ATOM     79  CA  LEU A  11      12.722  16.476   9.268  1.00  0.00           C  
+ATOM     80  C   LEU A  11      12.647  15.486  10.426  1.00  0.00           C  
+ATOM     81  O   LEU A  11      12.792  15.864  11.588  1.00  0.00           O  
+ATOM     82  CB  LEU A  11      11.606  17.516   9.392  1.00  0.00           C  
+ATOM     83  CG  LEU A  11      12.049  18.818   8.733  1.00  0.00           C  
+ATOM     84  CD1 LEU A  11      13.500  18.692   8.280  1.00  0.00           C  
+ATOM     85  CD2 LEU A  11      11.164  19.104   7.525  1.00  0.00           C  
+ATOM     86  N   LYS A  12      12.420  14.218  10.100  1.00  0.00           N  
+ATOM     87  CA  LYS A  12      12.326  13.172  11.111  1.00  0.00           C  
+ATOM     88  C   LYS A  12      13.631  12.391  11.212  1.00  0.00           C  
+ATOM     89  O   LYS A  12      13.656  11.268  11.716  1.00  0.00           O  
+ATOM     90  CB  LYS A  12      11.167  12.224  10.795  1.00  0.00           C  
+ATOM     91  CG  LYS A  12       9.961  12.589  11.654  1.00  0.00           C  
+ATOM     92  CD  LYS A  12      10.109  14.021  12.157  1.00  0.00           C  
+ATOM     93  CE  LYS A  12      11.103  14.770  11.275  1.00  0.00           C  
+ATOM     94  NZ  LYS A  12      11.235  14.076   9.986  1.00  0.00           N  
+ATOM     95  N   TYR A  13      14.714  12.992  10.730  1.00  0.00           N  
+ATOM     96  CA  TYR A  13      16.025  12.354  10.766  1.00  0.00           C  
+ATOM     97  C   TYR A  13      16.443  12.045  12.199  1.00  0.00           C  
+ATOM     98  O   TYR A  13      17.172  11.085  12.450  1.00  0.00           O  
+ATOM     99  CB  TYR A  13      17.071  13.243  10.091  1.00  0.00           C  
+ATOM    100  CG  TYR A  13      16.676  13.481   8.637  1.00  0.00           C  
+ATOM    101  CD1 TYR A  13      15.512  12.914   8.132  1.00  0.00           C  
+ATOM    102  CD2 TYR A  13      17.480  14.264   7.818  1.00  0.00           C  
+ATOM    103  CE1 TYR A  13      15.151  13.132   6.807  1.00  0.00           C  
+ATOM    104  CE2 TYR A  13      17.120  14.482   6.493  1.00  0.00           C  
+ATOM    105  CZ  TYR A  13      15.955  13.915   5.988  1.00  0.00           C  
+ATOM    106  OH  TYR A  13      15.603  14.128   4.692  1.00  0.00           O  
+ATOM    107  N   PRO A  14      15.979  12.865  13.136  1.00  0.00           N  
+ATOM    108  CA  PRO A  14      16.304  12.681  14.545  1.00  0.00           C  
+ATOM    109  C   PRO A  14      15.890  11.295  15.025  1.00  0.00           C  
+ATOM    110  O   PRO A  14      16.661  10.600  15.687  1.00  0.00           O  
+ATOM    111  CB  PRO A  14      15.627  13.758  15.396  1.00  0.00           C  
+ATOM    112  CG  PRO A  14      14.812  14.551  14.419  1.00  0.00           C  
+ATOM    113  CD  PRO A  14      15.215  14.118  13.041  1.00  0.00           C  
+ATOM    114  N   GLN A  15      14.667  10.898  14.688  1.00  0.00           N  
+ATOM    115  CA  GLN A  15      14.148   9.594  15.084  1.00  0.00           C  
+ATOM    116  C   GLN A  15      14.360   8.564  13.980  1.00  0.00           C  
+ATOM    117  O   GLN A  15      13.907   7.424  14.086  1.00  0.00           O  
+ATOM    118  CB  GLN A  15      12.662   9.693  15.434  1.00  0.00           C  
+ATOM    119  CG  GLN A  15      12.505   9.882  16.939  1.00  0.00           C  
+ATOM    120  CD  GLN A  15      13.881  10.034  17.579  1.00  0.00           C  
+ATOM    121  OE1 GLN A  15      14.902  10.086  16.860  1.00  0.00           O  
+ATOM    122  NE2 GLN A  15      13.994  10.111  18.902  1.00  0.00           N  
+ATOM    123  N   SER A  16      15.050   8.972  12.920  1.00  0.00           N  
+ATOM    124  CA  SER A  16      15.323   8.086  11.795  1.00  0.00           C  
+ATOM    125  C   SER A  16      15.898   6.757  12.274  1.00  0.00           C  
+ATOM    126  O   SER A  16      15.369   5.691  11.959  1.00  0.00           O  
+ATOM    127  CB  SER A  16      16.286   8.752  10.810  1.00  0.00           C  
+ATOM    128  OG  SER A  16      15.814  10.065  10.496  1.00  0.00           O  
+ATOM    129  N   THR A  17      16.984   6.828  13.037  1.00  0.00           N  
+ATOM    130  CA  THR A  17      17.633   5.631  13.560  1.00  0.00           C  
+ATOM    131  C   THR A  17      16.771   4.965  14.627  1.00  0.00           C  
+ATOM    132  O   THR A  17      16.879   3.762  14.864  1.00  0.00           O  
+ATOM    133  CB  THR A  17      19.009   5.975  14.133  1.00  0.00           C  
+ATOM    134  OG1 THR A  17      19.899   6.313  13.066  1.00  0.00           O  
+ATOM    135  CG2 THR A  17      19.560   4.772  14.891  1.00  0.00           C  
+ATOM    136  N   VAL A  18      15.916   5.755  15.268  1.00  0.00           N  
+ATOM    137  CA  VAL A  18      15.034   5.244  16.311  1.00  0.00           C  
+ATOM    138  C   VAL A  18      15.836   4.758  17.514  1.00  0.00           C  
+ATOM    139  O   VAL A  18      15.632   3.645  17.999  1.00  0.00           O  
+ATOM    140  CB  VAL A  18      14.161   4.111  15.767  1.00  0.00           C  
+ATOM    141  CG1 VAL A  18      15.043   2.927  15.385  1.00  0.00           C  
+ATOM    142  CG2 VAL A  18      13.164   3.678  16.837  1.00  0.00           C  
+ATOM    143  N   TRP A  19      16.747   5.599  17.991  1.00  0.00           N  
+ATOM    144  CA  TRP A  19      17.581   5.256  19.137  1.00  0.00           C  
+ATOM    145  C   TRP A  19      16.732   4.743  20.295  1.00  0.00           C  
+ATOM    146  O   TRP A  19      17.153   3.859  21.041  1.00  0.00           O  
+ATOM    147  CB  TRP A  19      18.403   6.467  19.582  1.00  0.00           C  
+ATOM    148  CG  TRP A  19      19.111   7.074  18.375  1.00  0.00           C  
+ATOM    149  CD1 TRP A  19      19.033   6.613  17.066  1.00  0.00           C  
+ATOM    150  CD2 TRP A  19      19.946   8.185  18.391  1.00  0.00           C  
+ATOM    151  NE1 TRP A  19      19.821   7.439  16.272  1.00  0.00           N  
+ATOM    152  CE2 TRP A  19      20.385   8.410  17.091  1.00  0.00           C  
+ATOM    153  CE3 TRP A  19      20.364   9.020  19.420  1.00  0.00           C  
+ATOM    154  CZ2 TRP A  19      21.242   9.471  16.821  1.00  0.00           C  
+ATOM    155  CZ3 TRP A  19      21.221  10.080  19.150  1.00  0.00           C  
+ATOM    156  CH2 TRP A  19      21.660  10.306  17.851  1.00  0.00           C  
+ATOM    157  N   PHE A  20      15.536   5.304  20.440  1.00  0.00           N  
+ATOM    158  CA  PHE A  20      14.626   4.904  21.507  1.00  0.00           C  
+ATOM    159  C   PHE A  20      14.177   3.458  21.329  1.00  0.00           C  
+ATOM    160  O   PHE A  20      13.637   2.848  22.252  1.00  0.00           O  
+ATOM    161  CB  PHE A  20      13.411   5.832  21.551  1.00  0.00           C  
+ATOM    162  CG  PHE A  20      13.859   7.241  21.926  1.00  0.00           C  
+ATOM    163  CD1 PHE A  20      15.203   7.502  22.166  1.00  0.00           C  
+ATOM    164  CD2 PHE A  20      12.923   8.264  22.029  1.00  0.00           C  
+ATOM    165  CE1 PHE A  20      15.612   8.786  22.508  1.00  0.00           C  
+ATOM    166  CE2 PHE A  20      13.332   9.548  22.371  1.00  0.00           C  
+ATOM    167  CZ  PHE A  20      14.676   9.809  22.610  1.00  0.00           C  
+TER     168      PHE A  20 
+REMARK 900 Geometry closure (heavy-atom model): OPEN (coordinate conflicts retained)
+REMARK 900   checked: 167 atoms, 172 bonds, 310 angles, 6 ring closures, 21 stereocenters, 77 backbone torsions, 13457 nonbonded pairs
+REMARK 900   tolerances: bond 0.020 A, backbone angle 8.0 deg, other bonded angles 90..135 deg, clash overlap 0.40 A
+REMARK 900   measured: max bond residual 0.000000 A, max nonbonded overlap 2.363466 A
+REMARK 900   clash: 136 conflict(s)
+REMARK 900   clash: 1:N--2:N distance 2.696654 A, overlap 0.403346 A
+REMARK 900   clash: 1:CA--1:SD distance 2.738598 A, overlap 0.761402 A
+REMARK 900   clash: 1:CA--1:CE distance 2.427008 A, overlap 0.972992 A
+REMARK 900   clash: 1:C--2:CB distance 2.973009 A, overlap 0.426991 A
+REMARK 900   clash: 1:O--2:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 2:O--2:CB distance 2.713354 A, overlap 0.506646 A
+REMARK 900   clash: 2:O--3:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 3:O--4:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 4:N--5:N distance 2.676484 A, overlap 0.423516 A
+REMARK 900   clash: 4:CA--4:OD1 distance 2.719772 A, overlap 0.500228 A
+REMARK 900   clash: 4:C--5:CB distance 2.973009 A, overlap 0.426991 A
+REMARK 900   clash: 4:C--5:CG distance 2.777411 A, overlap 0.622589 A
+REMARK 900   clash: 4:O--5:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 4:O--5:CG distance 2.083358 A, overlap 1.136642 A
+REMARK 900   clash: 4:O--5:OD1 distance 2.091073 A, overlap 0.948927 A
+REMARK 900   clash: 4:O--5:OD2 distance 2.464503 A, overlap 0.575497 A
+REMARK 900   clash: 5:C--5:CG distance 2.917207 A, overlap 0.482793 A
+REMARK 900   clash: 5:C--5:OD1 distance 2.623005 A, overlap 0.596995 A
+REMARK 900   clash: 5:C--6:C distance 2.922569 A, overlap 0.477431 A
+REMARK 900   clash: 5:O--5:CB distance 2.713354 A, overlap 0.506646 A
+REMARK 900   clash: 5:O--5:CG distance 2.773606 A, overlap 0.446394 A
+REMARK 900   clash: 5:O--5:OD1 distance 2.156107 A, overlap 0.883893 A
+REMARK 900   clash: 5:O--6:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 5:O--6:C distance 2.773589 A, overlap 0.446411 A
+REMARK 900   clash: 5:O--8:N distance 2.522771 A, overlap 0.547229 A
+REMARK 900   clash: 6:O--7:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 7:N--7:OE1 distance 2.597930 A, overlap 0.472070 A
+REMARK 900   clash: 7:N--8:N distance 2.648984 A, overlap 0.451016 A
+REMARK 900   clash: 7:CA--7:CD distance 2.557132 A, overlap 0.842868 A
+REMARK 900   clash: 7:CA--7:OE1 distance 2.043338 A, overlap 1.176662 A
+REMARK 900   clash: 7:C--8:C distance 2.960447 A, overlap 0.439553 A
+REMARK 900   clash: 7:O--8:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 7:CB--7:OE1 distance 2.691446 A, overlap 0.528554 A
+REMARK 900   clash: 8:O--9:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 9:O--10:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 9:CE1--11:CD2 distance 2.543665 A, overlap 0.856335 A
+REMARK 900   clash: 9:NE2--11:CD2 distance 2.594519 A, overlap 0.655481 A
+REMARK 900   clash: 10:N--11:N distance 2.676484 A, overlap 0.423516 A
+REMARK 900   clash: 10:CA--10:CD1 distance 2.593452 A, overlap 0.806548 A
+REMARK 900   clash: 10:CA--13:CE1 distance 2.328991 A, overlap 1.071009 A
+REMARK 900   clash: 10:CA--13:CZ distance 2.560906 A, overlap 0.839094 A
+REMARK 900   clash: 10:CA--13:OH distance 2.564483 A, overlap 0.655517 A
+REMARK 900   clash: 10:C--10:CG2 distance 2.599018 A, overlap 0.800982 A
+REMARK 900   clash: 10:C--13:CE1 distance 2.642407 A, overlap 0.757593 A
+REMARK 900   clash: 10:C--13:CZ distance 2.975740 A, overlap 0.424260 A
+REMARK 900   clash: 10:O--10:CG2 distance 2.212514 A, overlap 1.007486 A
+REMARK 900   clash: 10:O--11:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 10:O--13:CG distance 2.708838 A, overlap 0.511162 A
+REMARK 900   clash: 10:O--13:CD1 distance 2.516562 A, overlap 0.703438 A
+REMARK 900   clash: 10:O--13:CE1 distance 2.469965 A, overlap 0.750035 A
+REMARK 900   clash: 10:O--13:CE2 distance 2.806745 A, overlap 0.413255 A
+REMARK 900   clash: 10:O--13:CZ distance 2.621659 A, overlap 0.598341 A
+REMARK 900   clash: 10:CB--13:CE1 distance 2.454937 A, overlap 0.945063 A
+REMARK 900   clash: 10:CB--13:CE2 distance 2.843181 A, overlap 0.556819 A
+REMARK 900   clash: 10:CB--13:CZ distance 1.817618 A, overlap 1.582382 A
+REMARK 900   clash: 10:CB--13:OH distance 1.262200 A, overlap 1.957800 A
+REMARK 900   clash: 10:CG1--13:CE1 distance 2.450353 A, overlap 0.949647 A
+REMARK 900   clash: 10:CG1--13:CZ distance 1.872008 A, overlap 1.527992 A
+REMARK 900   clash: 10:CG1--13:OH distance 0.856534 A, overlap 2.363466 A
+REMARK 900   clash: 10:CG2--13:CD2 distance 2.720601 A, overlap 0.679399 A
+REMARK 900   clash: 10:CG2--13:CE1 distance 2.483152 A, overlap 0.916848 A
+REMARK 900   clash: 10:CG2--13:CE2 distance 1.636262 A, overlap 1.763738 A
+REMARK 900   clash: 10:CG2--13:CZ distance 1.435110 A, overlap 1.964890 A
+REMARK 900   clash: 10:CG2--13:OH distance 1.751454 A, overlap 1.468546 A
+REMARK 900   clash: 10:CD1--13:CE1 distance 2.740894 A, overlap 0.659106 A
+REMARK 900   clash: 10:CD1--13:CZ distance 2.917508 A, overlap 0.482492 A
+REMARK 900   clash: 10:CD1--13:OH distance 2.338567 A, overlap 0.881433 A
+REMARK 900   clash: 11:N--12:N distance 2.641997 A, overlap 0.458003 A
+REMARK 900   clash: 11:CA--11:CD1 distance 2.547883 A, overlap 0.852117 A
+REMARK 900   clash: 11:C--12:CE distance 1.902125 A, overlap 1.497875 A
+REMARK 900   clash: 11:C--12:NZ distance 2.043462 A, overlap 1.206538 A
+REMARK 900   clash: 11:O--12:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 11:O--12:CE distance 2.036814 A, overlap 1.183186 A
+REMARK 900   clash: 12:N--12:CE distance 1.849086 A, overlap 1.400914 A
+REMARK 900   clash: 12:N--12:NZ distance 1.198412 A, overlap 1.901588 A
+REMARK 900   clash: 12:N--13:N distance 2.676484 A, overlap 0.423516 A
+REMARK 900   clash: 12:CA--12:CD distance 2.593452 A, overlap 0.806548 A
+REMARK 900   clash: 12:CA--12:CE distance 2.018379 A, overlap 1.381621 A
+REMARK 900   clash: 12:CA--12:NZ distance 1.808777 A, overlap 1.441223 A
+REMARK 900   clash: 12:C--14:CD distance 2.972251 A, overlap 0.427749 A
+REMARK 900   clash: 12:O--13:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 12:CB--12:CE distance 2.591652 A, overlap 0.808348 A
+REMARK 900   clash: 12:CB--12:NZ distance 2.022200 A, overlap 1.227800 A
+REMARK 900   clash: 12:CG--12:NZ distance 2.572415 A, overlap 0.677585 A
+REMARK 900   clash: 13:N--13:CD1 distance 2.719054 A, overlap 0.530946 A
+REMARK 900   clash: 13:N--14:CD distance 2.618639 A, overlap 0.631361 A
+REMARK 900   clash: 13:CA--13:CD1 distance 2.741117 A, overlap 0.658883 A
+REMARK 900   clash: 13:CA--14:CD distance 2.990436 A, overlap 0.409564 A
+REMARK 900   clash: 13:CA--16:OG distance 2.314593 A, overlap 0.905407 A
+REMARK 900   clash: 13:C--14:C distance 2.976141 A, overlap 0.423859 A
+REMARK 900   clash: 13:C--16:OG distance 2.686762 A, overlap 0.533238 A
+REMARK 900   clash: 13:O--14:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 13:O--16:OG distance 2.588674 A, overlap 0.451326 A
+REMARK 900   clash: 13:CG--13:CZ distance 2.780000 A, overlap 0.620000 A
+REMARK 900   clash: 13:CD1--13:CE2 distance 2.780000 A, overlap 0.620000 A
+REMARK 900   clash: 13:CD2--13:CE1 distance 2.780000 A, overlap 0.620000 A
+REMARK 900   clash: 14:C--15:OE1 distance 2.409070 A, overlap 0.810930 A
+REMARK 900   clash: 14:O--15:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 14:O--15:OE1 distance 2.176189 A, overlap 0.863811 A
+REMARK 900   clash: 15:N--15:OE1 distance 2.331192 A, overlap 0.738808 A
+REMARK 900   clash: 15:N--16:N distance 2.641997 A, overlap 0.458003 A
+REMARK 900   clash: 15:CA--15:CD distance 2.547883 A, overlap 0.852117 A
+REMARK 900   clash: 15:CA--15:OE1 distance 1.991834 A, overlap 1.228166 A
+REMARK 900   clash: 15:C--16:C distance 2.922569 A, overlap 0.477431 A
+REMARK 900   clash: 15:O--16:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 15:O--16:C distance 2.773589 A, overlap 0.446411 A
+REMARK 900   clash: 15:CB--15:OE1 distance 2.684854 A, overlap 0.535146 A
+REMARK 900   clash: 16:O--17:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 17:N--18:N distance 2.696654 A, overlap 0.403346 A
+REMARK 900   clash: 17:C--17:CG2 distance 2.807847 A, overlap 0.592153 A
+REMARK 900   clash: 17:C--18:CB distance 2.973009 A, overlap 0.426991 A
+REMARK 900   clash: 17:C--18:CG1 distance 2.777411 A, overlap 0.622589 A
+REMARK 900   clash: 17:O--18:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 17:O--18:CG1 distance 2.083358 A, overlap 1.136642 A
+REMARK 900   clash: 17:CB--19:NE1 distance 2.716712 A, overlap 0.533288 A
+REMARK 900   clash: 17:CG2--19:CD1 distance 2.898050 A, overlap 0.501950 A
+REMARK 900   clash: 18:C--18:CG1 distance 2.917207 A, overlap 0.482793 A
+REMARK 900   clash: 18:C--18:CG2 distance 2.959531 A, overlap 0.440469 A
+REMARK 900   clash: 18:C--19:C distance 2.922569 A, overlap 0.477431 A
+REMARK 900   clash: 18:O--18:CB distance 2.713354 A, overlap 0.506646 A
+REMARK 900   clash: 18:O--18:CG1 distance 2.773606 A, overlap 0.446394 A
+REMARK 900   clash: 18:O--18:CG2 distance 2.727489 A, overlap 0.492511 A
+REMARK 900   clash: 18:O--19:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 18:O--19:C distance 2.773589 A, overlap 0.446411 A
+REMARK 900   clash: 19:N--19:CG distance 2.812200 A, overlap 0.437800 A
+REMARK 900   clash: 19:N--19:CD1 distance 2.666112 A, overlap 0.583888 A
+REMARK 900   clash: 19:CA--19:CD1 distance 2.870383 A, overlap 0.529617 A
+REMARK 900   clash: 19:O--20:CA distance 2.773405 A, overlap 0.446595 A
+REMARK 900   clash: 19:CD2--19:CH2 distance 2.780000 A, overlap 0.620000 A
+REMARK 900   clash: 19:CE2--19:CZ3 distance 2.780000 A, overlap 0.620000 A
+REMARK 900   clash: 19:CE3--19:CZ2 distance 2.780000 A, overlap 0.620000 A
+REMARK 900   clash: 20:N--20:CD1 distance 2.814335 A, overlap 0.435665 A
+REMARK 900   clash: 20:CA--20:CD1 distance 2.741117 A, overlap 0.658883 A
+REMARK 900   clash: 20:CG--20:CZ distance 2.780000 A, overlap 0.620000 A
+REMARK 900   clash: 20:CD1--20:CE2 distance 2.780000 A, overlap 0.620000 A
+REMARK 900   clash: 20:CD2--20:CE1 distance 2.780000 A, overlap 0.620000 A
+REMARK 900 Secondary-structure evidence: B is valid (affirmation and denial retained)
+REMARK 900   helix: T 2  F 6  B 12  N 0
+REMARK 900   sheet: T 0  F 13  B 7  N 0
+REMARK 900   other: T 3  F 6  B 11  N 0
+REMARK 900   residue 1: sequence Some("helix"), B4 backbone Some("turn"); helix B, sheet F, other B
+REMARK 900   residue 2: sequence Some("helix"), B4 backbone Some("helix_l"); helix T, sheet F, other F
+REMARK 900   residue 3: sequence Some("helix"), B4 backbone Some("sheet"); helix B, sheet B, other F
+REMARK 900   residue 4: sequence Some("helix"), B4 backbone Some("loop"); helix B, sheet F, other B
+REMARK 900   residue 5: sequence Some("helix"), B4 backbone Some("helix_l"); helix T, sheet F, other F
+REMARK 900   residue 6: sequence Some("other"), B4 backbone Some("loop"); helix F, sheet F, other T
+REMARK 900   residue 7: sequence Some("helix"), B4 backbone Some("loop"); helix B, sheet F, other B
+REMARK 900   residue 8: sequence Some("helix"), B4 backbone Some("loop"); helix B, sheet F, other B
+REMARK 900   residue 9: sequence Some("helix"), B4 backbone Some("sheet"); helix B, sheet B, other F
+REMARK 900   residue 10: sequence Some("helix"), B4 backbone Some("loop"); helix B, sheet F, other B
+REMARK 900   residue 11: sequence Some("helix"), B4 backbone Some("loop"); helix B, sheet F, other B
+REMARK 900   residue 12: sequence Some("helix"), B4 backbone Some("loop"); helix B, sheet F, other B
+REMARK 900   residue 13: sequence Some("other"), B4 backbone Some("turn"); helix F, sheet F, other T
+REMARK 900   residue 14: sequence Some("other"), B4 backbone Some("helix"); helix B, sheet F, other B
+REMARK 900   residue 15: sequence Some("other"), B4 backbone Some("loop"); helix F, sheet F, other T
+REMARK 900   residue 16: sequence Some("sheet"), B4 backbone Some("helix"); helix B, sheet B, other F
+REMARK 900   residue 17: sequence Some("sheet"), B4 backbone Some("turn"); helix F, sheet B, other B
+REMARK 900   residue 18: sequence Some("sheet"), B4 backbone Some("helix_l"); helix B, sheet B, other F
+REMARK 900   residue 19: sequence Some("sheet"), B4 backbone Some("loop"); helix F, sheet B, other B
+REMARK 900   residue 20: sequence Some("sheet"), B4 backbone Some("loop"); helix F, sheet B, other B
+REMARK 901 NATIVE PROTEIN STATE B; COORDINATES ARE A BOUNDARY READOUT
+REMARK 901 RESIDUE 1 Met SELF-MARK 0d05aedb8d8141e09adfe49425dda47f
+REMARK 901 SOURCE SHA256 956563e9360c4c4e801c11407cb259c817faf1915b9017637b0f30bca7fffbb8
+REMARK 901 RESIDUE 2 Ala SELF-MARK 118a85c41d2d416f8e8a0e2fc40096e1
+REMARK 901 SOURCE SHA256 ce0bac3643bf54d807203ba71ee007d08489b46ecbacf6e4328256d4b990446c
+REMARK 901 RESIDUE 3 Arg SELF-MARK c1518f3484a04a12a5b44bcb4af2add1
+REMARK 901 SOURCE SHA256 b8dfe62b4bdaebc49a14004470b7b16da6f1376d09d5985bf9fea7f05fcc29ea
+REMARK 901 RESIDUE 4 Asn SELF-MARK edb9f1cb938d4eab9c61413c38cc9edc
+REMARK 901 SOURCE SHA256 45a0539bc02cf50f0a97699651a26e4195b275b1644bf1b650b968a1751f6ebf
+REMARK 901 RESIDUE 5 Asp SELF-MARK 20df2e098a5146f583d5033ccb2d6db3
+REMARK 901 SOURCE SHA256 9b69d6beee091a32c50c64415e61bae531d74d055fa240508460f0b4fef6d7d1
+REMARK 901 RESIDUE 5 Asp SELF-MARK 4b48493089eb486aa183a6956868283c
+REMARK 901 SOURCE SHA256 49e456cba730b6d9cb6c0f74848e59620549ffa75034b2fbe0b2f3a9a2584337
+REMARK 901 RESIDUE 6 Cys SELF-MARK a578eaafacd74675981c995b5055a0af
+REMARK 901 SOURCE SHA256 6b346b1c93eef290460b478ad048a3c998f730a154f959dcf39d8660d4f1a0c3
+REMARK 901 RESIDUE 7 Glu SELF-MARK c5165a4b0abc4416aa0576fa0ec667f9
+REMARK 901 SOURCE SHA256 f1902a358f2987e88f54cc6503d63fd677a540f4edad572d109cf0b1ec15e58e
+REMARK 901 RESIDUE 7 Glu SELF-MARK 9c3014ad0fe34578bc57792e40640865
+REMARK 901 SOURCE SHA256 14ccaff59defa577b163b33a499a4290b2bcf03e68319790d9e42a3caa6ce723
+REMARK 901 RESIDUE 8 Gly SELF-MARK d1b3986c41bf478e862ea1d35f9b022d
+REMARK 901 SOURCE SHA256 68ee82616cb0650a245f0cf3984147ee0cc179ed0e006dec46fd2447ef5fe1da
+REMARK 901 RESIDUE 9 His SELF-MARK 3867e078455a4146805e8bc1eab52602
+REMARK 901 SOURCE SHA256 7f020d361b9dd7c90429e14ffa087b53289d5cbe1fc6880154d384d1466bb6c4
+REMARK 901 RESIDUE 10 Ile SELF-MARK ff8c0e67c3174d21be1e478214807eb9
+REMARK 901 SOURCE SHA256 9fdf9581956c64d1b46791485e615879dc3646daac1bf3e3e31210efd50d3ad5
+REMARK 901 RESIDUE 11 Leu SELF-MARK a47e94c999fd4804a0fddc00d55bc0cb
+REMARK 901 SOURCE SHA256 b3f607ea16b92863c9d2fcfdd555591ed137ee7ba7cce36e2d47bec1f75bf8a6
+REMARK 901 RESIDUE 12 Lys SELF-MARK 324ef694a84f412fa68fc4b58e74e9c9
+REMARK 901 SOURCE SHA256 b2ea275a6224fe818eb66a7b824b1a1280f38117f77a38b3ca3ed47c70771a2d
+REMARK 901 RESIDUE 13 Tyr SELF-MARK b4cd42eced1644ed836022da94fa6820
+REMARK 901 SOURCE SHA256 74599c52855961f6dacb810f05840eb08410d05cdf00254abd8f6b2d9729c95b
+REMARK 901 RESIDUE 14 Pro SELF-MARK 81e17380eaba43c2b8290a7b60c9f931
+REMARK 901 SOURCE SHA256 a26a6529828219b71e5077ce18235cc552c363fec9a7dbbb5609212aa7ce6b35
+REMARK 901 RESIDUE 15 Gln SELF-MARK a072eef46b2b4befa10ec389f653490e
+REMARK 901 SOURCE SHA256 af764e4176cf4d6421b2c7f455d72ee2d6ca7bdde92ad5a65e873b41437ec64b
+REMARK 901 RESIDUE 16 Ser SELF-MARK 22d0ad97f4b840258e72597c44543a37
+REMARK 901 SOURCE SHA256 29ef48f0abaafe2a46e8d072e1b9fc4d2af6cfdff4b4779275bd87f134991c0b
+REMARK 901 RESIDUE 17 Thr SELF-MARK 2d9e0b3658c84c479626562c25f2a631
+REMARK 901 SOURCE SHA256 c5fd4c39c620e055d1e44a62070b6e06ba7a8ff1bcadc647abb13bb625b2d18b
+REMARK 901 RESIDUE 18 Val SELF-MARK 8de38cd955a040e3ac75622a8b9a3c66
+REMARK 901 SOURCE SHA256 67fbfb63ca4ebe6baeb79a4c8d84c603363e3a737e05be2a727837191da616ea
+REMARK 901 RESIDUE 19 Trp SELF-MARK 068e580f0ccb4a649ca197e116af34d3
+REMARK 901 SOURCE SHA256 b211829809c2862603b2aff8542dd9a6a563bc085ce3761de22a259ee000d12a
+REMARK 901 RESIDUE 20 Phe SELF-MARK c5ad3d711a324c00bdb285478a0e8517
+REMARK 901 SOURCE SHA256 0c34e1d5c8af34fcd8050d685c220f441f33adea2a96d663c8f6be3908bfd14c
+END

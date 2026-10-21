@@ -26,48 +26,7 @@ use alloc::format;
 use num_bigint::BigUint;
 use num_traits::One;
 
-/// Each hex nibble's canonical IMASM word, one word per bit pattern of
-/// {T-bit, F-bit, I-bit, fork-openness-bit}, built from the ob3ect
-/// "A hex digit's fourth bit as fork openness, not a fifth glyph"
-/// (`ob3ect/digital/a_hex_digit_s_fourth_bit_as_fork_openness_not_a_f03510ea`).
-/// v=0xF reproduces that ob3ect's own canonical word exactly — checked, not
-/// assumed. The template: ⊢, then ∈ iff the fork bit is set, then ⊤ iff the
-/// T-bit is set, then ≻⋈, then ⊥ iff the F-bit is set, then ≺ (the clear —
-/// banked if the fork opened before it, exposed otherwise), then ⋈ and ∋
-/// iff the fork bit is set, then ⊞ iff the I-bit is set, then ⊙⊡⊣.
-/// Verified pairwise distinct across all 16 against the real kernel.
-pub const HEX_WORDS: [&str; 16] = [
-    "⊢≻⋈≺⊙⊡⊣",             // 0x0  T=0 F=0 I=0 fork=0
-    "⊢⊤≻⋈≺⊙⊡⊣",           // 0x1  T=1 F=0 I=0 fork=0
-    "⊢≻⋈⊥≺⊙⊡⊣",           // 0x2  T=0 F=1 I=0 fork=0
-    "⊢⊤≻⋈⊥≺⊙⊡⊣",         // 0x3  T=1 F=1 I=0 fork=0
-    "⊢≻⋈≺⊞⊙⊡⊣",           // 0x4  T=0 F=0 I=1 fork=0
-    "⊢⊤≻⋈≺⊞⊙⊡⊣",         // 0x5  T=1 F=0 I=1 fork=0
-    "⊢≻⋈⊥≺⊞⊙⊡⊣",         // 0x6  T=0 F=1 I=1 fork=0
-    "⊢⊤≻⋈⊥≺⊞⊙⊡⊣",       // 0x7  T=1 F=1 I=1 fork=0
-    "⊢∈≻⋈≺⋈∋⊙⊡⊣",         // 0x8  T=0 F=0 I=0 fork=1
-    "⊢∈⊤≻⋈≺⋈∋⊙⊡⊣",       // 0x9  T=1 F=0 I=0 fork=1
-    "⊢∈≻⋈⊥≺⋈∋⊙⊡⊣",       // 0xA  T=0 F=1 I=0 fork=1
-    "⊢∈⊤≻⋈⊥≺⋈∋⊙⊡⊣",     // 0xB  T=1 F=1 I=0 fork=1
-    "⊢∈≻⋈≺⋈⊞∋⊙⊡⊣",       // 0xC  T=0 F=0 I=1 fork=1
-    "⊢∈⊤≻⋈≺⋈⊞∋⊙⊡⊣",     // 0xD  T=1 F=0 I=1 fork=1
-    "⊢∈≻⋈⊥≺⋈⊞∋⊙⊡⊣",     // 0xE  T=0 F=1 I=1 fork=1
-    "⊢∈⊤≻⋈⊥≺⋈⊞∋⊙⊡⊣",   // 0xF  T=1 F=1 I=1 fork=1 -- the ob3ect's own word
-];
-
-/// Convert N (decimal string) to hex, then concatenate each nibble's
-/// canonical word, most-significant nibble first.
-pub fn digit_encode(n_str: &str) -> String {
-    let n: BigUint = match trim(n_str).parse() { Ok(v) => v, Err(_) => return String::new() };
-    let hex = n.to_str_radix(16);
-    let mut out = String::new();
-    for c in hex.chars() {
-        if let Some(d) = c.to_digit(16) {
-            out.push_str(HEX_WORDS[d as usize]);
-        }
-    }
-    out
-}
+pub use g_momonados::numeral_encodings::{HEX_WORDS,digit_encode};
 
 /// Each hex digit's own type, read via `imscribe generate`'s guided,
 /// per-primitive grounding (one canonical value at a time from a numbered

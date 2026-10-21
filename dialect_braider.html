@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dialect CFG Engine</title><style>
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#0b0b12;color:#f0ead8;font-family:'Courier New',monospace;overflow-x:hidden}
+#layout{display:grid;grid-template-columns:340px 1fr;height:100vh;width:100vw}
+#sidebar{background:#12101e;border-right:1px solid #2a2740;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+#main{padding:20px;background:#0b0b12;display:grid;grid-template-columns:1fr 360px;grid-template-rows:auto auto 1fr;gap:12px;overflow:hidden}
+h1{color:#e8b84b;font-size:18px;margin-bottom:2px}
+h2{color:#c8b8e0;font-size:14px;margin:12px 0 6px;border-bottom:1px solid #2a2740;padding-bottom:4px;flex-shrink:0}
+select{width:100%;background:#1e1c2e;color:#f0ead8;border:1px solid #3a3550;border-radius:4px;padding:6px 8px;font-family:'Courier New',monospace;font-size:12px;margin-bottom:6px}
+select option{background:#1e1c2e}
+select optgroup{background:#12101e;color:#8a84b0;font-style:normal}
+textarea{width:100%;background:#1e1c2e;color:#f0ead8;border:1px solid #3a3550;border-radius:4px;padding:6px 8px;font-family:'Courier New',monospace;font-size:14px;height:60px;margin:4px 0;letter-spacing:2px}
+.btn{background:#2A2740;color:#f0ead8;border:1px solid #3a3550;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:11px;margin:2px;font-family:'Courier New',monospace}
+.btn:hover{background:#3a3550;border-color:#a84bb8}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;margin:2px;font-weight:bold}
+.tag-pass{background:#1a3a1a;color:#6f6;border:1px solid #2a5a2a}
+.tag-fail{background:#3a1a1a;color:#f66;border:1px solid #5a2a2a}
+.tag-par{background:#2a1a3a;color:#a8f;border:1px solid #3a2a5a}
+.tag-seq{background:#1a2a3a;color:#6af;border:1px solid #2a3a5a}
+.tag-info{background:#1e1c2e;color:#c8b8e0;border:1px solid #3a3550}
+#ruleset-box{background:#1a1828;border:1px solid #2a2740;border-radius:6px;padding:10px;margin:10px 0;font-size:11px;line-height:1.6;color:#f0ead8;flex-shrink:0}
+#ruleset-box .gr{display:flex;gap:6px;margin:2px 0}
+#ruleset-box .gl{color:#8a84b0;width:24px}
+#ruleset-box .gv{color:#f0ead8}
+#rslt-box{background:#1a1828;border:1px solid #2a2740;border-radius:6px;padding:10px;margin:10px 0;font-size:11px;color:#f0ead8;flex-shrink:0}
+
+#right-col{display:flex;flex-direction:column;gap:12px;overflow:hidden;grid-column:2;grid-row:3}
+#cfg-box{background:#1a1828;border:1px solid #2a2740;border-radius:6px;padding:12px;font-size:11px;line-height:1.6;color:#f0ead8;flex-grow:1;overflow-y:auto}
+#static-view{width:100%;height:240px;background:#0b0b12;border:1px solid #2a2740;border-radius:6px;position:relative;overflow:hidden;flex-shrink:0}
+#braid-view{width:100%;height:100%;background:#0b0b12;border:1px solid #2a2740;border-radius:6px;position:relative;overflow:hidden;grid-column:1;grid-row:3}
+
+#braid-view svg, #static-view svg{width:100%;height:100%}
+.edge{stroke:#3a3550;stroke-width:1.5;fill:none}
+.edge.pass{stroke:#4a8}
+.edge.fail{stroke:#844;stroke-dasharray:4,3}
+.edge.back{stroke:#a84bb8;stroke-dasharray:2,2}
+text{font-family:'Courier New',monospace;pointer-events:none}
+#legend{display:flex;gap:14px;margin:0;font-size:10px;flex-wrap:wrap;color:#8a84b0;grid-column:1 / -1;grid-row:2;align-items:center}
+#legend span{display:flex;align-items:center;gap:4px}
+.ld{width:10px;height:10px;border-radius:50%;display:inline-block}
+#tip{position:absolute;display:none;pointer-events:none;background:rgba(11,11,18,0.96);border:1px solid #5a659c;border-radius:6px;padding:8px 12px;color:#f0ead8;font-size:11px;max-width:280px;z-index:100;line-height:1.5}
+#stat-bar{display:flex;gap:12px;margin:0;font-size:11px;color:#8a84b0;flex-wrap:wrap;grid-column:1 / -1;grid-row:1}
+
+/* Pan/Zoom cursor styling */
+.pannable { cursor: grab; }
+.pannable:active { cursor: grabbing; }
+
+</style></head><body>
+<div id="tip"></div><div id="layout">
+<div id="sidebar">
+<div style="font-size:10px;color:#8a84b0;margin-bottom:10px">88 universes &middot; IMASM grammar</div>
+<h2>1. Select Universe</h2>
+<select id="dialectSel" onchange="updateDialect()">
+<option value="0">canonical (U_0)</option>
+<option value="1">low_gate (U_1)</option>
+<option value="2">strict_frobenius (U_2)</option>
+<option value="3">inverted_gates (U_3)</option>
+<option value="4">no_ordering (U_4)</option>
+<option value="5">high_gate (U_5)</option>
+<option value="6">winding_first (U_6)</option>
+<option value="7">t_structural (U_7)</option>
+<option value="8">chirality_first (U_8)</option>
+<option value="9">topology_universe (U_9)</option>
+<option value="10">scope_universe (U_10)</option>
+<option value="11">dimensional_gate (U_11)</option>
+<option value="12">kinetics_trap (U_12)</option>
+<option value="13">triple_criticality (U_13)</option>
+<option value="14">t_hybrid (U_14)</option>
+<option value="15">broadcast_universe (U_15)</option>
+<option value="16">t_inverted (U_16)</option>
+<option value="17">single_gate (U_17)</option>
+<option value="18">fidelity_universe (U_18)</option>
+<option value="19">stoichiometry_universe (U_19)</option>
+<option value="20">absorption_democracy (U_20)</option>
+<option value="21">absorption_monarchy (U_21)</option>
+<option value="22">absorption_inverted (U_22)</option>
+<option value="23">absorption_tensor_only (U_23)</option>
+<option value="24">absorption_chirality_first (U_24)</option>
+<option value="25">absorption_scope_empire (U_25)</option>
+<option value="26">absorption_topology_seal (U_26)</option>
+<option value="27">predator_universe (U_27)</option>
+<option value="28">prey_universe (U_28)</option>
+<option value="29">coupling_first (U_29)</option>
+<option value="30">coupling_maximal (U_30)</option>
+<option value="31">chirality_second (U_31)</option>
+<option value="32">dimensional_second (U_32)</option>
+<option value="33">topology_second (U_33)</option>
+<option value="34">fidelity_second (U_34)</option>
+<option value="35">scope_second (U_35)</option>
+<option value="36">composition_second (U_36)</option>
+<option value="37">winding_second (U_37)</option>
+<option value="38">kinetics_second (U_38)</option>
+<option value="39">chirality_third (U_39)</option>
+<option value="40">dimensional_third (U_40)</option>
+<option value="41">topology_third (U_41)</option>
+<option value="42">fidelity_third (U_42)</option>
+<option value="43">scope_third (U_43)</option>
+<option value="44">composition_third (U_44)</option>
+<option value="45">coupling_third (U_45)</option>
+<option value="46">kinetics_third (U_46)</option>
+<option value="47">parallel_canonical (U_47)</option>
+<option value="48">parallel_low (U_48)</option>
+<option value="49">parallel_high (U_49)</option>
+<option value="50">parallel_chirality (U_50)</option>
+<option value="51">parallel_topology (U_51)</option>
+<option value="52">parallel_scope (U_52)</option>
+<option value="53">parallel_broadcast (U_53)</option>
+<option value="54">parallel_dimensional (U_54)</option>
+<option value="55">parallel_kinetics (U_55)</option>
+<option value="56">triple_parity (U_56)</option>
+<option value="57">triple_topology (U_57)</option>
+<option value="58">triple_coupling (U_58)</option>
+<option value="59">triple_chirality (U_59)</option>
+<option value="60">triple_winding (U_60)</option>
+<option value="61">ordinal4_parity (U_61)</option>
+<option value="62">ordinal4_winding (U_62)</option>
+<option value="63">ordinal_swap (U_63)</option>
+<option value="64">ordinal_invert (U_64)</option>
+<option value="65">t_ceiling_topology (U_65)</option>
+<option value="66">t_ceiling_dimensional (U_66)</option>
+<option value="67">absorb_ep (U_67)</option>
+<option value="68">absorb_sub (U_68)</option>
+<option value="69">absorb_dual (U_69)</option>
+<option value="70">t_subset_th_sigma (U_70)</option>
+<option value="71">t_subset_th_omega (U_71)</option>
+<option value="72">t_subset_d_sigma (U_72)</option>
+<option value="73">mixed_gamma_th (U_73)</option>
+<option value="74">mixed_fidelity_coupling (U_74)</option>
+<option value="75">mixed_composition_kinetics (U_75)</option>
+<option value="76">g4_quad (U_76)</option>
+<option value="77">only_parity (U_77)</option>
+<option value="78">only_winding (U_78)</option>
+<option value="79">only_odot (U_79)</option>
+<option value="80">empty_gate (U_80)</option>
+<option value="81">dense_gates (U_81)</option>
+<option value="82">chirality_winding (U_82)</option>
+<option value="83">composition_scope (U_83)</option>
+<option value="84">fidelity_chirality (U_84)</option>
+<option value="85">t_broadcast (U_85)</option>
+<option value="86">absorb_broadcast (U_86)</option>
+<option value="87">the_all (U_87)</option>
+</select>
+<div id="ruleset-box">Select a universe to see its ruleset</div>
+<h2>2. Select IMASM Word</h2>
+<select id="wordSel" onchange="updateWord()">
+  <optgroup label="⊢ Axis">
+    <option value="𐑛">𐑛: ⊢∈≻⊤≺⊥⊞∋⋈⊙⊡⊣</option>
+    <option value="𐑨">𐑨: ⊢≻∈⊤⊥⊞⋈⊙≺∋⊡⊣</option>
+    <option value="𐑼">𐑼: ⊢∈⊤≻⋈⊙⊡⋈⊡⋈⊡≺⊥∋⊞⊣</option>
+    <option value="𐑦">𐑦: ⊢⊙∈⊤≻⊥≺⊞∋⋈⊡⊣</option>
+  </optgroup>
+  <optgroup label="⊣ Axis">
+    <option value="𐑡">𐑡: ⊢∈≻⊤≺⊥⊞∋⋈⊙⊡⊣</option>
+    <option value="𐑰">𐑰: ⊢⊣∈≻⋈⊤≺⊥∋⊙⊡⊞⋈⊣</option>
+    <option value="𐑥">𐑥: ⊢∈≻⊤≺⊥⋈⊞⊙∋⊡⊣</option>
+    <option value="𐑶">𐑶: ⊢∈≻⊤≺⊥⋈⊞∋⊙⊡⊣</option>
+    <option value="𐑸">𐑸: ⊢∈≻⊤⋈≺⊥∋⊞⊙⊡⊣</option>
+  </optgroup>
+  <optgroup label="≻ Axis">
+    <option value="𐑩">𐑩: ⊢≻∈⊤≻⊞⊥≺∋⋈⊙⊡⊣</option>
+    <option value="𐑑">𐑑: ⊢∈≻⊤⋈⊙≺⊥⊞∋⊡⊣</option>
+    <option value="𐑽">𐑽: ⊢⊣≻∈≻⊤⋈⊙≻⊥⋈⊙⊞≺∋⊡⊣</option>
+    <option value="𐑾">𐑾: ⊢∈≻⊤⋈≺⊥⊞∋⊡⊙⋈⊣</option>
+  </optgroup>
+  <optgroup label="≺ Axis">
+    <option value="𐑗">𐑗: ⊢∈≻⊤⋈≺⊥⊞⋈⊙⊡∋⊣</option>
+    <option value="𐑿">𐑿: ⊢∈≻⊤⋈≺⊥∋⊞⊙⊡⊣</option>
+    <option value="𐑬">𐑬: ⊢≻∈⊤⋈⊡⊥≺⊞∋⊙⊣</option>
+    <option value="𐑯">𐑯: ⊢∈≻⊤≺⊥⋈⊞⊙⊡∋⊣</option>
+    <option value="𐑹">𐑹: ⊢≻∈⊤⊥⊞∋⋈⊙⊡⊣</option>
+  </optgroup>
+  <optgroup label="⋈ Axis">
+    <option value="𐑱">𐑱: ⊢≻∈⊤⊥⊞∋⋈⊙≺⊡⊣</option>
+    <option value="𐑞">𐑞: ⊢∈≻⊤≺⊥⋈⊞⊙⊡∋⊣</option>
+    <option value="𐑐">𐑐: ⊢∈≻⊤≺⊥⊞⋈⊙∋⊡⊣</option>
+  </optgroup>
+  <optgroup label="⊤ Axis">
+    <option value="𐑘">𐑘: ⊢≻∈⊤⊥⊞⋈⊙∋⊡≺⊣</option>
+    <option value="𐑤">𐑤: ⊢∈≻⊤⋈⊙≺⊥⊞∋⊡⊣</option>
+    <option value="𐑧">𐑧: ⊢∈≻⊤≺⊥⊞⋈⊙⊡∋⊣</option>
+    <option value="𐑪">𐑪: ⊢∈≻⊤⋈≺⊥⋈⊞∋⊙⊡⊣</option>
+    <option value="𐑺">𐑺: ⊢∈≻⊤≺⊥⊞⋈⊙∋⊡⊣</option>
+  </optgroup>
+  <optgroup label="∈ Axis">
+    <option value="𐑚">𐑚: ⊢∈≻⊤⋈≺⊥⋈⊞∋⊙⊡⊣</option>
+    <option value="𐑔">𐑔: ⊢∈≻⊤⋈⊙≺⊥⊞⊡∋⊣</option>
+    <option value="𐑲">𐑲: ⊢≻⋈∈⊤⊥⊞∋≺⊙⊡⊣</option>
+  </optgroup>
+  <optgroup label="∋ Axis">
+    <option value="𐑝">𐑝: ⊢∈≻⊤⋈≺⊥⊞∋⊙⊡⊣</option>
+    <option value="𐑜">𐑜: ⊢≻∈⊤⋈⊥≺⋈∋⊞⊙⊡⊣</option>
+    <option value="𐑠">𐑠: ⊢∈≻⊤⋈≺⊥⊞⊙⊡∋⊣</option>
+    <option value="𐑵">𐑵: ⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣</option>
+  </optgroup>
+  <optgroup label="⊙ Axis">
+    <option value="𐑢">𐑢: ⊢≻⋈⊙∈⊤⊥⊞∋⊡⊣</option>
+    <option value="⊙">⊙: ⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⊣</option>
+    <option value="𐑮">𐑮: ⊢∈≻⊤≺⊥⊞⋈⊙⊡∋⊣</option>
+    <option value="𐑻">𐑻: ⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣</option>
+    <option value="𐑣">𐑣: ⊢≻∈⊤⋈≺⊥⋈⊞∋⊙⊡⋈⊣</option>
+  </optgroup>
+  <optgroup label="⊥ Axis">
+    <option value="𐑓">𐑓: ⊢∈≻⊤≺⊥⊞∋⋈⊙⊡⊣</option>
+    <option value="𐑒">𐑒: ⊢∈≻⊤⋈⊙⊡≺⊥⊞∋⊣</option>
+    <option value="𐑖">𐑖: ⊢≻∈⊤⊥⊞≺⋈⊙⊡∋⊣</option>
+    <option value="𐑫">𐑫: ⊢≻∈⊤⊥⊞⋈⊙⊡∋⊣</option>
+  </optgroup>
+  <optgroup label="⊞ Axis">
+    <option value="𐑙">𐑙: ⊢≻≺⋈∈⊤⊥⊞∋⊙⊡⊣</option>
+    <option value="𐑕">𐑕: ⊢≻⋈∈⊤⊥⊞∋⊙⊡≺⋈⊣</option>
+    <option value="𐑳">𐑳: ⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⊣</option>
+  </optgroup>
+  <optgroup label="⊡ Axis">
+    <option value="𐑷">𐑷: ⊢∈≻⊤≺⊥⋈⊞⊙⊡∋⊣</option>
+    <option value="𐑴">𐑴: ⊢∈≻⊤≺⊥⊞∋⋈⊙⊡⊣</option>
+    <option value="𐑭">𐑭: ⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⊣</option>
+    <option value="𐑟">𐑟: ⊢∈≻⊤⋈⊙≺⊥⊞∋⊡⊣</option>
+  </optgroup>
+  <option value="custom">— custom —</option>
+</select>
+<textarea id="customWord" placeholder="⊢∈≻⊤≺⊥⊞∋⋈⊙⊡⊣" oninput="onCustom()"></textarea>
+<button class="btn" onclick="evaluate()">&#x25b6; Evaluate</button>
+<h2>3. Gate Results</h2>
+<div id="rslt-box">Run evaluation</div>
+</div>
+<div id="main">
+<div id="stat-bar">Select universe + IMASM word, then Evaluate &middot; Scroll to zoom, drag to pan</div>
+<div id="legend">
+<span><span class="ld" style="background:#0072B2"></span>⊢⊣≻≺⋈⊙</span>
+<span><span class="ld" style="background:#7B3294"></span>∈∋</span>
+<span><span class="ld" style="background:#B8860B"></span>⊤⊥⊞</span>
+<span><span class="ld" style="background:#009E73"></span>⊡</span>
+<span><span style="color:#4a8">&mdash;</span> gate passes</span>
+<span><span style="color:#844">- -</span> gate fails</span>
+<span><span style="color:#a84bb8">..</span> cyclic wrap</span>
+</div>
+<div id="braid-view" class="pannable"><svg id="braidSvg"></svg></div>
+<div id="right-col">
+  <div id="cfg-box">Run evaluation</div>
+  <div id="static-view" class="pannable"><svg id="staticSvg"></svg></div>
+</div>
+</div></div>
+<script>
+const DATA = [{"i": 0, "name": "canonical", "phase": 0, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Our dialect: Frobenius then self-modeling then winding", "x": 0.4679, "y": 0.0, "z": -1.2856, "theta": 0.0, "phi": 3.8397}, {"i": 1, "name": "low_gate", "phase": 0, "strict": 7.0, "tcnt": 5, "seq": 1, "desc": "Lowered thresholds: directional parity suffices", "x": 0.0303, "y": 0.0022, "z": -0.3473, "theta": 0.0714, "phi": 3.3161}, {"i": 2, "name": "strict_frobenius", "phase": 0, "strict": 11.0, "tcnt": 5, "seq": 1, "desc": "Frobenius gated by quantum fidelity", "x": 0.7072, "y": 0.1017, "z": -1.5321, "theta": 0.1428, "phi": 4.0143}, {"i": 3, "name": "inverted_gates", "phase": 0, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Self-modeling precedes Frobenius", "x": 0.4572, "y": 0.0995, "z": -1.2856, "theta": 0.2142, "phi": 3.8397}, {"i": 4, "name": "no_ordering", "phase": 0, "strict": 10.0, "tcnt": 5, "seq": 0, "desc": "All three gates fully independent", "x": 0.449, "y": 0.1318, "z": -1.2856, "theta": 0.2856, "phi": 3.8397}, {"i": 5, "name": "high_gate", "phase": 0, "strict": 11.33, "tcnt": 5, "seq": 1, "desc": "Strictest: max winding, full self-model, parity-perfect", "x": 0.754, "y": 0.2812, "z": -1.6036, "theta": 0.357, "phi": 4.0719}, {"i": 6, "name": "winding_first", "phase": 0, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Topological order: winding first", "x": 0.4256, "y": 0.1944, "z": -1.2856, "theta": 0.4284, "phi": 3.8397}, {"i": 7, "name": "t_structural", "phase": 0, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Time as geometry: T from structural primitives", "x": 0.4107, "y": 0.2242, "z": -1.2856, "theta": 0.4998, "phi": 3.8397}, {"i": 8, "name": "chirality_first", "phase": 1, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "Memory before closure: G1=H>=2-step", "x": 0.1015, "y": 0.0652, "z": -0.684, "theta": 0.5712, "phi": 3.4907}, {"i": 9, "name": "topology_universe", "phase": 1, "strict": 11.0, "tcnt": 5, "seq": 1, "desc": "Connectivity is the fundamental gate: G1=Th>=odot", "x": 0.5719, "y": 0.4281, "z": -1.5321, "theta": 0.6426, "phi": 4.0143}, {"i": 10, "name": "scope_universe", "phase": 1, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "Universality first: G1=G>=aleph", "x": 0.0912, "y": 0.079, "z": -0.684, "theta": 0.714, "phi": 3.4907}, {"i": 11, "name": "dimensional_gate", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "State-space is first gate: G1=D>=infty", "x": 0.3309, "y": 0.3309, "z": -1.2856, "theta": 0.7854, "phi": 3.8397}, {"i": 12, "name": "kinetics_trap", "phase": 1, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "Slowness is a structural requirement", "x": 0.079, "y": 0.0912, "z": -0.684, "theta": 0.8568, "phi": 3.4907}, {"i": 13, "name": "triple_criticality", "phase": 1, "strict": 6.0, "tcnt": 5, "seq": 1, "desc": "Three rungs of odot criticality", "x": 0.0, "y": 0.0, "z": 0.0, "theta": 0.9282, "phi": 3.1416}, {"i": 14, "name": "t_hybrid", "phase": 1, "strict": 10.0, "tcnt": 8, "seq": 1, "desc": "T from 8 primitives: dynamics + geometry", "x": 0.253, "y": 0.3936, "z": -1.2856, "theta": 0.9996, "phi": 3.8397}, {"i": 15, "name": "broadcast_universe", "phase": 1, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "G1=G>=seq (sequential composition)", "x": 0.0578, "y": 0.1059, "z": -0.684, "theta": 1.071, "phi": 3.4907}, {"i": 16, "name": "t_inverted", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "T from structural (non-dynamic) primitives", "x": 0.1944, "y": 0.4256, "z": -1.2856, "theta": 1.1424, "phi": 3.8397}, {"i": 17, "name": "single_gate", "phase": 1, "strict": 7.0, "tcnt": 5, "seq": 1, "desc": "Only G1 matters; G2/G3 trivial", "x": 0.0106, "y": 0.0285, "z": -0.3473, "theta": 1.2138, "phi": 3.3161}, {"i": 18, "name": "fidelity_universe", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Quantum coherence is fundamental gate", "x": 0.1318, "y": 0.449, "z": -1.2856, "theta": 1.2852, "phi": 3.8397}, {"i": 19, "name": "stoichiometry_universe", "phase": 1, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "Heterogeneity is the first gate", "x": 0.0256, "y": 0.1179, "z": -0.684, "theta": 1.3566, "phi": 3.4907}, {"i": 20, "name": "absorption_democracy", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "No absorptions -- pure lattice ops", "x": 0.0666, "y": 0.4631, "z": -1.2856, "theta": 1.428, "phi": 3.8397}, {"i": 21, "name": "absorption_monarchy", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "odot, Sigma, Phi, Omega all absorb", "x": 0.0334, "y": 0.4667, "z": -1.2856, "theta": 1.4994, "phi": 3.8397}, {"i": 22, "name": "absorption_inverted", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Trivial values absorb; complexity fragile", "x": 0.0, "y": 0.4679, "z": -1.2856, "theta": 1.5708, "phi": 3.8397}, {"i": 23, "name": "absorption_tensor_only", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Absorption only under tensor", "x": -0.0334, "y": 0.4667, "z": -1.2856, "theta": 1.6422, "phi": 3.8397}, {"i": 24, "name": "absorption_chirality_first", "phase": 1, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "H absorbs; memory is dominant", "x": -0.0172, "y": 0.1194, "z": -0.684, "theta": 1.7136, "phi": 3.4907}, {"i": 25, "name": "absorption_scope_empire", "phase": 1, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "G absorbs; universal swallows particular", "x": -0.0256, "y": 0.1179, "z": -0.684, "theta": 1.785, "phi": 3.4907}, {"i": 26, "name": "absorption_topology_seal", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Th absorbs; topology is destiny", "x": -0.1318, "y": 0.449, "z": -1.2856, "theta": 1.8564, "phi": 3.8397}, {"i": 27, "name": "predator_universe", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Phi absorbs left only -- agency", "x": -0.1635, "y": 0.4384, "z": -1.2856, "theta": 1.9278, "phi": 3.8397}, {"i": 28, "name": "prey_universe", "phase": 1, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Phi absorbs right only -- passivity", "x": -0.1944, "y": 0.4256, "z": -1.2856, "theta": 1.9992, "phi": 3.8397}, {"i": 29, "name": "coupling_first", "phase": 2, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "Relation before closure: G1=R>=adjoint", "x": -0.0578, "y": 0.1059, "z": -0.684, "theta": 2.0706, "phi": 3.4907}, {"i": 30, "name": "coupling_maximal", "phase": 2, "strict": 9.0, "tcnt": 5, "seq": 1, "desc": "Only bilateral coupling suffices", "x": -0.1449, "y": 0.2254, "z": -1.0, "theta": 2.142, "phi": 3.6652}, {"i": 31, "name": "chirality_second", "phase": 2, "strict": 11.0, "tcnt": 5, "seq": 1, "desc": "After Frobenius you must remember", "x": -0.4281, "y": 0.5719, "z": -1.5321, "theta": 2.2134, "phi": 4.0143}, {"i": 32, "name": "dimensional_second", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "After Frobenius: infinite canvas", "x": -0.3064, "y": 0.3536, "z": -1.2856, "theta": 2.2848, "phi": 3.8397}, {"i": 33, "name": "topology_second", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "After Frobenius: topology determines trace", "x": -0.3309, "y": 0.3309, "z": -1.2856, "theta": 2.3562, "phi": 3.8397}, {"i": 34, "name": "fidelity_second", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "After Frobenius: only quantum traces", "x": -0.3536, "y": 0.3064, "z": -1.2856, "theta": 2.4276, "phi": 3.8397}, {"i": 35, "name": "scope_second", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "After Frobenius: universal scope", "x": -0.3746, "y": 0.2804, "z": -1.2856, "theta": 2.499, "phi": 3.8397}, {"i": 36, "name": "composition_second", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "After Frobenius: sequential composition", "x": -0.3936, "y": 0.253, "z": -1.2856, "theta": 2.5704, "phi": 3.8397}, {"i": 37, "name": "winding_second", "phase": 2, "strict": 9.0, "tcnt": 5, "seq": 1, "desc": "After Frobenius: topological sealing", "x": -0.2352, "y": 0.1284, "z": -1.0, "theta": 2.6418, "phi": 3.6652}, {"i": 38, "name": "kinetics_second", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "After Frobenius: slow kinetics", "x": -0.4256, "y": 0.1944, "z": -1.2856, "theta": 2.7132, "phi": 3.8397}, {"i": 39, "name": "chirality_third", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Eternal memory as terminal seal", "x": -0.4384, "y": 0.1635, "z": -1.2856, "theta": 2.7846, "phi": 3.8397}, {"i": 40, "name": "dimensional_third", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Holographic state-space as terminal seal", "x": -0.449, "y": 0.1318, "z": -1.2856, "theta": 2.856, "phi": 3.8397}, {"i": 41, "name": "topology_third", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Box-product topology as terminal seal", "x": -0.4572, "y": 0.0995, "z": -1.2856, "theta": 2.9274, "phi": 3.8397}, {"i": 42, "name": "fidelity_third", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Quantum coherence as terminal seal", "x": -0.4631, "y": 0.0666, "z": -1.2856, "theta": 2.9988, "phi": 3.8397}, {"i": 43, "name": "scope_third", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Universal scope as terminal seal", "x": -0.4667, "y": 0.0334, "z": -1.2856, "theta": 3.0702, "phi": 3.8397}, {"i": 44, "name": "composition_third", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Broadcast composition as terminal seal", "x": -0.4679, "y": 0.0, "z": -1.2856, "theta": 3.1416, "phi": 3.8397}, {"i": 45, "name": "coupling_third", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Bilateral coupling as terminal seal", "x": -0.4667, "y": -0.0334, "z": -1.2856, "theta": 3.213, "phi": 3.8397}, {"i": 46, "name": "kinetics_third", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Slow or trapped kinetics as terminal seal", "x": -0.4631, "y": -0.0666, "z": -1.2856, "theta": 3.2844, "phi": 3.8397}, {"i": 47, "name": "parallel_canonical", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 0, "desc": "Canonical gates in parallel: all independent", "x": -0.4572, "y": -0.0995, "z": -1.2856, "theta": 3.3558, "phi": 3.8397}, {"i": 48, "name": "parallel_low", "phase": 2, "strict": 7.0, "tcnt": 5, "seq": 0, "desc": "Low gates parallel: easiest O_inf access", "x": -0.0292, "y": -0.0086, "z": -0.3473, "theta": 3.4272, "phi": 3.3161}, {"i": 49, "name": "parallel_high", "phase": 2, "strict": 11.33, "tcnt": 5, "seq": 0, "desc": "High gates parallel: strictest but independent", "x": -0.754, "y": -0.2812, "z": -1.6036, "theta": 3.4986, "phi": 4.0719}, {"i": 50, "name": "parallel_chirality", "phase": 2, "strict": 8.0, "tcnt": 5, "seq": 0, "desc": "Chirality gates parallel: H, odot, Omega", "x": -0.1097, "y": -0.0501, "z": -0.684, "theta": 3.57, "phi": 3.4907}, {"i": 51, "name": "parallel_topology", "phase": 2, "strict": 11.0, "tcnt": 5, "seq": 0, "desc": "Topology gates parallel: Th, R, odot", "x": -0.627, "y": -0.3424, "z": -1.5321, "theta": 3.6414, "phi": 4.0143}, {"i": 52, "name": "parallel_scope", "phase": 2, "strict": 8.0, "tcnt": 5, "seq": 0, "desc": "Scope gates parallel: G, odot, Omega", "x": -0.1015, "y": -0.0652, "z": -0.684, "theta": 3.7128, "phi": 3.4907}, {"i": 53, "name": "parallel_broadcast", "phase": 2, "strict": 8.0, "tcnt": 5, "seq": 0, "desc": "Broadcast gates parallel: G, odot, Omega", "x": -0.0966, "y": -0.0723, "z": -0.684, "theta": 3.7842, "phi": 3.4907}, {"i": 54, "name": "parallel_dimensional", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 0, "desc": "Dimensional gates parallel: D, odot, Phi", "x": -0.3536, "y": -0.3064, "z": -1.2856, "theta": 3.8556, "phi": 3.8397}, {"i": 55, "name": "parallel_kinetics", "phase": 2, "strict": 8.0, "tcnt": 5, "seq": 0, "desc": "Kinetics gates parallel: K, odot, Omega", "x": -0.0853, "y": -0.0853, "z": -0.684, "theta": 3.927, "phi": 3.4907}, {"i": 56, "name": "triple_parity", "phase": 2, "strict": 12.0, "tcnt": 5, "seq": 1, "desc": "Parity ladder: directional, full, Frobenius-special", "x": -0.6549, "y": -0.7557, "z": -1.7321, "theta": 3.9984, "phi": 4.1888}, {"i": 57, "name": "triple_topology", "phase": 2, "strict": 12.0, "tcnt": 5, "seq": 1, "desc": "Topology ladder: bowtie, box, imscriptive", "x": -0.5993, "y": -0.8005, "z": -1.7321, "theta": 4.0698, "phi": 4.1888}, {"i": 58, "name": "triple_coupling", "phase": 2, "strict": 11.0, "tcnt": 5, "seq": 1, "desc": "Coupling ladder: adjoint to bilateral", "x": -0.3862, "y": -0.601, "z": -1.5321, "theta": 4.1412, "phi": 4.0143}, {"i": 59, "name": "triple_chirality", "phase": 2, "strict": 9.0, "tcnt": 5, "seq": 1, "desc": "Chirality ladder: 1-step, 2-step, eternal", "x": -0.1284, "y": -0.2352, "z": -1.0, "theta": 4.2126, "phi": 3.6652}, {"i": 60, "name": "triple_winding", "phase": 2, "strict": 9.0, "tcnt": 5, "seq": 1, "desc": "Winding ladder: Z2, integer, non-Abelian", "x": -0.1113, "y": -0.2437, "z": -1.0, "theta": 4.284, "phi": 3.6652}, {"i": 61, "name": "ordinal4_parity", "phase": 2, "strict": 12.0, "tcnt": 5, "seq": 1, "desc": "Ordinal-4: parity rung repeated -- 4 gates", "x": -0.3495, "y": -0.9369, "z": -1.7321, "theta": 4.3554, "phi": 4.1888}, {"i": 62, "name": "ordinal4_winding", "phase": 2, "strict": 9.0, "tcnt": 5, "seq": 1, "desc": "Ordinal-4: winding rung repeated -- 4 gates", "x": -0.0755, "y": -0.2571, "z": -1.0, "theta": 4.4268, "phi": 3.6652}, {"i": 63, "name": "ordinal_swap", "phase": 2, "strict": 9.0, "tcnt": 5, "seq": 1, "desc": "Swapped order: winding first, odot, parity", "x": -0.057, "y": -0.2618, "z": -1.0, "theta": 4.4982, "phi": 3.6652}, {"i": 64, "name": "ordinal_invert", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Inverted: stoichiometry, parity, odot", "x": -0.0666, "y": -0.4631, "z": -1.2856, "theta": 4.5696, "phi": 3.8397}, {"i": 65, "name": "t_ceiling_topology", "phase": 2, "strict": 9.0, "tcnt": 1, "seq": 1, "desc": "T-ceiling: Th capped at box product", "x": -0.0191, "y": -0.2673, "z": -1.0, "theta": 4.641, "phi": 3.6652}, {"i": 66, "name": "t_ceiling_dimensional", "phase": 2, "strict": 10.0, "tcnt": 2, "seq": 1, "desc": "T-ceiling: D finite, Th at crossing point", "x": -0.0, "y": -0.4679, "z": -1.2856, "theta": 4.7124, "phi": 3.8397}, {"i": 67, "name": "absorb_ep", "phase": 2, "strict": 9.0, "tcnt": 5, "seq": 1, "desc": "EP absorption: odot + EP rule enforced", "x": 0.0191, "y": -0.2673, "z": -1.0, "theta": 4.7838, "phi": 3.6652}, {"i": 68, "name": "absorb_sub", "phase": 2, "strict": 6.0, "tcnt": 5, "seq": 1, "desc": "Sub-critical: odot absorbs sub-critical", "x": 0.0, "y": -0.0, "z": 0.0, "theta": 4.8552, "phi": 3.1416}, {"i": 69, "name": "absorb_dual", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Dual: EP + sub-critical both absorb", "x": 0.0995, "y": -0.4572, "z": -1.2856, "theta": 4.9266, "phi": 3.8397}, {"i": 70, "name": "t_subset_th_sigma", "phase": 2, "strict": 10.0, "tcnt": 2, "seq": 0, "desc": "T: self-ref topology + heterogeneous (parallel)", "x": 0.1318, "y": -0.449, "z": -1.2856, "theta": 4.998, "phi": 3.8397}, {"i": 71, "name": "t_subset_th_omega", "phase": 2, "strict": 10.0, "tcnt": 2, "seq": 0, "desc": "T: self-ref topology + winding (parallel)", "x": 0.1635, "y": -0.4384, "z": -1.2856, "theta": 5.0694, "phi": 3.8397}, {"i": 72, "name": "t_subset_d_sigma", "phase": 2, "strict": 10.0, "tcnt": 2, "seq": 0, "desc": "T: infinite-dim + heterogeneous (parallel)", "x": 0.1944, "y": -0.4256, "z": -1.2856, "theta": 5.1408, "phi": 3.8397}, {"i": 73, "name": "mixed_gamma_th", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Universal range before self-ref topology", "x": 0.2242, "y": -0.4107, "z": -1.2856, "theta": 5.2122, "phi": 3.8397}, {"i": 74, "name": "mixed_fidelity_coupling", "phase": 2, "strict": 9.0, "tcnt": 5, "seq": 1, "desc": "Quantum before bilateral coupling", "x": 0.1449, "y": -0.2254, "z": -1.0, "theta": 5.2836, "phi": 3.6652}, {"i": 75, "name": "mixed_composition_kinetics", "phase": 2, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "Sequential before slow kinetics", "x": 0.0723, "y": -0.0966, "z": -0.684, "theta": 5.355, "phi": 3.4907}, {"i": 76, "name": "g4_quad", "phase": 2, "strict": 10.0, "tcnt": 5, "seq": 1, "desc": "Quad-gate: G, Phi, odot, Omega", "x": 0.3064, "y": -0.3536, "z": -1.2856, "theta": 5.4264, "phi": 3.8397}, {"i": 77, "name": "only_parity", "phase": 2, "strict": 5.0, "tcnt": 5, "seq": 0, "desc": "Single gate: Phi>=pmsym only", "x": 0.0215, "y": -0.0215, "z": 0.3473, "theta": 5.4978, "phi": 2.9671}, {"i": 78, "name": "only_winding", "phase": 2, "strict": 3.0, "tcnt": 5, "seq": 0, "desc": "Single gate: Omega>=Z only", "x": 0.2025, "y": -0.1755, "z": 1.0, "theta": 5.5692, "phi": 2.618}, {"i": 79, "name": "only_odot", "phase": 2, "strict": 2.0, "tcnt": 5, "seq": 0, "desc": "Single gate: odot>=c only", "x": 0.3746, "y": -0.2804, "z": 1.2856, "theta": 5.6406, "phi": 2.4435}, {"i": 80, "name": "empty_gate", "phase": 2, "strict": 0.0, "tcnt": 5, "seq": 0, "desc": "Zero gates -- all 17.28M types pass", "x": 0.8413, "y": -0.5406, "z": 1.7321, "theta": 5.712, "phi": 2.0944}, {"i": 81, "name": "dense_gates", "phase": 2, "strict": 12.0, "tcnt": 5, "seq": 1, "desc": "5 distinct primitives across 3 gate slots", "x": 0.8777, "y": -0.4792, "z": -1.7321, "theta": 5.7834, "phi": 4.1888}, {"i": 82, "name": "chirality_winding", "phase": 2, "strict": 9.0, "tcnt": 5, "seq": 1, "desc": "Eternal memory + topological protection", "x": 0.2437, "y": -0.1113, "z": -1.0, "theta": 5.8548, "phi": 3.6652}, {"i": 83, "name": "composition_scope", "phase": 2, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "Sequential composition across all scales", "x": 0.113, "y": -0.0422, "z": -0.684, "theta": 5.9262, "phi": 3.4907}, {"i": 84, "name": "fidelity_chirality", "phase": 2, "strict": 8.0, "tcnt": 5, "seq": 1, "desc": "Quantum enables structured memory", "x": 0.1157, "y": -0.034, "z": -0.684, "theta": 5.9976, "phi": 3.4907}, {"i": 85, "name": "t_broadcast", "phase": 2, "strict": 9.0, "tcnt": 1, "seq": 1, "desc": "T from broadcast composition (G>=broad)", "x": 0.2618, "y": -0.057, "z": -1.0, "theta": 6.069, "phi": 3.6652}, {"i": 86, "name": "absorb_broadcast", "phase": 2, "strict": 11.0, "tcnt": 1, "seq": 1, "desc": "EP absorption + broadcast T", "x": 0.7072, "y": -0.1017, "z": -1.5321, "theta": 6.1404, "phi": 4.0143}, {"i": 87, "name": "the_all", "phase": 2, "strict": 10.0, "tcnt": 12, "seq": 1, "desc": "odot->Phi->Omega->Th + 12-primitive T", "x": 0.4667, "y": -0.0334, "z": -1.2856, "theta": 6.2118, "phi": 3.8397}];
+
+const GLYPH = {"VINIT":"⊢","TANCH":"⊣","AFWD":"≻","AREV":"≺","CLINK":"⋈",
+  "IMSCRIB":"⊙","FSPLIT":"∈","FFUSE":"∋","EVALT":"⊤","EVALF":"⊥",
+  "ENGAGR":"⊞","IFIX":"⊡"};
+
+const SYM2NAME = {
+  "⊢": "VINIT", "⊣": "TANCH", "≻": "AFWD", "≺": "AREV",
+  "⋈": "CLINK", "⊙": "IMSCRIB", "∈": "FSPLIT", "∋": "FFUSE",
+  "⊤": "EVALT", "⊥": "EVALF", "⊞": "ENGAGR", "⊡": "IFIX"
+};
+
+const FAM = {"VINIT":0,"TANCH":0,"AFWD":0,"AREV":0,"CLINK":0,"IMSCRIB":0,
+  "FSPLIT":1,"FFUSE":1,"EVALT":2,"EVALF":2,"ENGAGR":2,"IFIX":3};
+const FAMC = ["#0072B2","#7B3294","#B8860B","#009E73"];
+
+// New Symbol-based Programs
+const PROGRAMS = {
+  "𐑛": "⊢∈≻⊤≺⊥⊞∋⋈⊙⊡⊣",
+  "𐑨": "⊢≻∈⊤⊥⊞⋈⊙≺∋⊡⊣",
+  "𐑼": "⊢∈⊤≻⋈⊙⊡⋈⊡⋈⊡≺⊥∋⊞⊣",
+  "𐑦": "⊢⊙∈⊤≻⊥≺⊞∋⋈⊡⊣",
+  "𐑡": "⊢∈≻⊤≺⊥⊞∋⋈⊙⊡⊣",
+  "𐑰": "⊢⊣∈≻⋈⊤≺⊥∋⊙⊡⊞⋈⊣",
+  "𐑥": "⊢∈≻⊤≺⊥⋈⊞⊙∋⊡⊣",
+  "𐑶": "⊢∈≻⊤≺⊥⋈⊞∋⊙⊡⊣",
+  "𐑸": "⊢∈≻⊤⋈≺⊥∋⊞⊙⊡⊣",
+  "𐑩": "⊢≻∈⊤≻⊞⊥≺∋⋈⊙⊡⊣",
+  "𐑑": "⊢∈≻⊤⋈⊙≺⊥⊞∋⊡⊣",
+  "𐑽": "⊢⊣≻∈≻⊤⋈⊙≻⊥⋈⊙⊞≺∋⊡⊣",
+  "𐑾": "⊢∈≻⊤⋈≺⊥⊞∋⊡⊙⋈⊣",
+  "𐑗": "⊢∈≻⊤⋈≺⊥⊞⋈⊙⊡∋⊣",
+  "𐑿": "⊢∈≻⊤⋈≺⊥∋⊞⊙⊡⊣",
+  "𐑬": "⊢≻∈⊤⋈⊡⊥≺⊞∋⊙⊣",
+  "𐑯": "⊢∈≻⊤≺⊥⋈⊞⊙⊡∋⊣",
+  "𐑹": "⊢≻∈⊤⊥⊞∋⋈⊙⊡⊣",
+  "𐑱": "⊢≻∈⊤⊥⊞∋⋈⊙≺⊡⊣",
+  "𐑞": "⊢∈≻⊤≺⊥⋈⊞⊙⊡∋⊣",
+  "𐑐": "⊢∈≻⊤≺⊥⊞⋈⊙∋⊡⊣",
+  "𐑘": "⊢≻∈⊤⊥⊞⋈⊙∋⊡≺⊣",
+  "𐑤": "⊢∈≻⊤⋈⊙≺⊥⊞∋⊡⊣",
+  "𐑧": "⊢∈≻⊤≺⊥⊞⋈⊙⊡∋⊣",
+  "𐑪": "⊢∈≻⊤⋈≺⊥⋈⊞∋⊙⊡⊣",
+  "𐑺": "⊢∈≻⊤≺⊥⊞⋈⊙∋⊡⊣",
+  "𐑚": "⊢∈≻⊤⋈≺⊥⋈⊞∋⊙⊡⊣",
+  "𐑔": "⊢∈≻⊤⋈⊙≺⊥⊞⊡∋⊣",
+  "𐑲": "⊢≻⋈∈⊤⊥⊞∋≺⊙⊡⊣",
+  "𐑝": "⊢∈≻⊤⋈≺⊥⊞∋⊙⊡⊣",
+  "𐑜": "⊢≻∈⊤⋈⊥≺⋈∋⊞⊙⊡⊣",
+  "𐑠": "⊢∈≻⊤⋈≺⊥⊞⊙⊡∋⊣",
+  "𐑵": "⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣",
+  "𐑢": "⊢≻⋈⊙∈⊤⊥⊞∋⊡⊣",
+  "⊙": "⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⊣",
+  "𐑮": "⊢∈≻⊤≺⊥⊞⋈⊙⊡∋⊣",
+  "𐑻": "⊢⊙∈≻⊤≺⊥⋈⊞∋⊡⊣",
+  "𐑣": "⊢≻∈⊤⋈≺⊥⋈⊞∋⊙⊡⋈⊣",
+  "𐑓": "⊢∈≻⊤≺⊥⊞∋⋈⊙⊡⊣",
+  "𐑒": "⊢∈≻⊤⋈⊙⊡≺⊥⊞∋⊣",
+  "𐑖": "⊢≻∈⊤⊥⊞≺⋈⊙⊡∋⊣",
+  "𐑫": "⊢≻∈⊤⊥⊞⋈⊙⊡∋⊣",
+  "𐑙": "⊢≻≺⋈∈⊤⊥⊞∋⊙⊡⊣",
+  "𐑕": "⊢≻⋈∈⊤⊥⊞∋⊙⊡≺⋈⊣",
+  "𐑳": "⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⊣",
+  "𐑷": "⊢∈≻⊤≺⊥⋈⊞⊙⊡∋⊣",
+  "𐑴": "⊢∈≻⊤≺⊥⊞∋⋈⊙⊡⊣",
+  "𐑭": "⊢∈≻⊤≺⊥⋈⊙⊞∋⊡⊣",
+  "𐑟": "⊢∈≻⊤⋈⊙≺⊥⊞∋⊡⊣"
+};
+
+// Pan/Zoom state
+const zoomState = {
+  braid: { tx: 0, ty: 0, scale: 1, isDragging: false, startX: 0, startY: 0, startTx: 0, startTy: 0 },
+  static: { tx: 0, ty: 0, scale: 1, isDragging: false, startX: 0, startY: 0, startTx: 0, startTy: 0 }
+};
+
+function applyZoom(viewId) {
+  const el = document.getElementById(viewId + 'Zoom');
+  if (!el) return;
+  const s = zoomState[viewId];
+  el.setAttribute('transform', `translate(${s.tx}, ${s.ty}) scale(${s.scale})`);
+}
+
+function setupPanZoom(id) {
+  const container = document.getElementById(id + '-view');
+  if (!container) return;
+  const state = zoomState[id];
+
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const svg = container.querySelector('svg');
+    if (!svg) return;
+    const vb = svg.viewBox.baseVal;
+    const rect = container.getBoundingClientRect();
+    
+    // Fallbacks in case viewBox isn't fully set
+    const vbW = vb.width || 800;
+    const vbH = vb.height || 480;
+    const scaleX = vbW / (container.clientWidth || 800);
+    const scaleY = vbH / (container.clientHeight || 480);
+    
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+    
+    const zoomFactor = Math.exp(-e.deltaY * 0.002);
+    const newScale = Math.min(Math.max(0.1, state.scale * zoomFactor), 20);
+    
+    // Zoom to mouse pointer
+    state.tx = mouseX - (mouseX - state.tx) * (newScale / state.scale);
+    state.ty = mouseY - (mouseY - state.ty) * (newScale / state.scale);
+    state.scale = newScale;
+    
+    applyZoom(id);
+  }, { passive: false });
+
+  container.addEventListener('mousedown', (e) => {
+    state.isDragging = true;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.startTx = state.tx;
+    state.startTy = state.ty;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!state.isDragging) return;
+    const svg = container.querySelector('svg');
+    if (!svg) return;
+    const vb = svg.viewBox.baseVal;
+    const vbW = vb.width || 800;
+    const vbH = vb.height || 480;
+    const scaleX = vbW / (container.clientWidth || 800);
+    const scaleY = vbH / (container.clientHeight || 480);
+    
+    state.tx = state.startTx + (e.clientX - state.startX) * scaleX;
+    state.ty = state.startTy + (e.clientY - state.startY) * scaleY;
+    applyZoom(id);
+  });
+
+  window.addEventListener('mouseup', () => {
+    state.isDragging = false;
+  });
+  
+  container.addEventListener('dblclick', () => {
+    state.tx = 0;
+    state.ty = 0;
+    state.scale = 1;
+    applyZoom(id);
+  });
+}
+
+function getTokens() {
+  const sel = document.getElementById("wordSel").value;
+  let symbolSeq = "";
+  if (sel === "custom") {
+    symbolSeq = document.getElementById("customWord").value.trim();
+  } else {
+    symbolSeq = PROGRAMS[sel] || "";
+  }
+  const cleanSeq = symbolSeq.replace(/\s+/g, '');
+  const names = [];
+  for (const ch of cleanSeq) {
+    if (SYM2NAME[ch]) {
+      names.push(SYM2NAME[ch]);
+    }
+  }
+  return names;
+}
+
+function updateWord() {
+  const sel = document.getElementById("wordSel").value;
+  document.getElementById("customWord").style.display = sel === "custom" ? "block" : "none";
+  if (sel !== "custom") evaluate();
+}
+
+function onCustom() { evaluate(); }
+
+function updateDialect() { evaluate(); }
+
+function showRuleset(idx) {
+  const d = DATA[idx];
+  const box = document.getElementById("ruleset-box");
+  const strict = d.strict;
+  const seq = d.seq;
+  const tcnt = d.tcnt;
+  const g1_min = Math.max(1, Math.min(5, Math.round(strict/2.5)));
+  const g2_min = Math.max(1, Math.min(3, Math.round((strict-3)/3)));
+  const g3_min = Math.max(1, Math.min(4, Math.round(strict/3)));
+  
+  const g1_prim = "≺";
+  const g2_prim = "⊙";
+  const g3_prim = "⊡";
+  
+  box.innerHTML = `
+    <div class="gr"><span class="gl">U<sub>${idx}</sub></span><span class="gv"><b>${d.name}</b></span></div>
+    <div class="gr"><span class="gl"></span><span style="color:#8a84b0;font-size:10px">${d.desc}</span></div>
+    <div class="gr" style="margin-top:6px"><span class="gl">G1</span>
+      <span class="gv">${g1_prim} \u2265 ${g1_min}</span></div>
+    <div class="gr"><span class="gl">G2</span>
+      <span class="gv">${g2_prim} \u2265 ${g2_min}</span></div>
+    <div class="gr"><span class="gl">G3</span>
+      <span class="gv">${g3_prim} \u2265 ${g3_min}</span></div>
+    <div class="gr"><span class="gl"></span>
+      <span class="gv"><span class="tag ${seq ? "tag-seq" : "tag-par"}">${seq ? "SEQUENTIAL" : "PARALLEL"}</span>
+      <span class="tag tag-info">T: ${tcnt} primitives</span>
+      <span class="tag tag-info">strictness ${strict}</span></div>
+  `;
+}
+
+function validTransition(from, to) {
+  if (from === "⊢") return to !== "⊣" && to !== "∋";
+  if (from === "⊣") return ["⊢","⊙","≻"].includes(to);
+  if (["≻","≺","⋈","⊙"].includes(from)) return true;
+  if (from === "∈") return !["⊢","⊣","∈","∋"].includes(to);
+  if (from === "∋") return true;
+  if (["⊤","⊥","⊞"].includes(from)) return to !== "⊢";
+  if (from === "⊡") return true;
+  return true;
+}
+
+function evaluate() {
+  const idx = parseInt(document.getElementById("dialectSel").value);
+  showRuleset(idx);
+  const tokens = getTokens();
+  if (tokens.length === 0) {
+    document.getElementById("rslt-box").innerHTML = "No tokens to evaluate";
+    document.getElementById("cfg-box").innerHTML = "";
+    document.getElementById("braidSvg").innerHTML = "";
+    document.getElementById("staticSvg").innerHTML = "";
+    return;
+  }
+  const ig = igFromWord(tokens);
+  const d = DATA[idx];
+  const strict = d.strict;
+  const seq = d.seq;
+  const g1_min = Math.max(1, Math.min(5, Math.round(strict/2.5)));
+  const g2_min = Math.max(1, Math.min(3, Math.round((strict-3)/3)));
+  const g3_min = Math.max(1, Math.min(4, Math.round(strict/3)));
+  const g1_pass = ig.P >= g1_min;
+  const g2_pass = ig.phi >= g2_min;
+  const g3_pass = ig.omega >= g3_min;
+  const all_pass = g1_pass && g2_pass && g3_pass;
+  let ordering_msg = "";
+  if (seq) {
+    if (!g1_pass) ordering_msg = "G1 fails \u2192 G2/G3 blocked (sequential)";
+    else if (!g2_pass) ordering_msg = "G2 fails \u2192 G3 blocked (sequential)";
+    else ordering_msg = "All sequential gates pass";
+  } else {
+    ordering_msg = "Parallel: gates independent";
+  }
+  
+  const prim_names = {
+    D:"⊢", T:"⊣", R:"≻", P:"≺", F:"⋈", K:"⊤",
+    G:"∈", C:"∋", phi:"⊙", H:"⊥", S:"⊞", omega:"⊡"
+  };
+  const ig_str = Object.entries(prim_names).map(([k,v]) => `${v}:${ig[k]??"?"}`).join(" ");
+  
+  const symSeqStr = tokens.map(t => GLYPH[t]).join(" ");
+
+  const rslt = document.getElementById("rslt-box");
+  rslt.innerHTML = `
+    <div style="margin-bottom:6px"><b>IMASM Word</b>: <span style="font-size:14px; letter-spacing:2px">${symSeqStr}</span></div>
+    <div style="margin-bottom:6px"><b>IG Tuple</b>: ${ig_str}</div>
+    <div style="margin:8px 0">
+      <span class="tag ${g1_pass ? "tag-pass" : "tag-fail"}">G1 ${g1_pass ? "PASS" : "FAIL"} (${ig.P} >= ${g1_min})</span>
+      <span class="tag ${g2_pass ? "tag-pass" : "tag-fail"}">G2 ${g2_pass ? "PASS" : "FAIL"} (${ig.phi} >= ${g2_min})</span>
+      <span class="tag ${g3_pass ? "tag-pass" : "tag-fail"}">G3 ${g3_pass ? "PASS" : "FAIL"} (${ig.omega} >= ${g3_min})</span>
+      <span class="tag ${all_pass ? "tag-pass" : "tag-fail"}">OVERALL ${all_pass ? "PASS" : "FAIL"}</span>
+    </div>
+    <div style="color:#8a84b0;font-size:10px">${ordering_msg} &middot; ${tokens.length} tokens &middot; ${seq ? "seq" : "par"} gates</div>
+  `;
+  
+  drawStatic();
+  drawBraid(tokens, ig, g1_pass && g2_pass && g3_pass, seq, g1_pass, g2_pass, g3_pass, idx);
+}
+
+function igFromWord(tokens) {
+  const n = tokens.length;
+  if (n === 0) return {};
+  const unique = new Set(tokens);
+  const d_div = unique.size;
+  const D = d_div <= 2 ? 1 : d_div <= 5 ? 2 : d_div <= 9 ? 3 : 4;
+  const sr = tokens[0] === tokens[n-1];
+  let fams = [0,0,0,0];
+  let fsplit = false, ffuse = false;
+  for (const t of tokens) {
+    fams[FAM[t]]++;
+    if (t === "FSPLIT") fsplit = true;
+    if (t === "FFUSE") ffuse = true;
+  }
+  const fo = (fsplit && ffuse) ? 1 : 0;
+  const dc = tokens.includes("EVALT") && tokens.includes("EVALF") && tokens.includes("ENGAGR");
+  let period = n;
+  for (let p = 1; p <= n; p++) {
+    if (n % p === 0) {
+      let ok = true;
+      for (let i = p; i < n && ok; i++) {
+        if (tokens[i] !== tokens[i-p]) ok = false;
+      }
+      if (ok) { period = p; break; }
+    }
+  }
+  const ifix_count = tokens.filter(t => t === "IFIX").length;
+  const d_val = D;
+  const t_val = sr ? 5 : period === 1 ? 1 : period === 2 ? 3 : fo > 0 ? 4 : 2;
+  const r_val = fo === 1 ? 4 : fo === 2 ? 3 : 2;
+  const p_val = fo === 1 ? 5 : 4;
+  const f_val = dc ? 3 : period === 1 ? 1 : 2;
+  const k_val = ifix_count >= 8 ? 4 : period <= 2 ? 3 : period <= 4 ? 2 : 1;
+  const g_val = ifix_count >= 3 ? 3 : d_div <= 3 ? 1 : 2;
+  const c_val = fo > 0 ? 3 : period === 1 ? 1 : 2;
+  const phi_val = sr && dc ? 2 : dc ? 4 : period === 1 ? 1 : 3;
+  const h_val = period === 1 ? 1 : period === 2 ? 2 : period <= 4 ? 3 : 4;
+  const s_val = d_div >= 8 ? 3 : d_div >= 4 ? 2 : 1;
+  const om_val = tokens.includes("AREV") ? 3 : fsplit ? 2 : 1;
+  return {D:d_val, T:t_val, R:r_val, P:p_val, F:f_val, K:k_val, G:g_val, C:c_val,
+          phi:phi_val, H:h_val, S:s_val, omega:om_val,
+          p:p_val, f:f_val, k:k_val, g:g_val, c:c_val, h:h_val, s:s_val, d:d_val, t:t_val, r:r_val};
+}
+
+function drawStatic() {
+  const svg = document.getElementById("staticSvg");
+  const W = document.getElementById("static-view").clientWidth || 300;
+  const H = document.getElementById("static-view").clientHeight || 200;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  
+  const cx = W / 2;
+  const cy = H / 2;
+  const R = Math.min(W, H) * 0.35;
+  
+  let html = "";
+  html += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#0072B2" stroke-width="1.4" stroke-dasharray="5 4" opacity="0.8"/>`;
+  html += `<text x="${cx}" y="${cy - R - 10}" text-anchor="middle" fill="#c8b8e0" font-size="10">face-on: down the syzygy axis</text>`;
+  
+  const facePos = {};
+  ["EVALT", "EVALF", "ENGAGR"].forEach((tok, k) => {
+    const a = -Math.PI / 2 + 2 * Math.PI * k / 3;
+    facePos[tok] = { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
+  });
+  
+  const tri = ["EVALT", "EVALF", "ENGAGR"].map(k => `${facePos[k].x},${facePos[k].y}`).join(" ");
+  html += `<polygon points="${tri}" fill="#009E73" fill-opacity="0.10" stroke="#009E73" stroke-width="1.2"/>`;
+  html += `<text x="${cx}" y="${cy + R + 18}" text-anchor="middle" fill="#6f6" font-size="10">A₂ trine at 120°</text>`;
+  
+  Object.entries(facePos).forEach(([tok, q]) => {
+    html += `<circle cx="${q.x}" cy="${q.y}" r="11" fill="none" stroke="#B8860B" stroke-width="2"/>`;
+    html += `<text x="${q.x}" y="${q.y + 4}" text-anchor="middle" fill="#B8860B" font-size="14" font-weight="bold">${GLYPH[tok]}</text>`;
+  });
+  html += `<circle cx="${cx}" cy="${cy}" r="3" fill="#0072B2"/>`;
+  html += `<text x="${cx + 6}" y="${cy + 3}" fill="#6af" font-size="11">⊙</text>`;
+  
+  svg.innerHTML = `<g id="staticZoom">${html}</g>`;
+  applyZoom('static');
+}
+
+function drawBraid(tokens, ig, allPass, seq, g1p, g2p, g3p, idx) {
+  const svg = document.getElementById("braidSvg");
+  const n = tokens.length;
+  const W = document.getElementById("braid-view").clientWidth || 800;
+  const H = document.getElementById("braid-view").clientHeight || 480;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+  let html = "";
+  const yMid = H / 2;
+  const LR = Math.min(W * 0.2, H * 0.35);
+
+  // ── side-on ──
+  const CEN = { x: W / 2, y: yMid };
+  const ODOT = { x: CEN.x - LR, y: yMid - LR * 0.30 };
+  const POLE = { x: CEN.x + LR, y: yMid };
+  const h3 = LR * Math.sqrt(3) / 2;
+
+  html += `<circle cx="${ODOT.x}" cy="${ODOT.y}" r="${LR}" fill="none" stroke="#B8860B" stroke-width="1.4" stroke-dasharray="5 4" opacity="0.8"/>`;
+  html += `<circle cx="${CEN.x}" cy="${CEN.y}" r="${LR}" fill="none" stroke="#0072B2" stroke-width="1.4" stroke-dasharray="5 4" opacity="0.8"/>`;
+  html += `<line x1="${ODOT.x}" y1="${ODOT.y}" x2="${CEN.x}" y2="${CEN.y}" stroke="#3a3550" stroke-width="1.2"/>`;
+  html += `<line x1="${CEN.x}" y1="${CEN.y - h3}" x2="${CEN.x}" y2="${CEN.y + h3}" stroke="#009E73" stroke-width="1.1" opacity="0.8"/>`;
+  html += `<text x="${CEN.x}" y="${yMid - LR - 30}" text-anchor="middle" fill="#c8b8e0" font-size="12">side-on: plane of the syzygy axis</text>`;
+  html += `<text x="${ODOT.x}" y="${ODOT.y - LR * 0.62}" text-anchor="middle" fill="#B8860B" font-size="10">∈ shell on ⊙</text>`;
+  html += `<text x="${POLE.x + LR * 0.12}" y="${yMid - LR * 0.55}" fill="#6af" font-size="10">evaluator sphere (d=2048)</text>`;
+  html += `<text x="${CEN.x + 6}" y="${CEN.y - h3 - 8}" fill="#6f6" font-size="10">trine, edge-on</text>`;
+
+  // ── the program itself ──
+  const TRINE = ["EVALT", "EVALF", "ENGAGR"];
+  const trinePos = {
+    EVALT:  { x: CEN.x, y: CEN.y },
+    EVALF:  { x: CEN.x, y: CEN.y - h3 },
+    ENGAGR: { x: CEN.x, y: CEN.y + h3 },
+  };
+  
+  const RAIL = [];
+  for (let i = 0; i < n; i++) {
+    const t = tokens[i];
+    if (t === "IMSCRIB" || t === "FFUSE" || TRINE.includes(t)) continue;
+    RAIL.push(i);
+  }
+  const x0 = Math.max(20, ODOT.x - LR * 1.5);
+  const x1 = Math.min(W - 20, POLE.x + LR * 1.5);
+
+  const tokCount = {};
+  const pos = [];
+  for (let i = 0; i < n; i++) {
+    const t = tokens[i];
+    const rep = (tokCount[t] = (tokCount[t] || 0) + 1) - 1;
+    if (t === "IMSCRIB") {
+      pos.push({ x: ODOT.x, y: ODOT.y - rep * 18 });
+    } else if (t === "FFUSE") {
+      pos.push({ x: POLE.x, y: POLE.y + rep * 18 });
+    } else if (trinePos[t]) {
+      pos.push({ x: trinePos[t].x, y: trinePos[t].y + rep * 18 });
+    } else {
+      const k = RAIL.indexOf(i);
+      const frac = RAIL.length > 1 ? k / (RAIL.length - 1) : 0.5;
+      const spacing = (x1 - x0) / Math.max(1, RAIL.length - 1);
+      pos.push({ x: x0 + (x1 - x0) * frac + (rep * spacing * 0.1), y: yMid + LR * 1.5 });
+    }
+  }
+
+  // Draw edges
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const p1 = pos[i], p2 = pos[j];
+    const isCyclic = j === 0;
+    const from_tok = tokens[i], to_tok = tokens[j];
+    const valid = validTransition(GLYPH[from_tok], GLYPH[to_tok]);
+    const cls = valid ? (allPass ? "pass" : "fail") : "fail";
+    const edgeCls = `edge ${isCyclic ? "back" : cls}`;
+    
+    const mx = (p1.x + p2.x) / 2;
+    const my = (p1.y + p2.y) / 2;
+    const safeMy = Math.min(H - 20, Math.max(20, my));
+    const ny = my < (yMid + LR * 1.5) ? my + 20 : my - 20;
+
+    html += `<path class="${edgeCls}" d="M${p1.x},${p1.y} Q${mx},${ny} ${p2.x},${p2.y}"/>`;
+    
+    if (from_tok === "FSPLIT" && to_tok === "FFUSE") {
+      html += `<text x="${mx}" y="${ny-6}" text-anchor="middle" fill="#c8b8e0" font-size="7">∈→∋</text>`;
+    }
+    if (from_tok === "FFUSE" && to_tok === "FSPLIT") {
+      html += `<text x="${mx}" y="${ny-6}" text-anchor="middle" fill="#c8b8e0" font-size="7">∋→∈</text>`;
+    }
+  }
+
+  // Draw token nodes
+  for (let i = 0; i < n; i++) {
+    const t = tokens[i];
+    const p = pos[i];
+    const fam = FAM[t] || 0;
+    const col = FAMC[fam];
+    const glyph = GLYPH[t] || t;
+    const isPass = allPass;
+    const r = isPass ? 15 : 11;
+    html += `<g class="token-node">`;
+    html += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="${col}" stroke-width="${isPass ? 2.5 : 1.5}" class="token-ring" opacity="${isPass ? 1 : 0.5}"/>`;
+    html += `<text x="${p.x}" y="${p.y+3}" text-anchor="middle" fill="${col}" font-size="17" font-weight="bold">${glyph}</text>`;
+    html += `<text x="${p.x}" y="${p.y+r+12}" text-anchor="middle" fill="#8a84b0" font-size="8">${i}</text>`;
+    html += `</g>`;
+  }
+
+  let fsplitCount = tokens.filter(t => t === "FSPLIT").length;
+  let ffuseCount = tokens.filter(t => t === "FFUSE").length;
+  const balanced = fsplitCount === ffuseCount;
+  html += `<text x="12" y="14" fill="#8a84b0" font-size="9">∈:${fsplitCount} ∋:${ffuseCount} ${balanced ? "(balanced)" : "(unbalanced)"}</text>`;
+
+  svg.innerHTML = `<g id="braidZoom">${html}</g>`;
+  applyZoom('braid');
+
+  const box = document.getElementById("cfg-box");
+  
+  const famSymbols = ["⊢⊣≻≺⋈⊙", "∈∋", "⊤⊥⊞", "⊡"];
+  const families = [0,0,0,0];
+  for (const t of tokens) { families[FAM[t]]++; }
+  const famStr = famSymbols.map((sym, i) => `${sym}:${families[i]}`).join(" ");
+  
+  const seqStr = tokens.map(t => GLYPH[t]).join(" &rarr; ");
+  
+  box.innerHTML = `
+    <div><b>Token sequence</b>:<br/>${seqStr} (cyclic)</div>
+    <div style="margin-top:6px"><b>Families</b>: ${famStr}</div>
+    <div><b>Token diversity</b>: ${new Set(tokens).size} / ${tokens.length}</div>
+    <div><b>Brancher/Merger balance</b>: ${fsplitCount}/${ffuseCount} ${balanced ? '<span style="color:#6f6">OK</span>' : '<span style="color:#f66">MISMATCH</span>'}</div>
+    <div style="margin-top:12px"><b>Gate-constrained CFG production rules:</b></div>
+  `;
+  const allTokens = Object.keys(GLYPH);
+  let prodCount = 0;
+  for (const from of allTokens) {
+    const validTo = allTokens.filter(to => validTransition(GLYPH[from], GLYPH[to]));
+    const fromGlyph = GLYPH[from] || from;
+    const toStr = validTo.map(t => GLYPH[t] || t).join(" ");
+    if (validTo.length > 0) {
+      box.innerHTML += `<div style="font-size:9px;color:#8a84b0;margin-left:12px;margin-top:4px">${fromGlyph} &rarr; ${toStr}</div>`;
+      prodCount += validTo.length;
+    }
+  }
+  box.innerHTML += `<div style="margin-top:12px"><span class="tag tag-info">${prodCount} productions across ${allTokens.length} nonterminals</span></div>`;
+}
+
+window.onload = function() {
+  setupPanZoom('braid');
+  setupPanZoom('static');
+  
+  showRuleset(0);
+  document.getElementById("wordSel").value = "𐑛";
+  document.getElementById("customWord").style.display = "none";
+  evaluate();
+};
+</script>
+</body></html>

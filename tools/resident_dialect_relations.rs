@@ -19,10 +19,14 @@ pub struct Resident {
 
 impl Resident {
     fn initialize_native(&mut self) {
+        self.native_steps=0;self.outputs.clear();
         for kind in [3u32,4,7] {
             self.native_types.insert(kind,serde_json::from_value(self.program["gates"][kind.to_string()]["stages"][0]["before"].clone()).unwrap());
+            // Before the first composed dialect action, the native arithmetic
+            // rows retain the program's checked truth-output decoder.
+            let truth:Vec<u8>=serde_json::from_value(self.program["gates"][kind.to_string()]["truth_outputs"].clone()).unwrap();
+            self.outputs.insert(kind,truth.into_iter().map(|bit|match bit{0=>2,1=>1,_=>panic!("invalid native truth output")}).collect());
         }
-        self.native_steps=0;self.outputs.clear();
     }
     pub fn advance(&mut self) {
         let phase=self.native_steps%self.route.as_array().unwrap().len();

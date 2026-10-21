@@ -3803,6 +3803,107 @@ impl KernelState {
 
 // ── Tests ───────────────────────────────────────────────────────────
 
+fn b4_idx(name: &str) -> usize {
+    match name {
+        "T" => 1,
+        "F" => 2,
+        "B" => 3,
+        _ => 0,
+    }
+}
+fn gen_code_trie(table: &dyn Fn(usize) -> usize) -> String {
+    let emit_cell = |idx: usize| format!("MOVE %r{} %r4\nEMIT %r4\n", 10 + idx);
+    let mut p = String::from("READ %r0\nREAD %r1\n");
+    p += "JT %r0 .h1\nJF %r0 .h2\nJB %r0 .h3\n";
+    for i in 0..4 {
+        p += &format!(".h{}:\n", i);
+        p += &format!("JT %r1 .L{}_1\nJF %r1 .L{}_2\nJB %r1 .L{}_3\n", i, i, i);
+        for j in 0..4 {
+            let out = table(i * 4 + j);
+            p += &format!(".L{}_{}:\n", i, j);
+            p += &emit_cell(out / 4);
+            p += &emit_cell(out % 4);
+            p += "JMP .done\n";
+        }
+    }
+    p += ".done:\nHALT\n";
+    p
+}
+fn run_code_trie(prog: &str, code: usize) -> usize {
+    run_code_trie_observed(prog,code).expect("canonical code trie executes").0
+}
+fn run_code_trie_observed(prog: &str, code: usize) -> Result<(usize,u64),String> {
+    if code>=16 {return Err("opcode outside the self-model alphabet".into());}
+    let mut vm = ParaVM::new();
+    vm.set_belief(10, B4::N);
+    vm.set_belief(11, B4::T);
+    vm.set_belief(12, B4::F);
+    vm.set_belief(13, B4::B);
+    vm.read_buffer = Some(vec![
+        B4::from_u8((code / 4) as u8),
+        B4::from_u8((code % 4) as u8),
+    ]);
+    vm.load(prog)?;
+    vm.run(Some(10_000));
+    let cells: Vec<usize> = vm
+        .emit_buffer
+        .iter()
+        .map(|s| b4_idx(s.rsplit(' ').next().unwrap_or("")))
+        .collect();
+    if !vm.halted||cells.len()!=2 {return Err("self-model trie did not return one complete code".into());}
+    Ok((cells[0] * 4 + cells[1],vm.total_steps))
+}
+
+
+/// Prepared compile/recompile action, computed by the actual ParaVM trie.
+/// Its own two program texts pass through the same compiled action as payloads.
+pub struct SelfModel {
+    pub disassembler: String,
+    pub recompiler: String,
+    pub forward: [usize;16],
+    pub backward: [usize;16],
+    pub program_self_return: bool,
+    pub executed_trie_steps: u64,
+}
+impl SelfModel {
+    pub fn prepare() -> Result<Self,String> {
+        let perm=|w:usize|(7*w+3)%16;
+        let inverse=|c:usize|(0..16).find(|&w|perm(w)==c).unwrap();
+        let disassembler=gen_code_trie(&perm);
+        let recompiler=gen_code_trie(&inverse);
+        let(mut forward,mut backward)=([0;16],[0;16]);let mut executed_trie_steps=0;
+        for i in 0..16 {
+            let (value,steps)=run_code_trie_observed(&disassembler,i)?;
+            forward[i]=value;executed_trie_steps+=steps;
+            let (value,steps)=run_code_trie_observed(&recompiler,i)?;
+            backward[i]=value;executed_trie_steps+=steps;
+        }
+        if (0..16).any(|i|forward[i]!=(7*i+3)%16||backward[i]!=(7*i+11)%16) {
+            return Err("executing self-model maps differ from their Lean definitions".into());
+        }
+        if (0..16).any(|i|backward[forward[i]]!=i||forward[backward[i]]!=i) {
+            return Err("self-model compile/recompile maps do not close".into());
+        }
+        let mut model=Self{disassembler,recompiler,forward,backward,program_self_return:false,executed_trie_steps};
+        model.program_self_return=model.reflect(model.disassembler.as_bytes())==model.disassembler.as_bytes()
+            && model.reflect(model.recompiler.as_bytes())==model.recompiler.as_bytes();
+        if !model.program_self_return{return Err("compiler failed to reconstruct its own program".into());}
+        Ok(model)
+    }
+    /// Apply both prepared operators to EVERY nibble of the retained input.
+    /// The maps came from ParaVM execution, rather than an identity shortcut.
+    pub fn reflect(&self,bytes:&[u8])->Vec<u8> {
+        bytes.iter().map(|&byte|{
+            let hi=self.backward[self.forward[(byte>>4) as usize]];
+            let lo=self.backward[self.forward[(byte&15) as usize]];
+            ((hi<<4)|lo) as u8
+        }).collect()
+    }
+    pub fn contains(&self,bytes:&[u8])->bool {
+        bytes.iter().all(|&b|self.forward[(b>>4) as usize]<16&&self.forward[(b&15) as usize]<16)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4568,52 +4669,6 @@ mod tests {
     // Codes are 0..16, a code c encoded as two B4 cells (c/4, c%4). A trie reads
     // two cells and emits table(code) as two cells: disassemble and recompile are
     // the same generator with inverse tables.
-    fn b4_idx(name: &str) -> usize {
-        match name {
-            "T" => 1,
-            "F" => 2,
-            "B" => 3,
-            _ => 0,
-        }
-    }
-    fn gen_code_trie(table: &dyn Fn(usize) -> usize) -> String {
-        let emit_cell = |idx: usize| format!("MOVE %r{} %r4\nEMIT %r4\n", 10 + idx);
-        let mut p = String::from("READ %r0\nREAD %r1\n");
-        p += "JT %r0 .h1\nJF %r0 .h2\nJB %r0 .h3\n";
-        for i in 0..4 {
-            p += &format!(".h{}:\n", i);
-            p += &format!("JT %r1 .L{}_1\nJF %r1 .L{}_2\nJB %r1 .L{}_3\n", i, i, i);
-            for j in 0..4 {
-                let out = table(i * 4 + j);
-                p += &format!(".L{}_{}:\n", i, j);
-                p += &emit_cell(out / 4);
-                p += &emit_cell(out % 4);
-                p += "JMP .done\n";
-            }
-        }
-        p += ".done:\nHALT\n";
-        p
-    }
-    fn run_code_trie(prog: &str, code: usize) -> usize {
-        let mut vm = ParaVM::new();
-        vm.set_belief(10, B4::N);
-        vm.set_belief(11, B4::T);
-        vm.set_belief(12, B4::F);
-        vm.set_belief(13, B4::B);
-        vm.read_buffer = Some(vec![
-            B4::from_u8((code / 4) as u8),
-            B4::from_u8((code % 4) as u8),
-        ]);
-        vm.load(prog).unwrap();
-        vm.run(Some(10_000));
-        let cells: Vec<usize> = vm
-            .emit_buffer
-            .iter()
-            .map(|s| b4_idx(s.rsplit(' ').next().unwrap_or("")))
-            .collect();
-        cells[0] * 4 + cells[1]
-    }
-
     #[test]
     fn test_imasm_recompile_is_inverse() {
         // PLANK 4: μ∘δ = id. The disassembler D lifts a wire opcode to the

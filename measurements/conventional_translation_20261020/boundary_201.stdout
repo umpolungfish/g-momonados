@@ -1,0 +1,37 @@
+{
+  "multiplication_fixed_set": [
+    "0"
+  ],
+  "positive_trajectory": "unbounded growth",
+  "powerset_empty_cardinality": "1",
+  "return": {
+    "binary_popcount": 1,
+    "binary_return": "1606938044258990275541962092341162602522202993782792835301376",
+    "binary_tree": {
+      "active_atoms": 1,
+      "empty_value": "0",
+      "operator": "sum-distinct-binary-positions",
+      "positions": [
+        200
+      ]
+    },
+    "closed": true,
+    "equivalence": "evaluated-value",
+    "multiplicative_return": "1606938044258990275541962092341162602522202993782792835301376",
+    "multiplicative_tree": {
+      "operator": "retained-operand",
+      "primality": "not inferred from being a retained leaf",
+      "value": "1606938044258990275541962092341162602522202993782792835301376"
+    },
+    "name": "1606938044258990275541962092341162602522202993782792835301376",
+    "positive_prime_decomposition_domain": true,
+    "prime_count_scope": "Requires irreducible prime leaves; no factor producer is called",
+    "prime_factor_count_omega": null,
+    "retained_multiplicative_leaves": 1,
+    "structures_identified": false
+  },
+  "schema": "conventional-boundary/v1",
+  "successor_of_zero": "1",
+  "zero_fixed": true,
+  "zero_is_attractor_for_positive_inputs": false
+}

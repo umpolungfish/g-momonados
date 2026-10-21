@@ -1,0 +1,22 @@
+== vox compile: RNA/DNA -> protein (standard) ==
+input    AUGAACAUCCGCCCCCUCCACGACCGCGUCAUCGUCAAACGCAAAGAAGUCGAAACCAAAUCCGCCGGCGGCAUCGUCCUCACCGGCUCCGCCGCCGCCAAAUCCACCCGCGGCGAAGUCCUCGCCGUCGGCAACGGCCGCAUCCUCGAAAACGGCGAAGUCAAACCCCUCGACGUCAAAGUCGGCGACAUCGUCAUCUUCAACGACGGCUACGGCGUCAAAUCCGAAAAAAUCGACAACGAAGAAGUCCUCAUCAUGUCCGAAUCCGACAUCCUCGCCAUCGUCGAAGCCUAA
+mrna     AUGAACAUCCGCCCCCUCCACGACCGCGUCAUCGUCAAACGCAAAGAAGUCGAAACCAAAUCCGCCGGCGGCAUCGUCCUCACCGGCUCCGCCGCCGCCAAAUCCACCCGCGGCGAAGUCCUCGCCGUCGGCAACGGCCGCAUCCUCGAAAACGGCGAAGUCAAACCCCUCGACGUCAAAGUCGGCGACAUCGUCAUCUUCAACGACGGCUACGGCGUCAAAUCCGAAAAAAUCGACAACGAAGAAGUCCUCAUCAUGUCCGAAUCCGACAUCCUCGCCAUCGUCGAAGCCUAA
+protein  Met-Asn-Ile-Arg-Pro-Leu-His-Asp-Arg-Val-Ile-Val-Lys-Arg-Lys-Glu-Val-Glu-Thr-Lys-Ser-Ala-Gly-Gly-Ile-Val-Leu-Thr-Gly-Ser-Ala-Ala-Ala-Lys-Ser-Thr-Arg-Gly-Glu-Val-Leu-Ala-Val-Gly-Asn-Gly-Arg-Ile-Leu-Glu-Asn-Gly-Glu-Val-Lys-Pro-Leu-Asp-Val-Lys-Val-Gly-Asp-Ile-Val-Ile-Phe-Asn-Asp-Gly-Tyr-Gly-Val-Lys-Ser-Glu-Lys-Ile-Asp-Asn-Glu-Glu-Val-Leu-Ile-Met-Ser-Glu-Ser-Asp-Ile-Leu-Ala-Ile-Val-Glu-Ala
+stop     UAA
+native protein B: 97 residues, 113 chemical forms; full self-marks executed
+
+sequence fold: helix 79  sheet 0  coil 18   (908 contacts, SerpentRod contact invariant PASS)
+backbone 97 residues placed (B4-Ramachandran-NeRF)
+sidechain 339 heavy atoms (complete residue inventory)
+Geometry closure (heavy-atom model): OPEN (coordinate conflicts retained)
+  checked: 727 atoms, 731 bonds, 1369 angles, 5 ring closures, 100 stereocenters, 385 backbone torsions, 262187 nonbonded pairs
+  tolerances: bond 0.020 A, backbone angle 8.0 deg, other bonded angles 90..135 deg, clash overlap 0.40 A
+  measured: max bond residual 0.000000 A, max nonbonded overlap 2.751288 A
+  clash: 820 conflict(s)
+retained B4 backbone labels: helix 28  sheet 12  other 57
+Secondary-structure evidence: B is valid (affirmation and denial retained)
+  helix: T 24  F 14  B 59  N 0
+  sheet: T 0  F 85  B 12  N 0
+  other: T 14  F 36  B 47  N 0
+pdb      written to /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/protein_vox_sync_20261020/P0A6F9/gm_rna.pdb
+carrier  written to /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/protein_vox_sync_20261020/P0A6F9/gm_rna.pdb.glut.json

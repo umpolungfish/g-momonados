@@ -42,6 +42,44 @@ Full notes: [`README_FULL.md`](README_FULL.md). Unlicense.
 
 ---
 
+## Protein compilation through Vox
+
+`g-momonados vox compile` and standalone `vox compile` execute the same compiler in `../Vox/src/protein_compile.rs`, linked through the sibling `vox_core` dependency. The hosted feature enables its file and console interface. The `vendor/vox` snapshot is outside this Cargo dependency path.
+
+```bash
+target/release/g-momonados vox compile --fasta protein.fasta --input protein --pdb protein.pdb
+target/release/g-momonados vox compile AUGGCUUGAUAA --input rna --carrier protein.json
+```
+
+The REPL accepts the same command. Options include `--code standard|mitochondrial`, `--carrier` and `--coords`. Every residue and chemical form retains its complete native self-mark execution. PDB output includes `<path>.glut.json` bound by SHA-256. Primitive axis labels use `⊢ ⊣ ≻ ≺ ⋈ ⊤ ∈ ∋ ⊙ ⊥ ⊞ ⊡` from [SNS_PRIME.md](../SNS_PRIME.md). Coordinate conflicts remain visible in the returned evidence. Invalid arguments and failed writes return a nonzero status through direct argv.
+
+The current coordinate path constructs a chain from codon-driven B4 torsions. Predicted contact relations are retained in the carrier but do not drive a tertiary coordinate solve. Cross-compiler agreement therefore establishes consistent compilation and state retention; it does not establish a correctly folded protein.
+
+## SRFP and DNN from N alone
+
+`conventional prepare N [srfp|dnn|both]` dispatches the selected saved native
+protocol graph on the shared register, applies the numerical transformations and retains their
+source-bound register, banks, Y continuation and binary/product trees.
+`conventional read prepared.json` retrieves the evaluated factor boundaries
+without invoking preparation. Both commands are available in the REPL and through
+`../conventional_translation.py`. `conventional both N` composes those same paths.
+Preparation accepts N alone and rejects supplied legs and paired-source files.
+
+```bash
+KERNEL=target/conventional_translation_20261020/x86_64-unknown-linux-gnu/release/g-momonados
+"$KERNEL" conventional prepare "$N" --receipt prepared.json
+"$KERNEL" conventional read prepared.json --receipt return.json
+```
+
+Preparation, artifact loading, read-off and exact product verification have
+separate clocks. The numerical projection produced verified small-control
+factors in the retained historical runs. The exact896-bit preparation remains
+unfinished: its expanding arithmetic route was stopped, and separating the
+commands does not repair that growth. Unfinished artifacts are rejected at read.
+AFWD now composes each source-correlated arithmetic row before reduction.
+The full SRFP/DNN construction remains the active implementation objective.
+See [the implementation record](../ig-docs/conventional_translation_read_off_20261020.md).
+
 ## Core Architecture
 
 ### The Crystal of Types

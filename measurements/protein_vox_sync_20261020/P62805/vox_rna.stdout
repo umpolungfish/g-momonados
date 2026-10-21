@@ -1,0 +1,22 @@
+== vox compile: RNA/DNA -> protein (standard) ==
+input    AUGUCCGGCCGCGGCAAAGGCGGCAAAGGCCUCGGCAAAGGCGGCGCCAAACGCCACCGCAAAGUCCUCCGCGACAACAUCCAAGGCAUCACCAAACCCGCCAUCCGCCGCCUCGCCCGCCGCGGCGGCGUCAAACGCAUCUCCGGCCUCAUCUACGAAGAAACCCGCGGCGUCCUCAAAGUCUUCCUCGAAAACGUCAUCCGCGACGCCGUCACCUACACCGAACACGCCAAACGCAAAACCGUCACCGCCAUGGACGUCGUCUACGCCCUCAAACGCCAAGGCCGCACCCUCUACGGCUUCGGCGGCUAA
+mrna     AUGUCCGGCCGCGGCAAAGGCGGCAAAGGCCUCGGCAAAGGCGGCGCCAAACGCCACCGCAAAGUCCUCCGCGACAACAUCCAAGGCAUCACCAAACCCGCCAUCCGCCGCCUCGCCCGCCGCGGCGGCGUCAAACGCAUCUCCGGCCUCAUCUACGAAGAAACCCGCGGCGUCCUCAAAGUCUUCCUCGAAAACGUCAUCCGCGACGCCGUCACCUACACCGAACACGCCAAACGCAAAACCGUCACCGCCAUGGACGUCGUCUACGCCCUCAAACGCCAAGGCCGCACCCUCUACGGCUUCGGCGGCUAA
+protein  Met-Ser-Gly-Arg-Gly-Lys-Gly-Gly-Lys-Gly-Leu-Gly-Lys-Gly-Gly-Ala-Lys-Arg-His-Arg-Lys-Val-Leu-Arg-Asp-Asn-Ile-Gln-Gly-Ile-Thr-Lys-Pro-Ala-Ile-Arg-Arg-Leu-Ala-Arg-Arg-Gly-Gly-Val-Lys-Arg-Ile-Ser-Gly-Leu-Ile-Tyr-Glu-Glu-Thr-Arg-Gly-Val-Leu-Lys-Val-Phe-Leu-Glu-Asn-Val-Ile-Arg-Asp-Ala-Val-Thr-Tyr-Thr-Glu-His-Ala-Lys-Arg-Lys-Thr-Val-Thr-Ala-Met-Asp-Val-Val-Tyr-Ala-Leu-Lys-Arg-Gln-Gly-Arg-Thr-Leu-Tyr-Gly-Phe-Gly-Gly
+stop     UAA
+native protein B: 103 residues, 110 chemical forms; full self-marks executed
+
+sequence fold: helix 56  sheet 10  coil 37   (686 contacts, SerpentRod contact invariant PASS)
+backbone 103 residues placed (B4-Ramachandran-NeRF)
+sidechain 387 heavy atoms (complete residue inventory)
+Geometry closure (heavy-atom model): OPEN (coordinate conflicts retained)
+  checked: 799 atoms, 807 bonds, 1481 angles, 9 ring closures, 99 stereocenters, 409 backbone torsions, 316923 nonbonded pairs
+  tolerances: bond 0.020 A, backbone angle 8.0 deg, other bonded angles 90..135 deg, clash overlap 0.40 A
+  measured: max bond residual 0.000000 A, max nonbonded overlap 2.801085 A
+  clash: 1354 conflict(s)
+retained B4 backbone labels: helix 27  sheet 21  other 55
+Secondary-structure evidence: B is valid (affirmation and denial retained)
+  helix: T 15  F 35  B 53  N 0
+  sheet: T 2  F 74  B 27  N 0
+  other: T 19  F 30  B 54  N 0
+pdb      written to /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/protein_vox_sync_20261020/P62805/vox_rna.pdb
+carrier  written to /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/protein_vox_sync_20261020/P62805/vox_rna.pdb.glut.json

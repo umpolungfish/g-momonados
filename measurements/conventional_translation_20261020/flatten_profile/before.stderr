@@ -1,0 +1,33 @@
+conventional point stage=prepare source_bits=200
+conventional point stage=arithmetic nodes=999 support=N-2
+conventional point op=16 row=0 column=16 nodes=1139 elapsed=0.002
+conventional point op=32 row=0 column=32 nodes=1301 elapsed=0.006
+conventional point op=48 row=0 column=48 nodes=1458 elapsed=0.011
+conventional point op=64 row=0 column=64 nodes=1619 elapsed=0.019
+conventional point op=80 row=0 column=80 nodes=1779 elapsed=0.028
+conventional point op=96 row=0 column=96 nodes=1938 elapsed=0.040
+conventional point op=112 row=0 column=112 nodes=2100 elapsed=0.053
+conventional point op=128 row=0 column=128 nodes=2261 elapsed=0.067
+conventional point op=144 row=0 column=144 nodes=2418 elapsed=0.083
+conventional point op=160 row=0 column=160 nodes=2579 elapsed=0.102
+conventional point op=176 row=0 column=176 nodes=2741 elapsed=0.122
+conventional point op=192 row=0 column=192 nodes=2899 elapsed=0.144
+conventional point op=208 row=1 column=8 nodes=6008 elapsed=0.186
+conventional point op=224 row=1 column=24 nodes=7327 elapsed=0.277
+conventional point op=240 row=1 column=40 nodes=8637 elapsed=0.432
+conventional point op=256 row=1 column=56 nodes=9942 elapsed=0.667
+conventional point op=272 row=1 column=72 nodes=11255 elapsed=0.957
+conventional point op=288 row=1 column=88 nodes=12572 elapsed=1.316
+conventional point op=304 row=1 column=104 nodes=13872 elapsed=1.747
+conventional point op=320 row=1 column=120 nodes=15210 elapsed=2.230
+conventional point op=336 row=1 column=136 nodes=16500 elapsed=2.807
+conventional point op=352 row=1 column=152 nodes=17812 elapsed=3.513
+conventional point op=368 row=1 column=168 nodes=19141 elapsed=4.232
+conventional point op=384 row=1 column=184 nodes=20443 elapsed=5.045
+conventional point op=400 row=1 column=200 nodes=41976 elapsed=6.029
+conventional point op=416 row=2 column=17 nodes=51124 elapsed=7.327
+conventional point op=432 row=2 column=33 nodes=62062 elapsed=9.631
+conventional point op=448 row=2 column=49 nodes=73059 elapsed=12.905
+conventional point op=464 row=2 column=65 nodes=83937 elapsed=17.559
+[ perf record: Woken up 63 times to write data ]
+[ perf record: Captured and wrote 16.077 MB /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/conventional_translation_20261020/flatten_profile/before.perf.data (1994 samples) ]

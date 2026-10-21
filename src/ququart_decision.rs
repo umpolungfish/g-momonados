@@ -878,7 +878,7 @@ pub struct DecisionArena {
     references: Vec<usize>,
     free: Vec<usize>,
     created: Vec<usize>,
-    pinned: Option<[usize; 5]>,
+    pinned: Option<Vec<usize>>,
     unique: NodeIndex,
     empty_fixed: FixedBits,
     pub cells: usize,
@@ -1911,8 +1911,7 @@ impl DecisionArena {
     /// and fuse their disjoint source coordinates without a candidate table.
     fn fuse_source_arms(&mut self, low: usize, high: usize, wire: usize) -> usize {
         let fused = self.conditional_literals(low, high, &[(wire, true)]);
-        let recovered = self.source_cofactors(fused, wire, &mut OperationCache::default());
-        debug_assert_eq!(recovered, (low, high),
+        debug_assert_eq!(self.source_cofactors(fused, wire, &mut OperationCache::default()), (low, high),
             "transformed source arms did not recover at wire {wire}");
         fused
     }
@@ -1926,8 +1925,7 @@ impl DecisionArena {
     fn fuse_interval_word(&mut self, low: usize, high: usize,
         register: &[usize], cut: &WordTape) -> usize {
         let fused = self.sum(low, high);
-        let recovered = self.partition_less_word(fused, register, cut);
-        debug_assert_eq!(recovered, (low, high),
+        debug_assert_eq!(self.partition_less_word(fused, register, cut), (low, high),
             "transformed interval arms did not recover at their output cut");
         fused
     }
@@ -2017,6 +2015,175 @@ impl DecisionArena {
             visit(self,enabled,register,digit,0,&WordTape::zero(),&value,&modulus,&mut cofactors)
         };
         self.conditional_literals(root,changed,controls)
+    }
+
+    /// Add a retained source register in one carry transducer. Source wires
+    /// and all spectator amplitudes survive the enclosing fuse unchanged.
+    fn add_source_register(&mut self, root:usize, register:&[usize], source:&[usize]) -> usize {
+        // When source bits precede their target bits, traverse the diagram
+        // in its own wire order. Keep only source bits whose target has not
+        // arrived. Removing and restoring nonadjacent cofactors at every bit
+        // otherwise constructs large temporary diagrams for the same sum.
+        if source.iter().zip(register).all(|(&s,&r)|s<r)
+            && source.windows(2).all(|w|w[0]<w[1])
+            && register.windows(2).all(|w|w[0]<w[1]) {
+            fn ordered(a:&mut DecisionArena,root:usize,register:&[usize],source:&[usize],
+                si:usize,ri:usize,pending:BigUint,carry:bool,
+                memo:&mut OperationCache<(usize,usize,usize,BigUint,bool),usize>)->usize {
+                if a.fixed[root].empty || ri==register.len()
+                    || (ri>=source.len() && !carry) || matches!(a.node(root),Node::Leaf(..)) {
+                    return root;
+                }
+                let key=(root,si,ri,pending.clone(),carry);
+                if let Some(&result)=memo.get(&key){return result;}
+                let next_source=source.get(si).copied().unwrap_or(usize::MAX);
+                let wire=a.top(root).unwrap().min(next_source).min(register[ri]);
+                let (low,high)=a.split(root,wire);
+                let (low,high)=if wire==next_source {
+                    debug_assert!(si>=ri);
+                    let high_pending=&pending|(BigUint::one()<<(si-ri));
+                    (ordered(a,low,register,source,si+1,ri,pending,carry,memo),
+                     ordered(a,high,register,source,si+1,ri,high_pending,carry,memo))
+                }else if wire==register[ri] {
+                    debug_assert!(ri>=source.len() || si>ri);
+                    let bit=usize::from(pending.bit(0));let rest=pending>>1usize;
+                    let mut outputs=[0usize;2];
+                    for (value,part) in [low,high].into_iter().enumerate(){
+                        let sum=value+bit+usize::from(carry);
+                        outputs[sum&1]=ordered(a,part,register,source,si,ri+1,rest.clone(),sum>=2,memo);
+                    }
+                    (outputs[0],outputs[1])
+                }else{
+                    (ordered(a,low,register,source,si,ri,pending.clone(),carry,memo),
+                     ordered(a,high,register,source,si,ri,pending,carry,memo))
+                };
+                let result=a.branch(wire,low,high);memo.insert(key,result);result
+            }
+            return ordered(self,root,register,source,0,0,BigUint::zero(),false,&mut OperationCache::default());
+        }
+        fn visit(a:&mut DecisionArena, root:usize, register:&[usize], source:&[usize],
+            at:usize, carry:bool, memo:&mut OperationCache<(usize,usize,bool),usize>,
+            cofactors:&mut OperationCache<(usize,usize),(usize,usize)>) -> usize {
+            if a.fixed[root].empty {return root;}
+            if at>=source.len() {
+                return if carry {a.add_constant_word(root,&register[at..],&WordTape::from_small(1),&[])} else {root};
+            }
+            if let Some(&result)=memo.get(&(root,at,carry)){return result;}
+            let (sl,sh)=a.source_cofactors(root,source[at],cofactors);
+            let mut arms=[0usize;2];
+            for (s,part) in [sl,sh].into_iter().enumerate() {
+                if a.fixed[part].empty {arms[s]=part;continue;}
+                let (rl,rh)=a.source_cofactors(part,register[at],cofactors);
+                let mut outputs=[0usize;2];
+                for (r,part) in [rl,rh].into_iter().enumerate() {
+                    let sum=s+r+usize::from(carry);
+                    outputs[sum&1]=visit(a,part,register,source,at+1,sum>=2,memo,cofactors);
+                }
+                arms[s]=a.fuse_source_arms(outputs[0],outputs[1],register[at]);
+            }
+            let result=a.fuse_source_arms(arms[0],arms[1],source[at]);
+            memo.insert((root,at,carry),result);result
+        }
+        visit(self,root,register,source,0,false,&mut OperationCache::default(),&mut OperationCache::default())
+    }
+
+    /// Apply one exact widened affine row before the enclosing source
+    /// reduction. All source, coordinate and ancestry wires remain attached.
+    pub fn integer_affine_add(&mut self, root:usize, register:&[usize], source:&[usize],
+        shift:usize, constant:&BigUint, controls:&[(usize,bool)]) -> Result<usize,String> {
+        if shift>register.len() || source.len()>register.len()-shift {
+            return Err("integer row escaped its widened register".into());
+        }
+        let mut wires=register.to_vec();wires.extend_from_slice(source);
+        wires.extend(controls.iter().map(|&(wire,_)|wire));
+        if wires.iter().any(|&wire|wire>=self.cells){return Err("integer row has an invalid wire".into());}
+        let count=wires.len();wires.sort_unstable();wires.dedup();
+        if wires.len()!=count{return Err("integer row requires disjoint source, work and control wires".into());}
+        if !self.controls_possible(root,controls){return Ok(root);}
+        let zero=self.zero();let enabled=self.conditional_literals(zero,root,controls);
+        let upper=|wires:&[usize]| wires.iter().enumerate().fold(BigUint::zero(),|mut value,(i,&wire)|{
+            if !self.fixed[enabled].zero.bit(wire as u64){value|=BigUint::one()<<i;}value
+        });
+        if (upper(register)+(upper(source)<<shift)+constant).bits()>register.len() as u64 {
+            return Err("integer row needs another carry wire".into());
+        }
+        let changed=self.add_source_register(enabled,&register[shift..],source);
+        let changed=self.add_constant_word(changed,register,&WordTape::from_biguint(constant),&[]);
+        Ok(self.conditional_literals(root,changed,controls))
+    }
+
+    /// Reduce the complete carried integer once. The caller retains the
+    /// unreduced bank and the source spectators needed for coherent recovery.
+    pub fn reduce_register(&mut self, root:usize, register:&[usize], modulus:&BigUint)
+        ->Result<usize,String> {
+        if modulus.is_zero() || register.iter().any(|&wire|wire>=self.cells)
+            || register.windows(2).any(|w|w[0]>=w[1]) {
+            return Err("invalid source reduction register".into());
+        }
+        let maximum=register.iter().enumerate().fold(BigUint::zero(),|mut value,(i,&wire)|{
+            if !self.fixed[root].zero.bit(wire as u64){value|=BigUint::one()<<i;}value
+        });
+        if maximum<*modulus{return Ok(root);}
+        let mut retained=self.pinned.clone().unwrap_or_default();retained.push(root);
+        let mut result=root;
+        for bit in (0..=maximum.bits().saturating_sub(modulus.bits()) as usize).rev(){
+            let threshold=modulus<<bit;
+            let (low,high)=self.partition_less(result,register,&threshold);
+            let subtract=(BigUint::one()<<register.len())-&threshold;
+            let high=self.add_constant_word(high,register,&WordTape::from_biguint(&subtract),&[]);
+            result=self.sum(low,high);
+            let mut roots=retained.clone();roots.push(result);self.fold_roots(&roots);
+        }
+        Ok(result)
+    }
+
+    /// Compose r <- (r + 2^shift * source + constant) mod N as one
+    /// source-correlated operation. Only one widened sum and its complete
+    /// reduction are materialized, rather than a modular add per source bit.
+    pub fn modular_affine_add(&mut self, root:usize, register:&[usize], source:&[usize],
+        shift:usize, constant:&BigUint, modulus:&BigUint, controls:&[(usize,bool)]) -> Result<usize,String> {
+        if modulus.is_zero() || modulus.bits()>register.len() as u64
+            || shift>register.len() || source.len()>register.len()-shift {
+            return Err("affine row escaped its widened modular register".into());
+        }
+        let mut wires=register.to_vec();wires.extend_from_slice(source);
+        wires.extend(controls.iter().map(|&(wire,_)|wire));
+        if wires.iter().any(|&wire|wire>=self.cells){return Err("affine row has an invalid wire".into());}
+        let count=wires.len();wires.sort_unstable();wires.dedup();
+        if wires.len()!=count{return Err("affine row requires disjoint source, work and control wires".into());}
+        if !self.controls_possible(root,controls){return Ok(root);}
+        let zero=self.zero();
+        let enabled=self.conditional_literals(zero,root,controls);
+        let (valid,invalid)=self.partition_less(enabled,register,modulus);
+        if self.fixed[valid].empty{return Ok(root);}
+        let upper=|wires:&[usize]| wires.iter().enumerate().fold(BigUint::zero(),|mut value,(i,&wire)|{
+            if !self.fixed[valid].zero.bit(wire as u64){value|=BigUint::one()<<i;}value
+        });
+        let constant=constant%modulus;
+        let maximum=upper(register)+(upper(source)<<shift)+&constant;
+        if maximum.bits()>register.len() as u64 {
+            return Err("affine row needs another carry wire".into());
+        }
+        let mut retained=self.pinned.clone().unwrap_or_default();
+        retained.extend([root,invalid]);
+        let keep=|arena:&mut DecisionArena,current|{
+            let mut roots=retained.clone();roots.push(current);arena.fold_roots(&roots);
+        };
+        let mut result=self.add_source_register(valid,&register[shift..],source);
+        keep(self,result);
+        result=self.add_constant_word(result,register,&WordTape::from_biguint(&constant),&[]);
+        keep(self,result);
+        let bits=maximum.bits().saturating_sub(modulus.bits()) as usize;
+        for bit in (0..=bits).rev() {
+            let threshold=modulus<<bit;
+            let (low,high)=self.partition_less(result,register,&threshold);
+            let subtract=(BigUint::one()<<register.len())-&threshold;
+            let high=self.add_constant_word(high,register,&WordTape::from_biguint(&subtract),&[]);
+            result=self.sum(low,high);keep(self,result);
+        }
+        result=self.sum(result,invalid);
+        result=self.conditional_literals(root,result,controls);
+        keep(self,result);Ok(result)
     }
 
     /// Fuse the two translated intervals of a complete modular addition.
@@ -2134,10 +2301,14 @@ impl DecisionArena {
     /// Pin the new roots, release only unreachable branches, and reuse slots.
     /// No complete diagram copy or node-count/heap cutoff is involved.
     pub fn fold(&mut self, roots: &mut [usize; 5]) {
+        self.fold_roots(roots);
+    }
+    /// Keep every live protocol edge and frame in this same arena.
+    pub fn fold_roots(&mut self, roots: &[usize]) {
         for &root in roots.iter() {
             self.references[root] += 1;
         }
-        if let Some(old) = self.pinned.replace(*roots) {
+        if let Some(old) = self.pinned.replace(roots.to_vec()) {
             for root in old {
                 self.release(root);
             }
@@ -2154,12 +2325,18 @@ impl DecisionArena {
 
     #[cfg(feature = "hosted")]
     pub(crate) fn prepared_record(&self, root: usize) -> serde_json::Value {
+        self.prepared_record_many(&[root])
+    }
+
+    #[cfg(feature = "hosted")]
+    pub(crate) fn prepared_record_many(&self, roots: &[usize]) -> serde_json::Value {
+        assert!(!roots.is_empty());
         let mut order = Vec::new();
         let mut indices = OperationCache::default();
         let mut masks = Vec::new();
         let mut mask_indices = OperationCache::default();
         let mut fixed = Vec::new();
-        let mut pending = alloc::vec![(root,false)];
+        let mut pending: Vec<_> = roots.iter().rev().map(|&root| (root,false)).collect();
         while let Some((id,returned)) = pending.pop() {
             if indices.contains_key(&id) { continue; }
             if !returned {
@@ -2185,12 +2362,19 @@ impl DecisionArena {
                 fixed.push((support.empty, address(&support.zero), address(&support.one)));
             }
         }
-        serde_json::json!({"cells":self.cells,"root":indices[&root],"nodes":order,
+        serde_json::json!({"cells":self.cells,"root":indices[&roots[0]],
+            "roots":roots.iter().map(|root| indices[root]).collect::<Vec<_>>(),"nodes":order,
             "support_masks":masks,"fixed":fixed})
     }
 
     #[cfg(feature = "hosted")]
     pub(crate) fn from_prepared_record(record: &serde_json::Value) -> Result<(Self,usize),String> {
+        let (arena,roots)=Self::from_prepared_record_many(record)?;
+        Ok((arena,roots[0]))
+    }
+
+    #[cfg(feature = "hosted")]
+    pub(crate) fn from_prepared_record_many(record: &serde_json::Value) -> Result<(Self,Vec<usize>),String> {
         let index = |key: &str| record[key].as_u64().and_then(|n| usize::try_from(n).ok())
             .ok_or_else(|| alloc::format!("invalid prepared register {key}"));
         let mut arena = Self::new(index("cells")?);
@@ -2230,7 +2414,14 @@ impl DecisionArena {
             nodes.push(node);
         }
         let root = *nodes.get(index("root")?).ok_or("prepared register lost its root")?;
-        Ok((arena,root))
+        let roots=if let Some(roots)=record.get("roots") {
+            roots.as_array().ok_or("invalid prepared root pool")?.iter().map(|value|
+                value.as_u64().and_then(|id|usize::try_from(id).ok()).and_then(|id|nodes.get(id)).copied()
+                    .ok_or_else(||String::from("prepared bank escaped its shared node pool")))
+                .collect::<Result<Vec<_>,String>>()?
+        } else {alloc::vec![root]};
+        if roots.first()!=Some(&root){return Err("prepared primary root differs from its bank pool".into());}
+        Ok((arena,roots))
     }
 
     pub(crate) fn from_baked_nodes(cells:usize,root:usize,rows:&[crate::baked_resident::BakedNode],support:&crate::baked_resident::BakedSupport) -> Result<(Self,usize),String> {

@@ -18,6 +18,20 @@
 
 extern crate alloc;
 
+#[cfg(feature = "hosted")]
+pub mod conventional_translation;
+#[cfg(feature = "hosted")]
+pub mod conventional_spectrum;
+#[cfg(feature="hosted")]
+pub mod reentry_wells;
+#[cfg(feature="hosted")]
+pub mod conventional_protocol;
+#[cfg(feature="hosted")]
+pub mod ququart4;
+pub mod idempotent_point;
+pub mod belnap;
+pub mod parasm;
+
 // Local godel modules (copied from Vox)
 pub mod godel_calculus;
 pub mod godel_analyzer;
@@ -39,6 +53,7 @@ pub mod gpu_ecm;
 pub mod gpu_rho;
 pub mod gpu_rho_ml;
 pub mod native_numeral;
+pub mod numeral_encodings;
 pub mod phase_unbraid;
 pub mod reversible_modular;
 pub mod fibonacci_shor_plan;

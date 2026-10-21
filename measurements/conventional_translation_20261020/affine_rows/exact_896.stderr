@@ -1,0 +1,10 @@
+conventional point stage=prepare source_bits=896
+conventional point stage=arithmetic nodes=6271 support=N-2
+conventional protocol=dnn node=0 opcode=VINIT stage=enter
+conventional protocol=dnn node=1 opcode=IMSCRIB stage=enter
+conventional protocol=dnn node=2 opcode=AFWD stage=enter
+conventional affine_row=0 stage=enter nodes=6271
+conventional affine_row=0 stage=return nodes=24120 elapsed=0.202096502
+conventional affine_row=1 stage=enter nodes=24120
+conventional affine_row=1 stage=return nodes=194856 elapsed=3.263307725
+conventional affine_row=2 stage=enter nodes=194856

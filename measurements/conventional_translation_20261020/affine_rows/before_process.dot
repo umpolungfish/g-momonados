@@ -1,0 +1,75 @@
+digraph preparation {
+graph [rankdir=TB,fontname="DejaVu Sans",label="Native protocol dispatch during N-only preparation",labelloc=t];
+node [shape=box,fontname="DejaVu Sans",style="rounded,filled",fillcolor="#eef4fa"];
+edge [fontname="DejaVu Sans"];
+input [label="N alone + protocol selection"];
+init [label="Prepare shared nontrivial E register
+Source words, residual bank and retained Y"];
+input -> init;
+subgraph cluster_srfp { label="SRFP: ⊢⊙≻≺⋈∈⊤⊥∋⊞⊡⊣";
+srfp0 [label="0 VINIT\nsource-bound entry",fillcolor="#eef4fa"];
+srfp1 [label="1 IMSCRIB\nretain source words",fillcolor="#eef4fa"];
+srfp2 [label="2 AFWD\napply square-minus-self via retained Y\ncontrolled modular additions",fillcolor="#ffe8e5"];
+srfp3 [label="3 AREV\nnative involution + numerical E ↦ N+1−E",fillcolor="#eef4fa"];
+srfp4 [label="4 CLINK\ncheck source binding",fillcolor="#eef4fa"];
+srfp5 [label="5 FSPLIT\nnative truth/falsity + retained root branches",fillcolor="#eef4fa"];
+srfp6 [label="6 EVALT\nnative truth + residual-zero projection",fillcolor="#eef4fa"];
+srfp7 [label="7 EVALF\nnative falsity + reversed point projection",fillcolor="#eef4fa"];
+srfp8 [label="8 FFUSE\nreconnect retained root family",fillcolor="#eef4fa"];
+srfp9 [label="9 ENGAGR\nnative engagement; retain numerical payload",fillcolor="#eef4fa"];
+srfp10 [label="10 IFIX\ncheck projected stability; return Y",fillcolor="#eef4fa"];
+srfp11 [label="11 TANCH\nreturn retained roots and banks",fillcolor="#eef4fa"];
+srfp5 -> srfp6 [label="T→i"];
+srfp6 -> srfp8 [label="o→T"];
+srfp5 -> srfp7 [label="F→i"];
+srfp7 -> srfp8 [label="o→F"];
+srfp0 -> srfp1 [label="o→i"];
+srfp1 -> srfp2 [label="o→i"];
+srfp2 -> srfp3 [label="o→i"];
+srfp3 -> srfp4 [label="o→i"];
+srfp4 -> srfp5 [label="o→i"];
+srfp8 -> srfp9 [label="o→i"];
+srfp9 -> srfp10 [label="o→i"];
+srfp10 -> srfp11 [label="o→i"];
+}
+init -> srfp0 [label="selected protocol"];
+srfp11 -> artifact;
+subgraph cluster_dnn { label="DNN: ⊢⊙≻∈⊤⊥⊞∋⋈≺⊡⊣";
+dnn0 [label="0 VINIT\nsource-bound entry",fillcolor="#eef4fa"];
+dnn1 [label="1 IMSCRIB\nretain source words",fillcolor="#eef4fa"];
+dnn2 [label="2 AFWD\napply square-minus-self via retained Y\ncontrolled modular additions",fillcolor="#ffe8e5"];
+dnn3 [label="3 FSPLIT\nnative truth/falsity + retained root branches",fillcolor="#eef4fa"];
+dnn4 [label="4 EVALT\nnative truth + residual-zero projection",fillcolor="#eef4fa"];
+dnn5 [label="5 EVALF\nnative falsity + reversed point projection",fillcolor="#eef4fa"];
+dnn6 [label="6 ENGAGR\nnative engagement; retain numerical payload",fillcolor="#eef4fa"];
+dnn7 [label="7 FFUSE\nreconnect retained root family",fillcolor="#eef4fa"];
+dnn8 [label="8 CLINK\ncheck source binding",fillcolor="#eef4fa"];
+dnn9 [label="9 AREV\nnative involution + numerical E ↦ N+1−E",fillcolor="#eef4fa"];
+dnn10 [label="10 IFIX\ncheck projected stability; return Y",fillcolor="#eef4fa"];
+dnn11 [label="11 TANCH\nreturn retained roots and banks",fillcolor="#eef4fa"];
+dnn3 -> dnn4 [label="T→i"];
+dnn4 -> dnn7 [label="o→T"];
+dnn5 -> dnn6 [label="o→i"];
+dnn3 -> dnn5 [label="F→i"];
+dnn6 -> dnn7 [label="o→F"];
+dnn0 -> dnn1 [label="o→i"];
+dnn1 -> dnn2 [label="o→i"];
+dnn2 -> dnn3 [label="o→i"];
+dnn7 -> dnn8 [label="o→i"];
+dnn8 -> dnn9 [label="o→i"];
+dnn9 -> dnn10 [label="o→i"];
+dnn10 -> dnn11 [label="o→i"];
+}
+init -> dnn0 [label="selected protocol"];
+dnn11 -> artifact;
+artifact [label="Prepared artifact
+Shared node pool, every protocol bank, source, Y and traces
+Factor leaves only after exact numerical closure"];
+read [label="Read prepared factor leaves
+Separate load/read/product verification clocks"];
+artifact -> read;
+note [shape=note,label="AFWD still expands the arithmetic relation.
+Dispatch and bank recovery are tested separately from
+flat preparation, full tuple predicates and factor production."];
+note -> artifact [style=dashed,arrowhead=none];
+}

@@ -14,7 +14,19 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def bound_resume(parent, returned):
+    binding=json.loads((parent/'binding.json').read_text())
+    returned_hash=digest(returned)
+    if binding.get('return_sha256')!=returned_hash:
+        raise ValueError('resume return differs from its saved execution binding')
+    certificate=parent/'verification.json'
+    if certificate.exists() and json.loads(certificate.read_text())['return_sha256']!=returned_hash:
+        raise ValueError('resume return differs from its independent verification')
+    return binding
 
 
 def bridges(tables_path, receipt_path):
@@ -88,6 +100,7 @@ def main():
     p.add_argument('--native-bridges', required=True, type=Path)
     p.add_argument('--seconds', type=int, default=0, help='0 runs until factor production or external termination')
     p.add_argument('--resume', type=Path)
+    p.add_argument('--continue-prepared', action='store_true', help='finish a failed static compile using its bound prepared files and copied archive prefixes')
     p.add_argument('--joint-cells', action='store_true')
     p.add_argument('--nested-reentry', action='store_true')
     p.add_argument('--resident-dialects', action='store_true')
@@ -97,7 +110,19 @@ def main():
         raise ValueError('seconds must be nonnegative; 0 disables the production deadline')
     started = time.monotonic()
     out = args.output.resolve()
-    out.mkdir(parents=True, exist_ok=False)
+    out.mkdir(parents=True, exist_ok=args.continue_prepared)
+    if args.continue_prepared:
+        if not args.resume or (out/'membrane').exists() or (out/'launch_binding.json').exists():
+            raise ValueError('continue-prepared requires a failed compilation with no triggered executable')
+        if (out/'source.imasm').read_text().strip()!=args.source.read_text().strip():
+            raise ValueError('prepared compilation belongs to another source')
+        bound_resume(args.resume.resolve().parent,args.resume)
+        recovery=json.loads((out/'preparation_recovery.json').read_text())
+        if recovery['parent_return_sha256']!=digest(args.resume) or digest(out/'parent_return.json')!=digest(args.resume) or recovery['prepared_control_sha256']!=digest(out/'prepared.json'):
+            raise ValueError('prepared recovery changed before static continuation')
+        for row in recovery['baseline_files']:
+            if any(digest(path)!=row['sha256'] for path in [Path(row['parent_file']),Path(row['recovered_file']),out/row['name']]):
+                raise ValueError('retained preparation baseline changed before static continuation')
     source = args.source.read_text().strip()
     hops, provenance = bridges(args.tables, args.native_bridges)
     (out / 'source.imasm').write_text(source + '\n')
@@ -118,17 +143,17 @@ def main():
     for name, path in modules.items():
         imports += f'#[path={json.dumps(str(path))}] mod {name};\n'
     source_hashes = {str(path): digest(path) for path in [Path(__file__), *modules.values()]}
-    for name in ['resident_dialect_relations.rs','resident_product_return.rs','resident_reader_index.rs','resident_evidence_store.rs','compile_native_arithmetic_bridge.py','relational_dialect.py']:
+    for name in ['resident_dialect_relations.rs','resident_product_return.rs','resident_reader_index.rs','resident_evidence_store.rs','resident_embedded_archives.py','compile_native_arithmetic_bridge.py','relational_dialect.py']:
         path=Path(__file__).with_name(name)
         source_hashes[str(path)]=digest(path)
-    snapshot=out/'source_snapshot'
+    snapshot=out/(f'source_snapshot_static_finish_{time.time_ns()}' if args.continue_prepared else 'source_snapshot')
     snapshot.mkdir()
     for index,path in enumerate(source_hashes):
         shutil.copyfile(path,snapshot/f'{index:02d}_{Path(path).name}')
     native_program='Some(include_str!('+json.dumps(str(out/'native_arithmetic.json'))+'))' if args.resident_dialects else 'None'
     imports += f'const HOPS:[[u8;16];{len(hops)}]={rust_hops};\n'
     imports += f'const SOURCE:&str=include_str!({json.dumps(str(out / "source.imasm"))});\n'
-    (out / 'src').mkdir()
+    (out / 'src').mkdir(exist_ok=args.continue_prepared)
     main_path = out / 'src/main.rs'
     manifest = '''[package]
 name="relational-imasm-bridge"
@@ -151,80 +176,131 @@ opt-level=3
                '--manifest-path', str(out / 'Cargo.toml')]
     binary = target / 'x86_64-unknown-linux-gnu/release/relational-imasm-bridge'
     resumed = 'None'
-    if args.resume:
-        parent = args.resume.resolve().parent
-        report = json.loads(args.resume.read_text())
-        certificate = json.loads((parent / 'verification.json').read_text())
-        parent_binding = json.loads((parent / 'binding.json').read_text())
-        if certificate['return_sha256'] != digest(args.resume):
-            raise ValueError('resume return differs from its independent verification')
-        for name, key in [('relation.ops', 'relation_sha256'),
-                          ('register.cells', 'prepared_register_sha256')]:
-            if digest(parent / name) != parent_binding[key]:
-                raise ValueError('resume source relation/prepared bank changed')
-        if report['source_word'] != source or report['status'] != 'held':
-            raise ValueError('resume requires the same open N-only relation')
-        if args.resident_dialects:
-            if report.get('resident_dialect') is None:
-                raise ValueError('resident dialect resumption needs a correlated parent')
-            if (parent/'native_arithmetic.json').read_bytes() != (out/'native_arithmetic.json').read_bytes():
-                raise ValueError('native arithmetic program changed at continuation')
-            for name in ['correlated.cells','correlated.topology','correlated_prepared.json']:
-                (out/name).symlink_to(parent/name)
-        if args.source_product_return:
-            if (parent/'product.prepared.json').exists():(out/'product.prepared.json').symlink_to(parent/'product.prepared.json')
-            else:(out/'product.prepared.json').write_text('{"banks":[],"visits":0,"contractions":0}\n')
-        if json.loads((parent / 'bridge_provenance.json').read_text()) != provenance:
-            raise ValueError('resume bridge provenance differs')
-        for name in ['relation.ops', 'register.cells', 'prepared.json']:
-            (out / name).symlink_to(parent / name)
-        (out / 'parent_return.json').symlink_to(args.resume.resolve())
-        resumed = 'Some(include_str!(' + json.dumps(str(out / 'parent_return.json')) + '))'
-        main_path.write_text(imports + 'fn main(){bridge_engine::compile_joint_bank(include_bytes!('
-                             + json.dumps(str(out / 'relation.ops')) + '),std::path::Path::new('
-                             + json.dumps(str(out)) + '),' + str(args.joint_cells).lower() + ');}\n')
-        with (out / 'preparation_build.log').open('wb') as log:
-            subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
-        subprocess.run([str(binary)], check=True, capture_output=True)
+    if args.continue_prepared:
+        resumed='Some(include_str!('+json.dumps(str(out/'parent_return.json'))+'))'
     else:
-        main_path.write_text(imports + 'fn main(){bridge_engine::prepare_with_product(SOURCE,std::path::Path::new('
-                             + json.dumps(str(out)) + '),HOPS.to_vec(),'
-                             + str(args.joint_cells).lower() + ',' + native_program + ','+str(args.source_product_return).lower()+');}\n')
-        with (out / 'preparation_build.log').open('wb') as log:
-            subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
-        subprocess.run([str(binary)], check=True, capture_output=True)
+        if args.resume:
+            parent = args.resume.resolve().parent
+            report = json.loads(args.resume.read_text())
+            parent_binding = bound_resume(parent,args.resume)
+            for name, key in [('relation.ops', 'relation_sha256'),
+                              ('register.cells', 'prepared_register_sha256')]:
+                if digest(parent / name) != parent_binding[key]:
+                    raise ValueError('resume source relation/prepared bank changed')
+            if parent_binding.get('prepared_control_sha256') and digest(parent/'prepared.json')!=parent_binding['prepared_control_sha256']:
+                raise ValueError('resume prepared word prefix changed')
+            if report['source_word'] != source or report['status'] != 'held':
+                raise ValueError('resume requires the same open N-only relation')
+            if args.resident_dialects:
+                if report.get('resident_dialect') is None:
+                    raise ValueError('resident dialect resumption needs a correlated parent')
+                if (parent/'native_arithmetic.json').read_bytes() != (out/'native_arithmetic.json').read_bytes():
+                    raise ValueError('native arithmetic program changed at continuation')
+                for name in ['correlated.cells','correlated.topology','correlated_prepared.json']:
+                    (out/name).symlink_to(parent/name)
+            if args.source_product_return:
+                if (parent/'product.prepared.json').exists():(out/'product.prepared.json').symlink_to(parent/'product.prepared.json')
+                else:(out/'product.prepared.json').write_text('{"banks":[],"visits":0,"contractions":0}\n')
+            if json.loads((parent / 'bridge_provenance.json').read_text()) != provenance:
+                raise ValueError('resume bridge provenance differs')
+            for name in ['relation.ops', 'register.cells']:
+                (out / name).symlink_to(parent / name)
+            parent_prepared=json.loads((parent/'prepared.json').read_text())
+            if parent_prepared.get('control_prefix') is not None:
+                (out/'prepared.json').symlink_to(parent/'prepared.json')
+            (out / 'parent_return.json').symlink_to(args.resume.resolve())
+            resumed = 'Some(include_str!(' + json.dumps(str(out / 'parent_return.json')) + '))'
+            main_path.write_text(imports + 'fn main(){bridge_engine::compile_joint_bank(include_bytes!('
+                                 + json.dumps(str(out / 'relation.ops')) + '),std::path::Path::new('
+                                 + json.dumps(str(out)) + '),' + str(args.joint_cells).lower() + ');}\n')
+            with (out / 'preparation_build.log').open('wb') as log:
+                subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
+            subprocess.run([str(binary)], check=True, capture_output=True)
+            if parent_prepared.get('control_prefix') is None:
+                # Recover the new compilation prefix against the ORIGINAL prepared
+                # baseline. Runtime still resumes the complete retained checkpoint.
+                # Every baseline byte must agree before this prefix can accompany it.
+                recovered=out/'recovered_preparation';recovered.mkdir()
+                # A later runtime checkpoint may carry product banks although its
+                # original compilation predates product-return preparation. Recover
+                # that original boundary, then restore the complete runtime parent.
+                prepared_origin=(parent/'prepared.json').resolve().parent
+                recovered_product=parent_prepared.get('prepared_product_return',
+                    (prepared_origin/'product.prepared.json').exists())
+                main_path.write_text(imports + 'fn main(){bridge_engine::prepare_with_product(SOURCE,std::path::Path::new('
+                                     + json.dumps(str(recovered)) + '),HOPS.to_vec(),'
+                                     + str(args.joint_cells).lower() + ',' + native_program + ','+str(recovered_product).lower()+');}\n')
+                with (out/'prefix_recovery_build.log').open('wb') as log:
+                    subprocess.run(command,env=env,stdout=log,stderr=subprocess.STDOUT,check=True)
+                subprocess.run([str(binary)],check=True,capture_output=True)
+                checked=[]
+                for name in ['relation.ops','register.cells','relation.cells','cell.rows','reader.index']+(
+                        ['correlated.cells','correlated.topology'] if args.resident_dialects else []):
+                    original=parent/name;actual=recovered/name
+                    expected=digest(original)
+                    if digest(actual)!=expected:raise ValueError('recovered prefix changed the retained prepared baseline: '+name)
+                    checked.append({'name':name,'parent_file':str(original.resolve()),
+                                    'recovered_file':str(actual.resolve()),'sha256':expected})
+                shutil.copyfile(recovered/'prepared.json',out/'prepared.json')
+                (out/'preparation_recovery.json').write_text(json.dumps({
+                    'scope':'N-only compiled prefix recovery against the retained prepared baseline',
+                    'source_sha256':digest(out/'source.imasm'),'baseline_files':checked,
+                    'prepared_origin':str(prepared_origin),'prepared_product_return':recovered_product,
+                    'prepared_control_sha256':digest(out/'prepared.json'),
+                    'parent_return_sha256':digest(args.resume)},indent=2)+'\n')
+        else:
+            main_path.write_text(imports + 'fn main(){bridge_engine::prepare_with_product(SOURCE,std::path::Path::new('
+                                 + json.dumps(str(out)) + '),HOPS.to_vec(),'
+                                 + str(args.joint_cells).lower() + ',' + native_program + ','+str(args.source_product_return).lower()+');}\n')
+            with (out / 'preparation_build.log').open('wb') as log:
+                subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
+            subprocess.run([str(binary)], check=True, capture_output=True)
     native_bank='Some((include_str!('+json.dumps(str(out/'native_arithmetic.json'))+'),include_bytes!('+json.dumps(str(out/'correlated.topology'))+') as &[u8],include_bytes!('+json.dumps(str(out/'correlated.cells'))+') as &[u8]))' if args.resident_dialects else 'None'
     product_bank='Some(include_str!('+json.dumps(str(out/'product.prepared.json'))+'))' if args.source_product_return else 'None'
     reader_index='Some(include_bytes!('+json.dumps(str(out/'reader.index'))+') as &[u8])'
-    main_path.write_text(imports + 'fn main(){let report=bridge_engine::execute_archived(SOURCE,include_bytes!('
+    from resident_embedded_archives import embed_prefixes
+    retained = [json.loads((out/'parent_return.json').read_text())] if args.resume else []
+    if args.source_product_return:
+        retained.append(json.loads((out/'product.prepared.json').read_text()))
+    archive_imports, archive_manifest = embed_prefixes(out, retained, reuse=args.continue_prepared)
+    main_path.write_text(imports + archive_imports + 'fn main(){let report=bridge_engine::execute_prepared_embedded(SOURCE,include_bytes!('
                          + json.dumps(str(out / 'relation.ops')) + '),include_bytes!('
                          + json.dumps(str(out / 'register.cells')) + f'),HOPS.to_vec(),{args.seconds},{resumed},include_bytes!('
                          + json.dumps(str(out / 'relation.cells')) + '),include_bytes!('
                          + json.dumps(str(out / 'cell.rows')) + '),'
-                         + str(args.nested_reentry).lower() + ',' + native_bank + ','+product_bank+','+reader_index+',Some('+json.dumps(str(out/'evidence'))+'));'
+                         + str(args.nested_reentry).lower() + ',' + native_bank + ','+product_bank+','+reader_index+',Some('+json.dumps(str(out/'evidence'))+'),&embedded_archives(),Some(include_str!('+json.dumps(str(out/'prepared.json'))+')));'
                          + 'println!("{}",report);}\n')
+    for generated in ['src/main.rs','build.rs','resident_archives.S','resident_archives.ld','embedded_archives.json']:
+        path=out/generated;source_hashes[str(path)]=digest(path)
+    if args.continue_prepared:
+        shutil.copyfile(out/'execution_build.log',out/f'execution_build_previous_{time.time_ns()}.log')
     with (out / 'execution_build.log').open('wb') as log:
         subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
     # Move the only built executable; keep Cargo's dependency cache shared.
     executable = out / 'membrane'
     shutil.move(binary, executable)
     compiled = time.monotonic() - started
+    compilation_scope='static finish using retained preparation and copied archive prefixes' if args.continue_prepared else 'preparation, archive embedding and static compilation'
     # Bind the compiled carrier before triggering it. A killed process still
     # leaves enough source/executable evidence to certify its saved checkpoint.
     launch_binding={
         'source_sha256':digest(out/'source.imasm'),'executable_sha256':digest(executable),
-        'compilation_seconds':compiled,'relation_sha256':digest(out/'relation.ops'),
+        'compilation_seconds':compiled,'compilation_scope':compilation_scope,'relation_sha256':digest(out/'relation.ops'),
         'prepared_register_sha256':digest(out/'register.cells'),
+        'prepared_control_sha256':digest(out/'prepared.json'),
         'joint_cells_sha256':digest(out/'relation.cells'),'native_cell_rows_sha256':digest(out/'cell.rows'),
         'correlated_artifacts':{name:digest(out/name) for name in
             (['native_arithmetic.json','correlated.cells','correlated.topology','correlated_prepared.json'] if args.resident_dialects else [])
             +(['product.prepared.json'] if args.source_product_return else [])+['reader.index']},
         'sources':source_hashes,'parent_return_sha256':digest(args.resume) if args.resume else None,
+        'embedded_archives':archive_manifest,
         'production_deadline_seconds':args.seconds or None}
     (out/'launch_binding.json').write_text(json.dumps(launch_binding,indent=2)+'\n')
     triggered=time.monotonic();first_byte=None;terminal_bytes=0
     with (out / 'return.json').open('wb') as log, (out / 'execution.stderr').open('wb') as err:
-        with subprocess.Popen([str(executable)],stdout=subprocess.PIPE,stderr=err) as child:
+        execution_env=dict(os.environ)
+        execution_env.pop('RESIDENT_EVIDENCE_DIR',None)
+        with subprocess.Popen([str(executable)],stdout=subprocess.PIPE,stderr=err,env=execution_env) as child:
             while True:
                 block=os.read(child.stdout.fileno(),1024*1024)
                 if not block:break
@@ -241,10 +317,11 @@ opt-level=3
     (out / 'binding.json').write_text(json.dumps({
         'correlated_artifacts':native_bindings,
         'source_sha256': digest(out / 'source.imasm'), 'executable_sha256': digest(executable),
-        'return_sha256': digest(out / 'return.json'), 'compilation_seconds': compiled,
+        'return_sha256': digest(out / 'return.json'), 'compilation_seconds': compiled,'compilation_scope':compilation_scope,
         'first_stdout_byte_seconds':first_byte,'process_lifetime_seconds':process_lifetime,
         'terminal_record_bytes':terminal_bytes,
         'relation_sha256': digest(out / 'relation.ops'), 'prepared_register_sha256': digest(out / 'register.cells'),
+        'prepared_control_sha256':digest(out/'prepared.json'),
         'joint_cells_sha256': digest(out / 'relation.cells'), 'native_cell_rows_sha256': digest(out / 'cell.rows'),
         'sources': source_hashes, 'parent_return_sha256': digest(args.resume) if args.resume else None,
         'status': report['status'], 'closure': report['closure']}, indent=2) + '\n')

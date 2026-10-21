@@ -1,0 +1,22 @@
+== vox compile: RNA/DNA -> protein (standard) ==
+input    AUGCAAAUCUUCGUCAAAACCCUCACCGGCAAAACCAUCACCCUCGAAGUCGAACCCUCCGACACCAUCGAAAACGUCAAAGCCAAAAUCCAAGACAAAGAAGGCAUCCCCCCCGACCAACAACGCCUCAUCUUCGCCGGCAAACAACUCGAAGACGGCCGCACCCUCUCCGACUACAACAUCCAAAAAGAAUCCACCCUCCACCUCGUCCUCCGCCUCCGCGGCGGCGCCAAAAAACGCAAAAAAAAAUCCUACACCACCCCCAAAAAAAACAAACACAAACGCAAAAAAGUCAAACUCGCCGUCCUCAAAUACUACAAAGUCGACGAAAACGGCAAAAUCUCCCGCCUCCGCCGCGAAUGCCCCUCCGACGAAUGCGGCGCCGGCGUCUUCAUGGCCUCCCACUUCGACCGCCACUACUGCGGCAAAUGCUGCCUCACCUACUGCUUCAACAAACCCGAAGACAAAUAA
+mrna     AUGCAAAUCUUCGUCAAAACCCUCACCGGCAAAACCAUCACCCUCGAAGUCGAACCCUCCGACACCAUCGAAAACGUCAAAGCCAAAAUCCAAGACAAAGAAGGCAUCCCCCCCGACCAACAACGCCUCAUCUUCGCCGGCAAACAACUCGAAGACGGCCGCACCCUCUCCGACUACAACAUCCAAAAAGAAUCCACCCUCCACCUCGUCCUCCGCCUCCGCGGCGGCGCCAAAAAACGCAAAAAAAAAUCCUACACCACCCCCAAAAAAAACAAACACAAACGCAAAAAAGUCAAACUCGCCGUCCUCAAAUACUACAAAGUCGACGAAAACGGCAAAAUCUCCCGCCUCCGCCGCGAAUGCCCCUCCGACGAAUGCGGCGCCGGCGUCUUCAUGGCCUCCCACUUCGACCGCCACUACUGCGGCAAAUGCUGCCUCACCUACUGCUUCAACAAACCCGAAGACAAAUAA
+protein  Met-Gln-Ile-Phe-Val-Lys-Thr-Leu-Thr-Gly-Lys-Thr-Ile-Thr-Leu-Glu-Val-Glu-Pro-Ser-Asp-Thr-Ile-Glu-Asn-Val-Lys-Ala-Lys-Ile-Gln-Asp-Lys-Glu-Gly-Ile-Pro-Pro-Asp-Gln-Gln-Arg-Leu-Ile-Phe-Ala-Gly-Lys-Gln-Leu-Glu-Asp-Gly-Arg-Thr-Leu-Ser-Asp-Tyr-Asn-Ile-Gln-Lys-Glu-Ser-Thr-Leu-His-Leu-Val-Leu-Arg-Leu-Arg-Gly-Gly-Ala-Lys-Lys-Arg-Lys-Lys-Lys-Ser-Tyr-Thr-Thr-Pro-Lys-Lys-Asn-Lys-His-Lys-Arg-Lys-Lys-Val-Lys-Leu-Ala-Val-Leu-Lys-Tyr-Tyr-Lys-Val-Asp-Glu-Asn-Gly-Lys-Ile-Ser-Arg-Leu-Arg-Arg-Glu-Cys-Pro-Ser-Asp-Glu-Cys-Gly-Ala-Gly-Val-Phe-Met-Ala-Ser-His-Phe-Asp-Arg-His-Tyr-Cys-Gly-Lys-Cys-Cys-Leu-Thr-Tyr-Cys-Phe-Asn-Lys-Pro-Glu-Asp-Lys
+stop     UAA
+native protein B: 156 residues, 175 chemical forms; full self-marks executed
+
+sequence fold: helix 96  sheet 24  coil 36   (1690 contacts, SerpentRod contact invariant PASS)
+backbone 156 residues placed (B4-Ramachandran-NeRF)
+sidechain 634 heavy atoms (complete residue inventory)
+Geometry closure (heavy-atom model): OPEN (coordinate conflicts retained)
+  checked: 1258 atoms, 1278 bonds, 2327 angles, 21 ring closures, 164 stereocenters, 621 backbone torsions, 787670 nonbonded pairs
+  tolerances: bond 0.020 A, backbone angle 8.0 deg, other bonded angles 90..135 deg, clash overlap 0.40 A
+  measured: max bond residual 0.000000 A, max nonbonded overlap 2.884133 A
+  clash: 2124 conflict(s)
+retained B4 backbone labels: helix 34  sheet 15  other 107
+Secondary-structure evidence: B is valid (affirmation and denial retained)
+  helix: T 19  F 45  B 92  N 0
+  sheet: T 2  F 119  B 35  N 0
+  other: T 21  F 34  B 101  N 0
+pdb      written to /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/protein_vox_sync_20261020/P62979/gm_rna.pdb
+carrier  written to /home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/protein_vox_sync_20261020/P62979/gm_rna.pdb.glut.json

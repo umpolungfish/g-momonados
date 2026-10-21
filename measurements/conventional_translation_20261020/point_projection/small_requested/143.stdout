@@ -1,0 +1,102 @@
+{
+  "Y": {
+    "continuation_serialized": false,
+    "contractions": 55,
+    "operator_calls": 46,
+    "residual_program": "DONE"
+  },
+  "binary_tree": {
+    "evaluation": "143",
+    "positions": [
+      0,
+      1,
+      2,
+      3,
+      7
+    ]
+  },
+  "continuation": null,
+  "factors": [
+    "11",
+    "13"
+  ],
+  "input_boundary": "N-only",
+  "multiplicative_tree": {
+    "equation": "P*Q=N",
+    "evaluated": true,
+    "evaluation_constraint": "143",
+    "leaves": [
+      "11",
+      "13"
+    ],
+    "operator": "proper-product-relation"
+  },
+  "numeral_forms": {
+    "encoder_source": "shared with tfactor read",
+    "hex_digit_word": "⊢∈≻⋈≺⋈∋⊙⊡⊣⊢∈⊤≻⋈⊥≺⋈⊞∋⊙⊡⊣",
+    "hex_evaluation": "143",
+    "native_evaluation": "143",
+    "native_word": "⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+    "retained_through_Y": true
+  },
+  "point_projection": {
+    "arithmetic_operations": 44,
+    "column": 8,
+    "complete": true,
+    "operator": "retain E with E*E-E=0 mod N; exclude 0 and 1",
+    "retained_nodes": 451,
+    "return_boundary": "projection-complete",
+    "row": 8,
+    "support_mass": "2"
+  },
+  "preparation_seconds": 0.0009742,
+  "product_verified": true,
+  "reading": {
+    "complement": "78",
+    "divisor_word": "⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+    "exact_word_product": true,
+    "paired_boundary": true,
+    "point": "66",
+    "quotient_word": "⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣",
+    "zero_remainder": true
+  },
+  "reports": [
+    {
+      "all_predicates_hold": false,
+      "factor_product_verified": true,
+      "reading": {
+        "complement": "78",
+        "divisor_word": "⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+        "exact_word_product": true,
+        "paired_boundary": true,
+        "point": "66",
+        "quotient_word": "⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣",
+        "zero_remainder": true
+      },
+      "status": "arithmetic-closed",
+      "structure": "srfp"
+    },
+    {
+      "all_predicates_hold": false,
+      "factor_product_verified": true,
+      "reading": {
+        "complement": "78",
+        "divisor_word": "⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣",
+        "exact_word_product": true,
+        "paired_boundary": true,
+        "point": "66",
+        "quotient_word": "⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣",
+        "zero_remainder": true
+      },
+      "status": "arithmetic-closed",
+      "structure": "dnn"
+    }
+  ],
+  "schema": "conventional-n-only-return/v2",
+  "source": {
+    "N": "143",
+    "schema": "conventional-n-only/v1"
+  },
+  "status": "arithmetic-closed",
+  "trigger_to_return_seconds": 0.004757
+}

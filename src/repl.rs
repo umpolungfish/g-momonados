@@ -301,6 +301,14 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 k.halt();
                 break;
             }
+            #[cfg(feature = "hosted")]
+            "conventional" => {
+                let args:Vec<&str>=parts.collect();
+                match g_momonados::conventional_translation::run(&args) {
+                    Ok(report)=>sprintln!("{}",report),
+                    Err(error)=>sprintln!("conventional: {}",error),
+                }
+            }
             "help" => {
                 let topic = parts.next().unwrap_or("");
                 print_help_topic(topic);
@@ -565,7 +573,8 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                     sprintln!("vox rna <seq> [code] — lift a coding sequence; code is");
                     sprintln!("                       standard or mitochondrial");
                     sprintln!("vox peptide <seq>    — lift a residue sequence");
-                    sprintln!("vox compile <seq> [--code standard|mitochondrial] [--pdb <path>]");
+                    sprintln!("vox compile <seq> | --fasta <file> [--input auto|rna|dna|protein] [--code standard|mitochondrial] [--pdb <path>] [--carrier <path>] [--coords]");
+                    sprintln!("                     — full source-bound protein glut; PDB exports include .glut.json");
                     sprintln!("                     — the same pipeline, both ends: RNA/DNA in gives");
                     sprintln!("                       a compiled protein with real fold info (Chou-");
                     sprintln!("                       Fasman secondary structure, heuristic tertiary");
@@ -686,163 +695,10 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                         }
                         "run" => vox_run_symbol(&rest[1..]),
                         "compile" => {
-                            use crate::rebis::codon::{Codon, CodeTable};
-                            use crate::rebis::AminoAcid;
-                            use crate::belnap::B4;
-                            fn b4_to_nucleotide(b: B4) -> u8 {
-                                match b { B4::N => b'A', B4::T => b'C', B4::F => b'G', B4::B => b'U' }
-                            }
-                            // First pass: sequence tokens (skip flags and their values)
-                            let mut i = 1;
-                            let mut table = CodeTable::Standard;
-                            let mut pdb_path: Option<String> = None;
-                            let mut coords_mode = false;
-                            let mut seq_parts: Vec<String> = Vec::new();
-                            while i < rest.len() {
-                                let t = rest[i].as_str();
-                                if t == "--code" { i += 2; continue; }
-                                if t == "--pdb" { i += 2; continue; }
-                                if t == "--coords" { i += 1; continue; }
-                                if t.starts_with("--") { i += 1; continue; }
-                                seq_parts.push(rest[i].clone());
-                                i += 1;
-                            }
-                            // Second pass: parse flag values into the locals
-                            i = 1;
-                            while i < rest.len() {
-                                let t = rest[i].as_str();
-                                if t == "--code" && i + 1 < rest.len() {
-                                    table = if rest[i+1] == "mitochondrial" || rest[i+1] == "mito" {
-                                        CodeTable::Mitochondrial
-                                    } else { CodeTable::Standard };
-                                    i += 2; continue;
-                                }
-                                if t == "--pdb" && i + 1 < rest.len() {
-                                    pdb_path = Some(rest[i+1].clone()); i += 2; continue;
-                                }
-                                if t == "--coords" { coords_mode = true; i += 1; continue; }
-                                i += 1;
-                            }
-                            if seq_parts.is_empty() {
-                                sprintln!("vox compile <seq> [--code standard|mitochondrial] [--pdb <path>] [--coords]");
-                                sprintln!("  RNA/DNA in  -> protein out, with real fold info");
-                                sprintln!("  protein in  -> RNA/DNA out (Frobenius-preferred codon per residue)");
-                            } else {
-                                let seq = seq_parts.join(" ");
-                                let compact: String = seq.chars()
-                                    .filter(|c| !c.is_whitespace() && *c != '-' && *c != ',')
-                                    .collect();
-                                let is_nucleic = !compact.is_empty()
-                                    && compact.chars().all(|c| matches!(c.to_ascii_uppercase(), 'A' | 'C' | 'G' | 'T' | 'U'));
-
-                                let table_name = match table { CodeTable::Standard => "standard", CodeTable::Mitochondrial => "mitochondrial" };
-
-                                fn report_fold(chain: &[AminoAcid], b4_path: &[B4], pdb_path: Option<&str>, coords_mode: bool) {
-                                    let fold = crate::rebis::fold::fold_sequence(chain);
-                                    let n_h = fold.residues.iter().filter(|r| r.secondary == crate::rebis::fold::SecondaryLabel::Helix).count();
-                                    let n_s = fold.residues.iter().filter(|r| r.secondary == crate::rebis::fold::SecondaryLabel::Sheet).count();
-                                    let n_c = fold.residues.len() - n_h - n_s;
-                                    sprintln!();
-                                    sprintln!("Fold: helix {}  sheet {}  coil {}   ({} contacts, SerpentRod invariant {})",
-                                        n_h, n_s, n_c, fold.contacts.len(), if fold.frobenius_ok { "PASS" } else { "FAIL" });
-                                    sprintln!("IG primitives activated: {}/12  Tier: {}", fold.unique_primitives, fold.ouroboricity_tier);
-                                    let all = crate::rebis::fold3d::build_all(chain, b4_path);
-                                    let backbone_refs: Vec<crate::rebis::fold3d::BackboneAtom> = all.iter().map(|(bb, _)| *bb).collect();
-                                    let sidechains: Vec<Vec<crate::rebis::fold3d::SidechainAtom>> =
-                                        all.iter().map(|(_, sc)| sc.clone()).collect();
-                                    sprintln!("3D backbone: {} residues placed (B4-Ramachandran-NeRF)", backbone_refs.len());
-                                    let n_sc: usize = sidechains.iter().map(|s| s.len()).sum();
-                                    sprintln!("Sidechain atoms: {} total (Grammar-derived from each AA's own 12-tuple)", n_sc);
-                                    if coords_mode {
-                                        sprintln!();
-                                        sprintln!("== Per-residue coordinates (A) ==");
-                                        sprintln!("{:>4} {:<4} {:<5} {:>9} {:>9} {:>9} {:>9}", "i", "AA", "atom", "x", "y", "z", "bond");
-                                        for (iidx, (bb, sc)) in all.iter().enumerate() {
-                                            let aa1 = chain.get(iidx).map(|a| a.code1()).unwrap_or("X");
-                                            let prev = if iidx > 0 { all[iidx-1].0.c } else { (0.0, 0.0, 0.0) };
-                                            let b_n = ((bb.n.0-prev.0).powi(2)+(bb.n.1-prev.1).powi(2)+(bb.n.2-prev.2).powi(2)).sqrt();
-                                            sprintln!("{:>4} {:<4} {:<5} {:>9.3} {:>9.3} {:>9.3} {:>9.3}", iidx+1, aa1, "N", bb.n.0, bb.n.1, bb.n.2, b_n);
-                                            let b_ca = ((bb.ca.0-bb.n.0).powi(2)+(bb.ca.1-bb.n.1).powi(2)+(bb.ca.2-bb.n.2).powi(2)).sqrt();
-                                            sprintln!("{:>4} {:<4} {:<5} {:>9.3} {:>9.3} {:>9.3} {:>9.3}", iidx+1, aa1, "CA", bb.ca.0, bb.ca.1, bb.ca.2, b_ca);
-                                            let b_c = ((bb.c.0-bb.ca.0).powi(2)+(bb.c.1-bb.ca.1).powi(2)+(bb.c.2-bb.ca.2).powi(2)).sqrt();
-                                            sprintln!("{:>4} {:<4} {:<5} {:>9.3} {:>9.3} {:>9.3} {:>9.3}", iidx+1, aa1, "C", bb.c.0, bb.c.1, bb.c.2, b_c);
-                                            let b_o = ((bb.o.0-bb.c.0).powi(2)+(bb.o.1-bb.c.1).powi(2)+(bb.o.2-bb.c.2).powi(2)).sqrt();
-                                            sprintln!("{:>4} {:<4} {:<5} {:>9.3} {:>9.3} {:>9.3} {:>9.3}", iidx+1, aa1, "O", bb.o.0, bb.o.1, bb.o.2, b_o);
-                                            for sa in sc {
-                                                let b_sc = ((sa.xyz.0-bb.ca.0).powi(2)+(sa.xyz.1-bb.ca.1).powi(2)+(sa.xyz.2-bb.ca.2).powi(2)).sqrt();
-                                                sprintln!("{:>4} {:<4} {:<5} {:>9.3} {:>9.3} {:>9.3} {:>9.3}", iidx+1, aa1, sa.name.trim(), sa.xyz.0, sa.xyz.1, sa.xyz.2, b_sc);
-                                            }
-                                        }
-                                    }
-                                    if let Some(path) = pdb_path {
-                                        let steps = crate::rebis::fold3d::rama_steps(b4_path);
-                                        let elements = crate::rebis::fold3d::group_ss_elements(&steps);
-                                        let winding = fold.residues.iter().map(|r| r.winding_number).max().unwrap_or(0);
-                                        let _pdb = crate::rebis::fold3d::write_pdb(
-                                            chain, &backbone_refs, &sidechains, &elements,
-                                            fold.frobenius_ok, fold.unique_primitives, winding,
-                                            "COMPILED THROUGH VOX", 'A',
-                                        );
-                                        sprintln!("PDB written to: {}", path);
-                                    }
-                                }
-
-                                if is_nucleic {
-                                    let result = crate::rebis::translate::run_pipeline_table(compact.as_bytes(), table);
-                                    let chain: Vec<AminoAcid> = result.protein.iter()
-                                        .filter(|&&aa| aa != AminoAcid::Stop).copied().collect();
-                                    if chain.is_empty() {
-                                        sprintln!("No protein translated from '{}'. Needs an ATG/AUG start codon.", seq);
-                                    } else {
-                                        let mut b4_path: Vec<B4> = Vec::with_capacity(chain.len());
-                                        for k in 0..chain.len() {
-                                            let p = result.start_codon_pos + k * 3;
-                                            let step = if p + 2 < result.mrna.len() {
-                                                Codon::from_bytes(result.mrna[p], result.mrna[p + 1], result.mrna[p + 2]).ok()
-                                            } else { None };
-                                            b4_path.push(step.map(|c| c.p1).unwrap_or(B4::N));
-                                        }
-                                        sprintln!("== vox compile: RNA/DNA -> protein ({}) ==", table_name);
-                                        sprintln!("Input:      {}", seq);
-                                        sprintln!("Protein:    {}", crate::rebis::translate::format_chain_1letter(&chain));
-                                        sprintln!("Frobenius round-trip verified: {}", if result.frobenius_verified { "YES" } else { "NO" });
-                                        report_fold(&chain, &b4_path, pdb_path.as_deref(), coords_mode);
-                                    }
-                                } else {
-                                    let chain = match crate::rebis::translate::parse_chain(&seq) {
-                                        Some(c) if !c.is_empty() => c,
-                                        _ => {
-                                            sprintln!("Could not parse '{}' as protein or nucleic acid.", seq);
-                                            sprintln!("Use 3-letter (Met-Ala) or 1-letter (MA) amino acid codes, or A/C/G/T/U.");
-                                            return;
-                                        }
-                                    };
-                                    let mut mrna: Vec<u8> = Vec::with_capacity(chain.len() * 3);
-                                    let mut b4_path: Vec<B4> = Vec::with_capacity(chain.len());
-                                    let mut degeneracies: Vec<usize> = Vec::new();
-                                    for &aa in &chain {
-                                        degeneracies.push(crate::rebis::genetics::codons_for_aa_table(aa, table).len());
-                                        match crate::rebis::genetics::preferred_codon_for_aa(aa, table) {
-                                            Some(c) => {
-                                                b4_path.push(c.p1);
-                                                mrna.push(b4_to_nucleotide(c.p1));
-                                                mrna.push(b4_to_nucleotide(c.p2));
-                                                mrna.push(b4_to_nucleotide(c.p3));
-                                            }
-                                            None => { sprintln!("No codon for {} under {} table.", aa.name(), table_name); return; }
-                                        }
-                                    }
-                                    let dna = crate::rebis::translate::reverse_transcribe(&mrna);
-                                    let mut total: u64 = 1;
-                                    for &d in &degeneracies { total = total.saturating_mul(d as u64); }
-                                    sprintln!("== vox compile: protein -> RNA/DNA ({}) ==", table_name);
-                                    sprintln!("Input:      {}", crate::rebis::translate::format_chain_1letter(&chain));
-                                    sprintln!("mRNA:       {}", core::str::from_utf8(&mrna).unwrap_or("???"));
-                                    sprintln!("DNA:        {}", core::str::from_utf8(&dna).unwrap_or("???"));
-                                    sprintln!("Degeneracy: {} total possible mRNA sequences", total);
-                                    report_fold(&chain, &b4_path, pdb_path.as_deref(), coords_mode);
-                                }
-                            }
+                            #[cfg(feature = "hosted")]
+                            { let _ = vox_core::protein_compile::run(&rest[1..]); }
+                            #[cfg(not(feature = "hosted"))]
+                            sprintln!("vox compile requires the hosted build");
                         }
                         other => sprintln!("vox has no `{}`; try `vox help`", other),
                     }
@@ -8664,7 +8520,9 @@ fn vox_run_symbol(args: &[alloc::string::String]) {
     let addr = if sym.is_empty() {
         let mut argv = alloc::vec![file.clone()];
         argv.extend(argv_strs);
-        match m.run_process(&argv, &[], 50_000_000) {
+        // Zero is the VM's unbounded mode. The carried program owns its
+        // continuation and termination, including toroidal re-entry.
+        match m.run_process(&argv, &[], 0) {
             Ok(()) => sprintln!("entry(...) ran off the end with no exit call   [{} steps]", m.steps),
             Err(crate::imasm_exec::Stop::SysExit(c)) => sprintln!("entry(...) exited({})   [{} steps in the twelve]", c, m.steps),
             Err(crate::imasm_exec::Stop::Halt(e)) => sprintln!("entry(...) halted: {}   [{} steps]", e, m.steps),
@@ -8680,7 +8538,7 @@ fn vox_run_symbol(args: &[alloc::string::String]) {
         };
         let argv_str: alloc::vec::Vec<alloc::string::String> =
             argv_ints.iter().map(|a| a.to_string()).collect();
-        match m.call(addr, &argv_ints, 50_000_000) {
+        match m.call(addr, &argv_ints, 0) {
             Ok(r) => sprintln!("{}({}) = {}   [{} steps in the twelve]", sym, argv_str.join(", "), r, m.steps),
             Err(crate::imasm_exec::Stop::SysExit(c)) => sprintln!("{}(...) called exit({})   [{} steps in the twelve]", sym, c, m.steps),
             Err(crate::imasm_exec::Stop::Halt(e)) => sprintln!("{}(...) halted: {}   [{} steps]", sym, e, m.steps),

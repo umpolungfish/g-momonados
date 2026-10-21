@@ -1,0 +1,32 @@
+◇ CIRCUIT  dual_named_numerals   12 nodes, 12 wires
+  Sequential T/F observations at linked positions: ↑ true  ↓ false  ↑↓ both  · none   «B» paradox held   ⚡ truth flip   ═▶ cross-branch
+
+  0 ⊢ VINIT    ·   
+     └─▶  1 ⊙   [o→i]  ↑
+  1 ⊙ IMSCRIB  ↑   
+     └─▶  2 ≻   [o→i]  ↑→↑
+  2 ≻ AFWD     ↑   
+     └─▶  3 ∈   [o→i]  ↑→↑
+  3 ∈ FSPLIT   ↑     ┐ fork
+     ├─▶  4 ⊤   [T→i]  ↑→↑
+     └─▶  5 ⊥   [F→i]  ↑→↑↓ «B»
+  4 ⊤ EVALT    ↑   
+     └─▶  7 ∋   [o→T]  ↑→↑↓ «B»
+  5 ⊥ EVALF    ↑↓  
+     └─▶  6 ⊞   [o→i]  ↑↓→↑↓ «B»
+  6 ⊞ ENGAGR   ↑↓  
+     └─▶  7 ∋   [o→F]  ↑↓→↑↓ «B»
+  7 ∋ FFUSE    ↑↓    ┘ join
+     └─▶  8 ⋈   [o→i]  ↑↓→↑↓ «B»
+  8 ⋈ CLINK    ↑↓  
+     └─▶  9 ≺   [o→i]  ↑↓→· «B»
+  9 ≺ AREV     ·   
+     └─▶ 10 ⊡   [o→i]  ·
+ 10 ⊡ IFIX     ·   
+     └─▶ 11 ⊣   [o→i]  ·
+ 11 ⊣ TANCH    ·   
+
+  Graph ancestry and edge flow unchecked; labels describe the sequential walk
+  Final sequential register ·
+
+wrote /home/mrnob0dy666/imsgct/ig-docs/conventional_dual_named_numerals_20261020.svg

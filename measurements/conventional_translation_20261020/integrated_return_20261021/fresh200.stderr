@@ -1,0 +1,16 @@
+conventional point stage=prepare source_bits=200
+conventional point stage=arithmetic nodes=2824 support=N-2
+conventional protocol=srfp node=0 opcode=VINIT stage=enter
+conventional protocol=srfp node=1 opcode=IMSCRIB stage=enter
+conventional protocol=srfp node=2 opcode=AFWD stage=enter
+conventional affine_row=0 stage=enter nodes=2824
+conventional affine_row=0 stage=return nodes=6783 elapsed=0.016715801
+conventional affine_row=1 stage=enter nodes=6783
+conventional affine_row=1 stage=return nodes=20073 elapsed=0.102887108
+conventional affine_row=2 stage=enter nodes=20073
+conventional affine_row=2 stage=return nodes=74133 elapsed=1.532899715
+conventional affine_row=3 stage=enter nodes=74133
+conventional affine_row=3 stage=return nodes=290951 elapsed=25.470494226
+conventional affine_row=4 stage=enter nodes=290951
+memory allocation of 3221225472 bytes failed
+timeout: the monitored command dumped core

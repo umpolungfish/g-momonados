@@ -1,0 +1,2 @@
+vox compile <seq> | --fasta <file> [--input auto|rna|dna|protein] [--code standard|mitochondrial] [--pdb <path>] [--carrier <path>] [--coords]
+Execute full residue/form self-marks and retain native protein glut. PDB export also writes <path>.glut.json bound to the PDB SHA-256. --carrier selects another carrier path. --input protein resolves nucleotide-alphabet ambiguity. --fasta reads one record.

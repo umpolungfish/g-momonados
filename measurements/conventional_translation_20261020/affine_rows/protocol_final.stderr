@@ -1,0 +1,848 @@
+conventional protocol=srfp node=0 opcode=VINIT stage=enter
+conventional protocol=srfp node=1 opcode=IMSCRIB stage=enter
+conventional protocol=srfp node=2 opcode=AFWD stage=enter
+conventional affine_row=0 stage=enter nodes=803
+conventional affine_row=0 stage=return nodes=803 elapsed=0.000012200
+conventional affine_row=1 stage=enter nodes=803
+conventional affine_row=1 stage=return nodes=1203 elapsed=0.003544500
+conventional affine_row=2 stage=enter nodes=1203
+conventional affine_row=2 stage=return nodes=1203 elapsed=0.005977600
+conventional affine_row=3 stage=enter nodes=1203
+conventional affine_row=3 stage=return nodes=1203 elapsed=0.000020700
+conventional affine_row=4 stage=enter nodes=1203
+conventional affine_row=4 stage=return nodes=1203 elapsed=0.010718800
+conventional affine_row=5 stage=enter nodes=1203
+conventional affine_row=5 stage=return nodes=1203 elapsed=0.000015200
+conventional affine_row=6 stage=enter nodes=1203
+conventional affine_row=6 stage=return nodes=1203 elapsed=0.000010800
+conventional affine_row=7 stage=enter nodes=1203
+conventional affine_row=7 stage=return nodes=1203 elapsed=0.010992900
+conventional affine_row=8 stage=enter nodes=1203
+conventional affine_row=8 stage=return nodes=1203 elapsed=0.012817000
+conventional affine_row=9 stage=enter nodes=1203
+conventional affine_row=9 stage=return nodes=1203 elapsed=0.013452100
+conventional affine_row=10 stage=enter nodes=1203
+conventional affine_row=10 stage=return nodes=1203 elapsed=0.000015600
+conventional affine_row=11 stage=enter nodes=1203
+conventional affine_row=11 stage=return nodes=1203 elapsed=0.000011000
+conventional affine_row=12 stage=enter nodes=1203
+conventional affine_row=12 stage=return nodes=1203 elapsed=0.017874199
+conventional affine_row=13 stage=enter nodes=1203
+conventional affine_row=13 stage=return nodes=1203 elapsed=0.018352100
+conventional affine_row=14 stage=enter nodes=1203
+conventional affine_row=14 stage=return nodes=1203 elapsed=0.000016100
+conventional affine_row=15 stage=enter nodes=1203
+conventional affine_row=15 stage=return nodes=1203 elapsed=0.000010500
+conventional protocol=srfp op=16 row=16 column=16 nodes=1203
+conventional affine_row=16 stage=enter nodes=1203
+conventional affine_row=16 stage=return nodes=1203 elapsed=0.000009700
+conventional affine_row=17 stage=enter nodes=1203
+conventional affine_row=17 stage=return nodes=1203 elapsed=0.025049900
+conventional affine_row=18 stage=enter nodes=1203
+conventional affine_row=18 stage=return nodes=1203 elapsed=0.031348399
+conventional affine_row=19 stage=enter nodes=1203
+conventional affine_row=19 stage=return nodes=1203 elapsed=0.000032200
+conventional affine_row=20 stage=enter nodes=1203
+conventional affine_row=20 stage=return nodes=1203 elapsed=0.000015200
+conventional affine_row=21 stage=enter nodes=1203
+conventional affine_row=21 stage=return nodes=1203 elapsed=0.034477200
+conventional affine_row=22 stage=enter nodes=1203
+conventional affine_row=22 stage=return nodes=1203 elapsed=0.034376599
+conventional affine_row=23 stage=enter nodes=1203
+conventional affine_row=23 stage=return nodes=1203 elapsed=0.000021700
+conventional affine_row=24 stage=enter nodes=1203
+conventional affine_row=24 stage=return nodes=1203 elapsed=0.000011300
+conventional affine_row=25 stage=enter nodes=1203
+conventional affine_row=25 stage=return nodes=1203 elapsed=0.039251100
+conventional affine_row=26 stage=enter nodes=1203
+conventional affine_row=26 stage=return nodes=1203 elapsed=0.000023100
+conventional affine_row=27 stage=enter nodes=1203
+conventional affine_row=27 stage=return nodes=1203 elapsed=0.043210399
+conventional affine_row=28 stage=enter nodes=1203
+conventional affine_row=28 stage=return nodes=1203 elapsed=0.000021600
+conventional affine_row=29 stage=enter nodes=1203
+conventional affine_row=29 stage=return nodes=1203 elapsed=0.000011300
+conventional affine_row=30 stage=enter nodes=1203
+conventional affine_row=30 stage=return nodes=1203 elapsed=0.044576699
+conventional affine_row=31 stage=enter nodes=1203
+conventional affine_row=31 stage=return nodes=1203 elapsed=0.045832700
+conventional protocol=srfp op=32 row=32 column=32 nodes=1203
+conventional affine_row=32 stage=enter nodes=1203
+conventional affine_row=32 stage=return nodes=1203 elapsed=0.000025100
+conventional affine_row=33 stage=enter nodes=1203
+conventional affine_row=33 stage=return nodes=1203 elapsed=0.000019100
+conventional affine_row=34 stage=enter nodes=1203
+conventional affine_row=34 stage=return nodes=1203 elapsed=0.000016400
+conventional affine_row=35 stage=enter nodes=1203
+conventional affine_row=35 stage=return nodes=1203 elapsed=0.000010200
+conventional affine_row=36 stage=enter nodes=1203
+conventional affine_row=36 stage=return nodes=1203 elapsed=0.047682399
+conventional affine_row=37 stage=enter nodes=1203
+conventional affine_row=37 stage=return nodes=1203 elapsed=0.048663799
+conventional affine_row=38 stage=enter nodes=1203
+conventional affine_row=38 stage=return nodes=1203 elapsed=0.049597600
+conventional affine_row=39 stage=enter nodes=1203
+conventional affine_row=39 stage=return nodes=1203 elapsed=0.000026700
+conventional affine_row=40 stage=enter nodes=1203
+conventional affine_row=40 stage=return nodes=1203 elapsed=0.000010900
+conventional affine_row=41 stage=enter nodes=1203
+conventional affine_row=41 stage=return nodes=1203 elapsed=0.055487899
+conventional affine_row=42 stage=enter nodes=1203
+conventional affine_row=42 stage=return nodes=1203 elapsed=0.054393999
+conventional affine_row=43 stage=enter nodes=1203
+conventional affine_row=43 stage=return nodes=1203 elapsed=0.000024900
+conventional affine_row=44 stage=enter nodes=1203
+conventional affine_row=44 stage=return nodes=1203 elapsed=0.000010800
+conventional affine_row=45 stage=enter nodes=1203
+conventional affine_row=45 stage=return nodes=1203 elapsed=0.058938599
+conventional affine_row=46 stage=enter nodes=1203
+conventional affine_row=46 stage=return nodes=1203 elapsed=0.057841099
+conventional affine_row=47 stage=enter nodes=1203
+conventional affine_row=47 stage=return nodes=1203 elapsed=0.058647200
+conventional protocol=srfp op=48 row=48 column=48 nodes=1203
+conventional affine_row=48 stage=enter nodes=1203
+conventional affine_row=48 stage=return nodes=1203 elapsed=0.000027400
+conventional affine_row=49 stage=enter nodes=1203
+conventional affine_row=49 stage=return nodes=1203 elapsed=0.000011400
+conventional affine_row=50 stage=enter nodes=1203
+conventional affine_row=50 stage=return nodes=1203 elapsed=0.000009700
+conventional affine_row=51 stage=enter nodes=1203
+conventional affine_row=51 stage=return nodes=1203 elapsed=0.071763899
+conventional affine_row=52 stage=enter nodes=1203
+conventional affine_row=52 stage=return nodes=1203 elapsed=0.000030200
+conventional affine_row=53 stage=enter nodes=1203
+conventional affine_row=53 stage=return nodes=1203 elapsed=0.000011300
+conventional affine_row=54 stage=enter nodes=1203
+conventional affine_row=54 stage=return nodes=1203 elapsed=0.000009900
+conventional affine_row=55 stage=enter nodes=1203
+conventional affine_row=55 stage=return nodes=1203 elapsed=0.067013799
+conventional affine_row=56 stage=enter nodes=1203
+conventional affine_row=56 stage=return nodes=1203 elapsed=0.000027600
+conventional affine_row=57 stage=enter nodes=1203
+conventional affine_row=57 stage=return nodes=1203 elapsed=0.000010800
+conventional affine_row=58 stage=enter nodes=1203
+conventional affine_row=58 stage=return nodes=1203 elapsed=0.000010000
+conventional affine_row=59 stage=enter nodes=1203
+conventional affine_row=59 stage=return nodes=1203 elapsed=0.089436198
+conventional affine_row=60 stage=enter nodes=1203
+conventional affine_row=60 stage=return nodes=1203 elapsed=0.000027900
+conventional affine_row=61 stage=enter nodes=1203
+conventional affine_row=61 stage=return nodes=1203 elapsed=0.000011200
+conventional affine_row=62 stage=enter nodes=1203
+conventional affine_row=62 stage=return nodes=1203 elapsed=0.088356299
+conventional affine_row=63 stage=enter nodes=1203
+conventional affine_row=63 stage=return nodes=1203 elapsed=0.085042799
+conventional protocol=srfp op=64 row=64 column=64 nodes=1203
+conventional affine_row=64 stage=enter nodes=1203
+conventional affine_row=64 stage=return nodes=1203 elapsed=0.000037200
+conventional affine_row=65 stage=enter nodes=1203
+conventional affine_row=65 stage=return nodes=1203 elapsed=0.082598599
+conventional affine_row=66 stage=enter nodes=1203
+conventional affine_row=66 stage=return nodes=1203 elapsed=0.079386399
+conventional affine_row=67 stage=enter nodes=1203
+conventional affine_row=67 stage=return nodes=1203 elapsed=0.078809698
+conventional affine_row=68 stage=enter nodes=1203
+conventional affine_row=68 stage=return nodes=1203 elapsed=0.000033900
+conventional affine_row=69 stage=enter nodes=1203
+conventional affine_row=69 stage=return nodes=1203 elapsed=0.000010900
+conventional affine_row=70 stage=enter nodes=1203
+conventional affine_row=70 stage=return nodes=1203 elapsed=0.080944199
+conventional affine_row=71 stage=enter nodes=1203
+conventional affine_row=71 stage=return nodes=1203 elapsed=0.000067900
+conventional affine_row=72 stage=enter nodes=1203
+conventional affine_row=72 stage=return nodes=1203 elapsed=0.000017800
+conventional affine_row=73 stage=enter nodes=1203
+conventional affine_row=73 stage=return nodes=1203 elapsed=0.000014200
+conventional affine_row=74 stage=enter nodes=1203
+conventional affine_row=74 stage=return nodes=1203 elapsed=0.000014700
+conventional affine_row=75 stage=enter nodes=1203
+conventional affine_row=75 stage=return nodes=1203 elapsed=0.083860399
+conventional affine_row=76 stage=enter nodes=1203
+conventional affine_row=76 stage=return nodes=1203 elapsed=0.000039300
+conventional affine_row=77 stage=enter nodes=1203
+conventional affine_row=77 stage=return nodes=1203 elapsed=0.085907399
+conventional affine_row=78 stage=enter nodes=1203
+conventional affine_row=78 stage=return nodes=1203 elapsed=0.000041000
+conventional affine_row=79 stage=enter nodes=1203
+conventional affine_row=79 stage=return nodes=1203 elapsed=0.099011598
+conventional protocol=srfp op=80 row=80 column=80 nodes=1203
+conventional affine_row=80 stage=enter nodes=1203
+conventional affine_row=80 stage=return nodes=1203 elapsed=0.091326099
+conventional affine_row=81 stage=enter nodes=1203
+conventional affine_row=81 stage=return nodes=1203 elapsed=0.000053700
+conventional affine_row=82 stage=enter nodes=1203
+conventional affine_row=82 stage=return nodes=1203 elapsed=0.000011200
+conventional affine_row=83 stage=enter nodes=1203
+conventional affine_row=83 stage=return nodes=1203 elapsed=0.107820699
+conventional affine_row=84 stage=enter nodes=1203
+conventional affine_row=84 stage=return nodes=1203 elapsed=0.000054000
+conventional affine_row=85 stage=enter nodes=1203
+conventional affine_row=85 stage=return nodes=1203 elapsed=0.099153098
+conventional affine_row=86 stage=enter nodes=1203
+conventional affine_row=86 stage=return nodes=1203 elapsed=0.121035998
+conventional affine_row=87 stage=enter nodes=1203
+conventional affine_row=87 stage=return nodes=1203 elapsed=0.109952199
+conventional affine_row=88 stage=enter nodes=1203
+conventional affine_row=88 stage=return nodes=1203 elapsed=0.116042198
+conventional affine_row=89 stage=enter nodes=1203
+conventional affine_row=89 stage=return nodes=1203 elapsed=0.099422699
+conventional affine_row=90 stage=enter nodes=1203
+conventional affine_row=90 stage=return nodes=1203 elapsed=0.000052200
+conventional affine_row=91 stage=enter nodes=1203
+conventional affine_row=91 stage=return nodes=1203 elapsed=0.000010600
+conventional affine_row=92 stage=enter nodes=1203
+conventional affine_row=92 stage=return nodes=1203 elapsed=0.097664898
+conventional affine_row=93 stage=enter nodes=1203
+conventional affine_row=93 stage=return nodes=1203 elapsed=0.107328699
+conventional affine_row=94 stage=enter nodes=1203
+conventional affine_row=94 stage=return nodes=1203 elapsed=0.096564599
+conventional affine_row=95 stage=enter nodes=1203
+conventional affine_row=95 stage=return nodes=1203 elapsed=0.099394700
+conventional protocol=srfp op=96 row=96 column=96 nodes=1203
+conventional affine_row=96 stage=enter nodes=1203
+conventional affine_row=96 stage=return nodes=1203 elapsed=0.096499699
+conventional affine_row=97 stage=enter nodes=1203
+conventional affine_row=97 stage=return nodes=1203 elapsed=0.103274799
+conventional affine_row=98 stage=enter nodes=1203
+conventional affine_row=98 stage=return nodes=1203 elapsed=0.000061500
+conventional affine_row=99 stage=enter nodes=1203
+conventional affine_row=99 stage=return nodes=1203 elapsed=0.000010700
+conventional affine_row=100 stage=enter nodes=1203
+conventional affine_row=100 stage=return nodes=1203 elapsed=0.000009000
+conventional affine_row=101 stage=enter nodes=1203
+conventional affine_row=101 stage=return nodes=1199 elapsed=0.124366399
+conventional affine_row=102 stage=enter nodes=1199
+conventional affine_row=102 stage=return nodes=1199 elapsed=0.000064200
+conventional affine_row=103 stage=enter nodes=1199
+conventional affine_row=103 stage=return nodes=1199 elapsed=0.155027699
+conventional affine_row=104 stage=enter nodes=1199
+conventional affine_row=104 stage=return nodes=1199 elapsed=0.168725199
+conventional affine_row=105 stage=enter nodes=1199
+conventional affine_row=105 stage=return nodes=1199 elapsed=0.000033400
+conventional affine_row=106 stage=enter nodes=1199
+conventional affine_row=106 stage=return nodes=1201 elapsed=0.152633099
+conventional affine_row=107 stage=enter nodes=1201
+conventional affine_row=107 stage=return nodes=1203 elapsed=0.152504699
+conventional affine_row=108 stage=enter nodes=1203
+conventional affine_row=108 stage=return nodes=1203 elapsed=0.132223999
+conventional affine_row=109 stage=enter nodes=1203
+conventional affine_row=109 stage=return nodes=1203 elapsed=0.135619199
+conventional affine_row=110 stage=enter nodes=1203
+conventional affine_row=110 stage=return nodes=1203 elapsed=0.170939699
+conventional affine_row=111 stage=enter nodes=1203
+conventional affine_row=111 stage=return nodes=1203 elapsed=0.128539499
+conventional protocol=srfp op=112 row=112 column=112 nodes=1203
+conventional affine_row=112 stage=enter nodes=1203
+conventional affine_row=112 stage=return nodes=1197 elapsed=0.124654099
+conventional affine_row=113 stage=enter nodes=1197
+conventional affine_row=113 stage=return nodes=1197 elapsed=0.000051800
+conventional affine_row=114 stage=enter nodes=1197
+conventional affine_row=114 stage=return nodes=1199 elapsed=0.160083199
+conventional affine_row=115 stage=enter nodes=1199
+conventional affine_row=115 stage=return nodes=1201 elapsed=0.121310200
+conventional affine_row=116 stage=enter nodes=1201
+conventional affine_row=116 stage=return nodes=1201 elapsed=0.144179199
+conventional affine_row=117 stage=enter nodes=1201
+conventional affine_row=117 stage=return nodes=1201 elapsed=0.000041700
+conventional affine_row=118 stage=enter nodes=1201
+conventional affine_row=118 stage=return nodes=1201 elapsed=0.000014300
+conventional affine_row=119 stage=enter nodes=1201
+conventional affine_row=119 stage=return nodes=1199 elapsed=0.132596099
+conventional affine_row=120 stage=enter nodes=1199
+conventional affine_row=120 stage=return nodes=1199 elapsed=0.000052000
+conventional affine_row=121 stage=enter nodes=1199
+conventional affine_row=121 stage=return nodes=1199 elapsed=0.000009700
+conventional affine_row=122 stage=enter nodes=1199
+conventional affine_row=122 stage=return nodes=1199 elapsed=0.000008300
+conventional affine_row=123 stage=enter nodes=1199
+conventional affine_row=123 stage=return nodes=1203 elapsed=0.150848399
+conventional affine_row=124 stage=enter nodes=1203
+conventional affine_row=124 stage=return nodes=1203 elapsed=0.000072400
+conventional affine_row=125 stage=enter nodes=1203
+conventional affine_row=125 stage=return nodes=1203 elapsed=0.000010300
+conventional affine_row=126 stage=enter nodes=1203
+conventional affine_row=126 stage=return nodes=1203 elapsed=0.000009100
+conventional affine_row=127 stage=enter nodes=1203
+conventional affine_row=127 stage=return nodes=1203 elapsed=0.000009000
+conventional protocol=srfp op=128 row=128 column=128 nodes=1203
+conventional affine_row=128 stage=enter nodes=1203
+conventional affine_row=128 stage=return nodes=1199 elapsed=0.138667699
+conventional affine_row=129 stage=enter nodes=1199
+conventional affine_row=129 stage=return nodes=1199 elapsed=0.000046500
+conventional affine_row=130 stage=enter nodes=1199
+conventional affine_row=130 stage=return nodes=1193 elapsed=0.116943299
+conventional affine_row=131 stage=enter nodes=1193
+conventional affine_row=131 stage=return nodes=1193 elapsed=0.000066000
+conventional affine_row=132 stage=enter nodes=1193
+conventional affine_row=132 stage=return nodes=1201 elapsed=0.110898699
+conventional affine_row=133 stage=enter nodes=1201
+conventional affine_row=133 stage=return nodes=1201 elapsed=0.000049500
+conventional affine_row=134 stage=enter nodes=1201
+conventional affine_row=134 stage=return nodes=1201 elapsed=0.117808899
+conventional affine_row=135 stage=enter nodes=1201
+conventional affine_row=135 stage=return nodes=1201 elapsed=0.000027500
+conventional affine_row=136 stage=enter nodes=1201
+conventional affine_row=136 stage=return nodes=1201 elapsed=0.116419400
+conventional affine_row=137 stage=enter nodes=1201
+conventional affine_row=137 stage=return nodes=1201 elapsed=0.106563899
+conventional affine_row=138 stage=enter nodes=1201
+conventional affine_row=138 stage=return nodes=1201 elapsed=0.000068100
+conventional affine_row=139 stage=enter nodes=1201
+conventional affine_row=139 stage=return nodes=1201 elapsed=0.000009600
+conventional affine_row=140 stage=enter nodes=1201
+conventional affine_row=140 stage=return nodes=1197 elapsed=0.114768499
+conventional affine_row=141 stage=enter nodes=1197
+conventional affine_row=141 stage=return nodes=1199 elapsed=0.149356199
+conventional affine_row=142 stage=enter nodes=1199
+conventional affine_row=142 stage=return nodes=1203 elapsed=0.145452999
+conventional affine_row=143 stage=enter nodes=1203
+conventional affine_row=143 stage=return nodes=1203 elapsed=0.000045300
+conventional protocol=srfp op=144 row=144 column=144 nodes=1203
+conventional affine_row=144 stage=enter nodes=1203
+conventional affine_row=144 stage=return nodes=1203 elapsed=0.129487799
+conventional affine_row=145 stage=enter nodes=1203
+conventional affine_row=145 stage=return nodes=1203 elapsed=0.000048000
+conventional affine_row=146 stage=enter nodes=1203
+conventional affine_row=146 stage=return nodes=1203 elapsed=0.000010000
+conventional affine_row=147 stage=enter nodes=1203
+conventional affine_row=147 stage=return nodes=1203 elapsed=0.000008300
+conventional affine_row=148 stage=enter nodes=1203
+conventional affine_row=148 stage=return nodes=1203 elapsed=0.000008400
+conventional affine_row=149 stage=enter nodes=1203
+conventional affine_row=149 stage=return nodes=1203 elapsed=0.115993399
+conventional affine_row=150 stage=enter nodes=1203
+conventional affine_row=150 stage=return nodes=1203 elapsed=0.000043400
+conventional affine_row=151 stage=enter nodes=1203
+conventional affine_row=151 stage=return nodes=1203 elapsed=0.000009700
+conventional affine_row=152 stage=enter nodes=1203
+conventional affine_row=152 stage=return nodes=1201 elapsed=0.136182900
+conventional affine_row=153 stage=enter nodes=1201
+conventional affine_row=153 stage=return nodes=1203 elapsed=0.133695999
+conventional affine_row=154 stage=enter nodes=1203
+conventional affine_row=154 stage=return nodes=1203 elapsed=0.148959599
+conventional affine_row=155 stage=enter nodes=1203
+conventional affine_row=155 stage=return nodes=1203 elapsed=0.000027100
+conventional affine_row=156 stage=enter nodes=1203
+conventional affine_row=156 stage=return nodes=1203 elapsed=0.000009600
+conventional affine_row=157 stage=enter nodes=1203
+conventional affine_row=157 stage=return nodes=1201 elapsed=0.133060099
+conventional affine_row=158 stage=enter nodes=1201
+conventional affine_row=158 stage=return nodes=1201 elapsed=0.000110300
+conventional affine_row=159 stage=enter nodes=1201
+conventional affine_row=159 stage=return nodes=1201 elapsed=0.000016600
+conventional protocol=srfp op=160 row=160 column=160 nodes=1201
+conventional affine_row=160 stage=enter nodes=1201
+conventional affine_row=160 stage=return nodes=1201 elapsed=0.000012500
+conventional affine_row=161 stage=enter nodes=1201
+conventional affine_row=161 stage=return nodes=1201 elapsed=0.000013400
+conventional affine_row=162 stage=enter nodes=1201
+conventional affine_row=162 stage=return nodes=1201 elapsed=0.000014000
+conventional affine_row=163 stage=enter nodes=1201
+conventional affine_row=163 stage=return nodes=1201 elapsed=0.000012300
+conventional affine_row=164 stage=enter nodes=1201
+conventional affine_row=164 stage=return nodes=1191 elapsed=0.125079199
+conventional affine_row=165 stage=enter nodes=1191
+conventional affine_row=165 stage=return nodes=1203 elapsed=0.112702699
+conventional affine_row=166 stage=enter nodes=1203
+conventional affine_row=166 stage=return nodes=1203 elapsed=0.115412699
+conventional affine_row=167 stage=enter nodes=1203
+conventional affine_row=167 stage=return nodes=1203 elapsed=0.000035700
+conventional affine_row=168 stage=enter nodes=1203
+conventional affine_row=168 stage=return nodes=1203 elapsed=0.000009600
+conventional affine_row=169 stage=enter nodes=1203
+conventional affine_row=169 stage=return nodes=1199 elapsed=0.083491300
+conventional affine_row=170 stage=enter nodes=1199
+conventional affine_row=170 stage=return nodes=1199 elapsed=0.000039000
+conventional affine_row=171 stage=enter nodes=1199
+conventional affine_row=171 stage=return nodes=1199 elapsed=0.000009300
+conventional affine_row=172 stage=enter nodes=1199
+conventional affine_row=172 stage=return nodes=1201 elapsed=0.085258199
+conventional affine_row=173 stage=enter nodes=1201
+conventional affine_row=173 stage=return nodes=1203 elapsed=0.083989600
+conventional affine_row=174 stage=enter nodes=1203
+conventional affine_row=174 stage=return nodes=1201 elapsed=0.091557199
+conventional affine_row=175 stage=enter nodes=1201
+conventional affine_row=175 stage=return nodes=1201 elapsed=0.000036100
+conventional protocol=srfp op=176 row=176 column=176 nodes=1201
+conventional affine_row=176 stage=enter nodes=1201
+conventional affine_row=176 stage=return nodes=1201 elapsed=0.000009900
+conventional affine_row=177 stage=enter nodes=1201
+conventional affine_row=177 stage=return nodes=1201 elapsed=0.000008200
+conventional affine_row=178 stage=enter nodes=1201
+conventional affine_row=178 stage=return nodes=1201 elapsed=0.000007700
+conventional affine_row=179 stage=enter nodes=1201
+conventional affine_row=179 stage=return nodes=1201 elapsed=0.000007800
+conventional affine_row=180 stage=enter nodes=1201
+conventional affine_row=180 stage=return nodes=1201 elapsed=0.000007900
+conventional affine_row=181 stage=enter nodes=1201
+conventional affine_row=181 stage=return nodes=1201 elapsed=0.000007700
+conventional affine_row=182 stage=enter nodes=1201
+conventional affine_row=182 stage=return nodes=1199 elapsed=0.084688399
+conventional affine_row=183 stage=enter nodes=1199
+conventional affine_row=183 stage=return nodes=1203 elapsed=0.089360500
+conventional affine_row=184 stage=enter nodes=1203
+conventional affine_row=184 stage=return nodes=1203 elapsed=0.080298999
+conventional affine_row=185 stage=enter nodes=1203
+conventional affine_row=185 stage=return nodes=1203 elapsed=0.078878300
+conventional affine_row=186 stage=enter nodes=1203
+conventional affine_row=186 stage=return nodes=1203 elapsed=0.000066100
+conventional affine_row=187 stage=enter nodes=1203
+conventional affine_row=187 stage=return nodes=1203 elapsed=0.000009300
+conventional affine_row=188 stage=enter nodes=1203
+conventional affine_row=188 stage=return nodes=1203 elapsed=0.000008400
+conventional affine_row=189 stage=enter nodes=1203
+conventional affine_row=189 stage=return nodes=1201 elapsed=0.085212399
+conventional affine_row=190 stage=enter nodes=1201
+conventional affine_row=190 stage=return nodes=1201 elapsed=0.000051700
+conventional affine_row=191 stage=enter nodes=1201
+conventional affine_row=191 stage=return nodes=1203 elapsed=0.057663100
+conventional protocol=srfp op=192 row=192 column=192 nodes=1203
+conventional affine_row=192 stage=enter nodes=1203
+conventional affine_row=192 stage=return nodes=1201 elapsed=0.063424199
+conventional affine_row=193 stage=enter nodes=1201
+conventional affine_row=193 stage=return nodes=1201 elapsed=0.000045100
+conventional affine_row=194 stage=enter nodes=1201
+conventional affine_row=194 stage=return nodes=1201 elapsed=0.000021900
+conventional affine_row=195 stage=enter nodes=1201
+conventional affine_row=195 stage=return nodes=1201 elapsed=0.000008100
+conventional affine_row=196 stage=enter nodes=1201
+conventional affine_row=196 stage=return nodes=1201 elapsed=0.000007600
+conventional affine_row=197 stage=enter nodes=1201
+conventional affine_row=197 stage=return nodes=1201 elapsed=0.000007600
+conventional affine_row=198 stage=enter nodes=1201
+conventional affine_row=198 stage=return nodes=1203 elapsed=0.066982400
+conventional affine_row=199 stage=enter nodes=1203
+conventional affine_row=199 stage=return nodes=807 elapsed=0.000592300
+conventional protocol=srfp node=3 opcode=AREV stage=enter
+conventional protocol=srfp node=4 opcode=CLINK stage=enter
+conventional protocol=srfp node=5 opcode=FSPLIT stage=enter
+conventional protocol=srfp node=6 opcode=EVALT stage=enter
+conventional protocol=srfp node=7 opcode=EVALF stage=enter
+conventional protocol=srfp node=8 opcode=FFUSE stage=enter
+conventional protocol=srfp node=9 opcode=ENGAGR stage=enter
+conventional protocol=srfp node=10 opcode=IFIX stage=enter
+conventional protocol=srfp node=11 opcode=TANCH stage=enter
+conventional protocol=dnn node=0 opcode=VINIT stage=enter
+conventional protocol=dnn node=1 opcode=IMSCRIB stage=enter
+conventional protocol=dnn node=2 opcode=AFWD stage=enter
+conventional affine_row=0 stage=enter nodes=803
+conventional affine_row=0 stage=return nodes=803 elapsed=0.000013200
+conventional affine_row=1 stage=enter nodes=803
+conventional affine_row=1 stage=return nodes=1203 elapsed=0.003209700
+conventional affine_row=2 stage=enter nodes=1203
+conventional affine_row=2 stage=return nodes=1203 elapsed=0.003852800
+conventional affine_row=3 stage=enter nodes=1203
+conventional affine_row=3 stage=return nodes=1203 elapsed=0.000013600
+conventional affine_row=4 stage=enter nodes=1203
+conventional affine_row=4 stage=return nodes=1203 elapsed=0.007964900
+conventional affine_row=5 stage=enter nodes=1203
+conventional affine_row=5 stage=return nodes=1203 elapsed=0.000015500
+conventional affine_row=6 stage=enter nodes=1203
+conventional affine_row=6 stage=return nodes=1203 elapsed=0.000010800
+conventional affine_row=7 stage=enter nodes=1203
+conventional affine_row=7 stage=return nodes=1203 elapsed=0.010913900
+conventional affine_row=8 stage=enter nodes=1203
+conventional affine_row=8 stage=return nodes=1203 elapsed=0.018042200
+conventional affine_row=9 stage=enter nodes=1203
+conventional affine_row=9 stage=return nodes=1203 elapsed=0.018139599
+conventional affine_row=10 stage=enter nodes=1203
+conventional affine_row=10 stage=return nodes=1203 elapsed=0.000022600
+conventional affine_row=11 stage=enter nodes=1203
+conventional affine_row=11 stage=return nodes=1203 elapsed=0.000010500
+conventional affine_row=12 stage=enter nodes=1203
+conventional affine_row=12 stage=return nodes=1203 elapsed=0.021772500
+conventional affine_row=13 stage=enter nodes=1203
+conventional affine_row=13 stage=return nodes=1203 elapsed=0.019632300
+conventional affine_row=14 stage=enter nodes=1203
+conventional affine_row=14 stage=return nodes=1203 elapsed=0.000015700
+conventional affine_row=15 stage=enter nodes=1203
+conventional affine_row=15 stage=return nodes=1203 elapsed=0.000010200
+conventional protocol=dnn op=16 row=16 column=16 nodes=1203
+conventional affine_row=16 stage=enter nodes=1203
+conventional affine_row=16 stage=return nodes=1203 elapsed=0.000009600
+conventional affine_row=17 stage=enter nodes=1203
+conventional affine_row=17 stage=return nodes=1203 elapsed=0.022930900
+conventional affine_row=18 stage=enter nodes=1203
+conventional affine_row=18 stage=return nodes=1203 elapsed=0.029524900
+conventional affine_row=19 stage=enter nodes=1203
+conventional affine_row=19 stage=return nodes=1203 elapsed=0.000024600
+conventional affine_row=20 stage=enter nodes=1203
+conventional affine_row=20 stage=return nodes=1203 elapsed=0.000011600
+conventional affine_row=21 stage=enter nodes=1203
+conventional affine_row=21 stage=return nodes=1203 elapsed=0.040969900
+conventional affine_row=22 stage=enter nodes=1203
+conventional affine_row=22 stage=return nodes=1203 elapsed=0.035725499
+conventional affine_row=23 stage=enter nodes=1203
+conventional affine_row=23 stage=return nodes=1203 elapsed=0.000025600
+conventional affine_row=24 stage=enter nodes=1203
+conventional affine_row=24 stage=return nodes=1203 elapsed=0.000010600
+conventional affine_row=25 stage=enter nodes=1203
+conventional affine_row=25 stage=return nodes=1203 elapsed=0.036185700
+conventional affine_row=26 stage=enter nodes=1203
+conventional affine_row=26 stage=return nodes=1203 elapsed=0.000020100
+conventional affine_row=27 stage=enter nodes=1203
+conventional affine_row=27 stage=return nodes=1203 elapsed=0.057183600
+conventional affine_row=28 stage=enter nodes=1203
+conventional affine_row=28 stage=return nodes=1203 elapsed=0.000021700
+conventional affine_row=29 stage=enter nodes=1203
+conventional affine_row=29 stage=return nodes=1203 elapsed=0.000011100
+conventional affine_row=30 stage=enter nodes=1203
+conventional affine_row=30 stage=return nodes=1203 elapsed=0.053080399
+conventional affine_row=31 stage=enter nodes=1203
+conventional affine_row=31 stage=return nodes=1203 elapsed=0.045526800
+conventional protocol=dnn op=32 row=32 column=32 nodes=1203
+conventional affine_row=32 stage=enter nodes=1203
+conventional affine_row=32 stage=return nodes=1203 elapsed=0.000018700
+conventional affine_row=33 stage=enter nodes=1203
+conventional affine_row=33 stage=return nodes=1203 elapsed=0.000010600
+conventional affine_row=34 stage=enter nodes=1203
+conventional affine_row=34 stage=return nodes=1203 elapsed=0.000009700
+conventional affine_row=35 stage=enter nodes=1203
+conventional affine_row=35 stage=return nodes=1203 elapsed=0.000009600
+conventional affine_row=36 stage=enter nodes=1203
+conventional affine_row=36 stage=return nodes=1203 elapsed=0.044753100
+conventional affine_row=37 stage=enter nodes=1203
+conventional affine_row=37 stage=return nodes=1203 elapsed=0.043440299
+conventional affine_row=38 stage=enter nodes=1203
+conventional affine_row=38 stage=return nodes=1203 elapsed=0.044889500
+conventional affine_row=39 stage=enter nodes=1203
+conventional affine_row=39 stage=return nodes=1203 elapsed=0.000024100
+conventional affine_row=40 stage=enter nodes=1203
+conventional affine_row=40 stage=return nodes=1203 elapsed=0.000010700
+conventional affine_row=41 stage=enter nodes=1203
+conventional affine_row=41 stage=return nodes=1203 elapsed=0.048241100
+conventional affine_row=42 stage=enter nodes=1203
+conventional affine_row=42 stage=return nodes=1203 elapsed=0.048292799
+conventional affine_row=43 stage=enter nodes=1203
+conventional affine_row=43 stage=return nodes=1203 elapsed=0.000019100
+conventional affine_row=44 stage=enter nodes=1203
+conventional affine_row=44 stage=return nodes=1203 elapsed=0.000010400
+conventional affine_row=45 stage=enter nodes=1203
+conventional affine_row=45 stage=return nodes=1203 elapsed=0.051493700
+conventional affine_row=46 stage=enter nodes=1203
+conventional affine_row=46 stage=return nodes=1203 elapsed=0.054019600
+conventional affine_row=47 stage=enter nodes=1203
+conventional affine_row=47 stage=return nodes=1203 elapsed=0.055996099
+conventional protocol=dnn op=48 row=48 column=48 nodes=1203
+conventional affine_row=48 stage=enter nodes=1203
+conventional affine_row=48 stage=return nodes=1203 elapsed=0.000020400
+conventional affine_row=49 stage=enter nodes=1203
+conventional affine_row=49 stage=return nodes=1203 elapsed=0.000010800
+conventional affine_row=50 stage=enter nodes=1203
+conventional affine_row=50 stage=return nodes=1203 elapsed=0.000010100
+conventional affine_row=51 stage=enter nodes=1203
+conventional affine_row=51 stage=return nodes=1203 elapsed=0.058170000
+conventional affine_row=52 stage=enter nodes=1203
+conventional affine_row=52 stage=return nodes=1203 elapsed=0.000030200
+conventional affine_row=53 stage=enter nodes=1203
+conventional affine_row=53 stage=return nodes=1203 elapsed=0.000010900
+conventional affine_row=54 stage=enter nodes=1203
+conventional affine_row=54 stage=return nodes=1203 elapsed=0.000010000
+conventional affine_row=55 stage=enter nodes=1203
+conventional affine_row=55 stage=return nodes=1203 elapsed=0.061471000
+conventional affine_row=56 stage=enter nodes=1203
+conventional affine_row=56 stage=return nodes=1203 elapsed=0.000022500
+conventional affine_row=57 stage=enter nodes=1203
+conventional affine_row=57 stage=return nodes=1203 elapsed=0.000010200
+conventional affine_row=58 stage=enter nodes=1203
+conventional affine_row=58 stage=return nodes=1203 elapsed=0.000010000
+conventional affine_row=59 stage=enter nodes=1203
+conventional affine_row=59 stage=return nodes=1203 elapsed=0.063876299
+conventional affine_row=60 stage=enter nodes=1203
+conventional affine_row=60 stage=return nodes=1203 elapsed=0.000041300
+conventional affine_row=61 stage=enter nodes=1203
+conventional affine_row=61 stage=return nodes=1203 elapsed=0.000011100
+conventional affine_row=62 stage=enter nodes=1203
+conventional affine_row=62 stage=return nodes=1203 elapsed=0.066432700
+conventional affine_row=63 stage=enter nodes=1203
+conventional affine_row=63 stage=return nodes=1203 elapsed=0.073178799
+conventional protocol=dnn op=64 row=64 column=64 nodes=1203
+conventional affine_row=64 stage=enter nodes=1203
+conventional affine_row=64 stage=return nodes=1203 elapsed=0.000024400
+conventional affine_row=65 stage=enter nodes=1203
+conventional affine_row=65 stage=return nodes=1203 elapsed=0.074574300
+conventional affine_row=66 stage=enter nodes=1203
+conventional affine_row=66 stage=return nodes=1203 elapsed=0.065023199
+conventional affine_row=67 stage=enter nodes=1203
+conventional affine_row=67 stage=return nodes=1203 elapsed=0.083530100
+conventional affine_row=68 stage=enter nodes=1203
+conventional affine_row=68 stage=return nodes=1203 elapsed=0.000062100
+conventional affine_row=69 stage=enter nodes=1203
+conventional affine_row=69 stage=return nodes=1203 elapsed=0.000019600
+conventional affine_row=70 stage=enter nodes=1203
+conventional affine_row=70 stage=return nodes=1203 elapsed=0.072266699
+conventional affine_row=71 stage=enter nodes=1203
+conventional affine_row=71 stage=return nodes=1203 elapsed=0.000024100
+conventional affine_row=72 stage=enter nodes=1203
+conventional affine_row=72 stage=return nodes=1203 elapsed=0.000010800
+conventional affine_row=73 stage=enter nodes=1203
+conventional affine_row=73 stage=return nodes=1203 elapsed=0.000009900
+conventional affine_row=74 stage=enter nodes=1203
+conventional affine_row=74 stage=return nodes=1203 elapsed=0.000009600
+conventional affine_row=75 stage=enter nodes=1203
+conventional affine_row=75 stage=return nodes=1203 elapsed=0.077539200
+conventional affine_row=76 stage=enter nodes=1203
+conventional affine_row=76 stage=return nodes=1203 elapsed=0.000035900
+conventional affine_row=77 stage=enter nodes=1203
+conventional affine_row=77 stage=return nodes=1203 elapsed=0.084602999
+conventional affine_row=78 stage=enter nodes=1203
+conventional affine_row=78 stage=return nodes=1203 elapsed=0.000049600
+conventional affine_row=79 stage=enter nodes=1203
+conventional affine_row=79 stage=return nodes=1203 elapsed=0.092616199
+conventional protocol=dnn op=80 row=80 column=80 nodes=1203
+conventional affine_row=80 stage=enter nodes=1203
+conventional affine_row=80 stage=return nodes=1203 elapsed=0.089640100
+conventional affine_row=81 stage=enter nodes=1203
+conventional affine_row=81 stage=return nodes=1203 elapsed=0.000045400
+conventional affine_row=82 stage=enter nodes=1203
+conventional affine_row=82 stage=return nodes=1203 elapsed=0.000010800
+conventional affine_row=83 stage=enter nodes=1203
+conventional affine_row=83 stage=return nodes=1203 elapsed=0.114803199
+conventional affine_row=84 stage=enter nodes=1203
+conventional affine_row=84 stage=return nodes=1203 elapsed=0.000095800
+conventional affine_row=85 stage=enter nodes=1203
+conventional affine_row=85 stage=return nodes=1203 elapsed=0.107827299
+conventional affine_row=86 stage=enter nodes=1203
+conventional affine_row=86 stage=return nodes=1203 elapsed=0.087439200
+conventional affine_row=87 stage=enter nodes=1203
+conventional affine_row=87 stage=return nodes=1203 elapsed=0.092275699
+conventional affine_row=88 stage=enter nodes=1203
+conventional affine_row=88 stage=return nodes=1203 elapsed=0.122477398
+conventional affine_row=89 stage=enter nodes=1203
+conventional affine_row=89 stage=return nodes=1203 elapsed=0.102987099
+conventional affine_row=90 stage=enter nodes=1203
+conventional affine_row=90 stage=return nodes=1203 elapsed=0.000046400
+conventional affine_row=91 stage=enter nodes=1203
+conventional affine_row=91 stage=return nodes=1203 elapsed=0.000010400
+conventional affine_row=92 stage=enter nodes=1203
+conventional affine_row=92 stage=return nodes=1203 elapsed=0.103635799
+conventional affine_row=93 stage=enter nodes=1203
+conventional affine_row=93 stage=return nodes=1203 elapsed=0.089686999
+conventional affine_row=94 stage=enter nodes=1203
+conventional affine_row=94 stage=return nodes=1203 elapsed=0.102872199
+conventional affine_row=95 stage=enter nodes=1203
+conventional affine_row=95 stage=return nodes=1203 elapsed=0.100938999
+conventional protocol=dnn op=96 row=96 column=96 nodes=1203
+conventional affine_row=96 stage=enter nodes=1203
+conventional affine_row=96 stage=return nodes=1203 elapsed=0.142403298
+conventional affine_row=97 stage=enter nodes=1203
+conventional affine_row=97 stage=return nodes=1203 elapsed=0.117135599
+conventional affine_row=98 stage=enter nodes=1203
+conventional affine_row=98 stage=return nodes=1203 elapsed=0.000051500
+conventional affine_row=99 stage=enter nodes=1203
+conventional affine_row=99 stage=return nodes=1203 elapsed=0.000010800
+conventional affine_row=100 stage=enter nodes=1203
+conventional affine_row=100 stage=return nodes=1203 elapsed=0.000009700
+conventional affine_row=101 stage=enter nodes=1203
+conventional affine_row=101 stage=return nodes=1199 elapsed=0.121821398
+conventional affine_row=102 stage=enter nodes=1199
+conventional affine_row=102 stage=return nodes=1199 elapsed=0.000052700
+conventional affine_row=103 stage=enter nodes=1199
+conventional affine_row=103 stage=return nodes=1199 elapsed=0.148142398
+conventional affine_row=104 stage=enter nodes=1199
+conventional affine_row=104 stage=return nodes=1199 elapsed=0.127827699
+conventional affine_row=105 stage=enter nodes=1199
+conventional affine_row=105 stage=return nodes=1199 elapsed=0.000038900
+conventional affine_row=106 stage=enter nodes=1199
+conventional affine_row=106 stage=return nodes=1201 elapsed=0.122541699
+conventional affine_row=107 stage=enter nodes=1201
+conventional affine_row=107 stage=return nodes=1203 elapsed=0.116619498
+conventional affine_row=108 stage=enter nodes=1203
+conventional affine_row=108 stage=return nodes=1203 elapsed=0.116542799
+conventional affine_row=109 stage=enter nodes=1203
+conventional affine_row=109 stage=return nodes=1203 elapsed=0.116685199
+conventional affine_row=110 stage=enter nodes=1203
+conventional affine_row=110 stage=return nodes=1203 elapsed=0.128860198
+conventional affine_row=111 stage=enter nodes=1203
+conventional affine_row=111 stage=return nodes=1203 elapsed=0.123272499
+conventional protocol=dnn op=112 row=112 column=112 nodes=1203
+conventional affine_row=112 stage=enter nodes=1203
+conventional affine_row=112 stage=return nodes=1197 elapsed=0.129209098
+conventional affine_row=113 stage=enter nodes=1197
+conventional affine_row=113 stage=return nodes=1197 elapsed=0.000045400
+conventional affine_row=114 stage=enter nodes=1197
+conventional affine_row=114 stage=return nodes=1199 elapsed=0.121565499
+conventional affine_row=115 stage=enter nodes=1199
+conventional affine_row=115 stage=return nodes=1201 elapsed=0.109986899
+conventional affine_row=116 stage=enter nodes=1201
+conventional affine_row=116 stage=return nodes=1201 elapsed=0.107539898
+conventional affine_row=117 stage=enter nodes=1201
+conventional affine_row=117 stage=return nodes=1201 elapsed=0.000028400
+conventional affine_row=118 stage=enter nodes=1201
+conventional affine_row=118 stage=return nodes=1201 elapsed=0.000009700
+conventional affine_row=119 stage=enter nodes=1201
+conventional affine_row=119 stage=return nodes=1199 elapsed=0.109684399
+conventional affine_row=120 stage=enter nodes=1199
+conventional affine_row=120 stage=return nodes=1199 elapsed=0.000048600
+conventional affine_row=121 stage=enter nodes=1199
+conventional affine_row=121 stage=return nodes=1199 elapsed=0.000010000
+conventional affine_row=122 stage=enter nodes=1199
+conventional affine_row=122 stage=return nodes=1199 elapsed=0.000008800
+conventional affine_row=123 stage=enter nodes=1199
+conventional affine_row=123 stage=return nodes=1203 elapsed=0.110166599
+conventional affine_row=124 stage=enter nodes=1203
+conventional affine_row=124 stage=return nodes=1203 elapsed=0.000044700
+conventional affine_row=125 stage=enter nodes=1203
+conventional affine_row=125 stage=return nodes=1203 elapsed=0.000009800
+conventional affine_row=126 stage=enter nodes=1203
+conventional affine_row=126 stage=return nodes=1203 elapsed=0.000014100
+conventional affine_row=127 stage=enter nodes=1203
+conventional affine_row=127 stage=return nodes=1203 elapsed=0.000014200
+conventional protocol=dnn op=128 row=128 column=128 nodes=1203
+conventional affine_row=128 stage=enter nodes=1203
+conventional affine_row=128 stage=return nodes=1199 elapsed=0.171313398
+conventional affine_row=129 stage=enter nodes=1199
+conventional affine_row=129 stage=return nodes=1199 elapsed=0.000041900
+conventional affine_row=130 stage=enter nodes=1199
+conventional affine_row=130 stage=return nodes=1193 elapsed=0.128871898
+conventional affine_row=131 stage=enter nodes=1193
+conventional affine_row=131 stage=return nodes=1193 elapsed=0.000106100
+conventional affine_row=132 stage=enter nodes=1193
+conventional affine_row=132 stage=return nodes=1201 elapsed=0.120524899
+conventional affine_row=133 stage=enter nodes=1201
+conventional affine_row=133 stage=return nodes=1201 elapsed=0.000049600
+conventional affine_row=134 stage=enter nodes=1201
+conventional affine_row=134 stage=return nodes=1201 elapsed=0.109898199
+conventional affine_row=135 stage=enter nodes=1201
+conventional affine_row=135 stage=return nodes=1201 elapsed=0.000031400
+conventional affine_row=136 stage=enter nodes=1201
+conventional affine_row=136 stage=return nodes=1201 elapsed=0.140351898
+conventional affine_row=137 stage=enter nodes=1201
+conventional affine_row=137 stage=return nodes=1201 elapsed=0.135400999
+conventional affine_row=138 stage=enter nodes=1201
+conventional affine_row=138 stage=return nodes=1201 elapsed=0.000068200
+conventional affine_row=139 stage=enter nodes=1201
+conventional affine_row=139 stage=return nodes=1201 elapsed=0.000013100
+conventional affine_row=140 stage=enter nodes=1201
+conventional affine_row=140 stage=return nodes=1197 elapsed=0.119371998
+conventional affine_row=141 stage=enter nodes=1197
+conventional affine_row=141 stage=return nodes=1199 elapsed=0.131177599
+conventional affine_row=142 stage=enter nodes=1199
+conventional affine_row=142 stage=return nodes=1203 elapsed=0.124741898
+conventional affine_row=143 stage=enter nodes=1203
+conventional affine_row=143 stage=return nodes=1203 elapsed=0.000032100
+conventional protocol=dnn op=144 row=144 column=144 nodes=1203
+conventional affine_row=144 stage=enter nodes=1203
+conventional affine_row=144 stage=return nodes=1203 elapsed=0.117134699
+conventional affine_row=145 stage=enter nodes=1203
+conventional affine_row=145 stage=return nodes=1203 elapsed=0.000038600
+conventional affine_row=146 stage=enter nodes=1203
+conventional affine_row=146 stage=return nodes=1203 elapsed=0.000009700
+conventional affine_row=147 stage=enter nodes=1203
+conventional affine_row=147 stage=return nodes=1203 elapsed=0.000008600
+conventional affine_row=148 stage=enter nodes=1203
+conventional affine_row=148 stage=return nodes=1203 elapsed=0.000008500
+conventional affine_row=149 stage=enter nodes=1203
+conventional affine_row=149 stage=return nodes=1203 elapsed=0.105761699
+conventional affine_row=150 stage=enter nodes=1203
+conventional affine_row=150 stage=return nodes=1203 elapsed=0.000059300
+conventional affine_row=151 stage=enter nodes=1203
+conventional affine_row=151 stage=return nodes=1203 elapsed=0.000009400
+conventional affine_row=152 stage=enter nodes=1203
+conventional affine_row=152 stage=return nodes=1201 elapsed=0.116806798
+conventional affine_row=153 stage=enter nodes=1201
+conventional affine_row=153 stage=return nodes=1203 elapsed=0.119046399
+conventional affine_row=154 stage=enter nodes=1203
+conventional affine_row=154 stage=return nodes=1203 elapsed=0.135833298
+conventional affine_row=155 stage=enter nodes=1203
+conventional affine_row=155 stage=return nodes=1203 elapsed=0.000034800
+conventional affine_row=156 stage=enter nodes=1203
+conventional affine_row=156 stage=return nodes=1203 elapsed=0.000009900
+conventional affine_row=157 stage=enter nodes=1203
+conventional affine_row=157 stage=return nodes=1201 elapsed=0.121713099
+conventional affine_row=158 stage=enter nodes=1201
+conventional affine_row=158 stage=return nodes=1201 elapsed=0.000040800
+conventional affine_row=159 stage=enter nodes=1201
+conventional affine_row=159 stage=return nodes=1201 elapsed=0.000009500
+conventional protocol=dnn op=160 row=160 column=160 nodes=1201
+conventional affine_row=160 stage=enter nodes=1201
+conventional affine_row=160 stage=return nodes=1201 elapsed=0.000008400
+conventional affine_row=161 stage=enter nodes=1201
+conventional affine_row=161 stage=return nodes=1201 elapsed=0.000008000
+conventional affine_row=162 stage=enter nodes=1201
+conventional affine_row=162 stage=return nodes=1201 elapsed=0.000008200
+conventional affine_row=163 stage=enter nodes=1201
+conventional affine_row=163 stage=return nodes=1201 elapsed=0.000007900
+conventional affine_row=164 stage=enter nodes=1201
+conventional affine_row=164 stage=return nodes=1191 elapsed=0.103064399
+conventional affine_row=165 stage=enter nodes=1191
+conventional affine_row=165 stage=return nodes=1203 elapsed=0.085662499
+conventional affine_row=166 stage=enter nodes=1203
+conventional affine_row=166 stage=return nodes=1203 elapsed=0.093165299
+conventional affine_row=167 stage=enter nodes=1203
+conventional affine_row=167 stage=return nodes=1203 elapsed=0.000037900
+conventional affine_row=168 stage=enter nodes=1203
+conventional affine_row=168 stage=return nodes=1203 elapsed=0.000009400
+conventional affine_row=169 stage=enter nodes=1203
+conventional affine_row=169 stage=return nodes=1199 elapsed=0.093347299
+conventional affine_row=170 stage=enter nodes=1199
+conventional affine_row=170 stage=return nodes=1199 elapsed=0.000051100
+conventional affine_row=171 stage=enter nodes=1199
+conventional affine_row=171 stage=return nodes=1199 elapsed=0.000010000
+conventional affine_row=172 stage=enter nodes=1199
+conventional affine_row=172 stage=return nodes=1201 elapsed=0.086839399
+conventional affine_row=173 stage=enter nodes=1201
+conventional affine_row=173 stage=return nodes=1203 elapsed=0.091874899
+conventional affine_row=174 stage=enter nodes=1203
+conventional affine_row=174 stage=return nodes=1201 elapsed=0.086483399
+conventional affine_row=175 stage=enter nodes=1201
+conventional affine_row=175 stage=return nodes=1201 elapsed=0.000028000
+conventional protocol=dnn op=176 row=176 column=176 nodes=1201
+conventional affine_row=176 stage=enter nodes=1201
+conventional affine_row=176 stage=return nodes=1201 elapsed=0.000009500
+conventional affine_row=177 stage=enter nodes=1201
+conventional affine_row=177 stage=return nodes=1201 elapsed=0.000008400
+conventional affine_row=178 stage=enter nodes=1201
+conventional affine_row=178 stage=return nodes=1201 elapsed=0.000008300
+conventional affine_row=179 stage=enter nodes=1201
+conventional affine_row=179 stage=return nodes=1201 elapsed=0.000008300
+conventional affine_row=180 stage=enter nodes=1201
+conventional affine_row=180 stage=return nodes=1201 elapsed=0.000008200
+conventional affine_row=181 stage=enter nodes=1201
+conventional affine_row=181 stage=return nodes=1201 elapsed=0.000007800
+conventional affine_row=182 stage=enter nodes=1201
+conventional affine_row=182 stage=return nodes=1199 elapsed=0.073042999
+conventional affine_row=183 stage=enter nodes=1199
+conventional affine_row=183 stage=return nodes=1203 elapsed=0.089044599
+conventional affine_row=184 stage=enter nodes=1203
+conventional affine_row=184 stage=return nodes=1203 elapsed=0.074481599
+conventional affine_row=185 stage=enter nodes=1203
+conventional affine_row=185 stage=return nodes=1203 elapsed=0.070008299
+conventional affine_row=186 stage=enter nodes=1203
+conventional affine_row=186 stage=return nodes=1203 elapsed=0.000038500
+conventional affine_row=187 stage=enter nodes=1203
+conventional affine_row=187 stage=return nodes=1203 elapsed=0.000009100
+conventional affine_row=188 stage=enter nodes=1203
+conventional affine_row=188 stage=return nodes=1203 elapsed=0.000008100
+conventional affine_row=189 stage=enter nodes=1203
+conventional affine_row=189 stage=return nodes=1201 elapsed=0.064105599
+conventional affine_row=190 stage=enter nodes=1201
+conventional affine_row=190 stage=return nodes=1201 elapsed=0.000053700
+conventional affine_row=191 stage=enter nodes=1201
+conventional affine_row=191 stage=return nodes=1203 elapsed=0.062126900
+conventional protocol=dnn op=192 row=192 column=192 nodes=1203
+conventional affine_row=192 stage=enter nodes=1203
+conventional affine_row=192 stage=return nodes=1201 elapsed=0.064362499
+conventional affine_row=193 stage=enter nodes=1201
+conventional affine_row=193 stage=return nodes=1201 elapsed=0.000049100
+conventional affine_row=194 stage=enter nodes=1201
+conventional affine_row=194 stage=return nodes=1201 elapsed=0.000008900
+conventional affine_row=195 stage=enter nodes=1201
+conventional affine_row=195 stage=return nodes=1201 elapsed=0.000008100
+conventional affine_row=196 stage=enter nodes=1201
+conventional affine_row=196 stage=return nodes=1201 elapsed=0.000007900
+conventional affine_row=197 stage=enter nodes=1201
+conventional affine_row=197 stage=return nodes=1201 elapsed=0.000007900
+conventional affine_row=198 stage=enter nodes=1201
+conventional affine_row=198 stage=return nodes=1203 elapsed=0.069710799
+conventional affine_row=199 stage=enter nodes=1203
+conventional affine_row=199 stage=return nodes=807 elapsed=0.000622200
+conventional protocol=dnn node=3 opcode=FSPLIT stage=enter
+conventional protocol=dnn node=4 opcode=EVALT stage=enter
+conventional protocol=dnn node=5 opcode=EVALF stage=enter
+conventional protocol=dnn node=6 opcode=ENGAGR stage=enter
+conventional protocol=dnn node=7 opcode=FFUSE stage=enter
+conventional protocol=dnn node=8 opcode=CLINK stage=enter
+conventional protocol=dnn node=9 opcode=AREV stage=enter
+conventional protocol=dnn node=10 opcode=IFIX stage=enter
+conventional protocol=dnn node=11 opcode=TANCH stage=enter

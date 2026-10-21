@@ -109,8 +109,11 @@ pub fn compile(source_text: &str) -> Result<PreparedCompilation, String> {
         witness.reconstruction.tolerance,preparation.elapsed().as_secs_f64());
     let mut carrier = resident.into_source_whole_register_phase_observed(|stage|
         eprintln!("preparation-stage {stage} seconds={:.6}",preparation.elapsed().as_secs_f64()))?;
-    let clock_export: serde_json::Value = serde_json::from_str(include_str!(
-        "measurements/membrane_reentry_20261010/certified_clocks.json")).map_err(|e| e.to_string())?;
+    let clock_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("measurements/membrane_reentry_20261010/certified_clocks.json");
+    let clock_text = std::fs::read_to_string(&clock_path)
+        .map_err(|error| format!("read resident clock export {}: {error}", clock_path.display()))?;
+    let clock_export: serde_json::Value = serde_json::from_str(&clock_text).map_err(|e| e.to_string())?;
     // The period-two oscillator is a fixed program constant, with no instance
     // witness. Its executed ticks order complete prepared modular lanes.
     let clock = clock_export["clocks"].as_array().ok_or("missing certified clock export")?.iter()
