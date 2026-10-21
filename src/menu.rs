@@ -535,6 +535,8 @@ pub fn print_help_topic(topic: &str) {
 
     // ── Topic-specific help ──
     match t.as_str() {
+        #[cfg(feature = "hosted")]
+        "conventional" => crate::sprintln!("{}", g_momonados::conventional_translation::run(&["help"]).unwrap()),
         "ovm" => crate::sprintln!("{}", crate::ovm::ovm_help()),
         "hqe" => {
             crate::sprintln!("═══ HQE — Hadron-Quark-Electron Formal Homology ═══\n");

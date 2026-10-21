@@ -144,7 +144,7 @@ carrier-observation = ["vox_core/carrier-profile"]
 # those cfg sites by hand, without the risk of doing that by hand across
 # dozens of files.
 default = ["hosted"]
-hosted = ["dep:cudarc", "dep:serde_json"]
+hosted = ["dep:cudarc", "dep:serde_json", "vox_core/protein-cli"]
 
 [profile.dev]
 panic = "abort"

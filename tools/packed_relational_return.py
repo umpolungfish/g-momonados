@@ -87,6 +87,7 @@ def unpack(report):
         report['register_banks']=archived(report['register_banks'],transform)
         if transform:report['register_banks_encoding']='gzip-hex'
     if 'nested_receipts' in report:report['nested_receipts']=archived(report['nested_receipts'])
+    if 'reversal_receipts' in report:report['reversal_receipts']=archived(report['reversal_receipts'])
     if report.get('source_product_return'):
         report['source_product_return']['banks']=archived(report['source_product_return']['banks'])
     c=report['continuation']

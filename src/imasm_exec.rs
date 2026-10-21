@@ -25,6 +25,22 @@ impl StdHost {
 
 #[cfg(feature = "hosted")]
 impl Host for StdHost {
+    fn clock_gettime(&mut self, clock: i32) -> Result<(i64, i64), i32> {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            #[repr(C)]
+            struct Timespec { seconds: i64, nanos: i64 }
+            extern "C" { fn clock_gettime(clock: i32, value: *mut Timespec) -> i32; }
+            let mut value = Timespec { seconds: 0, nanos: 0 };
+            if unsafe { clock_gettime(clock, &mut value) } == 0 {
+                Ok((value.seconds, value.nanos))
+            } else {
+                Err(-std::io::Error::last_os_error().raw_os_error().unwrap_or(5))
+            }
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        { let _ = clock; Err(-38) }
+    }
     fn open(&mut self, path: &str, flags: i32, mode: i32) -> i32 {
         let mut opts = std::fs::OpenOptions::new();
         let acc = flags & 0b11;

@@ -1,0 +1,46 @@
+; r0,r1 and r2,r3 are numeral cells. Constants r11=T and r12=F.
+; Pair in r4,r5, reverse, and return both words in r0..r3.
+.paired_transport:
+MOVE %r0 %r6
+MOVE %r1 %r7
+CALL .paired_pack
+MOVE %r8 %r4
+MOVE %r2 %r6
+MOVE %r3 %r7
+CALL .paired_pack
+MOVE %r8 %r5
+MOVE %r4 %r8
+CALL .paired_unpack
+MOVE %r6 %r0
+MOVE %r7 %r1
+MOVE %r5 %r8
+CALL .paired_unpack
+MOVE %r6 %r2
+MOVE %r7 %r3
+RET
+.paired_pack:
+CLEAR %r8
+CLEAR %r9
+JT %r6 .paired_pack_second
+MOVE %r11 %r8
+.paired_pack_second:
+JT %r7 .paired_pack_fuse
+MOVE %r12 %r9
+.paired_pack_fuse:
+FFUSE %r8 %r9 %r8
+RET
+.paired_unpack:
+MOVE %r11 %r6
+MOVE %r11 %r7
+JT %r8 .paired_unpack_first
+JF %r8 .paired_unpack_second
+JB %r8 .paired_unpack_both
+RET
+.paired_unpack_both:
+MOVE %r12 %r7
+.paired_unpack_first:
+MOVE %r12 %r6
+RET
+.paired_unpack_second:
+MOVE %r12 %r7
+RET

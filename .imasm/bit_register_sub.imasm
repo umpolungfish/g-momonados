@@ -1,0 +1,62 @@
+ENGAGR %r10
+FSPLIT %r10 %r11 %r12
+MOVE %r11 %r5
+JMP .bit
+.bit:
+READ %r0
+JN %r0 .done
+READ %r1
+MOVE %r5 %r2
+CALL .full_subtractor
+EMIT %r3
+MOVE %r4 %r5
+JMP .bit
+.done:
+EMIT %r5
+HALT
+.full_subtractor:
+JT %r0 .a0
+JF %r0 .a1
+JMP .invalid
+.a0:
+JT %r1 .a0b0
+JF %r1 .a0b1
+JMP .invalid
+.a1:
+JT %r1 .a1b0
+JF %r1 .a1b1
+JMP .invalid
+.a0b0:
+JT %r2 .d0_b0
+JF %r2 .d1_b1
+JMP .invalid
+.a0b1:
+JT %r2 .d1_b1
+JF %r2 .d0_b1
+JMP .invalid
+.a1b0:
+JT %r2 .d1_b0
+JF %r2 .d0_b0
+JMP .invalid
+.a1b1:
+JT %r2 .d0_b0
+JF %r2 .d1_b1
+JMP .invalid
+.d0_b0:
+MOVE %r11 %r3
+MOVE %r11 %r4
+RET
+.d1_b0:
+MOVE %r12 %r3
+MOVE %r11 %r4
+RET
+.d0_b1:
+MOVE %r11 %r3
+MOVE %r12 %r4
+RET
+.d1_b1:
+MOVE %r12 %r3
+MOVE %r12 %r4
+RET
+.invalid:
+HALT
