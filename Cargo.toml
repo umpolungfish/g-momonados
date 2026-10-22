@@ -131,6 +131,28 @@ name = "sic-tool"
 path = "src/bin/sic_tool.rs"
 required-features = ["hosted"]
 
+[[bin]]
+name = "hsoa_demo"
+path = "src/bin/hsoa_demo.rs"
+
+[[bin]]
+name = "membrane"
+path = "src/bin/membrane.rs"
+
+[[bin]]
+name = "ququart_word"
+path = "src/bin/ququart_word.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "resident_factor_baked"
+path = "src/bin/resident_factor_baked.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "shot_carrier"
+path = "src/bin/shot_carrier.rs"
+
 [lib]
 name = "g_momonados"
 path = "src/lib.rs"
@@ -146,7 +168,7 @@ carrier-observation = ["vox_core/carrier-profile"]
 # those cfg sites by hand, without the risk of doing that by hand across
 # dozens of files.
 default = ["hosted"]
-hosted = ["dep:cudarc", "dep:serde_json", "dep:serde", "vox_core/protein-cli"]
+hosted = ["dep:cudarc", "dep:serde_json", "dep:serde", "vox_core/hosted"]
 
 [profile.dev]
 panic = "abort"
