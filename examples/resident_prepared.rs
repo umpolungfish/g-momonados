@@ -8,7 +8,7 @@ use g_momonados::{resident_glut::ResidentClosure,word_tape::WordTape};
 use std::time::Instant;
 include!(concat!(env!("OUT_DIR"),"/resident_prepared.rs"));
 
-fn main() -> Result<(),String> {
+pub fn main() -> Result<(),String> {
     if BAKED_SOURCE_WORD.is_empty() { return Err("compile with RESIDENT_SOURCE_FILE pointing to the N-only IMASM source".into()); }
     let loading = Instant::now();
     eprintln!("resident-import stage=source");
