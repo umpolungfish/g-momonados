@@ -234,9 +234,114 @@ pub struct SicRationalReconstruction {
     pub signed_residual_numerators: [(BigInt, BigInt); 16],
 }
 
+/// Mass-only inversion of the actual fixed-point projector frame. The common
+/// denominator retains calibration error exactly, without a reference Gram.
+pub struct SicExactReconstruction {
+    pub numerators: [(BigInt, BigInt); 16],
+    pub denominator: BigInt,
+}
+
+pub(crate) struct PreparedSicDual {
+    pub denominator:BigInt,
+    pub columns:alloc::vec::Vec<[(BigInt,BigInt);16]>,
+}
+impl PreparedSicDual {
+    pub(crate) fn apply(&self,frame:&FixedQuquartSic,masses:&[BigUint;16])->Result<SicExactReconstruction,String>{
+        if self.columns.len()!=16{return Err("compiled SIC dual lost its columns".into());}
+        let mut numerators=core::array::from_fn(|_|(BigInt::zero(),BigInt::zero()));
+        for (column,mass) in self.columns.iter().zip(masses){
+            let mass=BigInt::from(mass.clone());
+            for (out,value) in numerators.iter_mut().zip(column){out.0+=&mass*&value.0;out.1+=&mass*&value.1;}
+        }
+        let remeasured=frame.gram_mass_numerators(&numerators)?;
+        if remeasured.iter().zip(masses).any(|(a,b)|BigInt::from(a.clone())!=BigInt::from(b.clone())*&self.denominator){
+            return Err("compiled SIC dual did not recover every measured mass".into());
+        }
+        Ok(SicExactReconstruction{numerators,denominator:self.denominator.clone()})
+    }
+}
+
 impl FixedQuquartSic {
+    pub(crate) fn prepare_exact_dual(&self)->Result<PreparedSicDual,String>{
+        let mut inverses=alloc::vec::Vec::new();let mut denominator=BigInt::one();
+        for column in 0..16 {
+            let masses=core::array::from_fn(|i|if i==column{BigUint::one()}else{BigUint::zero()});
+            let inverse=self.exact_gram_from_masses(&masses)?;
+            let(mut a,mut b)=(denominator.clone(),inverse.denominator.clone());
+            while !b.is_zero(){let remainder=&a%&b;a=b;b=remainder;}
+            denominator=denominator/a*&inverse.denominator;inverses.push(inverse);
+        }
+        let columns=inverses.into_iter().map(|inverse|{
+            let scale=&denominator/&inverse.denominator;
+            inverse.numerators.map(|(re,im)|(re*&scale,im*&scale))
+        }).collect();
+        Ok(PreparedSicDual{denominator,columns})
+    }
+    /// Resolve the finite-projector defect left by the ideal zeta dual. Invert
+    /// the measured frame with fraction-free elimination, rather than subtract
+    /// residuals computed from a known target state. Works for every Hermitian
+    /// input represented by these masses, including full complex coherences.
+    pub fn exact_gram_from_masses(&self, masses: &[BigUint;16])
+        -> Result<SicExactReconstruction,String> {
+        let pairs: alloc::vec::Vec<_>=(0..4).flat_map(|i| (i+1..4).map(move |j|(i,j))).collect();
+        let mut a: alloc::vec::Vec<alloc::vec::Vec<BigInt>>=(0..16).map(|r| {
+            let mut row=alloc::vec::Vec::new();
+            for i in 0..4 {row.push(self.projectors[r][5*i].0.to_bigint());}
+            for &(i,j) in &pairs {row.push(self.projectors[r][4*i+j].0.to_bigint()+self.projectors[r][4*j+i].0.to_bigint());}
+            for &(i,j) in &pairs {row.push(self.projectors[r][4*i+j].1.to_bigint()-self.projectors[r][4*j+i].1.to_bigint());}
+            row.push(BigInt::from(masses[r].clone()));row
+        }).collect();
+        let exact_div=|n:BigInt,d:&BigInt| -> Result<BigInt,String> {
+            if d.is_zero() || &n%d!=BigInt::zero() {return Err("SIC fraction-free division did not close".into());}
+            Ok(n/d)
+        };
+        let mut previous=BigInt::one();
+        for k in 0..15 {
+            let pivot=(k..16).find(|&r|!a[r][k].is_zero()).ok_or("singular fixed-point SIC frame")?;
+            a.swap(k,pivot);
+            let diagonal=a[k][k].clone();
+            for r in k+1..16 {
+                let coefficient=a[r][k].clone();
+                for col in k+1..17 {
+                    a[r][col]=exact_div(&diagonal*&a[r][col]-&coefficient*&a[k][col],&previous)?;
+                }
+                a[r][k]=BigInt::zero();
+            }
+            previous=diagonal;
+        }
+        let mut denominator=a[15][15].clone();
+        if denominator.is_zero(){return Err("singular fixed-point SIC frame".into());}
+        let mut coordinates: [BigInt;16]=core::array::from_fn(|_|BigInt::zero());
+        for i in (0..16).rev() {
+            let mut rhs=&a[i][16]*&denominator;
+            for (j,coordinate) in coordinates.iter().enumerate().skip(i+1){rhs-=&a[i][j]*coordinate;}
+            coordinates[i]=exact_div(rhs,&a[i][i])?;
+        }
+        if denominator.is_negative(){denominator=-denominator;for c in &mut coordinates{*c=-c.clone();}}
+        let mut common=denominator.clone();
+        for coordinate in &coordinates {
+            let mut b=coordinate.abs();
+            while !b.is_zero(){let rem=&common%&b;common=b;b=rem;}
+        }
+        denominator/=&common;for c in &mut coordinates{*c/=&common;}
+        let mut numerators=core::array::from_fn(|_|(BigInt::zero(),BigInt::zero()));
+        for i in 0..4{numerators[5*i].0=coordinates[i].clone();}
+        for (k,&(i,j)) in pairs.iter().enumerate(){
+            numerators[4*i+j]=(coordinates[4+k].clone(),coordinates[10+k].clone());
+            numerators[4*j+i]=(coordinates[4+k].clone(),-coordinates[10+k].clone());
+        }
+        let remeasured=self.gram_mass_numerators(&numerators)?;
+        if remeasured.iter().zip(masses).any(|(a,b)|BigInt::from(a.clone())!=BigInt::from(b.clone())*&denominator){
+            return Err("exact SIC return does not reproduce every measured mass".into());
+        }
+        Ok(SicExactReconstruction{numerators,denominator})
+    }
+
     pub(crate) fn from_baked(frame:&crate::baked_resident::BakedSic)->Result<Self,String> {
         let format=FixedPointFormat::for_modulus_bits(frame.modulus_bits)?;
+        Self::from_baked_format(frame,format)
+    }
+    pub(crate) fn from_baked_format(frame:&crate::baked_resident::BakedSic,format:FixedPointFormat)->Result<Self,String>{
         let rays=frame.rays.map(|ray|ray.map(|z|z.value()));
         let mut projectors=core::array::from_fn(|_|core::array::from_fn(|_|
             (SignedWordTape::zero(),SignedWordTape::zero())));

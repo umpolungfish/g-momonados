@@ -8,6 +8,7 @@ pub use membrane::*;
 #[allow(dead_code)]
 mod resident_work;
 mod resident_build;
+mod point_build;
 fn numeral(word: &str) -> Result<num_bigint::BigUint, String> {
     godel_calculus::decode_cell_biguint(word)
 }
@@ -27,6 +28,52 @@ fn main() {
     };
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     fs::write(out.join("ququart_prepared.rs"), contents).unwrap();
+    println!("cargo:rerun-if-env-changed=FINAL_POINT_SOURCE_FILE");
+    println!("cargo:rerun-if-env-changed=POINT_SOURCE_FILE");
+    let final_source=env::var_os("FINAL_POINT_SOURCE_FILE");
+    let point_source=env::var_os("POINT_SOURCE_FILE");
+    assert!(final_source.is_none() || point_source.is_none(),
+        "select one N-only point source, not two independently selected inputs");
+    match point_source.or(final_source) {
+        Some(path)=>{
+            let path=fs::canonicalize(path).expect("N-only final switch source must exist");
+            println!("cargo:rerun-if-changed={}",path.display());
+            let source=fs::read_to_string(path).expect("read N-only final source");
+            let n=point_build::source(&source).expect("decode N-only final source");
+            let evaluated=conventional_spectrum::compile_final_switch(n)
+                .expect("complete numerical preparation before emitting the final switch");
+            fs::write(out.join("point_final.json"),serde_json::to_vec(&evaluated).unwrap()).unwrap();
+        },
+        None=>{fs::write(out.join("point_final.json"),b"null").unwrap();}
+    }
+    println!("cargo:rerun-if-env-changed=POINT_CARRIER_SOURCE_FILE");
+    println!("cargo:rerun-if-env-changed=POINT_CARRIER_CONTINUATION_FILE");
+    println!("cargo:rerun-if-changed=point_build.rs");
+    let carrier_source=env::var_os("POINT_CARRIER_SOURCE_FILE");
+    let carrier_return=env::var_os("POINT_CARRIER_CONTINUATION_FILE");
+    assert!(carrier_source.is_none()||carrier_return.is_none(),"select one source or its retained continuation");
+    match (carrier_source,carrier_return) {
+        (Some(path),None)=>{
+            let path=fs::canonicalize(path).expect("N-only point source file must exist");
+            println!("cargo:rerun-if-changed={}",path.display());
+            let n=point_build::source(&fs::read_to_string(path).expect("read N-only point source")).expect("read exact point source");
+            let prepared=conventional_spectrum::compile_switch_record(n).expect("prepare complete point circuit during Cargo compilation");
+            point_build::emit(&prepared,&out).expect("emit prepared point state and operators");
+        },
+        (None,Some(path))=>{
+            let path=fs::canonicalize(path).expect("held carrier file must exist");
+            println!("cargo:rerun-if-changed={}",path.display());
+            let record:serde_json::Value=serde_json::from_reader(std::io::BufReader::new(fs::File::open(path).unwrap()))
+                .expect("read the retained carrier");
+            let validated=conventional_spectrum::PreparedPointSwitch::from_record(&record)
+                .expect("restore the complete source-bound continuation before baking");
+            drop(validated);
+            point_build::emit(&record,&out).expect("bake the retained carrier without preparation");
+        },
+        (None,None)=>fs::write(out.join("point_prepared.rs"),
+            "fn compiled_point_switch()->Result<g_momonados::conventional_spectrum::PreparedPointSwitch,String>{Err(\"compile with POINT_CARRIER_SOURCE_FILE pointing to N alone\".into())}\n").unwrap(),
+        _=>unreachable!(),
+    }
     println!("cargo:rerun-if-env-changed=RESIDENT_SOURCE_FILE");
     println!("cargo:rerun-if-env-changed=RESIDENT_PREPARED_FILE");
     println!("cargo:rerun-if-env-changed=RESIDENT_CIRCUIT_OPERATOR_FILE");

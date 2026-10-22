@@ -3,7 +3,7 @@
 #[path = "ququart_support/mod.rs"]
 #[allow(dead_code)]
 mod support;
-use g_momonados::{arbitrary_factor::nat_to_biguint_pub, godel_calculus::{decode, encode_cell_binary, Family, Nat}, ququart_factor::QuquartFactorExecutor, ququart_folded_work::QuquartFoldedWorkDevice, phase_unbraid::FixedPointFormat, anyon_pair::{PairMatrix, COMPUTATIONAL_CHANNELS, LEAKAGE_CHANNEL}, phase_unbraid::FixedComplex};
+use g_momonados::{arbitrary_factor::nat_to_biguint_pub, godel_calculus::{encode_cell_binary, Nat}, ququart_factor::QuquartFactorExecutor, ququart_folded_work::QuquartFoldedWorkDevice, phase_unbraid::FixedPointFormat, anyon_pair::{PairMatrix, COMPUTATIONAL_CHANNELS, LEAKAGE_CHANNEL}, phase_unbraid::FixedComplex};
 use num_bigint::{BigUint, BigInt};
 use num_traits::Zero;
 use std::env;
@@ -18,11 +18,9 @@ fn main() {
     
     // Parse input (decimal or IMASM word)
     let (source, _source_word) = if input.starts_with('⊢') {
-        let reading = decode(input).expect("invalid IMASM word");
-        assert!(matches!(reading.family, Family::CellBinary));
-        let canonical = encode_cell_binary(&reading.value);
-        assert_eq!(canonical.as_str(), input, "non-canonical IMASM word");
-        (nat_to_biguint_pub(&reading.value), canonical)
+        let value = g_momonados::godel_analyzer::parse_input(input).expect("invalid numeral word");
+        let canonical = vox_core::godel_calculus::normalize_numeral_word(input).expect("non-canonical numeral word");
+        (nat_to_biguint_pub(&value), canonical)
     } else {
         let value = BigUint::parse_bytes(input.as_bytes(), 10).expect("not a natural number");
         let nat = Nat::from_decimal(input).expect("not a natural number");

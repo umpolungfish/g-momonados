@@ -9,6 +9,12 @@ $Gm⊙^2$ is the hosted, GPU-native build of the $m⊙^2$ architecture.
 It runs the Imscribing Grammar, IMASM words, trilattice state, quantum and
 Vox tooling, and ABC/IUTT measurement readers from one Rust executable.
 
+Numeric commands accepting native numeral words also accept canonical hex-digit
+words, including the Python preparation and verification helpers. Both inputs
+are normalized at the shared numeric boundary; arbitrary IMASM program words
+retain their existing interpretation. `godel unbraid` prints native and hex
+words for the source and both recovered lanes.
+
 ## What This Is
 
 G-mOMonadOS is [mOMonadOS](../mOMonadOS), the self-imscribing bare-metal kernel, ported to a build where the GPU path is the only mode rather than an opt-in feature. Cloned with full history from the parent kernel; every architectural claim in this document (the Crystal, the Frobenius loop, IMASM, the catalog) is the same kernel, the same source tree, the same correctness guarantees - this build just runs it hosted, on a CUDA-capable machine, by default, with no target flag or feature flag needed to get there.
@@ -22,6 +28,11 @@ There are no processes, no scheduler, and no filesystem hierarchy. Every executi
 ---
 
 ## Building and Running
+
+Hosted CUDA commands use the system dynamic C runtime so the driver can initialize
+on WSL. The parent Cargo configuration keeps static linking as a build default;
+this package overrides it with target-specific flags. `cargo resident-static`
+continues to build the self-contained musl resident executable.
 
 ```bash
 cd /home/mrnob0dy666/imsgct/G-mOMonadOS
@@ -135,6 +146,32 @@ measurement records the recovered matrix, maximum residual, and fixed-point
 rounding tolerance before selecting its computational digit. The baked readout
 verifier recomputes those fields from the source-bound frame. `SixteenOutcome`
 also exposes the checked lane/native label permutation through `kernel_mask`.
+
+`FixedQuquartSic::exact_gram_from_masses` also inverts the actual fixed-point
+projector frame with fraction-free integer elimination. It accepts the measured
+mass numerators alone and returns a common rational denominator for every real
+and imaginary Gram coordinate. Reapplying the frame checks every mass exactly.
+This resolves finite-projector defects left by the ideal zeta dual without
+subtracting a residual obtained from a supplied target Gram.
+
+`cargo run --release --example encoding_frame -- N` retains the native and hex
+forms, maps their T/F/I/fork bit planes into a phased ququart state, and compares
+analytic and exact recovery before testing cross-coherence and zeta-defect gcds.
+The retained supplied-source and fresh balanced 200-bit runs are in
+`measurements/encoding_factor_relation_20261021/`. These tested observables return
+gcd 1; a factor-selecting observable remains unresolved.
+
+`gpu_ecm observable <source> [B1 B2 curves sigma device seconds]` executes
+an N-only factor observable. Its GPU kernel returns raw curve denominators and
+Z checkpoints without computing gcds or publishing factors. Native/hex bit
+planes are packed into a complex ququart register, measured through all sixteen
+SIC effects, and recovered by the exact calibrated dual. The recovered planes
+supply the residue to the nonunit observable `gcd(r,N)`. A proper kernel emits a
+divisor and derives its quotient with exact product closure. Full-kernel batches
+are split through a retained product tree. The return contains the raw residual
+bank, measured masses, plane readouts, pending nodes and next-curve parameters.
+The producing method is ECM; an empty proper kernel records the completed curve
+batch and retains the source for continuation.
 
 Build the focused reader with `cargo build -j1 --bin sic-tool`. The
 `sic-tool anyon-program` command composes the resident carrier operations from

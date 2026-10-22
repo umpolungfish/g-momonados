@@ -87,6 +87,8 @@ mod gpu_ecm;
 #[cfg(feature = "hosted")]
 mod gpu_ecm_word;
 #[cfg(feature = "hosted")]
+use g_momonados::factor_observable;
+#[cfg(feature = "hosted")]
 mod gpu_trilattice;
 #[cfg(feature = "hosted")]
 mod gpu_abc;
@@ -660,7 +662,7 @@ fn main() {
         if matches!(head, "arbitrary_anyon_factor" | "arbitrary-anyon-factor") {
             let refs: Vec<&str> = argv[1..].iter().map(String::as_str).collect();
             if refs.is_empty() || refs[0] == "help" {
-                println!("arbitrary_anyon_factor <natural|canonical-cell-binary-word> <base> <max_shots> <unix_socket>");
+                println!("arbitrary_anyon_factor <natural|native-or-hex-word> <base> <max_shots> <unix_socket>");
                 return;
             }
             match arbitrary_anyon_factor(&refs) {
@@ -689,7 +691,7 @@ fn main() {
         if matches!(head, "arbitrary_factor" | "arbitrary-factor") {
             let input = argv.get(1).map(String::as_str).unwrap_or("");
             if input.is_empty() || input == "help" {
-                println!("arbitrary_factor <natural-number|canonical-cell-binary-word>");
+                println!("arbitrary_factor <natural-number|native-or-hex-word>");
                 return;
             }
             match arbitrary_factor::extract(input) {
@@ -1143,7 +1145,7 @@ fn generate_lcaa_distance_output() -> String {
 #[cfg(feature = "hosted")]
 fn arbitrary_anyon_factor(args: &[&str]) -> Result<arbitrary_factor::Extraction, String> {
     use num_bigint::BigUint;
-    let usage = "usage: arbitrary_anyon_factor <natural|canonical-cell-binary-word> <base> <max_shots> <unix_socket>";
+    let usage = "usage: arbitrary_anyon_factor <natural|native-or-hex-word> <base> <max_shots> <unix_socket>";
     if args.len() != 4 {
         return Err(usage.into());
     }

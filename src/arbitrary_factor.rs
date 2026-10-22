@@ -2,7 +2,7 @@
 //! All classical fallback routes (sieve, Fermat, Pollard, ECM, etc.) have been removed.
 //! The only route is Route::AnyonPhase via extract_with_anyons.
 
-use crate::godel_calculus::{check, decode, encode_cell_binary, Family, Nat, Operator};
+use crate::godel_calculus::{check, encode_cell_binary, Nat, Operator};
 use crate::native_numeral::{
     divmod_via_word, multiply_via_word, modulo_via_word,
 };
@@ -157,23 +157,12 @@ pub(crate) fn word_of(n: &BigUint) -> String {
 
 fn parse_source(raw: &str) -> Result<(BigUint, String), String> {
     let input = raw.trim();
+    let value = crate::godel_analyzer::parse_input(input)?;
     if input.starts_with('⊢') {
-        let reading = decode(input).map_err(|e| e.to_string())?;
-        if reading.family != Family::CellBinary {
-            return Err("factor input must be cell-binary or decimal".into());
-        }
-        let canonical = encode_cell_binary(&reading.value);
-        if canonical != input {
-            return Err("cell-binary input is not canonical".into());
-        }
-        Ok((nat_to_biguint(&reading.value), canonical))
-    } else {
-        let value = BigUint::parse_bytes(input.as_bytes(), 10)
-            .ok_or_else(|| format!("not a natural number: {}", raw))?;
-        let nat =
-            Nat::from_decimal(input).ok_or_else(|| format!("not a natural number: {}", raw))?;
-        Ok((value, encode_cell_binary(&nat)))
+        // Hex motifs are canonical in their own frame; native padding stays rejected.
+        vox_core::combined_factor::decode_numeral_word(input)?;
     }
+    Ok((nat_to_biguint(&value), encode_cell_binary(&value)))
 }
 
 fn verify_split(source_word: &str, p: &BigUint, q: &BigUint) -> bool {

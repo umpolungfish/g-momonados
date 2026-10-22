@@ -480,6 +480,10 @@ pub fn decode(word: &str) -> Result<Reading, DecodeError> {
 
 /// Read a canonical cell-binary numeral into the arbitrary-precision work register.
 pub fn decode_cell_biguint(word: &str) -> Result<BigUint, String> {
+    if word.trim() == "⊢⊙⊡⊣" { return Ok(BigUint::from(0u8)); }
+    if let Ok(value) = vox_core::combined_factor::decode_hex_word(word) {
+        return Ok(value);
+    }
     let decoded = decode(word).map_err(|error| error.to_string())?;
     let bits_le = match decoded.structure {
         Structure::CellBinary { bits_le } => bits_le,
@@ -683,15 +687,8 @@ pub fn help() -> &'static str {
 }
 
 fn parse_natural_word(raw: &str) -> Result<Nat, String> {
-    if raw.starts_with('⊢') {
-        let decoded = decode(raw).map_err(|error| error.to_string())?;
-        if decoded.family != Family::CellBinary {
-            return Err("braid commands require cell-binary words".to_string());
-        }
-        Ok(decoded.value)
-    } else {
-        Nat::from_decimal(raw).ok_or_else(|| format!("not a natural number: {raw}"))
-    }
+    let value = vox_core::godel_calculus::parse_natural_word(raw)?;
+    Ok(Nat::from_bits_le(value.bits_le().to_vec()))
 }
 
 fn braid_values(gamma: &Nat, lambda: &Nat) -> Nat {
@@ -718,6 +715,9 @@ fn unbraid_value(value: &Nat) -> (Nat, Nat) {
 }
 
 pub fn command(args: &[&str]) -> Result<String, String> {
+    if matches!(args.first().copied(), Some("decode" | "encode" | "check" | "braid" | "unbraid" | "relation" | "help" | "-h" | "--help")) {
+        return vox_core::godel_calculus::command(args);
+    }
     match args.first().copied().unwrap_or("help") {
         "help" | "-h" | "--help" => Ok(help().to_string()),
         "decode" => {

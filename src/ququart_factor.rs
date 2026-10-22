@@ -182,6 +182,8 @@ impl QuquartFactorClosure {
 }
 
 pub fn power_of_two_radix_word(word: &str) -> Result<crate::godel_calculus::Nat, String> {
+    let normalized = vox_core::godel_calculus::normalize_numeral_word(word)?;
+    let word = normalized.as_str();
     use crate::godel_calculus::{decode, encode_cell_binary, Structure};
     let reading = decode(word).map_err(|error| error.to_string())?;
     if !matches!(reading.structure, Structure::CellBinary { .. })
@@ -198,8 +200,12 @@ pub fn power_of_two_radix_word(word: &str) -> Result<crate::godel_calculus::Nat,
 pub fn nested_radix_factor_words(
     source_word: &str, p_word: &str, q_word: &str, radix_word: &str,
 ) -> Result<(String, String), String> {
+    let normalized_source = vox_core::godel_calculus::normalize_numeral_word(source_word)?;
+    let source_word = normalized_source.as_str();
     use crate::godel_calculus::{check, decode, encode_cell_binary, Nat, Operator, Structure};
     let tape = |word: &str| -> Result<Vec<char>, String> {
+        let normalized = vox_core::godel_calculus::normalize_numeral_word(word)?;
+        let word = normalized.as_str();
         let reading = decode(word).map_err(|error| error.to_string())?;
         if !matches!(reading.structure, Structure::CellBinary { .. })
             || encode_cell_binary(&reading.value) != word {

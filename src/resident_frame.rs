@@ -163,8 +163,10 @@ mod tests {
     #[test]
     fn source_bound_signed_coherence_survives_banked_clear() {
         for text in [
-            include_str!("../measurements/resident_imasm_integration_20261012/inputs/htsx_balanced_control_208.imasm"),
-            include_str!("../measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm"),
+            std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),
+                "/measurements/resident_imasm_integration_20261012/inputs/htsx_balanced_control_208.imasm"))
+                .expect("restore the archived 208-bit source fixture before this test"),
+            include_str!("../measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm").to_owned(),
         ] {
             let source = WordTape::from_canonical_word(text.trim()).unwrap().to_biguint();
             assert!(source.bits() >= 200);

@@ -103,9 +103,12 @@ impl WordTape {
         while n != 0 { bits.push(n & 1 == 1); n >>= 1; }
         Self::from_bits(&bits)
     }
-    /// Enter directly from the canonical IMASM numeral word. This boundary
-    /// checks the word's own cells and never decodes through a host integer.
+    /// Enter from canonical native cells or hex motifs, retaining native cells.
+    /// Both boundaries read payload bits without a host-integer conversion.
     pub fn from_canonical_word(word: &str) -> Option<Self> {
+        if let Ok(bits) = vox_core::combined_factor::decode_hex_bits(word) {
+            return Some(Self::from_bits(&bits));
+        }
         let c: Vec<char> = word.chars().collect();
         if c == ['⊢', '⊙', '⊡', '⊣'] { return Some(Self(word.into())); }
         if c.len() < 9 || c[0] != VINIT || c[c.len()-3..] != [IMSCRIB, IFIX, TANCH] {

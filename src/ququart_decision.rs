@@ -142,6 +142,34 @@ mod tests {
     use super::*;
     use num_traits::One;
 
+    #[test]
+    fn source_sized_recursive_fuse_preserves_complex_product_contraction() {
+        let n=BigUint::parse_bytes(b"1250059841168840130243487524836000072035892972752915415072119",10).unwrap();
+        let width=n.bits() as usize;assert!(width>=200);
+        let mut arena=DecisionArena::new(width+2);
+        let a=arena.basis(&n,BigInt::from(3));
+        let b=arena.flip(a,0);let c=arena.flip(a,width-1);let d=arena.flip(c,0);
+        let ab=arena.sum(a,b);let cd=arena.sum(c,d);let root=arena.sum(ab,cd);
+        let left=arena.scale_words(root,&(SignedWordTape::from_bigint(&BigInt::from(-2)),
+            SignedWordTape::from_bigint(&BigInt::from(3))),0);
+        let right=arena.flip(left,0);
+        let before=arena.control_gram(&[left,right,a,b]);
+        for wire in [0,width/2,width-1,width+1] {
+            let product=arena.amplitude_product(left,right);
+            let reference=arena.contract_internal_wire(product,wire);
+            let returned=arena.contract_amplitude_product(left,right,wire);
+            assert_eq!(returned,reference,"recursive fuse changed the exact complex return at {wire}");
+            let family=arena.contract_amplitude_family(&[left,right],wire);
+            assert_eq!(family,reference,"whole-family fuse changed the exact complex return at {wire}");
+            let third=arena.amplitude_product(product,root);
+            let reference=arena.contract_internal_wire(third,wire);
+            assert_eq!(arena.contract_amplitude_family(&[left,right,root],wire),reference);
+            assert_eq!(arena.control_gram(&[left,right,a,b]),before);
+        }
+        let zero=arena.zero();
+        assert_eq!(arena.contract_amplitude_product(left,zero,0),zero);
+    }
+
     #[cfg(feature="hosted")]
     #[test]
     fn compiled_support_preserves_locked_source_register_and_reversible_recovery() {
@@ -739,8 +767,10 @@ mod composed_modular_tests {
     #[test]
     fn composed_lane_matches_nested_work_and_recovers_source_bound_complex_state() {
         for text in [
-            include_str!("../measurements/resident_imasm_integration_20261012/inputs/htsx_balanced_control_208.imasm"),
-            include_str!("../measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm"),
+            std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),
+                "/measurements/resident_imasm_integration_20261012/inputs/htsx_balanced_control_208.imasm"))
+                .expect("restore the archived 208-bit source fixture before this test"),
+            include_str!("../measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm").to_owned(),
         ] {
             let source = WordTape::from_canonical_word(text.trim()).unwrap();
             assert!(source.bit_len()>=200);
@@ -815,6 +845,8 @@ mod composed_modular_tests {
 #[derive(Clone)]
 enum SupportStorage {
     Owned(Arc<BigUint>),
+    Sparse(Arc<Vec<u64>>),
+    CompiledSparse(&'static[u64]),
     Compiled(&'static [u32]),
 }
 #[derive(Clone)]
@@ -826,6 +858,8 @@ impl SupportMask {
         match &self.0 {
             None=>false,
             Some(SupportStorage::Owned(value))=>value.bit(wire),
+            Some(SupportStorage::Sparse(wires))=>wires.binary_search(&wire).is_ok(),
+            Some(SupportStorage::CompiledSparse(wires))=>wires.binary_search(&wire).is_ok(),
             Some(SupportStorage::Compiled(digits))=>usize::try_from(wire/32).ok()
                 .and_then(|index|digits.get(index)).is_some_and(|digit|digit & (1u32 << (wire%32))!=0),
         }
@@ -834,11 +868,27 @@ impl SupportMask {
         match &self.0 {
             None=>BigUint::zero(),
             Some(SupportStorage::Owned(value))=>(**value).clone(),
+            Some(SupportStorage::Sparse(wires))=>{
+                let mut value=BigUint::zero();
+                for &wire in wires.iter(){value.set_bit(wire,true);}
+                value
+            },
+            Some(SupportStorage::CompiledSparse(wires))=>{
+                let mut value=BigUint::zero();for &wire in *wires{value.set_bit(wire,true);}value
+            },
             Some(SupportStorage::Compiled(digits))=>BigUint::new(digits.to_vec()),
         }
     }
     fn intersection(&self, other: &Self) -> Self {
         let (Some(left),Some(right)) = (&self.0,&other.0) else { return Self(None); };
+        let sparse=match left {SupportStorage::Sparse(wires)=>Some(wires.as_slice()),
+            SupportStorage::CompiledSparse(wires)=>Some(*wires),_=>None};
+        if let Some(wires)=sparse {
+            let common:Vec<_>=wires.iter().copied().filter(|&wire|other.bit(wire)).collect();
+            if common.len()==wires.len(){return self.clone();}
+            return if common.is_empty(){Self(None)}else{Self(Some(SupportStorage::Sparse(Arc::new(common))))};
+        }
+        if matches!(right,SupportStorage::Sparse(_)|SupportStorage::CompiledSparse(_)){return other.intersection(self);}
         let value=match (left,right) {
             (SupportStorage::Owned(left),SupportStorage::Owned(right))=>{
                 if Arc::ptr_eq(left,right) {return self.clone();}
@@ -854,10 +904,40 @@ impl SupportMask {
     }
     fn set_bit(&mut self, wire: u64) {
         if self.bit(wire) {return;}
+        if self.0.is_none(){
+            self.0=Some(SupportStorage::Sparse(Arc::new(alloc::vec![wire])));return;
+        }
+        if let Some(SupportStorage::CompiledSparse(wires))=&self.0 {
+            self.0=Some(SupportStorage::Sparse(Arc::new(wires.to_vec())));
+        }
+        if let Some(SupportStorage::Sparse(wires))=&mut self.0 {
+            if wires.len()<64 {
+                let wires=Arc::make_mut(wires);
+                let at=wires.binary_search(&wire).unwrap_err();wires.insert(at,wire);return;
+            }
+        }
         if !matches!(self.0,Some(SupportStorage::Owned(_))) {
             self.0=Some(SupportStorage::Owned(Arc::new(self.value())));
         }
         if let Some(SupportStorage::Owned(storage))=&mut self.0 {Arc::make_mut(storage).set_bit(wire,true);}
+    }
+    fn wires(&self)->Vec<u64>{
+        match &self.0 {
+            None=>Vec::new(),Some(SupportStorage::Sparse(wires))=>(**wires).clone(),
+            Some(SupportStorage::CompiledSparse(wires))=>wires.to_vec(),
+            Some(SupportStorage::Owned(value))=>{
+                let mut out=Vec::new();
+                for (i,mut limb) in value.iter_u64_digits().enumerate(){while limb!=0{
+                    out.push(i as u64*64+limb.trailing_zeros() as u64);limb&=limb-1;
+                }}out
+            },
+            Some(SupportStorage::Compiled(limbs))=>{
+                let mut out=Vec::new();
+                for (i,&limb) in limbs.iter().enumerate(){let mut limb=limb;while limb!=0{
+                    out.push(i as u64*32+limb.trailing_zeros() as u64);limb&=limb-1;
+                }}out
+            },
+        }
     }
 }
 
@@ -1001,6 +1081,11 @@ impl DecisionArena {
     pub fn zero(&mut self) -> usize {
         self.intern(Node::Leaf(SignedWordTape::zero(), SignedWordTape::zero()))
     }
+    pub fn fixed_cell_value(&self,root:usize,wire:usize)->Option<bool> {
+        if self.fixed[root].empty {return None;}
+        if self.fixed[root].zero.bit(wire as u64){Some(false)}
+        else if self.fixed[root].one.bit(wire as u64){Some(true)}else{None}
+    }
     /// Import a retained amplitude function into a disjoint cell range.
     /// Unaddressed cells remain free; no basis branches are enumerated.
     pub fn import_shifted(&mut self, source: &Self, root: usize, offset: usize)
@@ -1028,6 +1113,10 @@ impl DecisionArena {
     /// Multiply amplitude functions pointwise. On disjoint imported ranges
     /// this is their tensor product in one resident diagram.
     pub fn amplitude_product(&mut self, first: usize, second: usize) -> usize {
+        self.amplitude_product_cached(first,second,&mut OperationCache::default())
+    }
+    fn amplitude_product_cached(&mut self, first:usize, second:usize,
+        memo:&mut OperationCache<(usize,usize),usize>)->usize {
         fn visit(arena: &mut DecisionArena, first: usize, second: usize,
             memo: &mut OperationCache<(usize,usize), usize>) -> usize {
             if let Some(&result) = memo.get(&(first,second)) { return result; }
@@ -1051,7 +1140,7 @@ impl DecisionArena {
             memo.insert((first,second),result);
             result
         }
-        visit(self,first,second,&mut OperationCache::default())
+        visit(self,first,second,memo)
     }
 
     /// Rename physical cells without changing any amplitude or free branch.
@@ -1780,7 +1869,7 @@ impl DecisionArena {
         controls: &[(usize, bool)]) -> usize {
         self.add_constant_word(root, register, &WordTape::from_biguint(value), controls)
     }
-    fn add_constant_word(&mut self, root: usize, register: &[usize], value: &WordTape,
+    pub(crate) fn add_constant_word(&mut self, root: usize, register: &[usize], value: &WordTape,
         controls: &[(usize, bool)]) -> usize {
         if !self.controls_possible(root,controls) || value.is_zero() { return root; }
         fn visit(arena: &mut DecisionArena, id: usize, register: &[usize], value: &WordTape,
@@ -1905,6 +1994,102 @@ impl DecisionArena {
             result
         }
         visit(self,root,source,memo)
+    }
+
+    /// Contract an internal tensor wire. This sums its two amplitudes;
+    /// callers retain source wires and return to the original carrier boundary.
+    pub fn contract_internal_wire(&mut self, root: usize, wire: usize) -> usize {
+        assert!(wire < self.cells);
+        let (low,high)=self.source_cofactors(root,wire,&mut OperationCache::default());
+        self.sum(low,high)
+    }
+
+    /// Recognize an exact unit copy/complement tensor, not a weighted or
+    /// partial relation. Its two accepted arms each have amplitude one.
+    pub fn unit_copy_relation(&self, root:usize, first:usize, second:usize)->Option<bool> {
+        let (a,b)=if first<second {(first,second)}else{(second,first)};
+        if a==b {return None;}
+        let Node::Branch{wire,low,high}=*self.node(root) else {return None;};
+        if wire!=a {return None;}
+        let pair=|root|match *self.node(root){
+            Node::Branch{wire,low,high} if wire==b=>Some((low,high)),_=>None};
+        let (ll,lh)=pair(low)?;let (hl,hh)=pair(high)?;
+        let one=SignedWordTape::from_bigint(&BigInt::one());
+        let value=|root|match self.node(root){
+            Node::Leaf(re,im) if im.is_zero()&&re.is_zero()=>Some(false),
+            Node::Leaf(re,im) if im.is_zero()&&*re==one=>Some(true),_=>None};
+        match (value(ll)?,value(lh)?,value(hl)?,value(hh)?){
+            (true,false,false,true)=>Some(false),
+            (false,true,true,false)=>Some(true),_=>None,
+        }
+    }
+
+    /// Fuse two incident tensors directly through their shared internal wire.
+    /// Splitting before multiplication avoids retaining a joined copy of the
+    /// very coordinate this return eliminates.
+    pub fn contract_amplitude_product(&mut self, first:usize, second:usize, wire:usize)->usize {
+        assert!(wire<self.cells);
+        fn visit(arena:&mut DecisionArena,a:usize,b:usize,wire:usize,
+            returned:&mut OperationCache<(usize,usize),usize>,
+            products:&mut OperationCache<(usize,usize),usize>)->usize {
+            if let Some(&root)=returned.get(&(a,b)){return root;}
+            let zero=arena.zero();
+            if a==zero||b==zero{return zero;}
+            let next=arena.top(a).into_iter().chain(arena.top(b)).min();
+            let result=if next.is_some_and(|next|next<wire) {
+                let next=next.unwrap();
+                let (al,ah)=arena.split(a,next);let (bl,bh)=arena.split(b,next);
+                let low=visit(arena,al,bl,wire,returned,products);
+                let high=visit(arena,ah,bh,wire,returned,products);
+                arena.branch(next,low,high)
+            }else{
+                let (al,ah)=arena.split(a,wire);let (bl,bh)=arena.split(b,wire);
+                let low=arena.amplitude_product_cached(al,bl,products);
+                let high=arena.amplitude_product_cached(ah,bh,products);
+                arena.sum(low,high)
+            };
+            returned.insert((a,b),result);result
+        }
+        visit(self,first,second,wire,&mut OperationCache::default(),&mut OperationCache::default())
+    }
+
+    /// One shared split/work/fuse over the complete incident tensor family.
+    /// No prefix product is materialized before the split reaches its wire.
+    pub fn contract_amplitude_family(&mut self, roots:&[usize], wire:usize)->usize {
+        assert!(!roots.is_empty()&&wire<self.cells);
+        fn visit(arena:&mut DecisionArena,mut roots:Vec<usize>,wire:usize,contract:bool,
+            memo:&mut OperationCache<(Vec<usize>,bool),usize>)->usize {
+            roots.sort_unstable();
+            let key=(roots.clone(),contract);
+            if let Some(&root)=memo.get(&key){return root;}
+            let zero=arena.zero();
+            if roots.contains(&zero){return zero;}
+            let next=roots.iter().filter_map(|&root|arena.top(root)).min();
+            let result=if contract&&next.is_none_or(|next|next>wire) {
+                let root=visit(arena,roots,wire,false,memo);
+                arena.sum(root,root)
+            }else if let Some(next)=next {
+                let mut low=Vec::with_capacity(roots.len());let mut high=Vec::with_capacity(roots.len());
+                for root in roots {
+                    let arms=arena.split(root,next);low.push(arms.0);high.push(arms.1);
+                }
+                let eliminate=contract&&next==wire;
+                let low=visit(arena,low,wire,contract&&!eliminate,memo);
+                let high=visit(arena,high,wire,contract&&!eliminate,memo);
+                if eliminate {arena.sum(low,high)}else{arena.branch(next,low,high)}
+            }else{
+                // All leaves: multiply exact complex scalars, once.
+                let mut value=(SignedWordTape::from_bigint(&BigInt::one()),SignedWordTape::zero());
+                for root in roots {
+                    let Node::Leaf(re,im)=arena.node(root) else {unreachable!()};
+                    value=(value.0.mul(re).sub(&value.1.mul(im)),
+                        value.0.mul(im).add(&value.1.mul(re)));
+                }
+                arena.intern(Node::Leaf(value.0,value.1))
+            };
+            memo.insert(key,result);result
+        }
+        visit(self,roots.to_vec(),wire,true,&mut OperationCache::default())
     }
 
     /// Split only live source-digit arms, translate each complete digit once,
@@ -2323,6 +2508,24 @@ impl DecisionArena {
         self.nodes.len() - self.free.len()
     }
 
+    /// Return from summed auxiliary coordinates to the original carrier.
+    /// The supplied live banks must be independent of every removed wire.
+    /// No coefficient, source coordinate or bank root is reconstructed.
+    pub(crate) fn return_contracted_boundary(&mut self,roots:&[usize],cells:usize)->Result<(),String>{
+        if roots.is_empty() || cells>self.cells {
+            return Err("invalid contracted register boundary".into());
+        }
+        let mut pending=roots.to_vec();let mut seen=alloc::collections::BTreeSet::new();
+        while let Some(root)=pending.pop(){
+            if !seen.insert(root){continue;}
+            if let Node::Branch{wire,low,high}=self.node(root){
+                if *wire>=cells{return Err("contracted boundary retains an auxiliary wire".into());}
+                pending.extend([*low,*high]);
+            }
+        }
+        self.cells=cells;Ok(())
+    }
+
     #[cfg(feature = "hosted")]
     pub(crate) fn prepared_record(&self, root: usize) -> serde_json::Value {
         self.prepared_record_many(&[root])
@@ -2330,11 +2533,20 @@ impl DecisionArena {
 
     #[cfg(feature = "hosted")]
     pub(crate) fn prepared_record_many(&self, roots: &[usize]) -> serde_json::Value {
+        self.register_record_many(roots,false)
+    }
+    #[cfg(feature="hosted")]
+    pub(crate) fn compiled_record_many(&self,roots:&[usize])->serde_json::Value{
+        self.register_record_many(roots,true)
+    }
+    #[cfg(feature="hosted")]
+    fn register_record_many(&self,roots:&[usize],sparse:bool)->serde_json::Value{
         assert!(!roots.is_empty());
         let mut order = Vec::new();
         let mut indices = OperationCache::default();
         let mut masks = Vec::new();
         let mut mask_indices = OperationCache::default();
+        let mut sparse_indices = OperationCache::default();
         let mut fixed = Vec::new();
         let mut pending: Vec<_> = roots.iter().rev().map(|&root| (root,false)).collect();
         while let Some((id,returned)) = pending.pop() {
@@ -2352,19 +2564,25 @@ impl DecisionArena {
                 indices.insert(id,order.len()); order.push(node);
                 let support = &self.fixed[id];
                 let mut address = |mask: &SupportMask| {
-                    let value = mask.value();
-                    if let Some(&index) = mask_indices.get(&value) { return index; }
-                    let index = masks.len();
-                    masks.push(value.to_u32_digits());
-                    mask_indices.insert(value, index);
-                    index
+                    if sparse {
+                        let wires=mask.wires();
+                        if let Some(&index)=sparse_indices.get(&wires){return index;}
+                        let index=masks.len();masks.push(serde_json::json!(wires));
+                        sparse_indices.insert(wires,index);index
+                    }else{
+                        let value = mask.value();
+                        if let Some(&index) = mask_indices.get(&value) { return index; }
+                        let index = masks.len();
+                        masks.push(serde_json::json!(value.to_u32_digits()));
+                        mask_indices.insert(value, index);index
+                    }
                 };
                 fixed.push((support.empty, address(&support.zero), address(&support.one)));
             }
         }
-        serde_json::json!({"cells":self.cells,"root":indices[&roots[0]],
-            "roots":roots.iter().map(|root| indices[root]).collect::<Vec<_>>(),"nodes":order,
-            "support_masks":masks,"fixed":fixed})
+        let mut result=serde_json::json!({"cells":self.cells,"root":indices[&roots[0]],
+            "roots":roots.iter().map(|root| indices[root]).collect::<Vec<_>>(),"nodes":order,"fixed":fixed});
+        result[if sparse {"support_wires"}else{"support_masks"}]=serde_json::json!(masks);result
     }
 
     #[cfg(feature = "hosted")]
@@ -2400,6 +2618,18 @@ impl DecisionArena {
                 let mask = |slot:usize| -> Result<BigUint,String> {
                     let id=row[slot].as_u64().and_then(|id|usize::try_from(id).ok())
                         .ok_or("invalid prepared support address")?;
+                    if let Some(pool)=record.get("support_wires"){
+                        let wires=pool[id].as_array().ok_or("prepared sparse support escaped its pool")?;
+                        let mut mask=BigUint::zero();let mut previous=None;
+                        for wire in wires {
+                            let wire=wire.as_u64().ok_or("invalid prepared sparse coordinate")?;
+                            if wire>=arena.cells as u64||previous.is_some_and(|old|old>=wire){
+                                return Err("prepared sparse support lost its coordinate order".into());
+                            }
+                            mask.set_bit(wire,true);previous=Some(wire);
+                        }
+                        return Ok(mask);
+                    }
                     let digits=record["support_masks"][id].as_array().ok_or("prepared support escaped its pool")?
                         .iter().map(|digit| digit.as_u64().and_then(|n|u32::try_from(n).ok())
                             .ok_or_else(||String::from("invalid prepared support limb")))
@@ -2425,7 +2655,10 @@ impl DecisionArena {
     }
 
     pub(crate) fn from_baked_nodes(cells:usize,root:usize,rows:&[crate::baked_resident::BakedNode],support:&crate::baked_resident::BakedSupport) -> Result<(Self,usize),String> {
-        use crate::baked_resident::BakedNode;
+        let (arena,roots)=Self::from_baked_nodes_many(cells,&[root],rows,support)?;
+        Ok((arena,roots[0]))
+    }
+    pub(crate) fn from_baked_nodes_many(cells:usize,roots:&[usize],rows:&[crate::baked_resident::BakedNode],support:&crate::baked_resident::BakedSupport) -> Result<(Self,Vec<usize>),String> {
         if support.fixed.len()!=rows.len() {return Err("compiled support lost its register binding".into());}
         let limbs=support.limbs;
         let masks: Vec<_> = support.spans.iter().map(|&(start,end)| {
@@ -2433,13 +2666,29 @@ impl DecisionArena {
             if digits.last()==Some(&0) {return Err(String::from("compiled support lost its normalized limb boundary"));}
             Ok(if digits.is_empty() {SupportMask(None)} else {SupportMask(Some(SupportStorage::Compiled(digits)))})
         }).collect::<Result<_,String>>()?;
+        Self::from_baked_masks(cells,roots,rows,support.fixed,masks)
+    }
+    #[cfg(feature="hosted")]
+    pub(crate) fn from_baked_sparse_nodes(cells:usize,roots:&[usize],rows:&[crate::baked_resident::BakedNode],support:&crate::baked_point::BakedSparseSupport)->Result<(Self,Vec<usize>),String>{
+        let masks=support.spans.iter().map(|&(start,end)|{
+            let wires=support.wires.get(start..end).ok_or("compiled sparse support escaped its pool")?;
+            if wires.iter().any(|&wire|wire>=cells as u64)||wires.windows(2).any(|pair|pair[0]>=pair[1]){
+                return Err("compiled sparse support lost its coordinate order".into());
+            }
+            Ok(if wires.is_empty(){SupportMask(None)}else{SupportMask(Some(SupportStorage::CompiledSparse(wires)))})
+        }).collect::<Result<Vec<_>,String>>()?;
+        Self::from_baked_masks(cells,roots,rows,support.fixed,masks)
+    }
+    fn from_baked_masks(cells:usize,roots:&[usize],rows:&[crate::baked_resident::BakedNode],fixed_rows:&[(bool,usize,usize)],masks:Vec<SupportMask>)->Result<(Self,Vec<usize>),String>{
+        use crate::baked_resident::BakedNode;
+        if fixed_rows.len()!=rows.len(){return Err("compiled support lost its register binding".into());}
         let mut arena=Self::new(cells);
         arena.nodes.reserve(rows.len());
         arena.fixed.reserve(rows.len());
         arena.references.reserve(rows.len());
         arena.created.reserve(rows.len());
         let mut nodes=Vec::with_capacity(rows.len());
-        for (row,&(empty,zero,one)) in rows.iter().zip(support.fixed) {
+        for (row,&(empty,zero,one)) in rows.iter().zip(fixed_rows) {
             let fixed=FixedBits {empty,
                 zero:masks.get(zero).ok_or("compiled zero support escaped its pool")?.clone(),
                 one:masks.get(one).ok_or("compiled one support escaped its pool")?.clone()};
@@ -2458,8 +2707,9 @@ impl DecisionArena {
             if arena.unique.get(&node).is_some() {return Err("compiled register repeated a reduced node".into());}
             nodes.push(arena.intern_fixed(node,fixed));
         }
-        let root=*nodes.get(root).ok_or("compiled register lost its root")?;
-        Ok((arena,root))
+        let roots=roots.iter().map(|root|nodes.get(*root).copied()
+            .ok_or_else(||String::from("compiled register lost its bank"))).collect::<Result<Vec<_>,_>>()?;
+        Ok((arena,roots))
     }
     #[cfg(test)]
     pub fn amplitude(&self, mut root: usize, value: &BigUint) -> (BigInt, BigInt) {

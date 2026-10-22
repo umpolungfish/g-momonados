@@ -18,6 +18,7 @@ impl BinaryWell {
     }
     pub fn depth(&self)->usize {self.digits.iter().filter(|&&cell|cell=='⊥').count()}
     pub fn width(&self)->usize {self.digits.len()}
+    pub(crate) fn prepared_digits(&self)->&[char]{&self.digits}
     pub fn record(&self)->Value {json!({"digits_low_first":self.digits.iter().map(|&cell|u8::from(cell=='⊥')).collect::<Vec<_>>(),
         "depth":self.depth(),"evaluation":self.evaluate().to_biguint().to_string()})}
 }
@@ -39,6 +40,11 @@ impl MultiplicativeWell {
 #[derive(Clone)]
 pub struct SourceWells { source:WordTape, pub binary:BinaryWell, named_product:MultiplicativeWell }
 impl SourceWells {
+    pub(crate) fn from_baked(source:&'static str,digits:&[char])->Result<Self,String>{
+        let source=WordTape::from_compiled_word(source).ok_or("compiled source well lost its word")?;
+        Ok(Self{binary:BinaryWell{digits:digits.to_vec()},
+            named_product:MultiplicativeWell::singleton(source.clone()),source})
+    }
     pub fn new(source:WordTape)->Result<Self,String>{
         if source.is_zero(){return Err("zero has no proper factor boundary".into());}
         let binary=BinaryWell::from_word(&source);

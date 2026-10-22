@@ -1724,14 +1724,7 @@ pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
     )?;
     let native = raw_source.starts_with('⊢');
     let numeral = |raw: &str| -> Result<BigUint, String> {
-        let read = g_momonados::godel_calculus::decode(raw).map_err(|error| error.to_string())?;
-        if !matches!(read.structure, g_momonados::godel_calculus::Structure::CellBinary { .. })
-            || g_momonados::godel_calculus::encode_cell_binary(&read.value) != raw {
-            return Err("compiler input must be a canonical IMASM numeral word".into());
-        }
-        Ok(read.value.bits_le().iter().enumerate().fold(BigUint::zero(), |value, (bit, set)| {
-            if *set { value | (BigUint::one() << bit) } else { value }
-        }))
+        g_momonados::godel_calculus::decode_cell_biguint(raw)
     };
     let source = if native { numeral(raw_source)? } else {
         BigUint::parse_bytes(raw_source.as_bytes(), 10).ok_or("invalid source")?

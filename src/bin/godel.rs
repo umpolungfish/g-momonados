@@ -1,5 +1,14 @@
 use imasm_core::imasm16_3::{leq_c, leq_i, Reg16_3};
-use vox_core::{godel_analyzer, godel_calculus, godel_product};
+extern crate alloc;
+pub use vox_core::vox;
+#[path = "../godel_calculus.rs"]
+#[allow(dead_code)]
+#[allow(unused_imports)]
+mod godel_calculus;
+#[path = "../godel_analyzer.rs"]
+#[allow(dead_code)]
+mod godel_analyzer;
+use vox_core::godel_product;
 
 fn support_pattern_state(bits_le: &str, frame_width: usize) -> Reg16_3 {
     let symbols = frame_codes(bits_le, frame_width);
@@ -141,7 +150,7 @@ fn frame_operation_with_kernel(args: &[&str]) -> Result<String, String> {
 
 fn analyze_with_kernel(args: &[&str]) -> Result<String, String> {
     let raw = args.get(1).ok_or_else(|| {
-        "godel analyze <natural-number|cell-binary-word> [sieve-window=8]".to_string()
+        "godel analyze <natural-number|native-or-hex-word> [sieve-window=8]".to_string()
     })?;
     let value = godel_analyzer::parse_input(raw)?;
     let sieve_width = args
@@ -153,7 +162,27 @@ fn analyze_with_kernel(args: &[&str]) -> Result<String, String> {
     let sieve = godel_calculus::prime_sieve_read(&value, sieve_width)?;
     let factor_pair = godel_calculus::factor_pair_read(&value, &sieve, sieve_width)?;
     let closure_state = semiprime_closure_state(factor_pair.as_ref());
-    let analysis = godel_analyzer::analyze_with_sieve(&value, None, Some(sieve.clone()))?;
+    let tested = sieve.tested_primes.to_string().parse::<usize>()
+        .map_err(|_| "analyzer sieve count exceeds addressable memory")?;
+    let analyzer_sieve = if value.is_zero() {
+        godel_analyzer::PrimeSieveRead::Zero
+    } else if value == godel_calculus::Nat::one() {
+        godel_analyzer::PrimeSieveRead::Unit
+    } else if let Some(divisor) = &sieve.divisor {
+        if divisor == &value {
+            godel_analyzer::PrimeSieveRead::Prime { tested_primes: tested }
+        } else {
+            let (q, remainder) = value.div_rem(divisor).ok_or("sieve division failed")?;
+            if !remainder.is_zero() { return Err("sieve divisor has a remainder".into()); }
+            godel_analyzer::PrimeSieveRead::Factor { p: divisor.clone(), q, tested_primes: tested }
+        }
+    } else {
+        godel_analyzer::PrimeSieveRead::Bounded {
+            aperture: sieve.aperture.to_string().parse::<usize>()
+                .map_err(|_| "analyzer aperture exceeds addressable memory")?,
+            tested_primes: tested }
+    };
+    let analysis = godel_analyzer::analyze_with_sieve(&value, None, Some(analyzer_sieve))?;
     let codec = codec_support_state(&analysis.assertions);
     // Every frame regroups the same support stream. Keep each adjacent kernel
     // order read, including false relations, instead of collapsing the sweep.
@@ -248,7 +277,7 @@ fn dispatch(args: &[&str]) -> Result<String, String> {
     match args.first().copied().unwrap_or("help") {
         "analyze" => analyze_with_kernel(args),
         "frame-op" => frame_operation_with_kernel(args),
-        "lte2" => godel_analyzer::command(args),
+        "lte2" => vox_core::godel_analyzer::command(args),
         "product" | "frame" | "shiab" | "separate" | "factor" => godel_product::command(args),
         "selftest" | "verify" => {
             let mut out = godel_calculus::selftest_report()?;
@@ -258,11 +287,11 @@ fn dispatch(args: &[&str]) -> Result<String, String> {
         }
         "help" | "-h" | "--help" => Ok(format!(
             "{}{}{}",
-            godel_calculus::help(),
+            vox_core::godel_calculus::help(),
             godel_analyzer::help_addendum(),
             godel_product::help_addendum()
         )),
-        _ => godel_calculus::command(args),
+        _ => vox_core::godel_calculus::command(args),
     }
 }
 
@@ -417,7 +446,7 @@ mod tests {
             let parsed_value = godel_analyzer::parse_input(value).unwrap();
             let sieve = godel_calculus::prime_sieve_read(&parsed_value, 8).unwrap();
             let analysis =
-                godel_analyzer::analyze_with_sieve(&parsed_value, None, Some(sieve.clone()))
+                godel_analyzer::analyze_with_sieve(&parsed_value, None, None)
                     .unwrap();
             assert_eq!(analysis.bits_le.len(), bitlength);
             assert!(analysis.assertions.all());
