@@ -1,0 +1,21 @@
+warning: Target and debugger are in different PID namespaces; thread lists and other data are likely unreliable.  Connect to gdbserver inside the container.
+1637	./malloc/malloc.c: No such file or directory.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+unlink_chunk (p=p@entry=0x62a4c3152d00, av=0x7f6fdc81ac80 <main_arena>) at ./malloc/malloc.c:1637
+
+Thread 1 (Thread 0x7f6fdc9b2040 (LWP 22876) "build-script-bu"):
+#0  unlink_chunk (p=p@entry=0x62a4c3152d00, av=0x7f6fdc81ac80 <main_arena>) at ./malloc/malloc.c:1637
+#1  0x00007f6fdc6a45eb in _int_malloc (av=av@entry=0x7f6fdc81ac80 <main_arena>, bytes=bytes@entry=40) at ./malloc/malloc.c:4307
+#2  0x00007f6fdc6a5222 in __GI___libc_malloc (bytes=40) at ./malloc/malloc.c:3321
+#3  0x000062a38da109e2 in <build_script_build::membrane::ququart_decision::SupportMask>::intersection ()
+#4  0x000062a38da1b30f in _RNvMs5_NtNtCsiDYnjzgWnRf_18build_script_build8membrane16ququart_decisionNtB5_13DecisionArena6intern.llvm.15263485630259285200 ()
+#5  0x000062a38da1adbb in <build_script_build::membrane::ququart_decision::DecisionArena>::branch ()
+#6  0x000062a38da23e00 in _RNvNvMs5_NtNtCsiDYnjzgWnRf_18build_script_build8membrane16ququart_decisionNtB7_13DecisionArena25contract_amplitude_family5visit.llvm.15263485630259285200 ()
+#7  0x000062a38da23dd4 in _RNvNvMs5_NtNtCsiDYnjzgWnRf_18build_script_build8membrane16ququart_decisionNtB7_13DecisionArena25contract_amplitude_family5visit.llvm.15263485630259285200 ()
+#8  0x000062a38da23dd4 in _RNvNvMs5_NtNtCsiDYnjzgWnRf_18build_script_build8membrane16ququart_decisionNtB7_13DecisionArena25contract_amplitude_family5visit.llvm.15263485630259285200 ()
+#9  0x000062a38da23dd4 in _RNvNvMs5_NtNtCsiDYnjzgWnRf_18build_script_build8membrane16ququart_decisionNtB7_13DecisionArena25contract_amplitude_family5visit.llvm.15263485630259285200 ()
+#10 0x000062a38da23d4d in _RNvNvMs5_NtNtCsiDYnjzgWnRf_18build_script_build8membrane16ququart_decisionNtB7_13DecisionArena25contract_amplitude_family5visit.llvm.15263485630259285200 ()
+#11 0x000062a38da23dd4 in _RNvNvMs5_NtNtCsiDYnjzgWnRf_18build_script_build8membrane16ququart_decisionNtB7_13DecisionArena25contract_amplitude_family5visit.llvm.15263485630259285200 ()
+[Inferior 1 (process 22876) detached]
+

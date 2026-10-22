@@ -464,8 +464,9 @@ mod tests {
     #[test]
     #[ignore = "bounded locked-source 512-bit integration; run explicitly within the hard-semiprime battery"]
     fn source_phase_closure_retains_continuation_and_open_membrane() {
-        let clocks: serde_json::Value = serde_json::from_str(include_str!(
-            "../measurements/membrane_reentry_20261010/certified_clocks.json")).unwrap();
+        let clocks: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),
+            "/measurements/membrane_reentry_20261010/certified_clocks.json"))
+            .expect("restore the archived clock fixture before this ignored integration test")).unwrap();
         let clock = clocks["clocks"].as_array().unwrap().iter().find(|r|
             r["retained"].as_u64()==Some(0) && r["seed"].as_u64()==Some(1)).unwrap();
         for open in [false,true] {

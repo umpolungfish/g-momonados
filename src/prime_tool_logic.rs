@@ -7,7 +7,7 @@ use crate::godel_analyzer::{
     analyze_with_sieve, prime_sieve_read, render as render_analysis, DivisorBoundCertificate,
     PrimeSieveRead,
 };
-use crate::godel_calculus::{decode, encode_cell_binary, DecodeError, Family, Nat};
+use crate::godel_calculus::{decode, encode_cell_binary, Family, Nat};
 
 const PRIME_PROTOCOL_WORD: &str = "⊢⊙∈⊤≻⋈⊥≺∋⊞⊡⊣";
 
@@ -20,16 +20,7 @@ pub struct PrimeReport {
 }
 
 pub fn process_prime(raw_input: &str) -> Result<PrimeReport, String> {
-    let value = if raw_input.starts_with('⊢') {
-        let reading = decode(raw_input).map_err(|e: DecodeError| e.to_string())?;
-        if reading.family != Family::CellBinary {
-            return Err("Input must be a cell-binary word or decimal natural".into());
-        }
-        reading.value
-    } else {
-        Nat::from_decimal(raw_input)
-            .ok_or_else(|| format!("Invalid natural number: {}", raw_input))?
-    };
+    let value = crate::godel_analyzer::parse_input(raw_input)?;
 
     let word = encode_cell_binary(&value);
 

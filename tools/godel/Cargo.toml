@@ -1,0 +1,16 @@
+[package]
+name = "godel-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "godel"
+path = "../../src/bin/godel.rs"
+
+[dependencies]
+vox_core = { package = "vox", path = "../../../Vox", default-features = false }
+imasm_core = { path = "../../vendor/imasm_core", default-features = false }
+num-bigint = { version = "0.4", default-features = false }
+
+[profile.release]
+opt-level = 3

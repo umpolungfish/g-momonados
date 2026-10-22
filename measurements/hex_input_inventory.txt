@@ -1,0 +1,127 @@
+Vox/src/membrane_factor.rs:45:fn native_word(n: &BigUint) -> String {
+Vox/src/membrane_factor.rs:73:fn decode_native_word(word: &str) -> Result<BigUint, String> {
+Vox/src/membrane_factor.rs:83:    if body.len() % 5 != 0 { return Err("native word has a partial bit cell".into()); }
+Vox/src/membrane_factor.rs:85:        return Err("native word has a leading zero bit or no bit cells".into());
+Vox/src/membrane_factor.rs:110:/// one. This is separate from native-word ROTAT period, which equals the full
+Vox/src/membrane_factor.rs:200:        return Ok("vox factor-membrane <decimal|0xHEX|--hex-word WORD|--native-word WORD> [--factors P Q]\n\
+Vox/src/membrane_factor.rs:212:            "--hex-word" | "--native-word" => {
+Vox/src/membrane_factor.rs:216:                source = Some(if flag == "--hex-word" { decode_hex_word(value)? } else { decode_native_word(value)? });
+Vox/src/membrane_factor.rs:285:    let native = native_word(&n);
+Vox/src/membrane_factor.rs:288:    out.push_str(&format!("native word = {native}\n"));
+Vox/src/membrane_factor.rs:289:    out.push_str(&format!("native word glyph count = {native_glyphs}\nnative ROTAT period = {native_period}\n"));
+Vox/src/membrane_factor.rs:290:    out.push_str(&format!("period equals native word length = {}\n", native_period == native_glyphs));
+Vox/src/membrane_factor.rs:292:    out.push_str(&format!("roundtrip native-word = {}\n", decode_native_word(&native)? == n));
+Vox/src/membrane_factor.rs:325:            "--hex-word" | "--native-word" => {
+Vox/src/membrane_factor.rs:329:                source = Some(if flag == "--hex-word" { decode_hex_word(value)? } else { decode_native_word(value)? });
+Vox/src/membrane_factor.rs:357:        assert_eq!(decode_native_word(&native_word(&n)).unwrap(), n);
+Vox/src/membrane_factor.rs:412:            let word = native_word(&n);
+Vox/src/membrane_factor.rs:418:            let word = native_word(&BigUint::from(value));
+Vox/src/combined_factor.rs:55:pub fn native_word(n: &BigUint) -> String {
+Vox/src/combined_factor.rs:68:pub fn decode_native_word(word: &str) -> Result<BigUint, String> {
+Vox/src/combined_factor.rs:78:    if body.len() % 5 != 0 { return Err("native word has a partial bit cell".into()); }
+Vox/src/combined_factor.rs:80:        return Err("native word has a leading zero bit or no bit cells".into());
+Vox/src/combined_factor.rs:203:    let val = decode_native_word(word)?;
+Vox/src/combined_factor.rs:207:    Ok(native_word(&rot_val))
+Vox/src/combined_factor.rs:251:/// Gamma on native words: interlaces two canonical native words.
+Vox/src/combined_factor.rs:253:    let p = decode_native_word(w_p)?;
+Vox/src/combined_factor.rs:254:    let q = decode_native_word(w_q)?;
+Vox/src/combined_factor.rs:256:    Ok(native_word(&from_bits_le(&merged)))
+Vox/src/combined_factor.rs:259:/// Lambda on a native word: deinterlaces into even and odd cell lanes.
+Vox/src/combined_factor.rs:261:    let n = decode_native_word(w)?;
+Vox/src/combined_factor.rs:263:    Ok((native_word(&from_bits_le(&p_bits)), native_word(&from_bits_le(&q_bits))))
+Vox/src/combined_factor.rs:522:    let rotated_word = native_word(&rot_val);
+Vox/src/combined_factor.rs:526:        native_word(&from_bits_le(&p_lane_bits)),
+Vox/src/combined_factor.rs:527:        native_word(&from_bits_le(&q_lane_bits)),
+Vox/src/combined_factor.rs:533:        .map(|lane| native_word(&from_bits_le(lane)))
+Vox/src/combined_factor.rs:564:    let w_n = native_word(n);
+Vox/src/combined_factor.rs:565:    let w_p = native_word(p);
+Vox/src/combined_factor.rs:566:    let w_q = native_word(q);
+Vox/src/combined_factor.rs:772:    out.push_str(&format!("native word = {}\n", res.syzygy.w_n));
+Vox/src/combined_factor.rs:774:    out.push_str(&format!("roundtrip native-word = {}\n", decode_native_word(&res.syzygy.w_n).map(|x| x == *n).unwrap_or(false)));
+Vox/src/godel_calculus.rs:699:     godel decode <native-word|hex-digit-word>\n\
+Vox/src/godel_calculus.rs:702:     godel unbraid <natural-number|native-word|hex-digit-word>\n\
+Vox/src/godel_calculus.rs:706:     Numeric inputs accept decimal naturals, native words and hex-digit words.\n\
+G-mOMonadOS/src/bin/ququart_work_probe_baked.rs:6:    godel_calculus::decode_cell_biguint};
+G-mOMonadOS/src/bin/ququart_work_probe_baked.rs:13:    let read = |key: &str| decode_cell_biguint(prepared[key].as_str().ok_or_else(|| format!("missing {key}"))?);
+G-mOMonadOS/src/bin/membrane.rs:93:        None => return format!("INVALID: could not decode native word for N={n_str}\n"),
+G-mOMonadOS/src/bin/membrane.rs:216:        None => return format!("INVALID: could not decode native word for N={n_str}\n"),
+G-mOMonadOS/src/bin/resident_circuit_braid_probe.rs:12:    let source = WordTape::from_canonical_word(source_text.trim()).ok_or("invalid N-only IMASM source")?;
+G-mOMonadOS/src/bin/ququart_support/mod.rs:41:    g_momonados::godel_calculus::decode_cell_biguint(word)
+G-mOMonadOS/src/bin/ququart_support/work.rs:11:    let value = WordTape::from_canonical_word(&word(value)).ok_or("invalid prepared power word")?;
+G-mOMonadOS/src/bin/ququart_support/work.rs:12:    let source = WordTape::from_canonical_word(&word(source)).ok_or("invalid prepared source word")?;
+G-mOMonadOS/src/bin/ququart_support/work.rs:325:    let source_word = WordTape::from_canonical_word(&word(&source)).ok_or("invalid recovery source word")?;
+G-mOMonadOS/src/bin/ququart_support/work.rs:326:    let mut expected = WordTape::from_canonical_word(&word(&base)).ok_or("invalid recovery base word")?;
+G-mOMonadOS/src/bin/ququart_support/work.rs:328:        if WordTape::from_canonical_word(&word(power)).ok_or("invalid recovery power word")? != expected
+G-mOMonadOS/src/bin/resident_frobenius_exact_probe.rs:12:    let source = WordTape::from_canonical_word(source_text.trim()).ok_or("invalid N-only IMASM source")?;
+G-mOMonadOS/src/word_tape.rs:543:        let magnitude = WordTape::from_canonical_word(record["magnitude_word"].as_str()
+G-mOMonadOS/src/word_tape.rs:701:        assert!(WordTape::from_canonical_word(left.magnitude().as_word()).is_some());
+G-mOMonadOS/src/word_tape.rs:735:        let n = WordTape::from_canonical_word(w).unwrap();
+G-mOMonadOS/src/word_tape.rs:739:        assert!(WordTape::from_canonical_word("91").is_none());
+G-mOMonadOS/src/word_tape.rs:740:        assert!(WordTape::from_canonical_word("⊢≻⋈∈⊤∋⊙⊡⊣").is_none());
+G-mOMonadOS/src/main.rs:904:            let Some(left) = crate::native_numeral::decode(&left) else {
+G-mOMonadOS/src/main.rs:908:            let Some(right) = crate::native_numeral::decode(&right) else {
+G-mOMonadOS/src/main.rs:1285:        "decode" if args.len() > 1 => native_numeral::decode_report(args[1]),
+G-mOMonadOS/src/reentry_powerset.rs:41:        let source=WordTape::from_canonical_word(include_str!(
+G-mOMonadOS/src/numeral_encodings.rs:67:        if crate::native_numeral::decode(&forms.native).as_ref()!=Some(n)
+G-mOMonadOS/src/numeral_encodings.rs:74:        let native=crate::native_numeral::decode(&self.native).ok_or("native source word no longer decodes")?;
+G-mOMonadOS/src/godel_calculus.rs:482:pub fn decode_cell_biguint(word: &str) -> Result<BigUint, String> {
+G-mOMonadOS/src/godel_calculus.rs:925:            assert_eq!(decode_cell_biguint(&canonical).unwrap(), expected);
+G-mOMonadOS/src/godel_calculus.rs:930:            assert!(decode_cell_biguint(&extended).is_err());
+G-mOMonadOS/src/anyon_braid_cnot.rs:1884:        let native_word = |value: &BigUint| g_momonados::godel_calculus::encode_cell_binary(
+G-mOMonadOS/src/anyon_braid_cnot.rs:1886:        let scalar = |value: u64| native_word(&BigUint::from(value));
+G-mOMonadOS/src/anyon_braid_cnot.rs:1892:            "exchanges_word": native_word(&BigUint::from(word.len())),
+G-mOMonadOS/src/anyon_braid_cnot.rs:1893:            "frame_recovery_heights_word": native_word(&BigUint::from(frame_recovery.len())),
+G-mOMonadOS/src/factor_membrane.rs:133:/// Exhaustive native-word constraint propagator (the coupled reconstruction).
+G-mOMonadOS/src/factor_membrane.rs:439:/// where μ (native word multiply) closes on the value: p*q == value and
+G-mOMonadOS/src/factor_membrane.rs:507:            if args.len() != 2 { return String::from("usage: factor_membrane encode <canonical-native-word>"); }
+G-mOMonadOS/src/factor_membrane.rs:509:            let w = match WordTape::from_canonical_word(&raw) {
+G-mOMonadOS/src/factor_membrane.rs:517:            if args.len() != 3 { return String::from("usage: factor_membrane word <P-native-word> <Q-native-word>"); }
+G-mOMonadOS/src/factor_membrane.rs:518:            let (p, q) = match (WordTape::from_canonical_word(args[1]), WordTape::from_canonical_word(args[2])) {
+G-mOMonadOS/src/factor_membrane.rs:519:                (Some(a), Some(b)) => (a, b), _ => return String::from("bad P/Q: each must be a canonical native word"),
+G-mOMonadOS/src/factor_membrane.rs:529:            if args.len() != 2 { return String::from("usage: factor_membrane cross <canonical-native-word>"); }
+G-mOMonadOS/src/factor_membrane.rs:531:            let w = match WordTape::from_canonical_word(&raw) {
+G-mOMonadOS/src/factor_membrane.rs:545:            if args.len() != 2 { return String::from("usage: factor_membrane factor <canonical-native-word>"); }
+G-mOMonadOS/src/factor_membrane.rs:547:            let n = match WordTape::from_canonical_word(&raw) {
+G-mOMonadOS/src/factor_membrane.rs:573:            if args.len() != 2 { return String::from("usage: factor_membrane recurse <canonical-native-word>"); }
+G-mOMonadOS/src/factor_membrane.rs:575:            let value = match WordTape::from_canonical_word(&raw) {
+G-mOMonadOS/src/factor_membrane.rs:670:    #[test] fn every_public_option_requires_canonical_native_words() {
+G-mOMonadOS/src/conventional_spectrum.rs:44:        let source_word=WordTape::from_canonical_word(&forms.native).ok_or("source well lost its native word")?;
+G-mOMonadOS/src/conventional_spectrum.rs:341:        let source_word=WordTape::from_canonical_word(&state.forms.native).ok_or("lost native source word")?;
+G-mOMonadOS/src/conventional_spectrum.rs:356:        "numeral_forms":{"native_word":state.forms.native,"hex_digit_word":state.forms.hex,
+G-mOMonadOS/src/gpu_ecm_word.rs:185:    let Some(n)=WordTape::from_canonical_word(raw) else {
+G-mOMonadOS/src/gpu_ecm_word.rs:197:    let Some(n)=WordTape::from_canonical_word(raw) else { return "gpu_ecm check: expected canonical IMASM source".into(); };
+G-mOMonadOS/src/whole_register_phase.rs:371:        let source_word=WordTape::from_canonical_word(data.source_word).ok_or("invalid compiled phase source")?;
+G-mOMonadOS/src/whole_register_phase.rs:372:        let base_word=WordTape::from_canonical_word(data.base_word).ok_or("invalid compiled phase base")?;
+G-mOMonadOS/src/whole_register_phase.rs:427:        let numeral = |key: &str| WordTape::from_canonical_word(record[key].as_str()
+G-mOMonadOS/src/idempotent_closure.rs:25:            WordTape::from_canonical_word(text).ok_or_else(|| String::from("invalid numeral word"))
+G-mOMonadOS/src/resident_glut.rs:90:        let source=WordTape::from_canonical_word(data.source_word).ok_or("invalid compiled resident source")?;
+G-mOMonadOS/src/resident_glut.rs:94:        let initial_mass=WordTape::from_canonical_word(data.initial_mass_word).ok_or("invalid compiled resident mass")?;
+G-mOMonadOS/src/resident_glut.rs:167:        let source = WordTape::from_canonical_word(record["source_word"].as_str().ok_or("missing prepared source")?)
+G-mOMonadOS/src/resident_glut.rs:172:        let initial_mass = WordTape::from_canonical_word(record["initial_mass_word"].as_str().ok_or("missing prepared mass")?)
+G-mOMonadOS/src/resident_glut.rs:472:            let source = WordTape::from_canonical_word(include_str!(
+G-mOMonadOS/src/resident_glut.rs:944:        let source = WordTape::from_canonical_word(source_word).ok_or("invalid source numeral word")?;
+G-mOMonadOS/src/product_split.rs:37:            low:usize::try_from(v["low"].as_u64()?).ok()?,lp:WordTape::from_canonical_word(v["lp"].as_str()?)?,lq:WordTape::from_canonical_word(v["lq"].as_str()?)?,
+G-mOMonadOS/src/product_split.rs:38:            carry:SignedWord{negative:v["carry_negative"].as_bool()?,magnitude:WordTape::from_canonical_word(v["carry_word"].as_str()?)?},low_turn:v["low_turn"].as_bool()?})
+G-mOMonadOS/src/product_split.rs:128:            if pair.len()==2 {if let (Some(p),Some(q))=(pair[0].as_str().and_then(WordTape::from_canonical_word),pair[1].as_str().and_then(WordTape::from_canonical_word)){
+G-mOMonadOS/src/product_split.rs:170:        let load=|name:&str|WordTape::from_canonical_word(&std::fs::read_to_string(format!("{ROOT}{name}")).unwrap().trim()).unwrap();
+G-mOMonadOS/src/gpu_gnfs.rs:354:        match crate::native_numeral::decode(input) {
+G-mOMonadOS/src/idempotent_membrane.in.rs:11:    let source = WordTape::from_canonical_word(SOURCE).ok_or("invalid baked source")?;
+G-mOMonadOS/src/idempotent_membrane.in.rs:14:        WordTape::from_canonical_word(INITIAL_RESIDUAL).ok_or("invalid baked residual")?;
+G-mOMonadOS/src/idempotent_membrane.in.rs:36:                        let candidate = WordTape::from_canonical_word(&member_state.0)
+G-mOMonadOS/src/idempotent_membrane.in.rs:38:                        let residual = WordTape::from_canonical_word(&member_state.1)
+G-mOMonadOS/src/idempotent_membrane.in.rs:75:        let candidate = WordTape::from_canonical_word(&final_state.0)
+G-mOMonadOS/src/idempotent_membrane.in.rs:82:                g_momonados::native_numeral::decode(SOURCE)
+G-mOMonadOS/src/idempotent_membrane.in.rs:85:                g_momonados::native_numeral::decode(split.idempotent.as_word())
+G-mOMonadOS/src/ququart_decision.rs:149:        let source=WordTape::from_canonical_word(include_str!(
+G-mOMonadOS/src/ququart_decision.rs:195:        let source=WordTape::from_canonical_word(include_str!(
+G-mOMonadOS/src/ququart_decision.rs:745:            let source = WordTape::from_canonical_word(text.trim()).unwrap();
+G-mOMonadOS/src/dialect_factor_export.rs:29:    let source = WordTape::from_canonical_word(text.trim()).ok_or("invalid canonical source")?;
+G-mOMonadOS/src/anyon_ququart.rs:738:        let source=WordTape::from_canonical_word(include_str!(
+G-mOMonadOS/src/resident_frame.rs:169:            let source = WordTape::from_canonical_word(text.trim()).unwrap().to_biguint();
+G-mOMonadOS/src/native_numeral.rs:330:/// same shift-and-add shape, at native word width. O(bits(a)*bits(b)); the
+G-mOMonadOS/src/native_numeral.rs:975:    o.push_str("  decode <word>    the exact inverse of encode: read a native word back to its integer, with the round-trip check\n");
+G-mOMonadOS/src/native_numeral.rs:1400:/// verdict. This is the number's native word plus what the Grammar says of it.
+G-mOMonadOS/src/native_numeral.rs:1523:///   encode( μ(Λ(D)) ) = W_N,  where μ is the native word multiplication.
+G-mOMonadOS/src/trilattice_factor.rs:64://! The rung once standing here, closed: parity, the Z2 grade the native word
+G-mOMonadOS/src/trilattice_factor.rs:242:    o.push_str(&format!("  native word      : {}\n", nw));
+G-mOMonadOS/src/trilattice_factor.rs:255:    // self-imscribing the native word. self_imscribe reads a program's

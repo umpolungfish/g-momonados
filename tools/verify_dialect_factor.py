@@ -7,15 +7,14 @@ import json
 import math
 import mmap
 import gzip
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "Vox"))
+from numeral_codec import decode_word
 
 
 def numeral(word):
-    cells = [c for c in word if c in '⊤⊥']
-    expected = '⊢' + ''.join('≻⋈∈'+c+'∋' for c in cells) + '⊙⊡⊣'
-    assert word == expected, 'noncanonical numeral'
-    assert not cells or cells[-1] == '⊥', 'untrimmed numeral'
-    return sum((c == '⊥') << i for i,c in enumerate(cells))
+    return decode_word(word)
 
 
 def numeral_word(value):

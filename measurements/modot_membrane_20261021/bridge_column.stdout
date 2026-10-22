@@ -1,0 +1,9 @@
+
+────────────────────────────────────────────────────────────────────────
+column  elute by affinity to molecular_orbital_theory, least-retained first: {gn_factorizer_membrane, spectral_phase_factorizer_membrane, ac_factorizer_membrane, fixed_point_spectral_construction}
+────────────────────────────────────────────────────────────────────────
+  fraction  1: ac_factorizer_membrane   retention=0.00   Δ→next=1.17
+  fraction  2: fixed_point_spectral_construction   retention=1.17   Δ→next=0.25
+  fraction  3: gn_factorizer_membrane   retention=1.42   Δ→next=0.08
+  fraction  4: spectral_phase_factorizer_membrane   retention=1.50   (most retained, last off)
+  ✓ baseline resolution: every neighbor separates into its own fraction.

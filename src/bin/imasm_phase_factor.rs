@@ -10,7 +10,7 @@ mod parasm;
 
 use std::collections::HashMap;
 use std::time::Instant;
-use vox_core::godel_calculus::{self, Nat, Structure};
+use vox_core::godel_calculus::{self, Nat};
 
 const BAKED_N_WORD: Option<&str> = option_env!("IMASM_PHASE_N_WORD");
 const BAKED_BASE_WORD: Option<&str> = option_env!("IMASM_PHASE_BASE_WORD");
@@ -30,15 +30,7 @@ fn trim(mut cells: String) -> String {
 }
 
 fn cells(word: &str) -> Result<String, String> {
-    let reading =
-        godel_calculus::decode(word).map_err(|error| format!("encoded word: {error:?}"))?;
-    match reading.structure {
-        Structure::CellBinary { bits_le } => Ok(bits_le
-            .into_iter()
-            .map(|bit| if bit { '⊥' } else { '⊤' })
-            .collect()),
-        _ => Err("expected a cell-binary IMASM numeral".into()),
-    }
+    Ok(vox_core::morphism_factor::parse_numeral(word)?.into_iter().collect())
 }
 
 fn word(cells: &str) -> Result<String, String> {

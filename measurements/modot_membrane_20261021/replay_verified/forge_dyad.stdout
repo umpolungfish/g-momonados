@@ -1,0 +1,39 @@
+
+────────────────────────────────────────────────────────────────────────
+arrange  unordered set → best order: {fsplit, sic_povm, ffuse, tensor_product_operation}
+────────────────────────────────────────────────────────────────────────
+  searched 24 ordering(s) (exhaustive: every permutation) — a set has no inherent order, so this finds the sequence that polymerizes best (longest enchainment, then closure, then stability).
+  ✓ best ordering FULLY enchains all 4 units AND CYCLIZES into a ring — the co-typed wall was an artifact of the given order, not the set:
+  closure is order-ROBUST: 16/24 searched orderings cyclize (this is merely the best-scoring one, NOT the only sequence that closes — do not call it unique).
+      [fsplit · tensor_product_operation · ffuse · sic_povm]
+  → running the full analysis on the best order:
+
+polymerization (imscriptive):  [fsplit · tensor_product_operation · ffuse · sic_povm]   (4 monomers)
+  imscriptive: the chain stores the monomer SEQUENCE losslessly (R∧W∧X) — a click blends, a polymer remembers.
+  sequence (read back off the chain, unit by unit):
+    1. fsplit  ⟨𐑼𐑰𐑩𐑹𐑐𐑧𐑲𐑜⊙𐑓𐑳𐑷⟩
+    2. tensor_product_operation  ⟨𐑛𐑥𐑾𐑿𐑱𐑤𐑚𐑠𐑢𐑖𐑙𐑷⟩
+    3. ffuse  ⟨𐑨𐑰𐑑𐑬𐑐𐑧𐑔𐑵𐑣𐑖𐑳𐑭⟩
+    4. sic_povm  ⟨𐑦𐑸𐑽𐑹𐑐𐑪𐑔𐑵⊙𐑖𐑕𐑴⟩
+  bonds (each a Coagula link — a click between complementary partners, or an addition where a monomer repeats):
+    1–2  fsplit ⋈ tensor_product_operation  → condensation on R↔S (Δ=2.00)
+    2–3  tensor_product_operation ⋈ ffuse  → condensation on R↔S (Δ=1.67)
+    3–4  ffuse ⋈ sic_povm  → cross-link (3 reaction centers: D↔W, T↔H, R↔S) — a branch/network junction
+  degree of polymerization: 4 unit(s), 3 bond(s)
+  backbone: regioregular — every condensation bond on R↔S (a clean head-to-tail repeat unit).
+  topology: BRANCHED/NETWORK — a cross-link junction fired (≥2 reaction centers); not a purely linear chain.
+  architecture: heteropolymer (4 distinct monomers, each once — no repeat unit)
+  tacticity (⊥ chirality per unit): atactic (𐑓𐑖𐑖𐑖) — irregular chirality, no stereo-regular pattern
+  cyclization: sic_povm ⋈ fsplit → ✓ CYCLIC — a macrocycle (ring polymer); the sequence closes head-to-tail on R↔S (O∞).
+  ── material properties (the ring as a mathematical material) ──
+    macrocycle: 4-membered ring, branched (a cross-linked network node on the ring)
+    ring stability: weakest clean bond Δ=1.17 at junction 4→1 (only as stable as its weakest link); 1 junction(s) cross-link/addition, not one clean bond
+    ring strain σ(Δ) = 0.342 — bonds unevenly loaded, internal stress stored (an anneal would relax it)
+    conductance: INSULATING — no carrier can pass junction(s) 1→2 in either direction; the ring cannot circulate a current (the units are ⊡-saturated/empty, a static ring not a dynamic one).
+    ── spectral invariants (adjacency of the ring graph; clean bond=1, cross-link=k centers) ──
+    spectral radius ρ = 3.4142  (> 2 ⟹ branched: a cross-link lifts the principal mode above the bare ring)
+    spectrum (ordered by |λ| descending, so λ₂ here IS the one the gap uses): [+3.414, -3.414, +0.586, -0.586]
+    spectral gap (ρ − |λ₂|) = 0.0000 — a wide gap means one mode dominates (the ring leans on a single strut); a gap of 0 is a flat/degenerate top spectrum, NO privileged mode (the symmetric, settled reading, not a deficiency).
+    graph energy Σ|λ| = 8.0000 — the ring's total spectral weight; where ρ is stiffness (the dominant mode), this is toughness (the reserve carried across all modes).
+  ── clarity (strain + spectral gap, read jointly) ──
+    SYMMETRIC BUT STRESSED — flat-spectrum (no privileged mode), but strain remains (σ 0.342); the ring is forced shut against reluctant junctions. Anneal to settle.

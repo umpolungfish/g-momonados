@@ -1,0 +1,1 @@
+gpu_ecm IMASM GPU arithmetic input_bits=200 device=1 closes=true

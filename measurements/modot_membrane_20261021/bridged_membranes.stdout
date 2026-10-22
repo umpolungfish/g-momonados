@@ -1,0 +1,21 @@
+polymerization (imscriptive):  [gn_factorizer_membrane · molecular_orbital_theory · spectral_phase_factorizer_membrane · molecular_orbital_theory · ac_factorizer_membrane · molecular_orbital_theory]   (6 monomers)
+  imscriptive: the chain stores the monomer SEQUENCE losslessly (R∧W∧X) — a click blends, a polymer remembers.
+  sequence (read back off the chain, unit by unit):
+    1. gn_factorizer_membrane  ⟨𐑦𐑰𐑽𐑿𐑐𐑧𐑚𐑝⊙𐑖𐑳𐑭⟩
+    2. molecular_orbital_theory  ⟨𐑦𐑸𐑑𐑯𐑐𐑤𐑲𐑝⊙𐑓𐑕𐑭⟩
+    3. spectral_phase_factorizer_membrane  ⟨𐑦𐑥𐑽𐑿𐑐𐑧𐑔𐑵⊙𐑫𐑳𐑭⟩
+    4. molecular_orbital_theory  ⟨𐑦𐑸𐑑𐑯𐑐𐑤𐑲𐑝⊙𐑓𐑕𐑭⟩
+    5. ac_factorizer_membrane  ⟨𐑦𐑶𐑽𐑬𐑐𐑧𐑚𐑝⊙𐑖𐑳𐑭⟩
+    6. molecular_orbital_theory  ⟨𐑦𐑸𐑑𐑯𐑐𐑤𐑲𐑝⊙𐑓𐑕𐑭⟩
+  bonds (each a Coagula link — a click between complementary partners, or an addition where a monomer repeats):
+    1–2  gn_factorizer_membrane ⋈ molecular_orbital_theory  → condensation on T↔H (Δ=1.42)
+    2–3  molecular_orbital_theory ⋈ spectral_phase_factorizer_membrane  → condensation on T↔H (Δ=1.50)
+    3–4  spectral_phase_factorizer_membrane ⋈ molecular_orbital_theory  → condensation on T↔H (Δ=1.50)
+    4–5  molecular_orbital_theory ⋈ ac_factorizer_membrane  → ✗ termination at θ=0.50 — the chain ends here.
+           no oppositely-charged live pair at all — fully co-typed / same-handed; no reaction center exists.
+  degree of polymerization: 4 unit(s), 3 bond(s) (terminated early)
+  backbone: regioregular — every condensation bond on T↔H (a clean head-to-tail repeat unit).
+  architecture: random / statistical copolymer (3 monomer types)
+  tacticity (⊥ chirality per unit): atactic (𐑖𐑓𐑫𐑓) — irregular chirality, no stereo-regular pattern
+  cyclization: linear — the chain terminated, so it cannot close into a ring.
+  material properties: not a closed ring — no macrocycle to characterize (use --close to find the ring-closing monomer first).

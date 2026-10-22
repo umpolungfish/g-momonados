@@ -1,0 +1,7 @@
+
+────────────────────────────────────────────────────────────────────────
+anneal  relax the ring to its lowest-strain ordering
+────────────────────────────────────────────────────────────────────────
+  quenched (forge order): [fsplit · tensor_product_operation · ffuse · sic_povm]
+            strain σ(Δ)=0.342
+  annealed: the forge order is ALREADY the lowest-strain ring (exhaustive over every ordering) — no relaxation available.

@@ -100,6 +100,8 @@ pub static TOOLS_MENU: &[MenuItem] = &[
     MenuItem { name: "semiprime_tool",             cmd: "semiprime_tool",            desc: "Semiprime Gödel-encoding relationship tool: extract a factor pair and verify product closure (alias: semiprime-tool)", example: "semiprime_tool 296650821743515430283258444261036507151", submenu: None },
     MenuItem { name: "arbitrary_factor",           cmd: "arbitrary_factor",          desc: "Gödel-verified prime-power extraction with route trace (alias: arbitrary-factor)", example: "arbitrary_factor 340282366920938461286658806734041124249", submenu: None },
     #[cfg(feature = "hosted")]
+    MenuItem { name: "codex",                      cmd: "codex",                     desc: "Verify Codex Twelvefold Isomorphism: μ∘δ=id and ℋ≅ℐ≅ℳ through split/fuse, powerset monad, and B4/CnotResidual checks", example: "codex", submenu: None },
+    #[cfg(feature = "hosted")]
     MenuItem { name: "arbitrary_anyon_factor", cmd: "arbitrary_anyon_factor", desc: "Recursive measured anyon splits with Gödel verification and bounded route fallback", example: "arbitrary_anyon_factor help", submenu: None },
     MenuItem { name: "factor_operator",            cmd: "factor_operator",           desc: "Monotone factor-state constructor F_N over 𝟒={N,T,F,B}: cert certifies a pair, ambient states the moat (free-bit paradox), resolve strips the small part and crosses the moat to return factors (any width)", example: "factor_operator resolve 8051", submenu: None },
     MenuItem { name: "native_numeral",             cmd: "native_numeral",            desc: "The word-native numeral toolkit itself: encode/decode/factor/decompose/redstep/cycle and the rest (alias: numeral)", example: "native_numeral factor 8051", submenu: None },

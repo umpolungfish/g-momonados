@@ -1,0 +1,35 @@
+conventional point stage=prepare source_bits=100
+conventional point stage=arithmetic nodes=1424 support=N-2
+conventional protocol=srfp node=0 opcode=VINIT stage=enter
+conventional protocol=srfp node=1 opcode=IMSCRIB stage=enter
+conventional protocol=srfp node=2 opcode=AFWD stage=enter
+conventional affine_row=99 stage=enter nodes=1424
+conventional affine_row=99 stage=return nodes=2803 elapsed=0.000765000
+conventional affine_row=98 stage=enter nodes=2803
+conventional affine_row=98 stage=return nodes=3209 elapsed=0.000528100
+conventional affine_row=97 stage=enter nodes=3209
+conventional affine_row=97 stage=return nodes=3991 elapsed=0.000817900
+conventional affine_row=96 stage=enter nodes=3991
+conventional affine_row=96 stage=return nodes=5549 elapsed=0.001253500
+conventional affine_row=95 stage=enter nodes=5549
+conventional affine_row=95 stage=return nodes=8643 elapsed=0.002261800
+conventional affine_row=94 stage=enter nodes=8643
+conventional affine_row=94 stage=return nodes=14777 elapsed=0.004955700
+conventional affine_row=93 stage=enter nodes=14777
+conventional affine_row=93 stage=return nodes=26927 elapsed=0.009963000
+conventional affine_row=92 stage=enter nodes=26927
+conventional affine_row=92 stage=return nodes=50981 elapsed=0.020668400
+conventional affine_row=91 stage=enter nodes=50981
+conventional affine_row=91 stage=return nodes=98989 elapsed=0.042182400
+conventional affine_row=90 stage=enter nodes=98989
+conventional affine_row=90 stage=return nodes=193557 elapsed=0.090138600
+conventional affine_row=89 stage=enter nodes=193557
+conventional affine_row=89 stage=return nodes=381005 elapsed=0.204957200
+conventional affine_row=88 stage=enter nodes=381005
+conventional affine_row=88 stage=return nodes=751429 elapsed=0.458300700
+conventional affine_row=87 stage=enter nodes=751429
+conventional affine_row=87 stage=return nodes=1484405 elapsed=1.055175899
+conventional affine_row=86 stage=enter nodes=1484405
+conventional affine_row=86 stage=return nodes=2933541 elapsed=3.616515698
+conventional affine_row=85 stage=enter nodes=2933541
+memory allocation of 136314896 bytes failed

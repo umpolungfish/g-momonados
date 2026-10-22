@@ -351,10 +351,9 @@ pub fn run_factor(n_str: &str, b: u64) -> String {
     let input = n_str.trim();
     let word_input = input.starts_with('⊢');
     let n: BigUint = if word_input {
-        match crate::native_numeral::decode(input) {
-            Some(value) if crate::native_numeral::encode(&value.to_string()) == input => value,
-            None => return String::from("gpu_gnfs: malformed canonical IMASM numeral word"),
-            Some(_) => return String::from("gpu_gnfs: numeral word is not canonical"),
+        match vox_core::combined_factor::decode_numeral_word(input) {
+            Ok(value) => value,
+            Err(error) => return format!("gpu_gnfs: {error}"),
         }
     } else {
         match input.parse() {

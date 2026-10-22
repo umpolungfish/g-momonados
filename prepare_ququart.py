@@ -1,4 +1,4 @@
-"""Compile a retained ququart membrane from canonical IMASM numeral words.
+"""Compile a retained ququart membrane from native or hex-digit IMASM numeral words.
 
 Supply the source and numeric options as words, or use @path to read a word
 from a local file. --base supplies the binary modular base; preparation scales
@@ -13,8 +13,11 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT.parent / "Vox"))
+from numeral_codec import normalize_word
 
 def run(args, **kwargs):
     return subprocess.run(args, cwd=ROOT, check=True, text=True,
@@ -22,7 +25,7 @@ def run(args, **kwargs):
 
 
 def input_word(raw):
-    return Path(raw[1:]).read_text().strip() if raw.startswith("@") else raw
+    return normalize_word(Path(raw[1:]).read_text().strip() if raw.startswith("@") else raw)
 
 
 def retained_operator(case, inputs):

@@ -127,6 +127,43 @@ pub fn factor(n: &WordTape, b1: u64, b2: u64, device: usize, sigma: u64, curves:
     Ok(Some(candidate))
 }
 
+/// Raw, source-derived ECM residuals for a separate nonunit observable. Unlike
+/// `factor`, this kernel never calls gcd or publishes a discovered factor.
+pub fn residuals(n:&WordTape,b1:u64,b2:u64,device:usize,sigma:u64,curves:u32)
+    -> Result<Vec<WordTape>,String> {
+    if !n.is_odd()||n.bit_len()<4||b1<2||b2<b1||curves==0||sigma<6 {
+        return Err("residual ECM requires an odd source, B2>=B1>=2, sigma>=6 and curves>0".into());
+    }
+    sigma.checked_add(u64::from(curves)-1).ok_or("sigma range overflow")?;
+    let bound=usize::try_from(b2).map_err(|_|"prime schedule exceeds host address range")?;
+    let flags=primes(bound);let (exponent,offsets,repetitions)=stage_one_schedule(b1 as usize,&flags);
+    let count=i32::try_from(offsets.len()-1).map_err(|_|"scalar schedule exceeds GPU index range")?;
+    let stage_two=(((b1 as usize+1)|1)..=bound).step_by(2).filter(|&k|flags[k]==EVALF).count();
+    let slots=3+count as usize+stage_two;let width=n.bit_len()+2;
+    let size=slots.checked_mul(curves as usize).and_then(|s|s.checked_mul(width)).ok_or("residual allocation overflow")?;
+    if size>256*1024*1024{return Err("residual bank exceeds 256 MiB; reduce curves or B2 per retained batch".into());}
+    let slots_i32=i32::try_from(slots).map_err(|_|"residual slots exceed GPU index range")?;
+    let curves_i32=i32::try_from(curves).map_err(|_|"curve count exceeds GPU index range")?;
+    let (ctx,module)=backend(device,width)?;let stream=ctx.default_stream();
+    let func=module.load_function("ecm_residuals").map_err(|e|e.to_string())?;
+    let input=stream.clone_htod(&arms(n,width)).map_err(|e|e.to_string())?;
+    let unit_word=WordTape::one_at(n.bit_len()).divmod(n).ok_or("invalid modulus")?.1;
+    let unit=stream.clone_htod(&arms(&unit_word,width)).map_err(|e|e.to_string())?;
+    let scalar=stream.clone_htod(&exponent).map_err(|e|e.to_string())?;
+    let steps=stream.clone_htod(&offsets).map_err(|e|e.to_string())?;
+    let repeats=stream.clone_htod(&repetitions).map_err(|e|e.to_string())?;
+    let schedule=stream.clone_htod(&flags).map_err(|e|e.to_string())?;
+    let mut out=stream.clone_htod(&vec![EVALT;size]).map_err(|e|e.to_string())?;
+    let mut written=stream.clone_htod(&vec![EVALT;slots*curves as usize]).map_err(|e|e.to_string())?;
+    let mut launch=stream.launch_builder(&func);
+    launch.arg(&input).arg(&unit).arg(&scalar).arg(&steps).arg(&repeats).arg(&count).arg(&schedule)
+        .arg(&b1).arg(&b2).arg(&sigma).arg(&curves_i32).arg(&slots_i32).arg(&mut out).arg(&mut written);
+    unsafe{launch.launch(LaunchConfig{grid_dim:(curves.div_ceil(4),1,1),block_dim:(128,1,1),shared_mem_bytes:0})}.map_err(|e|e.to_string())?;
+    let data=stream.clone_dtoh(&out).map_err(|e|e.to_string())?;
+    let written=stream.clone_dtoh(&written).map_err(|e|e.to_string())?;
+    data.chunks_exact(width).zip(written).filter(|(_,mark)|*mark==EVALF).map(|(arms,_)|from_arms(arms)).collect()
+}
+
 /// N-only low product relation on the existing GPU IMASM arithmetic. Candidate
 /// addresses enumerate all low pairs internally; no reference factors enter.
 pub fn product_prefix_support(n: &WordTape, columns: usize, device: usize)

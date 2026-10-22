@@ -1,0 +1,19 @@
+conventional point stage=prepare source_bits=100
+conventional point stage=arithmetic nodes=1424 support=N-2
+conventional protocol=srfp node=0 opcode=VINIT stage=enter
+conventional protocol=srfp node=1 opcode=IMSCRIB stage=enter
+conventional protocol=srfp node=2 opcode=AFWD stage=enter
+conventional affine_row=0 stage=enter nodes=1424
+conventional affine_row=0 stage=return nodes=3377 elapsed=0.000760200
+conventional affine_row=1 stage=enter nodes=3377
+conventional affine_row=1 stage=return nodes=9851 elapsed=0.003794400
+conventional affine_row=2 stage=enter nodes=9851
+conventional affine_row=2 stage=return nodes=35829 elapsed=0.020853100
+conventional affine_row=3 stage=enter nodes=35829
+conventional affine_row=3 stage=return nodes=138669 elapsed=0.086254300
+conventional affine_row=4 stage=enter nodes=138669
+conventional affine_row=4 stage=return nodes=543313 elapsed=0.400691700
+conventional affine_row=5 stage=enter nodes=543313
+conventional affine_row=5 stage=return nodes=2130035 elapsed=2.210437398
+conventional affine_row=6 stage=enter nodes=2130035
+memory allocation of 545259536 bytes failed

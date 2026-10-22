@@ -474,8 +474,8 @@ pub fn frame_arithmetic_from_args(args: &[&str]) -> Result<FrameArithmeticRead, 
             "godel frame-op <natural-number> <left-width> <left-group> <add|mul|sub|mod|divmod> <right-width> <right-group>".to_string(),
         );
     }
-    let value =
-        Nat::from_decimal(args[1]).ok_or_else(|| format!("not a natural number: {}", args[1]))?;
+    let parsed = vox_core::godel_calculus::parse_natural_word(args[1])?;
+    let value = Nat::from_bits_le(parsed.bits_le().to_vec());
     let parse_address = |raw: &str, label: &str| {
         raw.parse::<usize>()
             .map_err(|_| format!("{label} must be a nonnegative frame address"))

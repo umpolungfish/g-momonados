@@ -245,3 +245,45 @@ extern "C" __global__ void word_arithmetic(const arm *input,const arm *mont_unit
     gcd(a,n,g); regular_mulmod(a,unit,n,a); regular_mulmod(b,unit,n,b); mulmod(a,b,n,p); small(1,b); mulmod(p,b,n,p); clear(inv); for(int k=0;k<S;k++) { int i=k*32+lane(); a.v[k]=i<W?left[i]:T; } if(one(g)) inverse(a,n,inv);
     for(int k=0;k<S;k++) { int i=k*32+lane(); if(i<W) { product[i]=p.v[k]; inverse_out[i]=inv.v[k]; gcd_out[i]=g.v[k]; } }
 }
+
+// Observable path: retain raw denominators and Z coordinates. No gcd, proper
+// factor predicate, or factor publication is performed by this kernel.
+__device__ __forceinline__ void retain_residual(const Word &r,arm *out,int curve,int slot,int slots,arm *written) {
+    if(lane()==0)written[(size_t)curve*slots+slot]=F;
+    for(int k=0;k<S;k++){int i=k*32+lane();if(i<W)out[((size_t)curve*slots+slot)*W+i]=r.v[k];}
+}
+extern "C" __global__ void ecm_residuals(const arm *input,const arm *mont_unit,const arm *exponent,const int *offsets,const int *repetitions,int step_count,
+    const unsigned char *prime_flags,unsigned long long b1,unsigned long long b2,
+    unsigned long long sigma_start,int curves,int slots,arm *out,arm *written) {
+    int index=(blockIdx.x*blockDim.x+threadIdx.x)/32;if(index>=curves)return;
+    Word unit,n,s,u,v,u2,u3,v3,t,diff,numerator,denominator,a24,inv,c;
+    for(int k=0;k<S;k++){int i=k*32+lane();n.v[k]=i<W?input[i]:T;unit.v[k]=i<W?mont_unit[i]:T;}
+    small(sigma_start+index,s);regular_mulmod(s,s,n,t);small(5,c);submod(t,c,n,u);
+    small(4,c);regular_mulmod(c,s,n,v);regular_mulmod(u,u,n,u2);regular_mulmod(u2,u,n,u3);
+    regular_mulmod(v,v,n,t);regular_mulmod(t,v,n,v3);submod(v,u,n,diff);
+    regular_mulmod(diff,diff,n,t);regular_mulmod(t,diff,n,numerator);
+    small(3,c);regular_mulmod(c,u,n,t);addmod(t,v,n,t);regular_mulmod(numerator,t,n,numerator);
+    small(16,c);regular_mulmod(c,u3,n,t);regular_mulmod(t,v,n,denominator);
+    retain_residual(denominator,out,index,0,slots,written);
+    if(!inverse(denominator,n,inv))return;
+    regular_mulmod(numerator,inv,n,a24);retain_residual(a24,out,index,1,slots,written);
+    small(1,c);submod(a24,c,n,t);retain_residual(t,out,index,2,slots,written);
+    Point p,next;regular_mulmod(u3,unit,n,p.x);regular_mulmod(v3,unit,n,p.z);regular_mulmod(a24,unit,n,a24);
+    for(int step=0;step<step_count;step++){
+        int count=offsets[step+1]-offsets[step];
+        if(step==0){for(int bit=1;bit<count;bit++){twice(p,a24,n,next);p=next;}}
+        else if(step==1){for(int repeat=0;repeat<repetitions[step];repeat++){
+            Point doubled;twice(p,a24,n,doubled);difference_add(doubled,p,p,n,next);p=next;}}
+        else{ladder(p,exponent+offsets[step],count,a24,n,next);p=next;}
+        retain_residual(p.z,out,index,3+step,slots,written);if(zero(p.z))return;
+    }
+    if(b2<=b1)return;
+    Point base=p,two_base,previous,current;twice(base,a24,n,two_base);
+    unsigned long long first=(b1+1)|1ULL;
+    ladder_small(base,first-2,a24,n,previous);ladder_small(base,first,a24,n,current);
+    int slot=3+step_count;
+    for(unsigned long long k=first;k<=b2;k+=2){
+        if(prime_flags[k]==F){retain_residual(current.z,out,index,slot++,slots,written);if(zero(current.z))return;}
+        difference_add(current,two_base,previous,n,next);previous=current;current=next;
+    }
+}

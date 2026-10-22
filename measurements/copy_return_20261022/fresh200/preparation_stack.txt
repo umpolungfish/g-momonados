@@ -1,0 +1,21 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGINT, Interrupt.
+0x00005555556a3774 in vox::fixed_point_word_arithmetic::add_bits ()
+
+Thread 1 (Thread 0x7ffff7e97bc0 (LWP 6191) "idempotent_mome"):
+#0  0x00005555556a3774 in vox::fixed_point_word_arithmetic::add_bits ()
+#1  0x00005555556a4236 in vox::fixed_point_word_arithmetic::mul_bits ()
+#2  0x00005555556a3c5c in vox::fixed_point_word_arithmetic::mul_bits ()
+#3  0x00005555556a3c7e in vox::fixed_point_word_arithmetic::mul_bits ()
+#4  0x00005555556a3c7e in vox::fixed_point_word_arithmetic::mul_bits ()
+#5  0x00005555556a3c7e in vox::fixed_point_word_arithmetic::mul_bits ()
+#6  0x00005555556a3c5c in vox::fixed_point_word_arithmetic::mul_bits ()
+#7  0x00005555556a3cdc in vox::fixed_point_word_arithmetic::mul_bits ()
+#8  0x00005555556a3c5c in vox::fixed_point_word_arithmetic::mul_bits ()
+#9  0x00005555556a3cdc in vox::fixed_point_word_arithmetic::mul_bits ()
+#10 0x00005555556a4737 in vox::fixed_point_word_arithmetic::multiply ()
+#11 0x00005555556114e2 in <g_momonados::word_tape::WordTape>::mul ()
+#12 0x000055555561340f in <g_momonados::word_tape::SignedWordTape>::mul ()
+#13 0x000055555566bc47 in <g_momonados::anyon_ququart::FixedQuquartSic>::gram_mass_words ()

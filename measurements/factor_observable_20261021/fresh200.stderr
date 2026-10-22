@@ -1,0 +1,2 @@
+raw GPU residual production: source_bits=200 B1=500 B2=5000 curves=16 sigma=6 device=1
+GPU returned 10752 raw residuals in 23.644210s

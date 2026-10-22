@@ -2,21 +2,14 @@
 #[allow(dead_code)]
 #[path = "ququart_support/mod.rs"]
 mod support;
-use g_momonados::{godel_calculus::{check, decode, encode_cell_binary, Operator, Structure}, phase_unbraid::PhaseReadoutAccumulator};
+use g_momonados::{godel_calculus::{check, Operator}, phase_unbraid::PhaseReadoutAccumulator};
+#[cfg(test)]
+use g_momonados::godel_calculus::encode_cell_binary;
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
 fn numeral(word: &str) -> Result<BigUint, String> {
-    let decoded = decode(word).map_err(|e| e.to_string())?;
-    if !matches!(decoded.structure, Structure::CellBinary { .. }) {
-        return Err("readout value must be an IMASM cell-binary word".into());
-    }
-    if encode_cell_binary(&decoded.value) != word {
-        return Err("readout value is not a canonical IMASM cell-binary word".into());
-    }
-    Ok(decoded.value.bits_le().iter().enumerate().fold(BigUint::zero(), |value, (bit, set)| {
-        if *set { value | (BigUint::one() << bit) } else { value }
-    }))
+    g_momonados::godel_calculus::decode_cell_biguint(word)
 }
 fn signed_numeral(word: &str) -> Result<(), String> {
     let body = word
@@ -156,12 +149,13 @@ fn verify() -> Result<bool, String> {
         let (nested_p, nested_q) = g_momonados::ququart_factor::nested_radix_factor_words(
             prepared_word("source_word")?, field("p_word")?, field("q_word")?, radix,
         )?;
-        if nested_p != field("p_word")? || nested_q != field("q_word")? {
+        if numeral(&nested_p)? != p || numeral(&nested_q)? != q {
             return Err("terminal factors differ from the nested meeting point".into());
         }
     }
     let source_word = prepared_word("source_word")?;
-    if !check(closure[1], Operator::Mul, closure[2], source_word).map_err(|e| e.to_string())?.valid {
+    let normalized = |word: &str| vox_core::godel_calculus::normalize_numeral_word(word);
+    if !check(&normalized(closure[1])?, Operator::Mul, &normalized(closure[2])?, &normalized(source_word)?).map_err(|e| e.to_string())?.valid {
         return Err("terminal factors do not close through Gödel multiplication".into());
     }
     if let Some(arm) = fields.get("producing_arm_word") {

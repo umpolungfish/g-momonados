@@ -28,6 +28,8 @@ use crate::kernel::Kernel;
 use crate::imas_ig::{IgTuple, IgPrim};
 use crate::dialect::{parse_dialect, dialect_display, dialect_name, dialect_description, dialect_gates, dialect_o_inf};
 use crate::menu::{ContextStack, render_menu_bar, menu_hint, tab_complete, print_help_topic, search_commands, enter_context, fkey_to_category, render_prompt};
+#[cfg(feature = "hosted")]
+use g_momonados::codex_isomorphism::generate_codex_receipt;
 
 // ─── History ──────────────────────────────────────────────────
 
@@ -731,14 +733,25 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             "gpu_ecm" | "membrane_ecm_extract" => {
                 let mut parts=line.split_whitespace().skip(1);
                 let arg = parts.next().unwrap_or("").trim();
-                if arg == "check" {
+                if arg == "observable" {
+                    let n=parts.next().unwrap_or("");
+                    let b1=parts.next().and_then(|s|s.parse().ok()).unwrap_or(500);
+                    let b2=parts.next().and_then(|s|s.parse().ok()).unwrap_or(5000);
+                    let curves=parts.next().and_then(|s|s.parse().ok()).unwrap_or(16);
+                    let sigma=parts.next().and_then(|s|s.parse().ok()).unwrap_or(6);
+                    let device=parts.next().and_then(|s|s.parse().ok()).unwrap_or(1);
+                    let seconds=parts.next().and_then(|s|s.parse().ok()).unwrap_or(300);
+                    match crate::factor_observable::run(n,b1,b2,curves,sigma,device,seconds){
+                        Ok(result)=>sprintln!("{}",result),Err(e)=>sprintln!("gpu_ecm observable: {}",e),
+                    }
+                } else if arg == "check" {
                     let n=parts.next().unwrap_or("");
                     let device:usize=parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
                     sprintln!("{}",crate::gpu_ecm_word::check(n,device));
                 } else if arg == "bsgs" {
                     sprintln!("gpu_ecm: the limb-based BSGS command is unavailable on the IMASM word path; use gpu_ecm <canonical-word> [B1] [B2] [curves] [sigma] [device]");
                 } else if arg.is_empty() {
-                    sprintln!("gpu_ecm <canonical-word> [B1] [B2] [curves] [sigma] [device] | check <canonical-word> [device] -- IMASM word ECM on GPU");
+                    sprintln!("gpu_ecm <canonical-word> [B1] [B2] [curves] [sigma] [device] | check <canonical-word> [device] | observable <source> [B1 B2 curves sigma device seconds] -- IMASM word ECM on GPU");
                 } else {
                     let b1: u64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(50000);
                     let b2: u64=parts.next().and_then(|s| s.parse().ok()).unwrap_or(b1.saturating_mul(50));
@@ -1825,6 +1838,41 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 let args: Vec<&str> = parts.collect();
                 sprintln!("{}", crate::dispatch_phase_unbraid(&args));
             }
+            #[cfg(feature = "hosted")]
+            "codex" | "codex_isomorphism" => {
+                let sub = parts.next().unwrap_or("");
+                match sub {
+                    "" | "receipt" => {
+                        let receipt = generate_codex_receipt();
+                        sprintln!("{}", receipt.render());
+                    }
+                    "primitives" => {
+                        use g_momonados::codex_isomorphism::CODEX_PRIMITIVES;
+                        sprintln!("═══ CODEX TWELVEFOLD PRIMITIVES ═══\n");
+                        for p in CODEX_PRIMITIVES.iter() {
+                            sprintln!("  {}  {:<16} {:<28} {}", p.opcode, p.label, p.grimoire, p.structural);
+                        }
+                    }
+                    "json" => {
+                        let receipt = generate_codex_receipt();
+                        match serde_json::to_string_pretty(&receipt) {
+                            Ok(j) => sprintln!("{}", j),
+                            Err(e) => sprintln!("codex json: {e}"),
+                        }
+                    }
+                    "help" => {
+                        sprintln!("═══ Codex Twelvefold Isomorphism ═══\n");
+                        sprintln!("codex             — full isomorphism receipt (default)");
+                        sprintln!("codex receipt     — same as codex");
+                        sprintln!("codex primitives  — the 12 IMASM primitives with grimoire and structural roles");
+                        sprintln!("codex json        — the receipt as JSON");
+                    }
+                    other => {
+                        sprintln!("codex: unknown subcommand '{}'", other);
+                        sprintln!("codex | codex receipt | codex primitives | codex json | codex help");
+                    }
+                }
+            }
             "native_numeral" | "numeral" => {
                 use crate::native_numeral as nn;
                 let sub = parts.next().unwrap_or("");
@@ -2000,7 +2048,7 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             "prime_tool" | "prime-tool" => {
                 let input = parts.next().unwrap_or("");
                 if input.is_empty() || input == "help" {
-                    sprintln!("prime_tool: usage: prime_tool <natural-number|cell-binary-word>");
+                    sprintln!("prime_tool: usage: prime_tool <natural-number|native-or-hex-word>");
                 } else {
                     match g_momonados::prime_tool_logic::process_prime(input) {
                         Ok(report) => sprintln!("{}", g_momonados::prime_tool_logic::render_report(&report)),
@@ -2011,7 +2059,7 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             "semiprime_tool" | "semiprime-tool" => {
                 let input = parts.next().unwrap_or("");
                 if input.is_empty() || input == "help" {
-                    sprintln!("semiprime_tool: usage: semiprime_tool <natural-number|cell-binary-word>");
+                    sprintln!("semiprime_tool: usage: semiprime_tool <natural-number|native-or-hex-word>");
                 } else {
                     match g_momonados::semiprime_tool_logic::process_semiprime(input) {
                         Ok(report) => sprintln!("{}", g_momonados::semiprime_tool_logic::render_report(&report)),
@@ -2051,7 +2099,7 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
             "arbitrary_factor" | "arbitrary-factor" => {
                 let input = parts.next().unwrap_or("");
                 if input.is_empty() || input == "help" {
-                    sprintln!("arbitrary_factor: usage: arbitrary_factor <natural-number|canonical-cell-binary-word>");
+                    sprintln!("arbitrary_factor: usage: arbitrary_factor <natural-number|native-or-hex-word>");
                 } else {
                     match crate::arbitrary_factor::extract(input) {
                         Ok(report) => sprintln!("{}", report.render()),

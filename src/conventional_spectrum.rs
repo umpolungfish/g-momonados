@@ -9,7 +9,47 @@ use crate::{conventional_translation::BinaryTree,numeral_encodings::SourceForms,
     ququart_decision::DecisionArena,word_tape::WordTape};
 use std::time::{Duration,Instant};
 
+
+struct PreparedNativeGraph {
+    graph:imasm_core::check::Graph,
+    word:String,
+    reference_inputs:Vec<imasm_core::imasm16_3::Reg16_3>,
+    reference_edges:Vec<imasm_core::imasm16_3::Reg16_3>,
+}
+fn prepare_native_graph(kind:&str)->Result<PreparedNativeGraph,String>{
+    use imasm_core::{check::Graph,classic::Token,flow,imasm16_3::Reg16_3};
+        let raw=match kind {
+            "srfp"=>include_str!("../../ob3ect/digital/self_reading_fixed_point/self_reading_fixed_point_ob3ect.json"),
+            "dnn"=>include_str!("../../ob3ect/digital/dual_named_numerals/dual_named_numerals_ob3ect.json"),
+            _=>return Err("unknown numerical preparation protocol".into()),
+        };
+        let definition:Value=serde_json::from_str(raw).map_err(|e|e.to_string())?;
+        let wiring=&definition["wiring_check"];
+        let mut graph=Graph::new();
+        for node in wiring["nodes"].as_array().ok_or("protocol has no native nodes")? {
+            graph.add(Token::parse(node.as_str().ok_or("invalid native node")?).ok_or("unsupported native protocol node")?);
+        }
+        let word=graph.nodes.iter().map(|op|op.code()).collect::<String>();
+        if definition["glyph_word"].as_str()!=Some(word.as_str()) {
+            return Err("protocol word differs from native node sequence".into());
+        }
+        for edge in wiring["wires"].as_array().ok_or("protocol has no native wiring")? {
+            let from=edge[0].as_u64().ok_or("invalid native edge source")? as usize;
+            let to=edge[2].as_u64().ok_or("invalid native edge return")? as usize;
+            if from>=to || to>=graph.nodes.len(){return Err("protocol edge escaped its ordered graph".into());}
+            graph.connect(from,to);
+        }
+        if !graph.validate().is_empty() || !matches!(graph.closure_state(),imasm_core::check::ClosureState::Closed(_)) {
+            return Err("native protocol wiring failed closure validation".into());
+        }
+        let seed=Reg16_3::from_name("A").ok_or("native carrier lost A")?;
+        let (reference_inputs,reference_edges)=flow::flow_values(&graph,seed);
+        Ok(PreparedNativeGraph{graph,word,reference_inputs,reference_edges})
+
+}
+
 struct PointMembrane {
+    copy_return_ancestry:Vec<(usize,usize,bool)>,
     n:BigUint,
     forms:SourceForms,
     wells:crate::reentry_wells::SourceWells,
@@ -30,13 +70,20 @@ struct PointMembrane {
     projected:bool,
     y:ResidentY,
     operations:u64,
+    logical_contractions:usize,
     protocol_banks:Vec<usize>,
     protocol_returns:Vec<Value>,
+    projector:Option<crate::idempotent_projector::Projector>,
+    prepared_protocol:crate::conventional_protocol::PreparedProtocol,
+    native_graphs:[PreparedNativeGraph;2],
+    moment_operator:crate::idempotent_moment::PreparedMoment,
+    complement_word:WordTape,
 }
 impl PointMembrane {
     fn fold(&mut self) {
         let mut roots=vec![self.root,self.prepared,self.before_projection];
         roots.extend_from_slice(&self.protocol_banks);
+        if let Some(projector)=&self.projector {roots.extend(projector.roots());}
         self.arena.fold_roots(&roots);
     }
     fn prepare(n:BigUint)->Result<Self,String> {
@@ -71,12 +118,32 @@ impl PointMembrane {
         for bit in 0..2.min(width){root=arena.controlled_flip(root,coordinates[bit],&[e[bit]]);}
         if arena.mass(root)!=expected*4u8{return Err("complex coordinate preparation lost its source correlation".into());}
         let powers=wells.powers_integer(2*width)?;
-        let mut state=Self{n,forms,wells,arena,root,prepared:root,before_projection:root,e,residual,coordinates,fork_history,engagement_history,powers,
+        let prepared_protocol=crate::conventional_protocol::PreparedProtocol::prepare(n.bits())?;
+        let moment_operator=crate::idempotent_moment::PreparedMoment::prepare(&n,e.len());
+        let complement_word=WordTape::from_biguint(&(&n+2u8));
+        let mut state=Self{copy_return_ancestry:Vec::new(),n,forms,wells,arena,root,prepared:root,before_projection:root,e,residual,coordinates,fork_history,engagement_history,powers,
             row:0,column:0,subtract:false,reduced:false,projected:false,
-            y:ResidentY::from_certified_program(ResidentY::certified_program())?,operations:0,protocol_banks:Vec::new(),protocol_returns:Vec::new()};
+            y:ResidentY::from_certified_program(ResidentY::certified_program())?,operations:0,logical_contractions:0,protocol_banks:Vec::new(),protocol_returns:Vec::new(),projector:None,
+            prepared_protocol,
+            native_graphs:[prepare_native_graph("srfp")?,prepare_native_graph("dnn")?],moment_operator,complement_word};
         state.fold();Ok(state)
     }
     fn arithmetic_step(&mut self)->Result<bool,String> {
+        if let Some(projector)=self.projector.as_mut() {
+            let done=projector.advance(&mut self.arena)?;
+            self.logical_contractions=projector.contractions;
+            self.operations+=1;
+            if done {
+                self.copy_return_ancestry=projector.copy_returns.clone();
+                self.before_projection=self.root;
+                let mut banks=vec![self.prepared,self.before_projection];
+                banks.extend_from_slice(&self.protocol_banks);
+                self.root=self.projector.take().unwrap().finish_banked(&mut self.arena,&banks)?;
+                self.projected=true;self.reduced=true;self.row=self.e.len();
+            }
+            if done||self.operations%32==0 {self.fold();}
+            return Ok(done);
+        }
         if self.projected {
             let zero=self.arena.zero();
             let literals:Vec<_>=self.residual.iter().map(|&wire|(wire,false)).collect();
@@ -135,7 +202,7 @@ impl PointMembrane {
         // F(E)=E²-E is invariant under E -> 1-E modulo N. On 2<=E<N,
         // its canonical representative is N+1-E. Keep residual and all banks.
         for &wire in &self.e { self.root=self.arena.flip(self.root,wire); }
-        self.root=self.arena.add_constant(self.root,&self.e,&(&self.n+2u8),&[]);
+        self.root=self.arena.add_constant_word(self.root,&self.e,&self.complement_word,&[]);
         self.fold();Ok(())
     }
     fn project_point(&mut self) {
@@ -146,34 +213,14 @@ impl PointMembrane {
         self.projected=true;self.fold();
     }
     fn protocol(&mut self,kind:&str)->Result<(),String> {
-        use imasm_core::{check::Graph,classic::Token,flow,imasm16_3::Reg16_3};
+        use imasm_core::{classic::Token,flow,imasm16_3::Reg16_3};
         use crate::reentry_powerset::{Held,unit};
-        let raw=match kind {
-            "srfp"=>include_str!("../../ob3ect/digital/self_reading_fixed_point/self_reading_fixed_point_ob3ect.json"),
-            "dnn"=>include_str!("../../ob3ect/digital/dual_named_numerals/dual_named_numerals_ob3ect.json"),
-            _=>return Err("unknown numerical preparation protocol".into()),
-        };
-        let definition:Value=serde_json::from_str(raw).map_err(|e|e.to_string())?;
-        let wiring=&definition["wiring_check"];
-        let mut graph=Graph::new();
-        for node in wiring["nodes"].as_array().ok_or("protocol has no native nodes")? {
-            graph.add(Token::parse(node.as_str().ok_or("invalid native node")?).ok_or("unsupported native protocol node")?);
-        }
-        let word=graph.nodes.iter().map(|op|op.code()).collect::<String>();
-        if definition["glyph_word"].as_str()!=Some(word.as_str()) {
-            return Err("protocol word differs from native node sequence".into());
-        }
-        for edge in wiring["wires"].as_array().ok_or("protocol has no native wiring")? {
-            let from=edge[0].as_u64().ok_or("invalid native edge source")? as usize;
-            let to=edge[2].as_u64().ok_or("invalid native edge return")? as usize;
-            if from>=to || to>=graph.nodes.len(){return Err("protocol edge escaped its ordered graph".into());}
-            graph.connect(from,to);
-        }
-        if !graph.validate().is_empty() || !matches!(graph.closure_state(),imasm_core::check::ClosureState::Closed(_)) {
-            return Err("native protocol wiring failed closure validation".into());
-        }
-        let seed=Reg16_3::from_name("A").ok_or("native carrier lost A")?;
-        let (reference_inputs,reference_edges)=flow::flow_values(&graph,seed);
+        let seed=Reg16_3{big_t:true,big_f:true,small_t:true,small_f:true};
+        let selected=&self.native_graphs[usize::from(kind=="dnn")];
+        if !matches!(kind,"srfp"|"dnn"){return Err("unknown numerical preparation protocol".into());}
+        let graph=selected.graph.clone();let word=selected.word.clone();
+        let reference_inputs=selected.reference_inputs.clone();
+        let reference_edges=selected.reference_edges.clone();
         let mut edge_values=vec![Reg16_3::default();graph.edges.len()];
         let mut edge_payload:Vec<Held<usize>>=vec![Held::new();graph.edges.len()];
         let protocol_slot=usize::from(kind=="dnn");
@@ -201,7 +248,7 @@ impl PointMembrane {
                     "tagged_mass_preserved":true}));
                 incoming=unit(recovered);self.protocol_banks.extend([joined,recovered]);self.fold();
             }
-            let before=self.operations;let before_y=self.y.calls;
+            let before=self.operations;let before_y=self.y.calls;let before_contractions=self.logical_contractions;
             let mut output=Held::new();
             eprintln!("conventional protocol={kind} node={node} opcode={} stage=enter",op.name());
             for root in incoming.iter().copied() {
@@ -209,16 +256,16 @@ impl PointMembrane {
                 match op {
                     Token::Vinit|Token::Tanch|Token::Fsplit|Token::Ffuse=>{},
                     Token::Imscrib=>{
-                        effects.push(crate::conventional_protocol::source_reflect(&self.arena,self.root,&self.n,&word)?);
+                        effects.push(crate::conventional_protocol::source_reflect_prepared(&self.arena,self.root,&self.n,&word,&self.prepared_protocol.model)?);
                     },
                     Token::Clink=>{
                         if self.forms.source_value()?!=self.n {return Err("protocol changed its source binding".into());}
-                        let (root,banks,witness)=crate::conventional_protocol::clink(&mut self.arena,self.root,self.coordinates,self.n.bits())?;
+                        let (root,banks,witness)=crate::conventional_protocol::clink_prepared(&mut self.arena,self.root,self.coordinates,&self.prepared_protocol)?;
                         self.root=root;self.protocol_banks.extend(banks);effects.push(witness);
                     },
                     Token::Engagr=>{
-                        let (root,witness)=crate::conventional_protocol::engage(&mut self.arena,self.root,self.coordinates,
-                            self.engagement_history[protocol_slot])?;
+                        let (root,witness)=crate::conventional_protocol::engage_prepared(&mut self.arena,self.root,self.coordinates,
+                            self.engagement_history[protocol_slot],&self.prepared_protocol)?;
                         self.root=root;effects.push(witness);
                     },
                     Token::Afwd=>{
@@ -245,7 +292,7 @@ impl PointMembrane {
                             return Err("protocol fixation preceded numerical projection".into());
                         }
                         self.advance()?;
-                        let (root,banks,witness)=crate::conventional_protocol::fix_phase(&mut self.arena,self.root,self.coordinates,self.n.bits())?;
+                        let (root,banks,witness)=crate::conventional_protocol::fix_phase_prepared(&mut self.arena,self.root,self.coordinates,&self.prepared_protocol)?;
                         self.root=root;self.protocol_banks.extend(banks);effects.push(witness);fixed=true;
                     },
                     _=>return Err("unimplemented native numerical protocol operation".into()),
@@ -281,6 +328,7 @@ impl PointMembrane {
             trace.push(json!({"node":node,"opcode":op.name(),"input_carrier":input.name(),
                 "incoming_roots":ancestral_incoming,"returned_roots":output,"executed_operations":effects,
                 "arithmetic_operations":self.operations-before,"Y_calls":self.y.calls-before_y,
+                "logical_contractions":self.logical_contractions-before_contractions,
                 "retained_nodes":self.arena.retained_nodes()}));
         }
         if edge_values!=reference_edges{return Err("executed edges diverged from native graph flow".into());}
@@ -297,6 +345,7 @@ impl PointMembrane {
     fn snapshot(&self)->Value {
         let mut roots=vec![self.root,self.prepared,self.before_projection];
         roots.extend_from_slice(&self.protocol_banks);
+        if let Some(projector)=&self.projector {roots.extend(projector.roots());}
         json!({"schema":"conventional-point-continuation/v1","N":self.n.to_string(),
             "reentry_wells":self.wells.record(),
             "register":self.arena.prepared_record(self.root),
@@ -306,7 +355,9 @@ impl PointMembrane {
             "point_wires":self.e,"residual_wires":self.residual,"coordinate_wires":self.coordinates,
             "fork_history_wires":self.fork_history,"engagement_history_wires":self.engagement_history,
             "arithmetic_unit":"integer-affine-row-single-reduction",
-            "operations":self.operations,"Y_program":ResidentY::certified_program(),
+            "contracted_projector":self.projector.as_ref().map(|p|p.record()),
+            "copy_return_ancestry":self.projector.as_ref().map_or(&self.copy_return_ancestry,|p|&p.copy_returns),
+            "operations":self.operations,"logical_contractions":self.logical_contractions,"Y_program":ResidentY::certified_program(),
             "Y_residual":self.y.residual_program(),"Y_calls":self.y.calls,"Y_contractions":self.y.contractions,
             "protocol_bank_roots":self.protocol_banks,"retained_root_order":roots,
             "shared_protocol_register":self.arena.prepared_record_many(&roots),
@@ -315,6 +366,77 @@ impl PointMembrane {
 }
 
 pub fn prepare(n:BigUint)->Result<Value,String> {prepare_for("both",n)}
+
+/// Contract the zero boundary together with its local arithmetic tensors.
+/// The source register, original banks and Y evaluator belong to one carrier.
+/// Zero seconds leaves execution uncapped; positive limits are explicit diagnostics.
+fn compile_point(n:BigUint)->Result<PointMembrane,String>{
+    if n.bits()<100{return Err("contracted source requires at least 100 bits".into());}
+    let mut state=PointMembrane::prepare(n.clone())?;
+    state.projector=Some(crate::idempotent_projector::Projector::compile(
+        &mut state.arena,state.root,&state.e,&n)?);
+    state.fold();Ok(state)
+}
+pub fn prepare_contracted(n:BigUint,seconds:u64)->Result<Value,String>{
+    let started=Instant::now();let state=compile_point(n.clone())?;
+    run_contracted(state,n,seconds,started.elapsed().as_secs_f64())
+}
+/// Complete numerical preparation inside Cargo. A final switch image may only
+/// be emitted after the N-only computation has produced an exact factor pair.
+pub fn compile_final_switch(n:BigUint)->Result<Value,String>{
+    let started=Instant::now();
+    let mut returned=prepare_contracted(n.clone(),0)?;
+    let factors=returned["factors"].as_array().filter(|v|v.len()==2)
+        .ok_or("numerical preparation returned without two factor marks")?;
+    let parse=|v:&Value|v.as_str().ok_or("factor mark is not a numeral")?
+        .parse::<BigUint>().map_err(|_|"invalid factor mark");
+    let d=parse(&factors[0])?;let q=parse(&factors[1])?;
+    if d<=BigUint::one() || d>=n || q<=BigUint::one()
+        || &n%&d!=BigUint::zero() || &d*&q!=n
+        || returned["product_verified"]!=true || returned["projection_complete"]!=true {
+        return Err("Cargo numerical preparation failed exact factor closure".into());
+    }
+    returned["schema"]=json!("cargo-evaluated-point-switch/v1");
+    returned["preparation_seconds"]=json!(started.elapsed().as_secs_f64());
+    returned["preparation_boundary"]=json!("projection, protocol, SIC moments and exact factor closure completed in Cargo");
+    returned["source_inputs_at_trigger"]=json!(0);
+    returned["numerical_operations_at_trigger"]=json!(0);
+    // The original contraction clock now belongs to compilation.
+    let evaluation_seconds=returned.as_object_mut().unwrap().remove("trigger_to_return_seconds").unwrap();
+    returned["compilation_evaluation_seconds"]=evaluation_seconds;
+    Ok(returned)
+}
+fn run_contracted(mut state:PointMembrane,n:BigUint,seconds:u64,compilation_seconds:f64)->Result<Value,String>{
+    eprintln!("prepared-switch constraints={} internal={} nodes={}",
+        state.projector.as_ref().unwrap().constraints,state.projector.as_ref().unwrap().internal_count(),state.arena.retained_nodes());
+    let trigger=Instant::now();
+    while !state.projected && (seconds==0 || trigger.elapsed()<Duration::from_secs(seconds)) {
+        state.advance()?;
+        if state.operations%32==0 {eprintln!("projector contractions={} payload_steps={} internal={} nodes={} copy_returns={}",
+            state.logical_contractions,state.operations,
+            state.projector.as_ref().map_or(0,|p|p.internal_count()),state.arena.retained_nodes(),
+            state.projector.as_ref().map_or(state.copy_return_ancestry.len(),|p|p.copy_returns.len()));}
+    }
+    let mut factors=None;let mut observation=None;
+    if state.projected && !state.arena.mass(state.root).is_zero() {
+        state.protocol("srfp")?;
+        let moment=crate::idempotent_moment::read_prepared_operator(&mut state.arena,state.root,&state.e,&n,&state.prepared_protocol.frame,&state.moment_operator,Some(&state.prepared_protocol.dual))?;
+        state.protocol_banks.extend([moment.weighted_root,moment.squared_root]);
+        if let Some(point)=&moment.point {
+            if let Ok(split)=crate::idempotent_point::close(&WordTape::from_biguint(&n),&WordTape::from_biguint(point)) {
+                state.wells.close(&split.divisor,&split.quotient)?;
+                factors=Some([split.divisor.to_biguint().to_string(),split.quotient.to_biguint().to_string()]);
+            }
+        }
+        observation=Some(moment.evidence);
+    }
+    let factor_verified=factors.is_some();
+    Ok(json!({"schema":"contracted-idempotent-moment/v1","N":n.to_string(),"input_boundary":"N-only",
+        "execution_limit_seconds":if seconds==0 {None}else{Some(seconds)},
+        "factors":factors,"product_verified":factor_verified,"observable":observation,
+        "projection_complete":state.projected,"compilation_seconds":compilation_seconds,
+        "trigger_to_return_seconds":trigger.elapsed().as_secs_f64(),"retained_membrane":state.snapshot()}))
+}
 
 pub fn prepare_for(kind:&str,n:BigUint)->Result<Value,String> {
     if n<=BigUint::from(2u8){return Err("proper-point construction requires N greater than two".into());}
@@ -334,15 +456,15 @@ pub fn prepare_for(kind:&str,n:BigUint)->Result<Value,String> {
     let mut factors=None;let mut reading=None;let mut reentry_closure=None;
     let mass=state.arena.mass(state.root);
     if done && !mass.is_zero() {
-        // One complete joint readout, after the residual-zero projection.
-        let joint=state.arena.sample_prefix(state.root,state.arena.cells,&BigUint::zero(),&BigUint::one())?;
-        let mut point=BigUint::zero();
-        for (i,&wire) in state.e.iter().enumerate(){if joint.bit(wire as u64){point|=BigUint::one()<<i;}}
+        let moment=crate::idempotent_moment::read_prepared_operator(&mut state.arena,state.root,&state.e,&n,&state.prepared_protocol.frame,&state.moment_operator,Some(&state.prepared_protocol.dual))?;
+        state.protocol_banks.push(moment.weighted_root);
+        state.protocol_banks.push(moment.squared_root);
+        let point=moment.point.ok_or("projected family second moment did not return an integral point")?;
         let source_word=WordTape::from_canonical_word(&state.forms.native).ok_or("lost native source word")?;
         let split=crate::idempotent_point::close(&source_word,&WordTape::from_biguint(&point))?;
         reentry_closure=Some(state.wells.close(&split.divisor,&split.quotient)?);
         factors=Some([split.divisor.to_biguint().to_string(),split.quotient.to_biguint().to_string()]);
-        reading=Some(json!({"point":point.to_string(),"complement":split.complement.to_biguint().to_string(),
+        reading=Some(json!({"observable":moment.evidence,"point":point.to_string(),"complement":split.complement.to_biguint().to_string(),
             "divisor_word":split.divisor.as_word(),"quotient_word":split.quotient.as_word(),
             "zero_remainder":true,"exact_word_product":true,"paired_boundary":true}));
     }
@@ -601,4 +723,232 @@ pub fn source_complex_protocol_control(n:BigUint)->Result<Value,String>{
         "ENGAGR":engagement,"IFIX_phase":winding,"all_banks_roundtrip":true,
         "changed_self_model_rejected":true,"retained_banks":snapshot["retained_root_order"],
         "elapsed_seconds":started.elapsed().as_secs_f64()}))
+}
+
+
+/// Cargo calls this from N alone; no producer, seed or factor input is admitted.
+pub fn compile_switch_record(n:BigUint)->Result<Value,String>{
+    let started=Instant::now();let state=compile_point(n)?;
+    let mut record=prepared_point_record(&state,0)?;
+    record["preparation_nanoseconds"]=json!(u64::try_from(started.elapsed().as_nanos()).map_err(|_|"preparation clock overflow")?);
+    Ok(record)
+}
+fn prepared_point_record(state:&PointMembrane,preparation_nanoseconds:u64)->Result<Value,String>{
+    let mut roots=vec![state.root,state.prepared,state.before_projection];
+    roots.extend_from_slice(&state.protocol_banks);
+    roots.extend(state.projector.as_ref().unwrap().roots());
+    let graph=|g:&PreparedNativeGraph|{
+        let carrier=|v:imasm_core::imasm16_3::Reg16_3|[v.big_t,v.big_f,v.small_t,v.small_f];
+        json!({"node_variants":g.graph.nodes.iter().map(|op|format!("{op:?}")).collect::<Vec<_>>(),
+            "edges":g.graph.edges,"word":g.word,
+            "reference_inputs":g.reference_inputs.iter().copied().map(carrier).collect::<Vec<_>>(),
+            "reference_edges":g.reference_edges.iter().copied().map(carrier).collect::<Vec<_>>()})
+    };
+    let matrix=|m:&[(crate::word_tape::SignedWordTape,crate::word_tape::SignedWordTape);16]|
+        m.iter().map(|(re,im)|json!({"re":re.prepared_record(),"im":im.prepared_record()})).collect::<Vec<_>>();
+    let y=state.y.prepared_state();let p=&state.prepared_protocol;let model=&p.model;
+    let register=state.arena.compiled_record_many(&roots);
+    Ok(json!({"schema":"cargo-prepared-point-switch/v1","input_boundary":"N-only",
+        "source_digits":state.n.to_u32_digits(),"source_word":state.forms.native,"hex_word":state.forms.hex,
+        "binary_digits":state.wells.binary.prepared_digits(),
+        "powers":state.powers.iter().map(BigUint::to_u32_digits).collect::<Vec<_>>(),
+        "complement_word":state.complement_word.as_word(),
+        "moment_offset":state.moment_operator.offset.prepared_record(),
+        "moment_weights":state.moment_operator.weights.iter().map(|v|v.prepared_record()).collect::<Vec<_>>(),
+        "register":register,"point_wires":state.e,"residual_wires":state.residual,
+        "coordinates":state.coordinates,"fork_history":state.fork_history,"engagement_history":state.engagement_history,
+        "projector":state.projector.as_ref().unwrap().preparation_record(),
+        "protocol":{"sic":p.frame.prepared_record(),"modulus_bits":p.format.modulus_bits,"w_bits":p.format.w_bits,
+            "central_step":matrix(&p.central_step),"engagement":matrix(&p.engagement),
+            "dual_denominator":crate::word_tape::SignedWordTape::from_bigint(&p.dual.denominator).prepared_record(),
+            "dual_columns":p.dual.columns.iter().map(|column|column.iter().map(|(re,im)|json!({
+                "re":crate::word_tape::SignedWordTape::from_bigint(re).prepared_record(),
+                "im":crate::word_tape::SignedWordTape::from_bigint(im).prepared_record()})).collect::<Vec<_>>()).collect::<Vec<_>>(),
+            "disassembler":model.disassembler,"recompiler":model.recompiler,"forward":model.forward,"backward":model.backward,
+            "program_self_return":model.program_self_return,"executed_trie_steps":model.executed_trie_steps},
+        "graphs":state.native_graphs.iter().map(graph).collect::<Vec<_>>(),
+        "y":{"postfix":y.postfix,"prefix_trace":y.prefix_trace,"prefix_contractions":y.prefix_contractions,
+            "contractions":y.contractions,"calls":y.calls,"done":y.done},
+        "logical_contractions":state.logical_contractions,
+        "runtime_state":{"row":state.row,"column":state.column,"subtract":state.subtract,
+            "reduced":state.reduced,"projected":state.projected,"operations":state.operations,
+            "protocol_bank_count":state.protocol_banks.len(),"protocol_returns":state.protocol_returns},
+        "preparation_nanoseconds":preparation_nanoseconds}))
+}
+
+fn held_field<T:serde::de::DeserializeOwned>(record:&Value,key:&str)->Result<T,String>{
+    serde_json::from_value(record[key].clone()).map_err(|e|format!("invalid held {key}: {e}"))
+}
+
+pub struct PreparedPointSwitch {state:PointMembrane,preparation_nanoseconds:u64}
+impl PreparedPointSwitch {
+    /// Restore the carried object, including the reduced tensors and pending Y
+    /// program. No preparation, candidate producer or source reset is called.
+    pub fn from_record(record:&Value)->Result<Self,String>{
+        use crate::word_tape::SignedWordTape;
+        use imasm_core::{check::Graph,classic::Token,flow,imasm16_3::Reg16_3};
+        if record["schema"]!="cargo-prepared-point-switch/v1"||record["input_boundary"]!="N-only"{
+            return Err("unsupported held membrane boundary".into());
+        }
+        let n=BigUint::new(held_field(record,"source_digits")?);
+        let forms=SourceForms{native:held_field(record,"source_word")?,hex:held_field(record,"hex_word")?};
+        if forms.source_value()?!=n{return Err("held membrane changed its source binding".into());}
+        let wells=crate::reentry_wells::SourceWells::new(WordTape::from_canonical_word(&forms.native).ok_or("held source word")?)?;
+        if wells.binary.prepared_digits()!=held_field::<Vec<char>>(record,"binary_digits")?{
+            return Err("held binary well differs from the source".into());
+        }
+        let (arena,roots)=DecisionArena::from_prepared_record_many(&record["register"])?;
+        let runtime=&record["runtime_state"];
+        let bank_count=runtime.get("protocol_bank_count").and_then(Value::as_u64).unwrap_or(0) as usize;
+        if roots.len()<3||bank_count>roots.len()-3{return Err("held membrane lost its bank boundary".into());}
+        let projector=crate::idempotent_projector::Projector::from_preparation_record(&record["projector"],&roots[3+bank_count..])?;
+        let p=&record["protocol"];
+        let frame=crate::anyon_ququart::FixedQuquartSic::from_prepared_record(&p["sic"])?;
+        let format=crate::phase_unbraid::FixedPointFormat::for_modulus_bits(n.bits())?;
+        if p["modulus_bits"]!=n.bits()||p["w_bits"]!=format.w_bits{return Err("held SIC precision changed".into());}
+        let complex=|z:&Value|Ok::<_,String>((SignedWordTape::from_prepared_record(&z["re"])?,SignedWordTape::from_prepared_record(&z["im"])?));
+        let matrix=|rows:&Value|rows.as_array().ok_or("held matrix missing")?.iter().map(complex)
+            .collect::<Result<Vec<_>,_>>()?.try_into().map_err(|_|String::from("held matrix dimension changed"));
+        let columns=p["dual_columns"].as_array().ok_or("held SIC dual missing")?.iter().map(|row|{
+            row.as_array().ok_or("held SIC dual column missing")?.iter().map(|z|complex(z).map(|(re,im)|(re.to_bigint(),im.to_bigint())))
+                .collect::<Result<Vec<_>,String>>()?.try_into().map_err(|_|String::from("held SIC dual dimension changed"))
+        }).collect::<Result<Vec<[(BigInt,BigInt);16]>,String>>()?;
+        if columns.len()!=16{return Err("held SIC dual lost a column".into());}
+        let prepared_protocol=crate::conventional_protocol::PreparedProtocol{frame,format,
+            central_step:matrix(&p["central_step"])?,engagement:matrix(&p["engagement"])?,
+            dual:crate::anyon_ququart::PreparedSicDual{denominator:SignedWordTape::from_prepared_record(&p["dual_denominator"])?.to_bigint(),columns},
+            model:crate::parasm::SelfModel{disassembler:held_field(p,"disassembler")?,recompiler:held_field(p,"recompiler")?,
+                forward:held_field(p,"forward")?,backward:held_field(p,"backward")?,
+                program_self_return:held_field(p,"program_self_return")?,executed_trie_steps:held_field(p,"executed_trie_steps")?}};
+        let graphs=record["graphs"].as_array().ok_or("held protocol graphs missing")?.iter().map(|g|{
+            let names:Vec<String>=held_field(g,"node_variants")?;
+            let nodes=names.iter().map(|name|Token::parse(name).ok_or_else(||format!("invalid held opcode {name}"))).collect::<Result<Vec<_>,_>>()?;
+            let graph=Graph{nodes,edges:held_field(g,"edges")?};
+            if !graph.validate().is_empty(){return Err("held graph wiring changed".into());}
+            let word:String=held_field(g,"word")?;
+            if word!=graph.nodes.iter().map(|op|op.code()).collect::<String>(){return Err("held word differs from graph".into());}
+            let carrier=|key:&str|held_field::<Vec<[bool;4]>>(g,key).map(|values|values.into_iter().map(|v|Reg16_3{big_t:v[0],big_f:v[1],small_t:v[2],small_f:v[3]}).collect::<Vec<_>>());
+            let reference_inputs=carrier("reference_inputs")?;let reference_edges=carrier("reference_edges")?;
+            if flow::flow_values(&graph,Reg16_3::from_name("A").unwrap())!=(reference_inputs.clone(),reference_edges.clone()){
+                return Err("held native flow changed".into());
+            }
+            Ok(PreparedNativeGraph{graph,word,reference_inputs,reference_edges})
+        }).collect::<Result<Vec<_>,String>>()?;
+        let native_graphs=graphs.try_into().map_err(|_|"held protocol graph count changed")?;
+        let y=&record["y"];
+        let y=ResidentY::from_prepared_state(vox_core::resident_y::PreparedResidentY{
+            postfix:held_field(y,"postfix")?,prefix_trace:held_field(y,"prefix_trace")?,
+            prefix_contractions:held_field(y,"prefix_contractions")?,contractions:held_field(y,"contractions")?,
+            calls:held_field(y,"calls")?,done:held_field(y,"done")?})?;
+        let e:Vec<usize>=held_field(record,"point_wires")?;
+        if e.len()!=n.bits() as usize{return Err("held source coordinate map changed".into());}
+        projector.check_carrier(arena.cells,&e)?;
+        let powers:Vec<Vec<u32>>=held_field(record,"powers")?;
+        let row=runtime.get("row").and_then(Value::as_u64).unwrap_or(0) as usize;
+        let column=runtime.get("column").and_then(Value::as_u64).unwrap_or(0) as usize;
+        let flag=|key|runtime.get(key).and_then(Value::as_bool).unwrap_or(false);
+        if flag("projected"){return Err("closed image is not an open continuation".into());}
+        let state=PointMembrane{copy_return_ancestry:Vec::new(),n,forms,wells,arena,
+            root:roots[0],prepared:roots[1],before_projection:roots[2],e,
+            residual:held_field(record,"residual_wires")?,coordinates:held_field(record,"coordinates")?,
+            fork_history:held_field(record,"fork_history")?,engagement_history:held_field(record,"engagement_history")?,
+            powers:powers.into_iter().map(BigUint::new).collect(),row,column,subtract:flag("subtract"),reduced:flag("reduced"),projected:false,y,
+            operations:runtime.get("operations").and_then(Value::as_u64).unwrap_or(0),logical_contractions:projector.contractions,
+            protocol_banks:roots[3..3+bank_count].to_vec(),protocol_returns:runtime.get("protocol_returns").cloned().map(serde_json::from_value)
+                .transpose().map_err(|e|e.to_string())?.unwrap_or_default(),projector:Some(projector),prepared_protocol,native_graphs,
+            moment_operator:crate::idempotent_moment::PreparedMoment{offset:SignedWordTape::from_prepared_record(&record["moment_offset"])?,
+                weights:record["moment_weights"].as_array().ok_or("held moment missing")?.iter().map(SignedWordTape::from_prepared_record).collect::<Result<_,_>>()?},
+            complement_word:WordTape::from_canonical_word(record["complement_word"].as_str().ok_or("held complement missing")?).ok_or("invalid held complement word")?};
+        Ok(Self{state,preparation_nanoseconds:held_field(record,"preparation_nanoseconds")?})
+    }
+    pub fn from_baked(b:&crate::baked_point::BakedPoint)->Result<Self,String>{
+        use crate::conventional_protocol::PreparedProtocol;
+        use crate::phase_unbraid::FixedPointFormat;
+        let (arena,roots)=DecisionArena::from_baked_sparse_nodes(b.cells,b.roots,b.nodes,b.support)?;
+        let runtime=b.runtime;let bank_count=runtime.protocol_bank_count;
+        if roots.len()<3||bank_count>roots.len()-3{return Err("compiled membrane lost its prepared banks".into());}
+        if runtime.projected{return Err("closed image is not an open compiled continuation".into());}
+        let projector=crate::idempotent_projector::Projector::from_baked(b.projector,&roots[3+bank_count..])?;
+        projector.check_carrier(arena.cells,b.point_wires)?;
+        let p=b.protocol;let format=FixedPointFormat{modulus_bits:p.modulus_bits,w_bits:p.w_bits};
+        let matrix=|rows:&[crate::baked_resident::BakedWordComplex;16]|{
+            rows.iter().map(|z|Ok((z.re.value()?,z.im.value()?))).collect::<Result<Vec<_>,String>>()?
+                .try_into().map_err(|_|String::from("compiled operator lost its dimensions"))
+        };
+        let prepared_protocol=PreparedProtocol{frame:crate::anyon_ququart::FixedQuquartSic::from_baked_format(p.sic,format.clone())?,format,
+            central_step:matrix(p.central_step)?,engagement:matrix(p.engagement)?,
+            dual:crate::anyon_ququart::PreparedSicDual{denominator:p.dual_denominator.value(),
+                columns:p.dual_columns.iter().map(|row|row.map(|z|{let v=z.value();(v.re,v.im)})).collect()},
+            model:crate::parasm::SelfModel{disassembler:p.disassembler.into(),recompiler:p.recompiler.into(),
+                forward:p.forward,backward:p.backward,program_self_return:p.program_self_return,
+                executed_trie_steps:p.executed_trie_steps}};
+        let native_graphs=b.graphs.each_ref().map(|g|PreparedNativeGraph{
+            graph:imasm_core::check::Graph{nodes:g.nodes.to_vec(),edges:g.edges.to_vec()},word:g.word.into(),
+            reference_inputs:g.reference_inputs.to_vec(),reference_edges:g.reference_edges.to_vec()});
+        let y=ResidentY::from_prepared_state(vox_core::resident_y::PreparedResidentY{
+            postfix:b.y.postfix.to_vec(),prefix_trace:b.y.prefix_trace.iter().map(|s|(*s).into()).collect(),
+            prefix_contractions:b.y.prefix_contractions,contractions:b.y.contractions,calls:b.y.calls,done:b.y.done})?;
+        let state=PointMembrane{copy_return_ancestry:Vec::new(),n:BigUint::new(b.source_digits.to_vec()),
+            forms:SourceForms{native:b.source_word.into(),hex:b.hex_word.into()},
+            wells:crate::reentry_wells::SourceWells::from_baked(b.source_word,b.binary_digits)?,
+            arena,root:roots[0],prepared:roots[1],before_projection:roots[2],
+            e:b.point_wires.to_vec(),residual:b.residual_wires.to_vec(),coordinates:b.coordinates,
+            fork_history:b.fork_history,engagement_history:b.engagement_history,
+            powers:b.powers.iter().map(|v|BigUint::new(v.to_vec())).collect(),
+            row:runtime.row,column:runtime.column,subtract:runtime.subtract,reduced:runtime.reduced,projected:false,y,
+            operations:runtime.operations,logical_contractions:b.projector.contractions,
+            protocol_banks:roots[3..3+bank_count].to_vec(),
+            protocol_returns:serde_json::from_str(runtime.protocol_returns).map_err(|e|e.to_string())?,projector:Some(projector),
+            prepared_protocol,native_graphs,
+            moment_operator:crate::idempotent_moment::PreparedMoment{offset:b.moment_offset.value()?,
+                weights:b.moment_weights.iter().map(|v|v.value()).collect::<Result<Vec<_>,_>>()?},
+            complement_word:WordTape::from_compiled_word(b.complement_word).ok_or("compiled complement lost its word")?};
+        Ok(Self{state,preparation_nanoseconds:b.preparation_nanoseconds})
+    }
+    pub fn trigger(self)->Result<Value,String>{
+        let n=self.state.n.clone();run_contracted(self.state,n,0,self.preparation_nanoseconds as f64/1e9)
+    }
+    pub fn hold(mut self,steps:u64,path:&std::path::Path)->Result<Value,String>{
+        let before=self.state.operations;let started=Instant::now();
+        for _ in 0..steps {
+            self.state.advance()?;
+            if self.state.projected {
+                let n=self.state.n.clone();
+                let returned=run_contracted(self.state,n,0,self.preparation_nanoseconds as f64/1e9)?;
+                let mut file=std::io::BufWriter::new(std::fs::File::create(path).map_err(|e|e.to_string())?);
+                serde_json::to_writer(&mut file,&returned).map_err(|e|e.to_string())?;
+                return Ok(json!({"projection_complete":true,"factors":returned["factors"],"return_file":path}));
+            }
+        }
+        self.state.fold();
+        let transformation_seconds=started.elapsed().as_secs_f64();
+        let record=self.prepared_record()?;
+        let mut file=std::io::BufWriter::new(std::fs::File::create(path).map_err(|e|e.to_string())?);
+        serde_json::to_writer(&mut file,&record).map_err(|e|e.to_string())?;
+        use std::io::Write;
+        file.flush().map_err(|e|e.to_string())?;
+        let mut report=self.loading_record();
+        report["schema"]=json!("held-point-return/v1");report["held"]=json!(true);
+        report["continuation_file"]=json!(path);report["payload_steps_executed"]=json!(self.state.operations-before);
+        report["total_payload_steps"]=json!(self.state.operations);report["Y_calls"]=json!(self.state.y.calls);
+        report["logical_contractions"]=json!(self.state.logical_contractions);
+        report["copy_returns"]=json!(self.state.projector.as_ref().unwrap().copy_returns.len());
+        report["open_internal_coordinates"]=json!(self.state.projector.as_ref().unwrap().internal_count());
+        report["transformation_seconds"]=json!(transformation_seconds);
+        report["return_serialization_seconds"]=json!(started.elapsed().as_secs_f64()-transformation_seconds);
+        Ok(report)
+    }
+    pub fn prepared_record(&self)->Result<Value,String>{prepared_point_record(&self.state,self.preparation_nanoseconds)}
+    pub fn loading_record(&self)->Value{
+        json!({"N":self.state.n.to_string(),"preparation_nanoseconds":self.preparation_nanoseconds,
+            "register_cells":self.state.arena.cells,"nodes":self.state.arena.retained_nodes(),
+            "tensor_banks":self.state.projector.as_ref().unwrap().roots().len(),
+            "prepared_Y_residual":self.state.y.residual_program(),"source_inputs_at_trigger":0})
+    }
+}
+
+pub fn prepare_held(n:BigUint,steps:u64,path:&std::path::Path)->Result<Value,String>{
+    let started=Instant::now();let state=compile_point(n)?;
+    let preparation_nanoseconds=u64::try_from(started.elapsed().as_nanos()).map_err(|_|"preparation clock overflow")?;
+    PreparedPointSwitch{state,preparation_nanoseconds}.hold(steps,path)
 }

@@ -1,0 +1,2 @@
+warning: unused manifest key: profile.release.prefer-dynamic
+    Finished `release` profile [optimized] target(s) in 0.02s

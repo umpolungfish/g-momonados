@@ -100,6 +100,9 @@ fn encode_biguint(n: &BigUint) -> String {
 /// mistaken for a word but a malformed word could in principle be mistaken
 /// for garbage either way.
 pub fn decode(word: &str) -> Option<BigUint> {
+    if let Ok(value) = vox_core::combined_factor::decode_hex_word(word) {
+        return Some(value);
+    }
     let c: alloc::vec::Vec<char> = word.chars().collect();
     if c.first() != Some(&'⊢') {
         return None;
@@ -139,7 +142,9 @@ pub fn decode_report(word: &str) -> String {
     let w = word.trim();
     match decode(w) {
         Some(n) => {
-            let round = encode(&n.to_string());
+            let round = if vox_core::combined_factor::decode_hex_word(w).is_ok() {
+                vox_core::combined_factor::hex_word(&n)
+            } else { encode(&n.to_string()) };
             format!(
                 "word = {}\nN = {}\nencode(N) = {}\nround trip encode(decode(w)) == w: {}\n",
                 w, n, round, round == w
@@ -970,6 +975,7 @@ pub(crate) fn to_bits_low_first(n: &BigUint) -> alloc::vec::Vec<bool> {
 pub fn help() -> String {
     let mut o = String::new();
     o.push_str("native_numeral — ob3ect-backed parity-graded numeral mapping\n");
+    o.push_str("  Native numeral inputs also accept canonical hex-digit words.\n");
     o.push_str("  word          the canonical glyph word and its marks\n");
     o.push_str("  encode <n>    map n to its native parity-graded word\n");
     o.push_str("  decode <word>    the exact inverse of encode: read a native word back to its integer, with the round-trip check\n");
@@ -1449,6 +1455,7 @@ pub fn encode_report(n: &str) -> String {
 /// equality here rejects non-canonical words with redundant high zero cells so
 /// interlace/deinterlace really operate on *the output type of encode*.
 fn canonical_encode_bits(word: &str) -> Result<Vec<bool>, &'static str> {
+    if let Ok(bits) = vox_core::combined_factor::decode_hex_bits(word) { return Ok(bits); }
     let n = decode(word).ok_or("expected a native_numeral encode word")?;
     if encode_biguint(&n) != word {
         return Err("word is structurally decodable but is not canonical encode output");
@@ -1614,7 +1621,7 @@ fn normalize_encode_input(raw: &str) -> Result<String, String> {
     let raw = raw.trim();
     if raw.starts_with('⊢') {
         canonical_encode_bits(raw)
-            .map(|_| raw.to_string())
+            .map(|bits| encode_bits_canonical(&bits))
             .map_err(|e| format!("{}: {}", e, raw))
     } else {
         let n: BigUint = raw.parse()
@@ -1637,7 +1644,7 @@ pub fn factor_report(word: &str) -> String {
     let n = multiply_via_word(&p, &q);
     let n_word = encode_biguint(&n);
     let roundtrip = interlace_words(&p_word, &q_word)
-        .map(|w| w == word)
+        .map(|w| canonicalize_input(word).map(|source| w == source).unwrap_or(false))
         .unwrap_or(false);
     let syzygy = syzygy_preserves(&n, &p, &q);
     // Parent check: does the lane product close back on THIS word's own

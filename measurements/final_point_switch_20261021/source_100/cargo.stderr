@@ -1,0 +1,1246 @@
+warning: unused manifest key: profile.release.prefer-dynamic
+warning: failed to save last-use data
+This may prevent cargo from accurately tracking what is being used in its global cache. This information is used for automatically removing unused data in the cache.
+
+attempt to write a readonly database
+
+Caused by:
+  Error code 8: Attempt to write a readonly database
+       Fresh autocfg v1.5.1
+       Fresh unicode-ident v1.0.24
+       Fresh proc-macro2 v1.0.107
+       Fresh quote v1.0.47
+       Fresh libm v0.2.16
+       Fresh syn v3.0.4
+       Fresh num-traits v0.2.19
+       Fresh serde_derive v1.0.229
+       Fresh serde_core v1.0.229
+       Fresh zmij v1.0.23
+       Fresh num-integer v0.1.47
+       Fresh cfg-if v1.0.4
+       Fresh itoa v1.0.18
+       Fresh memchr v2.8.3
+       Dirty g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS): the file `src/ququart_decision.rs` has changed (1792625734.421750095s, 10m 9s after last build at 1792625125.233749029s)
+   Compiling g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)
+     Running `CARGO=/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo CARGO_CRATE_NAME=build_script_build CARGO_MANIFEST_DIR=/home/mrnob0dy666/imsgct/G-mOMonadOS CARGO_MANIFEST_PATH=/home/mrnob0dy666/imsgct/G-mOMonadOS/Cargo.toml CARGO_PKG_AUTHORS='' CARGO_PKG_DESCRIPTION='' CARGO_PKG_HOMEPAGE='' CARGO_PKG_LICENSE='' CARGO_PKG_LICENSE_FILE='' CARGO_PKG_NAME=g-momonados CARGO_PKG_README=README.md CARGO_PKG_REPOSITORY='' CARGO_PKG_RUST_VERSION='' CARGO_PKG_VERSION=0.1.0 CARGO_PKG_VERSION_MAJOR=0 CARGO_PKG_VERSION_MINOR=1 CARGO_PKG_VERSION_PATCH=0 CARGO_PKG_VERSION_PRE='' CARGO_PRIMARY_PACKAGE=1 CARGO_SBOM_PATH='' LD_LIBRARY_PATH='/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps:/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:/usr/lib/wsl/lib:/home/mrnob0dy666/shucker/lib/purl_diver:/home/mrnob0dy666/shucker/lib/byvalver:' /home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name build_script_build --edition=2021 build.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C opt-level=3 -C embed-bitcode=no --deny=warnings --cfg 'feature="default"' --cfg 'feature="hosted"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("carrier-observation", "default", "hosted"))' -C metadata=4b34b790fd78e963 -C extra-filename=-5f09633eb693a876 --out-dir /home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/build/g-momonados-5f09633eb693a876 -C strip=debuginfo -L dependency=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps --extern cudarc=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps/libcudarc-99935b3fd0e15919.rlib --extern imasm_core=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps/libimasm_core-cf1115548a79437d.rlib --extern libm=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps/liblibm-fc3d8a6fae3bc779.rlib --extern num_bigint=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps/libnum_bigint-7da06e13e298034b.rlib --extern num_traits=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps/libnum_traits-367ba63d675dfbf8.rlib --extern serde=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps/libserde-95b9e3d732eebab7.rlib --extern serde_json=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps/libserde_json-9b3c8e9e1206203f.rlib --extern vox_core=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps/libvox-3707b8be27603546.rlib`
+       Fresh serde_json v1.0.151
+       Fresh libloading v0.9.0
+       Fresh num-bigint v0.4.8
+       Fresh num-complex v0.4.6
+       Fresh vox v0.1.0 (/home/mrnob0dy666/imsgct/Vox)
+       Fresh cudarc v0.19.9
+       Fresh serde v1.0.229
+     Running `CARGO=/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo CARGO_CFG_FEATURE=default,hosted CARGO_CFG_FMT_DEBUG=full CARGO_CFG_OVERFLOW_CHECKS='' CARGO_CFG_PANIC=unwind CARGO_CFG_RELOCATION_MODEL=pic CARGO_CFG_TARGET_ABI='' CARGO_CFG_TARGET_ARCH=x86_64 CARGO_CFG_TARGET_ENDIAN=little CARGO_CFG_TARGET_ENV=gnu CARGO_CFG_TARGET_FAMILY=unix CARGO_CFG_TARGET_FEATURE=crt-static,fxsr,sse,sse2,x87 CARGO_CFG_TARGET_HAS_ATOMIC=16,32,64,8,ptr CARGO_CFG_TARGET_HAS_ATOMIC_EQUAL_ALIGNMENT=16,32,64,8,ptr CARGO_CFG_TARGET_HAS_ATOMIC_LOAD_STORE=16,32,64,8,ptr CARGO_CFG_TARGET_HAS_RELIABLE_F128='' CARGO_CFG_TARGET_HAS_RELIABLE_F16='' CARGO_CFG_TARGET_HAS_RELIABLE_F16_MATH='' CARGO_CFG_TARGET_OS=linux CARGO_CFG_TARGET_POINTER_WIDTH=64 CARGO_CFG_TARGET_THREAD_LOCAL='' CARGO_CFG_TARGET_VENDOR=unknown CARGO_CFG_UB_CHECKS='' CARGO_CFG_UNIX='' CARGO_ENCODED_RUSTFLAGS='-Dwarnings-Ctarget-feature=+crt-static' CARGO_FEATURE_DEFAULT=1 CARGO_FEATURE_HOSTED=1 CARGO_MANIFEST_DIR=/home/mrnob0dy666/imsgct/G-mOMonadOS CARGO_MANIFEST_PATH=/home/mrnob0dy666/imsgct/G-mOMonadOS/Cargo.toml CARGO_PKG_AUTHORS='' CARGO_PKG_DESCRIPTION='' CARGO_PKG_HOMEPAGE='' CARGO_PKG_LICENSE='' CARGO_PKG_LICENSE_FILE='' CARGO_PKG_NAME=g-momonados CARGO_PKG_README=README.md CARGO_PKG_REPOSITORY='' CARGO_PKG_RUST_VERSION='' CARGO_PKG_VERSION=0.1.0 CARGO_PKG_VERSION_MAJOR=0 CARGO_PKG_VERSION_MINOR=1 CARGO_PKG_VERSION_PATCH=0 CARGO_PKG_VERSION_PRE='' DEBUG=false HOST=x86_64-unknown-linux-gnu LD_LIBRARY_PATH='/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release:/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps:/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib:/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:/usr/lib/wsl/lib:/home/mrnob0dy666/shucker/lib/purl_diver:/home/mrnob0dy666/shucker/lib/byvalver:' NUM_JOBS=1 OPT_LEVEL=3 OUT_DIR=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/x86_64-unknown-linux-gnu/release/build/g-momonados-1c0a82b198d98de4/out PROFILE=release RUSTC=/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc RUSTDOC=/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustdoc TARGET=x86_64-unknown-linux-gnu /home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/build/g-momonados-5f09633eb693a876/build-script-build`
+[g-momonados 0.1.0] prepared-switch constraints=14499 internal=23749 nodes=133219
+[g-momonados 0.1.0] projector contractions=77 payload_steps=32 internal=23672 nodes=132701
+[g-momonados 0.1.0] projector contractions=109 payload_steps=64 internal=23640 nodes=132628
+[g-momonados 0.1.0] projector contractions=141 payload_steps=96 internal=23608 nodes=132532
+[g-momonados 0.1.0] projector contractions=173 payload_steps=128 internal=23576 nodes=132436
+[g-momonados 0.1.0] projector contractions=205 payload_steps=160 internal=23544 nodes=132340
+[g-momonados 0.1.0] projector contractions=237 payload_steps=192 internal=23512 nodes=132244
+[g-momonados 0.1.0] projector contractions=269 payload_steps=224 internal=23480 nodes=132143
+[g-momonados 0.1.0] projector contractions=301 payload_steps=256 internal=23448 nodes=132041
+[g-momonados 0.1.0] projector contractions=333 payload_steps=288 internal=23416 nodes=131939
+[g-momonados 0.1.0] projector contractions=365 payload_steps=320 internal=23384 nodes=131836
+[g-momonados 0.1.0] projector contractions=397 payload_steps=352 internal=23352 nodes=131728
+[g-momonados 0.1.0] projector contractions=429 payload_steps=384 internal=23320 nodes=131622
+[g-momonados 0.1.0] projector contractions=461 payload_steps=416 internal=23288 nodes=131524
+[g-momonados 0.1.0] projector contractions=493 payload_steps=448 internal=23256 nodes=131428
+[g-momonados 0.1.0] projector contractions=525 payload_steps=480 internal=23224 nodes=131332
+[g-momonados 0.1.0] projector contractions=557 payload_steps=512 internal=23192 nodes=131236
+[g-momonados 0.1.0] projector contractions=589 payload_steps=544 internal=23160 nodes=131140
+[g-momonados 0.1.0] projector contractions=621 payload_steps=576 internal=23128 nodes=131044
+[g-momonados 0.1.0] projector contractions=653 payload_steps=608 internal=23096 nodes=130948
+[g-momonados 0.1.0] projector contractions=685 payload_steps=640 internal=23064 nodes=130852
+[g-momonados 0.1.0] projector contractions=717 payload_steps=672 internal=23032 nodes=130756
+[g-momonados 0.1.0] projector contractions=749 payload_steps=704 internal=23000 nodes=130660
+[g-momonados 0.1.0] projector contractions=781 payload_steps=736 internal=22968 nodes=130564
+[g-momonados 0.1.0] projector contractions=813 payload_steps=768 internal=22936 nodes=130468
+[g-momonados 0.1.0] projector contractions=845 payload_steps=800 internal=22904 nodes=130372
+[g-momonados 0.1.0] projector contractions=877 payload_steps=832 internal=22872 nodes=130276
+[g-momonados 0.1.0] projector contractions=909 payload_steps=864 internal=22840 nodes=130180
+[g-momonados 0.1.0] projector contractions=941 payload_steps=896 internal=22808 nodes=130084
+[g-momonados 0.1.0] projector contractions=973 payload_steps=928 internal=22776 nodes=129988
+[g-momonados 0.1.0] projector contractions=1005 payload_steps=960 internal=22744 nodes=129892
+[g-momonados 0.1.0] projector contractions=1037 payload_steps=992 internal=22712 nodes=129796
+[g-momonados 0.1.0] projector contractions=1069 payload_steps=1024 internal=22680 nodes=129700
+[g-momonados 0.1.0] projector contractions=1101 payload_steps=1056 internal=22648 nodes=129604
+[g-momonados 0.1.0] projector contractions=1133 payload_steps=1088 internal=22616 nodes=129508
+[g-momonados 0.1.0] projector contractions=1165 payload_steps=1120 internal=22584 nodes=129412
+[g-momonados 0.1.0] projector contractions=1197 payload_steps=1152 internal=22552 nodes=129316
+[g-momonados 0.1.0] projector contractions=1229 payload_steps=1184 internal=22520 nodes=129220
+[g-momonados 0.1.0] projector contractions=1261 payload_steps=1216 internal=22488 nodes=129124
+[g-momonados 0.1.0] projector contractions=1293 payload_steps=1248 internal=22456 nodes=129028
+[g-momonados 0.1.0] projector contractions=1325 payload_steps=1280 internal=22424 nodes=128932
+[g-momonados 0.1.0] projector contractions=1357 payload_steps=1312 internal=22392 nodes=128836
+[g-momonados 0.1.0] projector contractions=1389 payload_steps=1344 internal=22360 nodes=128740
+[g-momonados 0.1.0] projector contractions=1421 payload_steps=1376 internal=22328 nodes=128644
+[g-momonados 0.1.0] projector contractions=1453 payload_steps=1408 internal=22296 nodes=128548
+[g-momonados 0.1.0] projector contractions=1485 payload_steps=1440 internal=22264 nodes=128452
+[g-momonados 0.1.0] projector contractions=1517 payload_steps=1472 internal=22232 nodes=128356
+[g-momonados 0.1.0] projector contractions=1549 payload_steps=1504 internal=22200 nodes=128260
+[g-momonados 0.1.0] projector contractions=1581 payload_steps=1536 internal=22168 nodes=128164
+[g-momonados 0.1.0] projector contractions=1613 payload_steps=1568 internal=22136 nodes=128068
+[g-momonados 0.1.0] projector contractions=1645 payload_steps=1600 internal=22104 nodes=127972
+[g-momonados 0.1.0] projector contractions=1677 payload_steps=1632 internal=22072 nodes=127876
+[g-momonados 0.1.0] projector contractions=1709 payload_steps=1664 internal=22040 nodes=127780
+[g-momonados 0.1.0] projector contractions=1741 payload_steps=1696 internal=22008 nodes=127684
+[g-momonados 0.1.0] projector contractions=1773 payload_steps=1728 internal=21976 nodes=127588
+[g-momonados 0.1.0] projector contractions=1805 payload_steps=1760 internal=21944 nodes=127492
+[g-momonados 0.1.0] projector contractions=1837 payload_steps=1792 internal=21912 nodes=127396
+[g-momonados 0.1.0] projector contractions=1869 payload_steps=1824 internal=21880 nodes=127300
+[g-momonados 0.1.0] projector contractions=1901 payload_steps=1856 internal=21848 nodes=127204
+[g-momonados 0.1.0] projector contractions=1933 payload_steps=1888 internal=21816 nodes=127108
+[g-momonados 0.1.0] projector contractions=1965 payload_steps=1920 internal=21784 nodes=127012
+[g-momonados 0.1.0] projector contractions=1997 payload_steps=1952 internal=21752 nodes=126916
+[g-momonados 0.1.0] projector contractions=2029 payload_steps=1984 internal=21720 nodes=126820
+[g-momonados 0.1.0] projector contractions=2061 payload_steps=2016 internal=21688 nodes=126724
+[g-momonados 0.1.0] projector contractions=2093 payload_steps=2048 internal=21656 nodes=126628
+[g-momonados 0.1.0] projector contractions=2125 payload_steps=2080 internal=21624 nodes=126532
+[g-momonados 0.1.0] projector contractions=2157 payload_steps=2112 internal=21592 nodes=126436
+[g-momonados 0.1.0] projector contractions=2189 payload_steps=2144 internal=21560 nodes=126340
+[g-momonados 0.1.0] projector contractions=2221 payload_steps=2176 internal=21528 nodes=126244
+[g-momonados 0.1.0] projector contractions=2253 payload_steps=2208 internal=21496 nodes=126148
+[g-momonados 0.1.0] projector contractions=2285 payload_steps=2240 internal=21464 nodes=126052
+[g-momonados 0.1.0] projector contractions=2317 payload_steps=2272 internal=21432 nodes=125956
+[g-momonados 0.1.0] projector contractions=2349 payload_steps=2304 internal=21400 nodes=125860
+[g-momonados 0.1.0] projector contractions=2381 payload_steps=2336 internal=21368 nodes=125764
+[g-momonados 0.1.0] projector contractions=2413 payload_steps=2368 internal=21336 nodes=125668
+[g-momonados 0.1.0] projector contractions=2445 payload_steps=2400 internal=21304 nodes=125572
+[g-momonados 0.1.0] projector contractions=2477 payload_steps=2432 internal=21272 nodes=125476
+[g-momonados 0.1.0] projector contractions=2509 payload_steps=2464 internal=21240 nodes=125380
+[g-momonados 0.1.0] projector contractions=2541 payload_steps=2496 internal=21208 nodes=125284
+[g-momonados 0.1.0] projector contractions=2573 payload_steps=2528 internal=21176 nodes=125188
+[g-momonados 0.1.0] projector contractions=2605 payload_steps=2560 internal=21144 nodes=125092
+[g-momonados 0.1.0] projector contractions=2637 payload_steps=2592 internal=21112 nodes=124996
+[g-momonados 0.1.0] projector contractions=2669 payload_steps=2624 internal=21080 nodes=124900
+[g-momonados 0.1.0] projector contractions=2701 payload_steps=2656 internal=21048 nodes=124804
+[g-momonados 0.1.0] projector contractions=2733 payload_steps=2688 internal=21016 nodes=124708
+[g-momonados 0.1.0] projector contractions=2765 payload_steps=2720 internal=20984 nodes=124612
+[g-momonados 0.1.0] projector contractions=2797 payload_steps=2752 internal=20952 nodes=124516
+[g-momonados 0.1.0] projector contractions=2829 payload_steps=2784 internal=20920 nodes=124420
+[g-momonados 0.1.0] projector contractions=2861 payload_steps=2816 internal=20888 nodes=124328
+[g-momonados 0.1.0] projector contractions=2893 payload_steps=2848 internal=20856 nodes=124282
+[g-momonados 0.1.0] projector contractions=2925 payload_steps=2880 internal=20824 nodes=124242
+[g-momonados 0.1.0] projector contractions=2957 payload_steps=2912 internal=20792 nodes=124204
+[g-momonados 0.1.0] projector contractions=2989 payload_steps=2944 internal=20760 nodes=124168
+[g-momonados 0.1.0] projector contractions=3021 payload_steps=2976 internal=20728 nodes=124132
+[g-momonados 0.1.0] projector contractions=3053 payload_steps=3008 internal=20696 nodes=124098
+[g-momonados 0.1.0] projector contractions=3085 payload_steps=3040 internal=20664 nodes=124064
+[g-momonados 0.1.0] projector contractions=3117 payload_steps=3072 internal=20632 nodes=124030
+[g-momonados 0.1.0] projector contractions=3149 payload_steps=3104 internal=20600 nodes=123998
+[g-momonados 0.1.0] projector contractions=3181 payload_steps=3136 internal=20568 nodes=123964
+[g-momonados 0.1.0] projector contractions=3213 payload_steps=3168 internal=20536 nodes=123928
+[g-momonados 0.1.0] projector contractions=3245 payload_steps=3200 internal=20504 nodes=123896
+[g-momonados 0.1.0] projector contractions=3277 payload_steps=3232 internal=20472 nodes=123862
+[g-momonados 0.1.0] projector contractions=3309 payload_steps=3264 internal=20440 nodes=123826
+[g-momonados 0.1.0] projector contractions=3341 payload_steps=3296 internal=20408 nodes=123790
+[g-momonados 0.1.0] projector contractions=3373 payload_steps=3328 internal=20376 nodes=123756
+[g-momonados 0.1.0] projector contractions=3405 payload_steps=3360 internal=20344 nodes=123720
+[g-momonados 0.1.0] projector contractions=3437 payload_steps=3392 internal=20312 nodes=123684
+[g-momonados 0.1.0] projector contractions=3469 payload_steps=3424 internal=20280 nodes=123652
+[g-momonados 0.1.0] projector contractions=3501 payload_steps=3456 internal=20248 nodes=123616
+[g-momonados 0.1.0] projector contractions=3533 payload_steps=3488 internal=20216 nodes=123580
+[g-momonados 0.1.0] projector contractions=3565 payload_steps=3520 internal=20184 nodes=123548
+[g-momonados 0.1.0] projector contractions=3597 payload_steps=3552 internal=20152 nodes=123516
+[g-momonados 0.1.0] projector contractions=3629 payload_steps=3584 internal=20120 nodes=123482
+[g-momonados 0.1.0] projector contractions=3661 payload_steps=3616 internal=20088 nodes=123448
+[g-momonados 0.1.0] projector contractions=3693 payload_steps=3648 internal=20056 nodes=123416
+[g-momonados 0.1.0] projector contractions=3725 payload_steps=3680 internal=20024 nodes=123382
+[g-momonados 0.1.0] projector contractions=3757 payload_steps=3712 internal=19992 nodes=123348
+[g-momonados 0.1.0] projector contractions=3789 payload_steps=3744 internal=19960 nodes=123314
+[g-momonados 0.1.0] projector contractions=3821 payload_steps=3776 internal=19928 nodes=123280
+[g-momonados 0.1.0] projector contractions=3853 payload_steps=3808 internal=19896 nodes=123248
+[g-momonados 0.1.0] projector contractions=3885 payload_steps=3840 internal=19864 nodes=123214
+[g-momonados 0.1.0] projector contractions=3917 payload_steps=3872 internal=19832 nodes=123180
+[g-momonados 0.1.0] projector contractions=3949 payload_steps=3904 internal=19800 nodes=123148
+[g-momonados 0.1.0] projector contractions=3981 payload_steps=3936 internal=19768 nodes=123116
+[g-momonados 0.1.0] projector contractions=4013 payload_steps=3968 internal=19736 nodes=123084
+[g-momonados 0.1.0] projector contractions=4045 payload_steps=4000 internal=19704 nodes=123052
+[g-momonados 0.1.0] projector contractions=4077 payload_steps=4032 internal=19672 nodes=123020
+[g-momonados 0.1.0] projector contractions=4109 payload_steps=4064 internal=19640 nodes=122986
+[g-momonados 0.1.0] projector contractions=4141 payload_steps=4096 internal=19608 nodes=122968
+[g-momonados 0.1.0] projector contractions=4173 payload_steps=4128 internal=19576 nodes=122936
+[g-momonados 0.1.0] projector contractions=4205 payload_steps=4160 internal=19544 nodes=122911
+[g-momonados 0.1.0] projector contractions=4237 payload_steps=4192 internal=19512 nodes=122893
+[g-momonados 0.1.0] projector contractions=4269 payload_steps=4224 internal=19480 nodes=122861
+[g-momonados 0.1.0] projector contractions=4301 payload_steps=4256 internal=19448 nodes=122836
+[g-momonados 0.1.0] projector contractions=4333 payload_steps=4288 internal=19416 nodes=122818
+[g-momonados 0.1.0] projector contractions=4365 payload_steps=4320 internal=19384 nodes=122793
+[g-momonados 0.1.0] projector contractions=4397 payload_steps=4352 internal=19352 nodes=122775
+[g-momonados 0.1.0] projector contractions=4429 payload_steps=4384 internal=19320 nodes=122750
+[g-momonados 0.1.0] projector contractions=4461 payload_steps=4416 internal=19288 nodes=122718
+[g-momonados 0.1.0] projector contractions=4493 payload_steps=4448 internal=19256 nodes=122686
+[g-momonados 0.1.0] projector contractions=4525 payload_steps=4480 internal=19224 nodes=122661
+[g-momonados 0.1.0] projector contractions=4557 payload_steps=4512 internal=19192 nodes=122629
+[g-momonados 0.1.0] projector contractions=4589 payload_steps=4544 internal=19160 nodes=122611
+[g-momonados 0.1.0] projector contractions=4621 payload_steps=4576 internal=19128 nodes=122579
+[g-momonados 0.1.0] projector contractions=4653 payload_steps=4608 internal=19096 nodes=122554
+[g-momonados 0.1.0] projector contractions=4685 payload_steps=4640 internal=19064 nodes=122529
+[g-momonados 0.1.0] projector contractions=4717 payload_steps=4672 internal=19032 nodes=122504
+[g-momonados 0.1.0] projector contractions=4749 payload_steps=4704 internal=19000 nodes=122479
+[g-momonados 0.1.0] projector contractions=4781 payload_steps=4736 internal=18968 nodes=122454
+[g-momonados 0.1.0] projector contractions=4813 payload_steps=4768 internal=18936 nodes=122429
+[g-momonados 0.1.0] projector contractions=4845 payload_steps=4800 internal=18904 nodes=122404
+[g-momonados 0.1.0] projector contractions=4877 payload_steps=4832 internal=18872 nodes=122386
+[g-momonados 0.1.0] projector contractions=4909 payload_steps=4864 internal=18840 nodes=122361
+[g-momonados 0.1.0] projector contractions=4941 payload_steps=4896 internal=18808 nodes=122336
+[g-momonados 0.1.0] projector contractions=4973 payload_steps=4928 internal=18776 nodes=122318
+[g-momonados 0.1.0] projector contractions=5005 payload_steps=4960 internal=18744 nodes=122300
+[g-momonados 0.1.0] projector contractions=5037 payload_steps=4992 internal=18712 nodes=122282
+[g-momonados 0.1.0] projector contractions=5069 payload_steps=5024 internal=18680 nodes=122257
+[g-momonados 0.1.0] projector contractions=5101 payload_steps=5056 internal=18648 nodes=122239
+[g-momonados 0.1.0] projector contractions=5133 payload_steps=5088 internal=18616 nodes=122214
+[g-momonados 0.1.0] projector contractions=5165 payload_steps=5120 internal=18584 nodes=122189
+[g-momonados 0.1.0] projector contractions=5197 payload_steps=5152 internal=18552 nodes=122157
+[g-momonados 0.1.0] projector contractions=5229 payload_steps=5184 internal=18520 nodes=122139
+[g-momonados 0.1.0] projector contractions=5261 payload_steps=5216 internal=18488 nodes=122114
+[g-momonados 0.1.0] projector contractions=5293 payload_steps=5248 internal=18456 nodes=122110
+[g-momonados 0.1.0] projector contractions=5325 payload_steps=5280 internal=18424 nodes=122106
+[g-momonados 0.1.0] projector contractions=5357 payload_steps=5312 internal=18392 nodes=122253
+[g-momonados 0.1.0] projector contractions=5389 payload_steps=5344 internal=18360 nodes=122459
+[g-momonados 0.1.0] projector contractions=5421 payload_steps=5376 internal=18328 nodes=122763
+[g-momonados 0.1.0] projector contractions=5453 payload_steps=5408 internal=18296 nodes=123008
+[g-momonados 0.1.0] projector contractions=5485 payload_steps=5440 internal=18264 nodes=123282
+[g-momonados 0.1.0] projector contractions=5517 payload_steps=5472 internal=18232 nodes=123555
+[g-momonados 0.1.0] projector contractions=5549 payload_steps=5504 internal=18200 nodes=123856
+[g-momonados 0.1.0] projector contractions=5581 payload_steps=5536 internal=18168 nodes=124149
+[g-momonados 0.1.0] projector contractions=5613 payload_steps=5568 internal=18136 nodes=124399
+[g-momonados 0.1.0] projector contractions=5645 payload_steps=5600 internal=18104 nodes=124677
+[g-momonados 0.1.0] projector contractions=5677 payload_steps=5632 internal=18072 nodes=124973
+[g-momonados 0.1.0] projector contractions=5709 payload_steps=5664 internal=18040 nodes=125283
+[g-momonados 0.1.0] projector contractions=5741 payload_steps=5696 internal=18008 nodes=125598
+[g-momonados 0.1.0] projector contractions=5773 payload_steps=5728 internal=17976 nodes=125932
+[g-momonados 0.1.0] projector contractions=5805 payload_steps=5760 internal=17944 nodes=126267
+[g-momonados 0.1.0] projector contractions=5837 payload_steps=5792 internal=17912 nodes=126582
+[g-momonados 0.1.0] projector contractions=5869 payload_steps=5824 internal=17880 nodes=126911
+[g-momonados 0.1.0] projector contractions=5901 payload_steps=5856 internal=17848 nodes=127240
+[g-momonados 0.1.0] projector contractions=5933 payload_steps=5888 internal=17816 nodes=127546
+[g-momonados 0.1.0] projector contractions=5965 payload_steps=5920 internal=17784 nodes=127823
+[g-momonados 0.1.0] projector contractions=5997 payload_steps=5952 internal=17752 nodes=128143
+[g-momonados 0.1.0] projector contractions=6029 payload_steps=5984 internal=17720 nodes=128444
+[g-momonados 0.1.0] projector contractions=6061 payload_steps=6016 internal=17688 nodes=128764
+[g-momonados 0.1.0] projector contractions=6093 payload_steps=6048 internal=17656 nodes=129083
+[g-momonados 0.1.0] projector contractions=6125 payload_steps=6080 internal=17624 nodes=129416
+[g-momonados 0.1.0] projector contractions=6157 payload_steps=6112 internal=17592 nodes=129750
+[g-momonados 0.1.0] projector contractions=6189 payload_steps=6144 internal=17560 nodes=130084
+[g-momonados 0.1.0] projector contractions=6221 payload_steps=6176 internal=17528 nodes=130412
+[g-momonados 0.1.0] projector contractions=6253 payload_steps=6208 internal=17496 nodes=130759
+[g-momonados 0.1.0] projector contractions=6285 payload_steps=6240 internal=17464 nodes=131092
+[g-momonados 0.1.0] projector contractions=6317 payload_steps=6272 internal=17432 nodes=131425
+[g-momonados 0.1.0] projector contractions=6349 payload_steps=6304 internal=17400 nodes=131759
+[g-momonados 0.1.0] projector contractions=6381 payload_steps=6336 internal=17368 nodes=132078
+[g-momonados 0.1.0] projector contractions=6413 payload_steps=6368 internal=17336 nodes=132398
+[g-momonados 0.1.0] projector contractions=6445 payload_steps=6400 internal=17304 nodes=132732
+[g-momonados 0.1.0] projector contractions=6477 payload_steps=6432 internal=17272 nodes=133042
+[g-momonados 0.1.0] projector contractions=6509 payload_steps=6464 internal=17240 nodes=133375
+[g-momonados 0.1.0] projector contractions=6541 payload_steps=6496 internal=17208 nodes=133709
+[g-momonados 0.1.0] projector contractions=6573 payload_steps=6528 internal=17176 nodes=134028
+[g-momonados 0.1.0] projector contractions=6605 payload_steps=6560 internal=17144 nodes=134362
+[g-momonados 0.1.0] projector contractions=6637 payload_steps=6592 internal=17112 nodes=134686
+[g-momonados 0.1.0] projector contractions=6669 payload_steps=6624 internal=17080 nodes=135006
+[g-momonados 0.1.0] projector contractions=6701 payload_steps=6656 internal=17048 nodes=135330
+[g-momonados 0.1.0] projector contractions=6733 payload_steps=6688 internal=17016 nodes=135677
+[g-momonados 0.1.0] projector contractions=6765 payload_steps=6720 internal=16984 nodes=136002
+[g-momonados 0.1.0] projector contractions=6797 payload_steps=6752 internal=16952 nodes=136349
+[g-momonados 0.1.0] projector contractions=6829 payload_steps=6784 internal=16920 nodes=136682
+[g-momonados 0.1.0] projector contractions=6861 payload_steps=6816 internal=16888 nodes=137001
+[g-momonados 0.1.0] projector contractions=6893 payload_steps=6848 internal=16856 nodes=137320
+[g-momonados 0.1.0] projector contractions=6925 payload_steps=6880 internal=16824 nodes=137653
+[g-momonados 0.1.0] projector contractions=6957 payload_steps=6912 internal=16792 nodes=137986
+[g-momonados 0.1.0] projector contractions=6989 payload_steps=6944 internal=16760 nodes=138319
+[g-momonados 0.1.0] projector contractions=7021 payload_steps=6976 internal=16728 nodes=138652
+[g-momonados 0.1.0] projector contractions=7053 payload_steps=7008 internal=16696 nodes=139004
+[g-momonados 0.1.0] projector contractions=7085 payload_steps=7040 internal=16664 nodes=139328
+[g-momonados 0.1.0] projector contractions=7117 payload_steps=7072 internal=16632 nodes=139666
+[g-momonados 0.1.0] projector contractions=7149 payload_steps=7104 internal=16600 nodes=140004
+[g-momonados 0.1.0] projector contractions=7181 payload_steps=7136 internal=16568 nodes=140328
+[g-momonados 0.1.0] projector contractions=7213 payload_steps=7168 internal=16536 nodes=140652
+[g-momonados 0.1.0] projector contractions=7245 payload_steps=7200 internal=16504 nodes=140990
+[g-momonados 0.1.0] projector contractions=7277 payload_steps=7232 internal=16472 nodes=141300
+[g-momonados 0.1.0] projector contractions=7309 payload_steps=7264 internal=16440 nodes=141624
+[g-momonados 0.1.0] projector contractions=7341 payload_steps=7296 internal=16408 nodes=141948
+[g-momonados 0.1.0] projector contractions=7373 payload_steps=7328 internal=16376 nodes=142286
+[g-momonados 0.1.0] projector contractions=7405 payload_steps=7360 internal=16344 nodes=142610
+[g-momonados 0.1.0] projector contractions=7437 payload_steps=7392 internal=16312 nodes=142948
+[g-momonados 0.1.0] projector contractions=7469 payload_steps=7424 internal=16280 nodes=143300
+[g-momonados 0.1.0] projector contractions=7501 payload_steps=7456 internal=16248 nodes=143638
+[g-momonados 0.1.0] projector contractions=7533 payload_steps=7488 internal=16216 nodes=143976
+[g-momonados 0.1.0] projector contractions=7565 payload_steps=7520 internal=16184 nodes=144314
+[g-momonados 0.1.0] projector contractions=7597 payload_steps=7552 internal=16152 nodes=144652
+[g-momonados 0.1.0] projector contractions=7629 payload_steps=7584 internal=16120 nodes=144962
+[g-momonados 0.1.0] projector contractions=7661 payload_steps=7616 internal=16088 nodes=145300
+[g-momonados 0.1.0] projector contractions=7693 payload_steps=7648 internal=16056 nodes=145624
+[g-momonados 0.1.0] projector contractions=7725 payload_steps=7680 internal=16024 nodes=145962
+[g-momonados 0.1.0] projector contractions=7757 payload_steps=7712 internal=15992 nodes=146286
+[g-momonados 0.1.0] projector contractions=7789 payload_steps=7744 internal=15960 nodes=146568
+[g-momonados 0.1.0] projector contractions=7821 payload_steps=7776 internal=15928 nodes=146892
+[g-momonados 0.1.0] projector contractions=7853 payload_steps=7808 internal=15896 nodes=147230
+[g-momonados 0.1.0] projector contractions=7885 payload_steps=7840 internal=15864 nodes=147582
+[g-momonados 0.1.0] projector contractions=7917 payload_steps=7872 internal=15832 nodes=147906
+[g-momonados 0.1.0] projector contractions=7949 payload_steps=7904 internal=15800 nodes=148244
+[g-momonados 0.1.0] projector contractions=7981 payload_steps=7936 internal=15768 nodes=148568
+[g-momonados 0.1.0] projector contractions=8013 payload_steps=7968 internal=15736 nodes=148892
+[g-momonados 0.1.0] projector contractions=8045 payload_steps=8000 internal=15704 nodes=149188
+[g-momonados 0.1.0] projector contractions=8077 payload_steps=8032 internal=15672 nodes=149512
+[g-momonados 0.1.0] projector contractions=8109 payload_steps=8064 internal=15640 nodes=149794
+[g-momonados 0.1.0] projector contractions=8141 payload_steps=8096 internal=15608 nodes=150132
+[g-momonados 0.1.0] projector contractions=8173 payload_steps=8128 internal=15576 nodes=150456
+[g-momonados 0.1.0] projector contractions=8205 payload_steps=8160 internal=15544 nodes=150794
+[g-momonados 0.1.0] projector contractions=8237 payload_steps=8192 internal=15512 nodes=151146
+[g-momonados 0.1.0] projector contractions=8269 payload_steps=8224 internal=15480 nodes=151484
+[g-momonados 0.1.0] projector contractions=8301 payload_steps=8256 internal=15448 nodes=151808
+[g-momonados 0.1.0] projector contractions=8333 payload_steps=8288 internal=15416 nodes=152132
+[g-momonados 0.1.0] projector contractions=8365 payload_steps=8320 internal=15384 nodes=152414
+[g-momonados 0.1.0] projector contractions=8397 payload_steps=8352 internal=15352 nodes=152710
+[g-momonados 0.1.0] projector contractions=8429 payload_steps=8384 internal=15320 nodes=152992
+[g-momonados 0.1.0] projector contractions=8461 payload_steps=8416 internal=15288 nodes=153316
+[g-momonados 0.1.0] projector contractions=8493 payload_steps=8448 internal=15256 nodes=153626
+[g-momonados 0.1.0] projector contractions=8525 payload_steps=8480 internal=15224 nodes=153950
+[g-momonados 0.1.0] projector contractions=8557 payload_steps=8512 internal=15192 nodes=154232
+[g-momonados 0.1.0] projector contractions=8589 payload_steps=8544 internal=15160 nodes=154472
+[g-momonados 0.1.0] projector contractions=8621 payload_steps=8576 internal=15128 nodes=154712
+[g-momonados 0.1.0] projector contractions=8653 payload_steps=8608 internal=15096 nodes=154994
+[g-momonados 0.1.0] projector contractions=8685 payload_steps=8640 internal=15064 nodes=155121
+[g-momonados 0.1.0] projector contractions=8717 payload_steps=8672 internal=15032 nodes=155482
+[g-momonados 0.1.0] projector contractions=8749 payload_steps=8704 internal=15000 nodes=155547
+[g-momonados 0.1.0] projector contractions=8781 payload_steps=8736 internal=14968 nodes=155571
+[g-momonados 0.1.0] projector contractions=8813 payload_steps=8768 internal=14936 nodes=155595
+[g-momonados 0.1.0] projector contractions=8845 payload_steps=8800 internal=14904 nodes=156075
+[g-momonados 0.1.0] projector contractions=8877 payload_steps=8832 internal=14872 nodes=156832
+[g-momonados 0.1.0] projector contractions=8909 payload_steps=8864 internal=14840 nodes=157569
+[g-momonados 0.1.0] projector contractions=8941 payload_steps=8896 internal=14808 nodes=158422
+[g-momonados 0.1.0] projector contractions=8973 payload_steps=8928 internal=14776 nodes=159274
+[g-momonados 0.1.0] projector contractions=9005 payload_steps=8960 internal=14744 nodes=160175
+[g-momonados 0.1.0] projector contractions=9037 payload_steps=8992 internal=14712 nodes=161027
+[g-momonados 0.1.0] projector contractions=9069 payload_steps=9024 internal=14680 nodes=161936
+[g-momonados 0.1.0] projector contractions=9101 payload_steps=9056 internal=14648 nodes=162802
+[g-momonados 0.1.0] projector contractions=9133 payload_steps=9088 internal=14616 nodes=163632
+[g-momonados 0.1.0] projector contractions=9165 payload_steps=9120 internal=14584 nodes=164544
+[g-momonados 0.1.0] projector contractions=9197 payload_steps=9152 internal=14552 nodes=165397
+[g-momonados 0.1.0] projector contractions=9229 payload_steps=9184 internal=14520 nodes=166381
+[g-momonados 0.1.0] projector contractions=9261 payload_steps=9216 internal=14488 nodes=167466
+[g-momonados 0.1.0] projector contractions=9293 payload_steps=9248 internal=14456 nodes=168316
+[g-momonados 0.1.0] projector contractions=9325 payload_steps=9280 internal=14424 nodes=169329
+[g-momonados 0.1.0] projector contractions=9357 payload_steps=9312 internal=14392 nodes=170301
+[g-momonados 0.1.0] projector contractions=9389 payload_steps=9344 internal=14360 nodes=171196
+[g-momonados 0.1.0] projector contractions=9421 payload_steps=9376 internal=14328 nodes=172160
+[g-momonados 0.1.0] projector contractions=9453 payload_steps=9408 internal=14296 nodes=173177
+[g-momonados 0.1.0] projector contractions=9485 payload_steps=9440 internal=14264 nodes=174244
+[g-momonados 0.1.0] projector contractions=9517 payload_steps=9472 internal=14232 nodes=175278
+[g-momonados 0.1.0] projector contractions=9549 payload_steps=9504 internal=14200 nodes=176304
+[g-momonados 0.1.0] projector contractions=9581 payload_steps=9536 internal=14168 nodes=177388
+[g-momonados 0.1.0] projector contractions=9613 payload_steps=9568 internal=14136 nodes=178337
+[g-momonados 0.1.0] projector contractions=9645 payload_steps=9600 internal=14104 nodes=179343
+[g-momonados 0.1.0] projector contractions=9677 payload_steps=9632 internal=14072 nodes=180347
+[g-momonados 0.1.0] projector contractions=9709 payload_steps=9664 internal=14040 nodes=181325
+[g-momonados 0.1.0] projector contractions=9741 payload_steps=9696 internal=14008 nodes=182237
+[g-momonados 0.1.0] projector contractions=9773 payload_steps=9728 internal=13976 nodes=183217
+[g-momonados 0.1.0] projector contractions=9805 payload_steps=9760 internal=13944 nodes=184222
+[g-momonados 0.1.0] projector contractions=9837 payload_steps=9792 internal=13912 nodes=185198
+[g-momonados 0.1.0] projector contractions=9869 payload_steps=9824 internal=13880 nodes=186176
+[g-momonados 0.1.0] projector contractions=9901 payload_steps=9856 internal=13848 nodes=187088
+[g-momonados 0.1.0] projector contractions=9933 payload_steps=9888 internal=13816 nodes=188180
+[g-momonados 0.1.0] projector contractions=9965 payload_steps=9920 internal=13784 nodes=188937
+[g-momonados 0.1.0] projector contractions=9997 payload_steps=9952 internal=13752 nodes=189945
+[g-momonados 0.1.0] projector contractions=10029 payload_steps=9984 internal=13720 nodes=190781
+[g-momonados 0.1.0] projector contractions=10061 payload_steps=10016 internal=13688 nodes=191681
+[g-momonados 0.1.0] projector contractions=10093 payload_steps=10048 internal=13656 nodes=192337
+[g-momonados 0.1.0] projector contractions=10125 payload_steps=10080 internal=13624 nodes=193141
+[g-momonados 0.1.0] projector contractions=10157 payload_steps=10112 internal=13592 nodes=193901
+[g-momonados 0.1.0] projector contractions=10189 payload_steps=10144 internal=13560 nodes=194413
+[g-momonados 0.1.0] projector contractions=10221 payload_steps=10176 internal=13528 nodes=194647
+[g-momonados 0.1.0] projector contractions=10253 payload_steps=10208 internal=13496 nodes=194538
+[g-momonados 0.1.0] projector contractions=10285 payload_steps=10240 internal=13464 nodes=194460
+[g-momonados 0.1.0] projector contractions=10317 payload_steps=10272 internal=13432 nodes=194242
+[g-momonados 0.1.0] projector contractions=10349 payload_steps=10304 internal=13400 nodes=194052
+[g-momonados 0.1.0] projector contractions=10381 payload_steps=10336 internal=13368 nodes=193939
+[g-momonados 0.1.0] projector contractions=10413 payload_steps=10368 internal=13336 nodes=193766
+[g-momonados 0.1.0] projector contractions=10445 payload_steps=10400 internal=13304 nodes=193565
+[g-momonados 0.1.0] projector contractions=10477 payload_steps=10432 internal=13272 nodes=193347
+[g-momonados 0.1.0] projector contractions=10509 payload_steps=10464 internal=13240 nodes=193132
+[g-momonados 0.1.0] projector contractions=10541 payload_steps=10496 internal=13208 nodes=193002
+[g-momonados 0.1.0] projector contractions=10573 payload_steps=10528 internal=13176 nodes=192844
+[g-momonados 0.1.0] projector contractions=10605 payload_steps=10560 internal=13144 nodes=192716
+[g-momonados 0.1.0] projector contractions=10637 payload_steps=10592 internal=13112 nodes=192543
+[g-momonados 0.1.0] projector contractions=10669 payload_steps=10624 internal=13080 nodes=192322
+[g-momonados 0.1.0] projector contractions=10701 payload_steps=10656 internal=13048 nodes=192088
+[g-momonados 0.1.0] projector contractions=10733 payload_steps=10688 internal=13016 nodes=191894
+[g-momonados 0.1.0] projector contractions=10765 payload_steps=10720 internal=12984 nodes=191728
+[g-momonados 0.1.0] projector contractions=10797 payload_steps=10752 internal=12952 nodes=191495
+[g-momonados 0.1.0] projector contractions=10829 payload_steps=10784 internal=12920 nodes=191331
+[g-momonados 0.1.0] projector contractions=10861 payload_steps=10816 internal=12888 nodes=191154
+[g-momonados 0.1.0] projector contractions=10893 payload_steps=10848 internal=12856 nodes=191017
+[g-momonados 0.1.0] projector contractions=10925 payload_steps=10880 internal=12824 nodes=190800
+[g-momonados 0.1.0] projector contractions=10957 payload_steps=10912 internal=12792 nodes=190556
+[g-momonados 0.1.0] projector contractions=10989 payload_steps=10944 internal=12760 nodes=190350
+[g-momonados 0.1.0] projector contractions=11021 payload_steps=10976 internal=12728 nodes=190159
+[g-momonados 0.1.0] projector contractions=11053 payload_steps=11008 internal=12696 nodes=189977
+[g-momonados 0.1.0] projector contractions=11085 payload_steps=11040 internal=12664 nodes=189849
+[g-momonados 0.1.0] projector contractions=11117 payload_steps=11072 internal=12632 nodes=189583
+[g-momonados 0.1.0] projector contractions=11149 payload_steps=11104 internal=12600 nodes=189428
+[g-momonados 0.1.0] projector contractions=11181 payload_steps=11136 internal=12568 nodes=189280
+[g-momonados 0.1.0] projector contractions=11213 payload_steps=11168 internal=12536 nodes=189008
+[g-momonados 0.1.0] projector contractions=11245 payload_steps=11200 internal=12504 nodes=188853
+[g-momonados 0.1.0] projector contractions=11277 payload_steps=11232 internal=12472 nodes=188584
+[g-momonados 0.1.0] projector contractions=11309 payload_steps=11264 internal=12440 nodes=188430
+[g-momonados 0.1.0] projector contractions=11341 payload_steps=11296 internal=12408 nodes=188302
+[g-momonados 0.1.0] projector contractions=11373 payload_steps=11328 internal=12376 nodes=188138
+[g-momonados 0.1.0] projector contractions=11405 payload_steps=11360 internal=12344 nodes=187994
+[g-momonados 0.1.0] projector contractions=11437 payload_steps=11392 internal=12312 nodes=187842
+[g-momonados 0.1.0] projector contractions=11469 payload_steps=11424 internal=12280 nodes=187657
+[g-momonados 0.1.0] projector contractions=11501 payload_steps=11456 internal=12248 nodes=187475
+[g-momonados 0.1.0] projector contractions=11533 payload_steps=11488 internal=12216 nodes=187284
+[g-momonados 0.1.0] projector contractions=11565 payload_steps=11520 internal=12184 nodes=187193
+[g-momonados 0.1.0] projector contractions=11597 payload_steps=11552 internal=12152 nodes=186966
+[g-momonados 0.1.0] projector contractions=11629 payload_steps=11584 internal=12120 nodes=186831
+[g-momonados 0.1.0] projector contractions=11661 payload_steps=11616 internal=12088 nodes=186613
+[g-momonados 0.1.0] projector contractions=11693 payload_steps=11648 internal=12056 nodes=186351
+[g-momonados 0.1.0] projector contractions=11725 payload_steps=11680 internal=12024 nodes=186251
+[g-momonados 0.1.0] projector contractions=11757 payload_steps=11712 internal=11992 nodes=186101
+[g-momonados 0.1.0] projector contractions=11789 payload_steps=11744 internal=11960 nodes=185911
+[g-momonados 0.1.0] projector contractions=11821 payload_steps=11776 internal=11928 nodes=185783
+[g-momonados 0.1.0] projector contractions=11853 payload_steps=11808 internal=11896 nodes=185587
+[g-momonados 0.1.0] projector contractions=11885 payload_steps=11840 internal=11864 nodes=185333
+[g-momonados 0.1.0] projector contractions=11917 payload_steps=11872 internal=11832 nodes=185165
+[g-momonados 0.1.0] projector contractions=11949 payload_steps=11904 internal=11800 nodes=184999
+[g-momonados 0.1.0] projector contractions=11981 payload_steps=11936 internal=11768 nodes=184884
+[g-momonados 0.1.0] projector contractions=12013 payload_steps=11968 internal=11736 nodes=184738
+[g-momonados 0.1.0] projector contractions=12045 payload_steps=12000 internal=11704 nodes=184602
+[g-momonados 0.1.0] projector contractions=12077 payload_steps=12032 internal=11672 nodes=184438
+[g-momonados 0.1.0] projector contractions=12109 payload_steps=12064 internal=11640 nodes=184276
+[g-momonados 0.1.0] projector contractions=12141 payload_steps=12096 internal=11608 nodes=184109
+[g-momonados 0.1.0] projector contractions=12173 payload_steps=12128 internal=11576 nodes=183932
+[g-momonados 0.1.0] projector contractions=12205 payload_steps=12160 internal=11544 nodes=183850
+[g-momonados 0.1.0] projector contractions=12237 payload_steps=12192 internal=11512 nodes=183678
+[g-momonados 0.1.0] projector contractions=12269 payload_steps=12224 internal=11480 nodes=183488
+[g-momonados 0.1.0] projector contractions=12301 payload_steps=12256 internal=11448 nodes=183447
+[g-momonados 0.1.0] projector contractions=12333 payload_steps=12288 internal=11416 nodes=183478
+[g-momonados 0.1.0] projector contractions=12365 payload_steps=12320 internal=11384 nodes=185520
+[g-momonados 0.1.0] projector contractions=12397 payload_steps=12352 internal=11352 nodes=188383
+[g-momonados 0.1.0] projector contractions=12429 payload_steps=12384 internal=11320 nodes=191677
+[g-momonados 0.1.0] projector contractions=12461 payload_steps=12416 internal=11288 nodes=194025
+[g-momonados 0.1.0] projector contractions=12493 payload_steps=12448 internal=11256 nodes=194906
+[g-momonados 0.1.0] projector contractions=12525 payload_steps=12480 internal=11224 nodes=195267
+[g-momonados 0.1.0] projector contractions=12557 payload_steps=12512 internal=11192 nodes=195496
+[g-momonados 0.1.0] projector contractions=12589 payload_steps=12544 internal=11160 nodes=195651
+[g-momonados 0.1.0] projector contractions=12621 payload_steps=12576 internal=11128 nodes=196058
+[g-momonados 0.1.0] projector contractions=12653 payload_steps=12608 internal=11096 nodes=196517
+[g-momonados 0.1.0] projector contractions=12685 payload_steps=12640 internal=11064 nodes=197177
+[g-momonados 0.1.0] projector contractions=12717 payload_steps=12672 internal=11032 nodes=197563
+[g-momonados 0.1.0] projector contractions=12749 payload_steps=12704 internal=11000 nodes=198040
+[g-momonados 0.1.0] projector contractions=12781 payload_steps=12736 internal=10968 nodes=198511
+[g-momonados 0.1.0] projector contractions=12813 payload_steps=12768 internal=10936 nodes=198799
+[g-momonados 0.1.0] projector contractions=12845 payload_steps=12800 internal=10904 nodes=199305
+[g-momonados 0.1.0] projector contractions=12877 payload_steps=12832 internal=10872 nodes=199688
+[g-momonados 0.1.0] projector contractions=12909 payload_steps=12864 internal=10840 nodes=200159
+[g-momonados 0.1.0] projector contractions=12941 payload_steps=12896 internal=10808 nodes=200592
+[g-momonados 0.1.0] projector contractions=12973 payload_steps=12928 internal=10776 nodes=201027
+[g-momonados 0.1.0] projector contractions=13005 payload_steps=12960 internal=10744 nodes=201384
+[g-momonados 0.1.0] projector contractions=13037 payload_steps=12992 internal=10712 nodes=201814
+[g-momonados 0.1.0] projector contractions=13069 payload_steps=13024 internal=10680 nodes=202195
+[g-momonados 0.1.0] projector contractions=13101 payload_steps=13056 internal=10648 nodes=202483
+[g-momonados 0.1.0] projector contractions=13133 payload_steps=13088 internal=10616 nodes=202981
+[g-momonados 0.1.0] projector contractions=13165 payload_steps=13120 internal=10584 nodes=203470
+[g-momonados 0.1.0] projector contractions=13197 payload_steps=13152 internal=10552 nodes=203882
+[g-momonados 0.1.0] projector contractions=13229 payload_steps=13184 internal=10520 nodes=204128
+[g-momonados 0.1.0] projector contractions=13261 payload_steps=13216 internal=10488 nodes=204626
+[g-momonados 0.1.0] projector contractions=13293 payload_steps=13248 internal=10456 nodes=204978
+[g-momonados 0.1.0] projector contractions=13325 payload_steps=13280 internal=10424 nodes=205476
+[g-momonados 0.1.0] projector contractions=13357 payload_steps=13312 internal=10392 nodes=205906
+[g-momonados 0.1.0] projector contractions=13389 payload_steps=13344 internal=10360 nodes=206271
+[g-momonados 0.1.0] projector contractions=13421 payload_steps=13376 internal=10328 nodes=206643
+[g-momonados 0.1.0] projector contractions=13453 payload_steps=13408 internal=10296 nodes=207021
+[g-momonados 0.1.0] projector contractions=13485 payload_steps=13440 internal=10264 nodes=207316
+[g-momonados 0.1.0] projector contractions=13517 payload_steps=13472 internal=10232 nodes=207678
+[g-momonados 0.1.0] projector contractions=13549 payload_steps=13504 internal=10200 nodes=207837
+[g-momonados 0.1.0] projector contractions=13581 payload_steps=13536 internal=10168 nodes=208281
+[g-momonados 0.1.0] projector contractions=13613 payload_steps=13568 internal=10136 nodes=208718
+[g-momonados 0.1.0] projector contractions=13645 payload_steps=13600 internal=10104 nodes=209128
+[g-momonados 0.1.0] projector contractions=13677 payload_steps=13632 internal=10072 nodes=210094
+[g-momonados 0.1.0] projector contractions=13709 payload_steps=13664 internal=10040 nodes=211246
+[g-momonados 0.1.0] projector contractions=13741 payload_steps=13696 internal=10008 nodes=212290
+[g-momonados 0.1.0] projector contractions=13773 payload_steps=13728 internal=9976 nodes=213003
+[g-momonados 0.1.0] projector contractions=13805 payload_steps=13760 internal=9944 nodes=213839
+[g-momonados 0.1.0] projector contractions=13837 payload_steps=13792 internal=9912 nodes=214561
+[g-momonados 0.1.0] projector contractions=13869 payload_steps=13824 internal=9880 nodes=216101
+[g-momonados 0.1.0] projector contractions=13901 payload_steps=13856 internal=9848 nodes=217075
+[g-momonados 0.1.0] projector contractions=13933 payload_steps=13888 internal=9816 nodes=218021
+[g-momonados 0.1.0] projector contractions=13965 payload_steps=13920 internal=9784 nodes=218682
+[g-momonados 0.1.0] projector contractions=13997 payload_steps=13952 internal=9752 nodes=220090
+[g-momonados 0.1.0] projector contractions=14029 payload_steps=13984 internal=9720 nodes=221738
+[g-momonados 0.1.0] projector contractions=14061 payload_steps=14016 internal=9688 nodes=222610
+[g-momonados 0.1.0] projector contractions=14093 payload_steps=14048 internal=9656 nodes=223638
+[g-momonados 0.1.0] projector contractions=14125 payload_steps=14080 internal=9624 nodes=224545
+[g-momonados 0.1.0] projector contractions=14157 payload_steps=14112 internal=9592 nodes=225692
+[g-momonados 0.1.0] projector contractions=14189 payload_steps=14144 internal=9560 nodes=226938
+[g-momonados 0.1.0] projector contractions=14221 payload_steps=14176 internal=9528 nodes=227799
+[g-momonados 0.1.0] projector contractions=14253 payload_steps=14208 internal=9496 nodes=229045
+[g-momonados 0.1.0] projector contractions=14285 payload_steps=14240 internal=9464 nodes=230333
+[g-momonados 0.1.0] projector contractions=14317 payload_steps=14272 internal=9432 nodes=231559
+[g-momonados 0.1.0] projector contractions=14349 payload_steps=14304 internal=9400 nodes=232487
+[g-momonados 0.1.0] projector contractions=14381 payload_steps=14336 internal=9368 nodes=234451
+[g-momonados 0.1.0] projector contractions=14413 payload_steps=14368 internal=9336 nodes=235590
+[g-momonados 0.1.0] projector contractions=14445 payload_steps=14400 internal=9304 nodes=237936
+[g-momonados 0.1.0] projector contractions=14477 payload_steps=14432 internal=9272 nodes=239788
+[g-momonados 0.1.0] projector contractions=14509 payload_steps=14464 internal=9240 nodes=240443
+[g-momonados 0.1.0] projector contractions=14541 payload_steps=14496 internal=9208 nodes=242403
+[g-momonados 0.1.0] projector contractions=14573 payload_steps=14528 internal=9176 nodes=243107
+[g-momonados 0.1.0] projector contractions=14605 payload_steps=14560 internal=9144 nodes=244431
+[g-momonados 0.1.0] projector contractions=14637 payload_steps=14592 internal=9112 nodes=245906
+[g-momonados 0.1.0] projector contractions=14669 payload_steps=14624 internal=9080 nodes=245639
+[g-momonados 0.1.0] projector contractions=14701 payload_steps=14656 internal=9048 nodes=246230
+[g-momonados 0.1.0] projector contractions=14733 payload_steps=14688 internal=9016 nodes=248012
+[g-momonados 0.1.0] projector contractions=14765 payload_steps=14720 internal=8984 nodes=249175
+[g-momonados 0.1.0] projector contractions=14797 payload_steps=14752 internal=8952 nodes=252520
+[g-momonados 0.1.0] projector contractions=14829 payload_steps=14784 internal=8920 nodes=255054
+[g-momonados 0.1.0] projector contractions=14861 payload_steps=14816 internal=8888 nodes=257576
+[g-momonados 0.1.0] projector contractions=14893 payload_steps=14848 internal=8856 nodes=257895
+[g-momonados 0.1.0] projector contractions=14925 payload_steps=14880 internal=8824 nodes=259333
+[g-momonados 0.1.0] projector contractions=14957 payload_steps=14912 internal=8792 nodes=260203
+[g-momonados 0.1.0] projector contractions=14989 payload_steps=14944 internal=8760 nodes=260231
+[g-momonados 0.1.0] projector contractions=15021 payload_steps=14976 internal=8728 nodes=261316
+[g-momonados 0.1.0] projector contractions=15053 payload_steps=15008 internal=8696 nodes=262595
+[g-momonados 0.1.0] projector contractions=15085 payload_steps=15040 internal=8664 nodes=263485
+[g-momonados 0.1.0] projector contractions=15117 payload_steps=15072 internal=8632 nodes=264127
+[g-momonados 0.1.0] projector contractions=15149 payload_steps=15104 internal=8600 nodes=265494
+[g-momonados 0.1.0] projector contractions=15181 payload_steps=15136 internal=8568 nodes=267141
+[g-momonados 0.1.0] projector contractions=15213 payload_steps=15168 internal=8536 nodes=268244
+[g-momonados 0.1.0] projector contractions=15245 payload_steps=15200 internal=8504 nodes=272327
+[g-momonados 0.1.0] projector contractions=15277 payload_steps=15232 internal=8472 nodes=284985
+[g-momonados 0.1.0] projector contractions=15309 payload_steps=15264 internal=8440 nodes=299453
+[g-momonados 0.1.0] projector contractions=15341 payload_steps=15296 internal=8408 nodes=318923
+[g-momonados 0.1.0] projector contractions=15373 payload_steps=15328 internal=8376 nodes=347374
+[g-momonados 0.1.0] projector contractions=15405 payload_steps=15360 internal=8344 nodes=372428
+[g-momonados 0.1.0] projector contractions=15437 payload_steps=15392 internal=8312 nodes=393554
+[g-momonados 0.1.0] projector contractions=15469 payload_steps=15424 internal=8280 nodes=415892
+[g-momonados 0.1.0] projector contractions=15501 payload_steps=15456 internal=8248 nodes=438240
+[g-momonados 0.1.0] projector contractions=15533 payload_steps=15488 internal=8216 nodes=458107
+[g-momonados 0.1.0] projector contractions=15565 payload_steps=15520 internal=8184 nodes=473104
+[g-momonados 0.1.0] projector contractions=15597 payload_steps=15552 internal=8152 nodes=496376
+[g-momonados 0.1.0] projector contractions=15629 payload_steps=15584 internal=8120 nodes=515861
+[g-momonados 0.1.0] projector contractions=15661 payload_steps=15616 internal=8088 nodes=535444
+[g-momonados 0.1.0] projector contractions=15693 payload_steps=15648 internal=8056 nodes=551950
+[g-momonados 0.1.0] projector contractions=15725 payload_steps=15680 internal=8024 nodes=555646
+[g-momonados 0.1.0] projector contractions=15757 payload_steps=15712 internal=7992 nodes=560232
+[g-momonados 0.1.0] projector contractions=15789 payload_steps=15744 internal=7960 nodes=562922
+[g-momonados 0.1.0] projector contractions=15821 payload_steps=15776 internal=7928 nodes=563463
+[g-momonados 0.1.0] projector contractions=15853 payload_steps=15808 internal=7896 nodes=570469
+[g-momonados 0.1.0] projector contractions=15885 payload_steps=15840 internal=7864 nodes=576836
+[g-momonados 0.1.0] projector contractions=15917 payload_steps=15872 internal=7832 nodes=583553
+[g-momonados 0.1.0] projector contractions=15949 payload_steps=15904 internal=7800 nodes=588843
+[g-momonados 0.1.0] projector contractions=15981 payload_steps=15936 internal=7768 nodes=593547
+[g-momonados 0.1.0] projector contractions=16013 payload_steps=15968 internal=7736 nodes=600107
+[g-momonados 0.1.0] projector contractions=16045 payload_steps=16000 internal=7704 nodes=606069
+[g-momonados 0.1.0] projector contractions=16077 payload_steps=16032 internal=7672 nodes=613615
+[g-momonados 0.1.0] projector contractions=16109 payload_steps=16064 internal=7640 nodes=636516
+[g-momonados 0.1.0] projector contractions=16141 payload_steps=16096 internal=7608 nodes=665846
+[g-momonados 0.1.0] projector contractions=16173 payload_steps=16128 internal=7576 nodes=697358
+[g-momonados 0.1.0] projector contractions=16205 payload_steps=16160 internal=7544 nodes=720307
+[g-momonados 0.1.0] projector contractions=16237 payload_steps=16192 internal=7512 nodes=746789
+[g-momonados 0.1.0] projector contractions=16269 payload_steps=16224 internal=7480 nodes=779789
+[g-momonados 0.1.0] projector contractions=16301 payload_steps=16256 internal=7448 nodes=800140
+[g-momonados 0.1.0] projector contractions=16333 payload_steps=16288 internal=7416 nodes=825972
+[g-momonados 0.1.0] projector contractions=16365 payload_steps=16320 internal=7384 nodes=854282
+[g-momonados 0.1.0] projector contractions=16397 payload_steps=16352 internal=7352 nodes=869631
+[g-momonados 0.1.0] projector contractions=16429 payload_steps=16384 internal=7320 nodes=875421
+[g-momonados 0.1.0] projector contractions=16461 payload_steps=16416 internal=7288 nodes=883095
+[g-momonados 0.1.0] projector contractions=16493 payload_steps=16448 internal=7256 nodes=888175
+[g-momonados 0.1.0] projector contractions=16525 payload_steps=16480 internal=7224 nodes=897993
+[g-momonados 0.1.0] projector contractions=16557 payload_steps=16512 internal=7192 nodes=903683
+[g-momonados 0.1.0] projector contractions=16589 payload_steps=16544 internal=7160 nodes=931621
+[g-momonados 0.1.0] projector contractions=16621 payload_steps=16576 internal=7128 nodes=958078
+[g-momonados 0.1.0] projector contractions=16653 payload_steps=16608 internal=7096 nodes=985215
+[g-momonados 0.1.0] projector contractions=16685 payload_steps=16640 internal=7064 nodes=1010683
+[g-momonados 0.1.0] projector contractions=16717 payload_steps=16672 internal=7032 nodes=1040099
+[g-momonados 0.1.0] projector contractions=16749 payload_steps=16704 internal=7000 nodes=1059029
+[g-momonados 0.1.0] projector contractions=16781 payload_steps=16736 internal=6968 nodes=1092685
+[g-momonados 0.1.0] projector contractions=16813 payload_steps=16768 internal=6936 nodes=1129189
+[g-momonados 0.1.0] projector contractions=16845 payload_steps=16800 internal=6904 nodes=1148290
+[g-momonados 0.1.0] projector contractions=16877 payload_steps=16832 internal=6872 nodes=1181800
+[g-momonados 0.1.0] projector contractions=16909 payload_steps=16864 internal=6840 nodes=1210068
+[g-momonados 0.1.0] projector contractions=16941 payload_steps=16896 internal=6808 nodes=1243231
+[g-momonados 0.1.0] projector contractions=16973 payload_steps=16928 internal=6776 nodes=1257433
+[g-momonados 0.1.0] projector contractions=17005 payload_steps=16960 internal=6744 nodes=1277325
+[g-momonados 0.1.0] projector contractions=17037 payload_steps=16992 internal=6712 nodes=1286610
+[g-momonados 0.1.0] projector contractions=17069 payload_steps=17024 internal=6680 nodes=1292195
+[g-momonados 0.1.0] projector contractions=17101 payload_steps=17056 internal=6648 nodes=1310559
+[g-momonados 0.1.0] projector contractions=17133 payload_steps=17088 internal=6616 nodes=1321731
+[g-momonados 0.1.0] projector contractions=17165 payload_steps=17120 internal=6584 nodes=1339254
+[g-momonados 0.1.0] projector contractions=17197 payload_steps=17152 internal=6552 nodes=1371756
+[g-momonados 0.1.0] projector contractions=17229 payload_steps=17184 internal=6520 nodes=1421320
+[g-momonados 0.1.0] projector contractions=17261 payload_steps=17216 internal=6488 nodes=1428359
+[g-momonados 0.1.0] projector contractions=17293 payload_steps=17248 internal=6456 nodes=1456471
+[g-momonados 0.1.0] projector contractions=17325 payload_steps=17280 internal=6424 nodes=1514465
+[g-momonados 0.1.0] projector contractions=17357 payload_steps=17312 internal=6392 nodes=1584233
+[g-momonados 0.1.0] projector contractions=17389 payload_steps=17344 internal=6360 nodes=1679093
+[g-momonados 0.1.0] projector contractions=17421 payload_steps=17376 internal=6328 nodes=1686732
+[g-momonados 0.1.0] projector contractions=17453 payload_steps=17408 internal=6296 nodes=1702817
+[g-momonados 0.1.0] projector contractions=17485 payload_steps=17440 internal=6264 nodes=1730834
+[g-momonados 0.1.0] projector contractions=17517 payload_steps=17472 internal=6232 nodes=1757697
+[g-momonados 0.1.0] projector contractions=17549 payload_steps=17504 internal=6200 nodes=1823577
+[g-momonados 0.1.0] projector contractions=17581 payload_steps=17536 internal=6168 nodes=1927339
+[g-momonados 0.1.0] projector contractions=17613 payload_steps=17568 internal=6136 nodes=2007515
+[g-momonados 0.1.0] projector contractions=17645 payload_steps=17600 internal=6104 nodes=2248650
+[g-momonados 0.1.0] projector contractions=17677 payload_steps=17632 internal=6072 nodes=2348670
+[g-momonados 0.1.0] projector contractions=17709 payload_steps=17664 internal=6040 nodes=2410801
+[g-momonados 0.1.0] projector contractions=17741 payload_steps=17696 internal=6008 nodes=2509218
+[g-momonados 0.1.0] projector contractions=17773 payload_steps=17728 internal=5976 nodes=2584041
+[g-momonados 0.1.0] projector contractions=17805 payload_steps=17760 internal=5944 nodes=2745646
+[g-momonados 0.1.0] projector contractions=17837 payload_steps=17792 internal=5912 nodes=3047743
+[g-momonados 0.1.0] projector contractions=17869 payload_steps=17824 internal=5880 nodes=3379626
+[g-momonados 0.1.0] projector contractions=17901 payload_steps=17856 internal=5848 nodes=3473624
+[g-momonados 0.1.0] projector contractions=17933 payload_steps=17888 internal=5816 nodes=3561863
+[g-momonados 0.1.0] projector contractions=17965 payload_steps=17920 internal=5784 nodes=3643300
+[g-momonados 0.1.0] projector contractions=17997 payload_steps=17952 internal=5752 nodes=3761146
+[g-momonados 0.1.0] projector contractions=18029 payload_steps=17984 internal=5720 nodes=3813403
+[g-momonados 0.1.0] projector contractions=18061 payload_steps=18016 internal=5688 nodes=4239982
+[g-momonados 0.1.0] projector contractions=18093 payload_steps=18048 internal=5656 nodes=4944006
+[g-momonados 0.1.0] projector contractions=18125 payload_steps=18080 internal=5624 nodes=5109480
+[g-momonados 0.1.0] projector contractions=18157 payload_steps=18112 internal=5592 nodes=5371542
+[g-momonados 0.1.0] projector contractions=18189 payload_steps=18144 internal=5560 nodes=5919768
+[g-momonados 0.1.0] projector contractions=18221 payload_steps=18176 internal=5528 nodes=6927825
+[g-momonados 0.1.0] projector contractions=18253 payload_steps=18208 internal=5496 nodes=10158473
+[g-momonados 0.1.0] projector contractions=18285 payload_steps=18240 internal=5464 nodes=14328419
+[g-momonados 0.1.0] projector contractions=18317 payload_steps=18272 internal=5432 nodes=19148615
+[g-momonados 0.1.0] projector contractions=18349 payload_steps=18304 internal=5400 nodes=21585124
+[g-momonados 0.1.0] projector contractions=18381 payload_steps=18336 internal=5368 nodes=22157635
+[g-momonados 0.1.0] projector contractions=18413 payload_steps=18368 internal=5336 nodes=22589423
+[g-momonados 0.1.0] projector contractions=18445 payload_steps=18400 internal=5304 nodes=22907864
+[g-momonados 0.1.0] projector contractions=18477 payload_steps=18432 internal=5272 nodes=23449562
+[g-momonados 0.1.0] projector contractions=18509 payload_steps=18464 internal=5240 nodes=25003292
+[g-momonados 0.1.0] projector contractions=18541 payload_steps=18496 internal=5208 nodes=25867249
+[g-momonados 0.1.0] projector contractions=18573 payload_steps=18528 internal=5176 nodes=26340596
+[g-momonados 0.1.0] projector contractions=18605 payload_steps=18560 internal=5144 nodes=30931246
+[g-momonados 0.1.0] projector contractions=18637 payload_steps=18592 internal=5112 nodes=31909171
+[g-momonados 0.1.0] projector contractions=18669 payload_steps=18624 internal=5080 nodes=34131411
+[g-momonados 0.1.0] projector contractions=18701 payload_steps=18656 internal=5048 nodes=35050729
+[g-momonados 0.1.0] projector contractions=18733 payload_steps=18688 internal=5016 nodes=36151169
+[g-momonados 0.1.0] projector contractions=18765 payload_steps=18720 internal=4984 nodes=36624625
+[g-momonados 0.1.0] projector contractions=18797 payload_steps=18752 internal=4952 nodes=36898799
+[g-momonados 0.1.0] projector contractions=18829 payload_steps=18784 internal=4920 nodes=45132390
+[g-momonados 0.1.0] projector contractions=18861 payload_steps=18816 internal=4888 nodes=48418638
+[g-momonados 0.1.0] projector contractions=18893 payload_steps=18848 internal=4856 nodes=50447662
+[g-momonados 0.1.0] projector contractions=18925 payload_steps=18880 internal=4824 nodes=51487900
+[g-momonados 0.1.0] projector contractions=18957 payload_steps=18912 internal=4792 nodes=52558032
+[g-momonados 0.1.0] projector contractions=18989 payload_steps=18944 internal=4760 nodes=54649752
+[g-momonados 0.1.0] projector contractions=19021 payload_steps=18976 internal=4728 nodes=57199530
+[g-momonados 0.1.0] projector contractions=19053 payload_steps=19008 internal=4696 nodes=70590270
+[g-momonados 0.1.0] projector contractions=19085 payload_steps=19040 internal=4664 nodes=76536257
+[g-momonados 0.1.0] projector contractions=19117 payload_steps=19072 internal=4632 nodes=85664457
+[g-momonados 0.1.0] projector contractions=19149 payload_steps=19104 internal=4600 nodes=83034174
+[g-momonados 0.1.0] projector contractions=19181 payload_steps=19136 internal=4568 nodes=95492202
+[g-momonados 0.1.0] projector contractions=19213 payload_steps=19168 internal=4536 nodes=104359311
+[g-momonados 0.1.0] projector contractions=19245 payload_steps=19200 internal=4504 nodes=111319738
+error: failed to run custom build command for `g-momonados v0.1.0 (/home/mrnob0dy666/imsgct/G-mOMonadOS)`
+
+Caused by:
+  process didn't exit successfully: `CARGO=/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo CARGO_CFG_FEATURE=default,hosted CARGO_CFG_FMT_DEBUG=full CARGO_CFG_OVERFLOW_CHECKS='' CARGO_CFG_PANIC=unwind CARGO_CFG_RELOCATION_MODEL=pic CARGO_CFG_TARGET_ABI='' CARGO_CFG_TARGET_ARCH=x86_64 CARGO_CFG_TARGET_ENDIAN=little CARGO_CFG_TARGET_ENV=gnu CARGO_CFG_TARGET_FAMILY=unix CARGO_CFG_TARGET_FEATURE=crt-static,fxsr,sse,sse2,x87 CARGO_CFG_TARGET_HAS_ATOMIC=16,32,64,8,ptr CARGO_CFG_TARGET_HAS_ATOMIC_EQUAL_ALIGNMENT=16,32,64,8,ptr CARGO_CFG_TARGET_HAS_ATOMIC_LOAD_STORE=16,32,64,8,ptr CARGO_CFG_TARGET_HAS_RELIABLE_F128='' CARGO_CFG_TARGET_HAS_RELIABLE_F16='' CARGO_CFG_TARGET_HAS_RELIABLE_F16_MATH='' CARGO_CFG_TARGET_OS=linux CARGO_CFG_TARGET_POINTER_WIDTH=64 CARGO_CFG_TARGET_THREAD_LOCAL='' CARGO_CFG_TARGET_VENDOR=unknown CARGO_CFG_UB_CHECKS='' CARGO_CFG_UNIX='' CARGO_ENCODED_RUSTFLAGS='-Dwarnings-Ctarget-feature=+crt-static' CARGO_FEATURE_DEFAULT=1 CARGO_FEATURE_HOSTED=1 CARGO_MANIFEST_DIR=/home/mrnob0dy666/imsgct/G-mOMonadOS CARGO_MANIFEST_PATH=/home/mrnob0dy666/imsgct/G-mOMonadOS/Cargo.toml CARGO_PKG_AUTHORS='' CARGO_PKG_DESCRIPTION='' CARGO_PKG_HOMEPAGE='' CARGO_PKG_LICENSE='' CARGO_PKG_LICENSE_FILE='' CARGO_PKG_NAME=g-momonados CARGO_PKG_README=README.md CARGO_PKG_REPOSITORY='' CARGO_PKG_RUST_VERSION='' CARGO_PKG_VERSION=0.1.0 CARGO_PKG_VERSION_MAJOR=0 CARGO_PKG_VERSION_MINOR=1 CARGO_PKG_VERSION_PATCH=0 CARGO_PKG_VERSION_PRE='' DEBUG=false HOST=x86_64-unknown-linux-gnu LD_LIBRARY_PATH='/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release:/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/deps:/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib:/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:/usr/lib/wsl/lib:/home/mrnob0dy666/shucker/lib/purl_diver:/home/mrnob0dy666/shucker/lib/byvalver:' NUM_JOBS=1 OPT_LEVEL=3 OUT_DIR=/home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/x86_64-unknown-linux-gnu/release/build/g-momonados-1c0a82b198d98de4/out PROFILE=release RUSTC=/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc RUSTDOC=/home/mrnob0dy666/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustdoc TARGET=x86_64-unknown-linux-gnu /home/mrnob0dy666/imsgct/G-mOMonadOS/target/projector-static-20261021/release/build/g-momonados-5f09633eb693a876/build-script-build` (signal: 9, SIGKILL: kill)
+  --- stdout
+  cargo:rerun-if-env-changed=QUQUART_PREPARED_FILE
+  cargo:rerun-if-env-changed=FINAL_POINT_SOURCE_FILE
+  cargo:rerun-if-env-changed=POINT_SOURCE_FILE
+  cargo:rerun-if-changed=/home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/final_point_switch_20261021/source_100/source.txt
+
+  --- stderr
+  prepared-switch constraints=14499 internal=23749 nodes=133219
+  projector contractions=77 payload_steps=32 internal=23672 nodes=132701
+  projector contractions=109 payload_steps=64 internal=23640 nodes=132628
+  projector contractions=141 payload_steps=96 internal=23608 nodes=132532
+  projector contractions=173 payload_steps=128 internal=23576 nodes=132436
+  projector contractions=205 payload_steps=160 internal=23544 nodes=132340
+  projector contractions=237 payload_steps=192 internal=23512 nodes=132244
+  projector contractions=269 payload_steps=224 internal=23480 nodes=132143
+  projector contractions=301 payload_steps=256 internal=23448 nodes=132041
+  projector contractions=333 payload_steps=288 internal=23416 nodes=131939
+  projector contractions=365 payload_steps=320 internal=23384 nodes=131836
+  projector contractions=397 payload_steps=352 internal=23352 nodes=131728
+  projector contractions=429 payload_steps=384 internal=23320 nodes=131622
+  projector contractions=461 payload_steps=416 internal=23288 nodes=131524
+  projector contractions=493 payload_steps=448 internal=23256 nodes=131428
+  projector contractions=525 payload_steps=480 internal=23224 nodes=131332
+  projector contractions=557 payload_steps=512 internal=23192 nodes=131236
+  projector contractions=589 payload_steps=544 internal=23160 nodes=131140
+  projector contractions=621 payload_steps=576 internal=23128 nodes=131044
+  projector contractions=653 payload_steps=608 internal=23096 nodes=130948
+  projector contractions=685 payload_steps=640 internal=23064 nodes=130852
+  projector contractions=717 payload_steps=672 internal=23032 nodes=130756
+  projector contractions=749 payload_steps=704 internal=23000 nodes=130660
+  projector contractions=781 payload_steps=736 internal=22968 nodes=130564
+  projector contractions=813 payload_steps=768 internal=22936 nodes=130468
+  projector contractions=845 payload_steps=800 internal=22904 nodes=130372
+  projector contractions=877 payload_steps=832 internal=22872 nodes=130276
+  projector contractions=909 payload_steps=864 internal=22840 nodes=130180
+  projector contractions=941 payload_steps=896 internal=22808 nodes=130084
+  projector contractions=973 payload_steps=928 internal=22776 nodes=129988
+  projector contractions=1005 payload_steps=960 internal=22744 nodes=129892
+  projector contractions=1037 payload_steps=992 internal=22712 nodes=129796
+  projector contractions=1069 payload_steps=1024 internal=22680 nodes=129700
+  projector contractions=1101 payload_steps=1056 internal=22648 nodes=129604
+  projector contractions=1133 payload_steps=1088 internal=22616 nodes=129508
+  projector contractions=1165 payload_steps=1120 internal=22584 nodes=129412
+  projector contractions=1197 payload_steps=1152 internal=22552 nodes=129316
+  projector contractions=1229 payload_steps=1184 internal=22520 nodes=129220
+  projector contractions=1261 payload_steps=1216 internal=22488 nodes=129124
+  projector contractions=1293 payload_steps=1248 internal=22456 nodes=129028
+  projector contractions=1325 payload_steps=1280 internal=22424 nodes=128932
+  projector contractions=1357 payload_steps=1312 internal=22392 nodes=128836
+  projector contractions=1389 payload_steps=1344 internal=22360 nodes=128740
+  projector contractions=1421 payload_steps=1376 internal=22328 nodes=128644
+  projector contractions=1453 payload_steps=1408 internal=22296 nodes=128548
+  projector contractions=1485 payload_steps=1440 internal=22264 nodes=128452
+  projector contractions=1517 payload_steps=1472 internal=22232 nodes=128356
+  projector contractions=1549 payload_steps=1504 internal=22200 nodes=128260
+  projector contractions=1581 payload_steps=1536 internal=22168 nodes=128164
+  projector contractions=1613 payload_steps=1568 internal=22136 nodes=128068
+  projector contractions=1645 payload_steps=1600 internal=22104 nodes=127972
+  projector contractions=1677 payload_steps=1632 internal=22072 nodes=127876
+  projector contractions=1709 payload_steps=1664 internal=22040 nodes=127780
+  projector contractions=1741 payload_steps=1696 internal=22008 nodes=127684
+  projector contractions=1773 payload_steps=1728 internal=21976 nodes=127588
+  projector contractions=1805 payload_steps=1760 internal=21944 nodes=127492
+  projector contractions=1837 payload_steps=1792 internal=21912 nodes=127396
+  projector contractions=1869 payload_steps=1824 internal=21880 nodes=127300
+  projector contractions=1901 payload_steps=1856 internal=21848 nodes=127204
+  projector contractions=1933 payload_steps=1888 internal=21816 nodes=127108
+  projector contractions=1965 payload_steps=1920 internal=21784 nodes=127012
+  projector contractions=1997 payload_steps=1952 internal=21752 nodes=126916
+  projector contractions=2029 payload_steps=1984 internal=21720 nodes=126820
+  projector contractions=2061 payload_steps=2016 internal=21688 nodes=126724
+  projector contractions=2093 payload_steps=2048 internal=21656 nodes=126628
+  projector contractions=2125 payload_steps=2080 internal=21624 nodes=126532
+  projector contractions=2157 payload_steps=2112 internal=21592 nodes=126436
+  projector contractions=2189 payload_steps=2144 internal=21560 nodes=126340
+  projector contractions=2221 payload_steps=2176 internal=21528 nodes=126244
+  projector contractions=2253 payload_steps=2208 internal=21496 nodes=126148
+  projector contractions=2285 payload_steps=2240 internal=21464 nodes=126052
+  projector contractions=2317 payload_steps=2272 internal=21432 nodes=125956
+  projector contractions=2349 payload_steps=2304 internal=21400 nodes=125860
+  projector contractions=2381 payload_steps=2336 internal=21368 nodes=125764
+  projector contractions=2413 payload_steps=2368 internal=21336 nodes=125668
+  projector contractions=2445 payload_steps=2400 internal=21304 nodes=125572
+  projector contractions=2477 payload_steps=2432 internal=21272 nodes=125476
+  projector contractions=2509 payload_steps=2464 internal=21240 nodes=125380
+  projector contractions=2541 payload_steps=2496 internal=21208 nodes=125284
+  projector contractions=2573 payload_steps=2528 internal=21176 nodes=125188
+  projector contractions=2605 payload_steps=2560 internal=21144 nodes=125092
+  projector contractions=2637 payload_steps=2592 internal=21112 nodes=124996
+  projector contractions=2669 payload_steps=2624 internal=21080 nodes=124900
+  projector contractions=2701 payload_steps=2656 internal=21048 nodes=124804
+  projector contractions=2733 payload_steps=2688 internal=21016 nodes=124708
+  projector contractions=2765 payload_steps=2720 internal=20984 nodes=124612
+  projector contractions=2797 payload_steps=2752 internal=20952 nodes=124516
+  projector contractions=2829 payload_steps=2784 internal=20920 nodes=124420
+  projector contractions=2861 payload_steps=2816 internal=20888 nodes=124328
+  projector contractions=2893 payload_steps=2848 internal=20856 nodes=124282
+  projector contractions=2925 payload_steps=2880 internal=20824 nodes=124242
+  projector contractions=2957 payload_steps=2912 internal=20792 nodes=124204
+  projector contractions=2989 payload_steps=2944 internal=20760 nodes=124168
+  projector contractions=3021 payload_steps=2976 internal=20728 nodes=124132
+  projector contractions=3053 payload_steps=3008 internal=20696 nodes=124098
+  projector contractions=3085 payload_steps=3040 internal=20664 nodes=124064
+  projector contractions=3117 payload_steps=3072 internal=20632 nodes=124030
+  projector contractions=3149 payload_steps=3104 internal=20600 nodes=123998
+  projector contractions=3181 payload_steps=3136 internal=20568 nodes=123964
+  projector contractions=3213 payload_steps=3168 internal=20536 nodes=123928
+  projector contractions=3245 payload_steps=3200 internal=20504 nodes=123896
+  projector contractions=3277 payload_steps=3232 internal=20472 nodes=123862
+  projector contractions=3309 payload_steps=3264 internal=20440 nodes=123826
+  projector contractions=3341 payload_steps=3296 internal=20408 nodes=123790
+  projector contractions=3373 payload_steps=3328 internal=20376 nodes=123756
+  projector contractions=3405 payload_steps=3360 internal=20344 nodes=123720
+  projector contractions=3437 payload_steps=3392 internal=20312 nodes=123684
+  projector contractions=3469 payload_steps=3424 internal=20280 nodes=123652
+  projector contractions=3501 payload_steps=3456 internal=20248 nodes=123616
+  projector contractions=3533 payload_steps=3488 internal=20216 nodes=123580
+  projector contractions=3565 payload_steps=3520 internal=20184 nodes=123548
+  projector contractions=3597 payload_steps=3552 internal=20152 nodes=123516
+  projector contractions=3629 payload_steps=3584 internal=20120 nodes=123482
+  projector contractions=3661 payload_steps=3616 internal=20088 nodes=123448
+  projector contractions=3693 payload_steps=3648 internal=20056 nodes=123416
+  projector contractions=3725 payload_steps=3680 internal=20024 nodes=123382
+  projector contractions=3757 payload_steps=3712 internal=19992 nodes=123348
+  projector contractions=3789 payload_steps=3744 internal=19960 nodes=123314
+  projector contractions=3821 payload_steps=3776 internal=19928 nodes=123280
+  projector contractions=3853 payload_steps=3808 internal=19896 nodes=123248
+  projector contractions=3885 payload_steps=3840 internal=19864 nodes=123214
+  projector contractions=3917 payload_steps=3872 internal=19832 nodes=123180
+  projector contractions=3949 payload_steps=3904 internal=19800 nodes=123148
+  projector contractions=3981 payload_steps=3936 internal=19768 nodes=123116
+  projector contractions=4013 payload_steps=3968 internal=19736 nodes=123084
+  projector contractions=4045 payload_steps=4000 internal=19704 nodes=123052
+  projector contractions=4077 payload_steps=4032 internal=19672 nodes=123020
+  projector contractions=4109 payload_steps=4064 internal=19640 nodes=122986
+  projector contractions=4141 payload_steps=4096 internal=19608 nodes=122968
+  projector contractions=4173 payload_steps=4128 internal=19576 nodes=122936
+  projector contractions=4205 payload_steps=4160 internal=19544 nodes=122911
+  projector contractions=4237 payload_steps=4192 internal=19512 nodes=122893
+  projector contractions=4269 payload_steps=4224 internal=19480 nodes=122861
+  projector contractions=4301 payload_steps=4256 internal=19448 nodes=122836
+  projector contractions=4333 payload_steps=4288 internal=19416 nodes=122818
+  projector contractions=4365 payload_steps=4320 internal=19384 nodes=122793
+  projector contractions=4397 payload_steps=4352 internal=19352 nodes=122775
+  projector contractions=4429 payload_steps=4384 internal=19320 nodes=122750
+  projector contractions=4461 payload_steps=4416 internal=19288 nodes=122718
+  projector contractions=4493 payload_steps=4448 internal=19256 nodes=122686
+  projector contractions=4525 payload_steps=4480 internal=19224 nodes=122661
+  projector contractions=4557 payload_steps=4512 internal=19192 nodes=122629
+  projector contractions=4589 payload_steps=4544 internal=19160 nodes=122611
+  projector contractions=4621 payload_steps=4576 internal=19128 nodes=122579
+  projector contractions=4653 payload_steps=4608 internal=19096 nodes=122554
+  projector contractions=4685 payload_steps=4640 internal=19064 nodes=122529
+  projector contractions=4717 payload_steps=4672 internal=19032 nodes=122504
+  projector contractions=4749 payload_steps=4704 internal=19000 nodes=122479
+  projector contractions=4781 payload_steps=4736 internal=18968 nodes=122454
+  projector contractions=4813 payload_steps=4768 internal=18936 nodes=122429
+  projector contractions=4845 payload_steps=4800 internal=18904 nodes=122404
+  projector contractions=4877 payload_steps=4832 internal=18872 nodes=122386
+  projector contractions=4909 payload_steps=4864 internal=18840 nodes=122361
+  projector contractions=4941 payload_steps=4896 internal=18808 nodes=122336
+  projector contractions=4973 payload_steps=4928 internal=18776 nodes=122318
+  projector contractions=5005 payload_steps=4960 internal=18744 nodes=122300
+  projector contractions=5037 payload_steps=4992 internal=18712 nodes=122282
+  projector contractions=5069 payload_steps=5024 internal=18680 nodes=122257
+  projector contractions=5101 payload_steps=5056 internal=18648 nodes=122239
+  projector contractions=5133 payload_steps=5088 internal=18616 nodes=122214
+  projector contractions=5165 payload_steps=5120 internal=18584 nodes=122189
+  projector contractions=5197 payload_steps=5152 internal=18552 nodes=122157
+  projector contractions=5229 payload_steps=5184 internal=18520 nodes=122139
+  projector contractions=5261 payload_steps=5216 internal=18488 nodes=122114
+  projector contractions=5293 payload_steps=5248 internal=18456 nodes=122110
+  projector contractions=5325 payload_steps=5280 internal=18424 nodes=122106
+  projector contractions=5357 payload_steps=5312 internal=18392 nodes=122253
+  projector contractions=5389 payload_steps=5344 internal=18360 nodes=122459
+  projector contractions=5421 payload_steps=5376 internal=18328 nodes=122763
+  projector contractions=5453 payload_steps=5408 internal=18296 nodes=123008
+  projector contractions=5485 payload_steps=5440 internal=18264 nodes=123282
+  projector contractions=5517 payload_steps=5472 internal=18232 nodes=123555
+  projector contractions=5549 payload_steps=5504 internal=18200 nodes=123856
+  projector contractions=5581 payload_steps=5536 internal=18168 nodes=124149
+  projector contractions=5613 payload_steps=5568 internal=18136 nodes=124399
+  projector contractions=5645 payload_steps=5600 internal=18104 nodes=124677
+  projector contractions=5677 payload_steps=5632 internal=18072 nodes=124973
+  projector contractions=5709 payload_steps=5664 internal=18040 nodes=125283
+  projector contractions=5741 payload_steps=5696 internal=18008 nodes=125598
+  projector contractions=5773 payload_steps=5728 internal=17976 nodes=125932
+  projector contractions=5805 payload_steps=5760 internal=17944 nodes=126267
+  projector contractions=5837 payload_steps=5792 internal=17912 nodes=126582
+  projector contractions=5869 payload_steps=5824 internal=17880 nodes=126911
+  projector contractions=5901 payload_steps=5856 internal=17848 nodes=127240
+  projector contractions=5933 payload_steps=5888 internal=17816 nodes=127546
+  projector contractions=5965 payload_steps=5920 internal=17784 nodes=127823
+  projector contractions=5997 payload_steps=5952 internal=17752 nodes=128143
+  projector contractions=6029 payload_steps=5984 internal=17720 nodes=128444
+  projector contractions=6061 payload_steps=6016 internal=17688 nodes=128764
+  projector contractions=6093 payload_steps=6048 internal=17656 nodes=129083
+  projector contractions=6125 payload_steps=6080 internal=17624 nodes=129416
+  projector contractions=6157 payload_steps=6112 internal=17592 nodes=129750
+  projector contractions=6189 payload_steps=6144 internal=17560 nodes=130084
+  projector contractions=6221 payload_steps=6176 internal=17528 nodes=130412
+  projector contractions=6253 payload_steps=6208 internal=17496 nodes=130759
+  projector contractions=6285 payload_steps=6240 internal=17464 nodes=131092
+  projector contractions=6317 payload_steps=6272 internal=17432 nodes=131425
+  projector contractions=6349 payload_steps=6304 internal=17400 nodes=131759
+  projector contractions=6381 payload_steps=6336 internal=17368 nodes=132078
+  projector contractions=6413 payload_steps=6368 internal=17336 nodes=132398
+  projector contractions=6445 payload_steps=6400 internal=17304 nodes=132732
+  projector contractions=6477 payload_steps=6432 internal=17272 nodes=133042
+  projector contractions=6509 payload_steps=6464 internal=17240 nodes=133375
+  projector contractions=6541 payload_steps=6496 internal=17208 nodes=133709
+  projector contractions=6573 payload_steps=6528 internal=17176 nodes=134028
+  projector contractions=6605 payload_steps=6560 internal=17144 nodes=134362
+  projector contractions=6637 payload_steps=6592 internal=17112 nodes=134686
+  projector contractions=6669 payload_steps=6624 internal=17080 nodes=135006
+  projector contractions=6701 payload_steps=6656 internal=17048 nodes=135330
+  projector contractions=6733 payload_steps=6688 internal=17016 nodes=135677
+  projector contractions=6765 payload_steps=6720 internal=16984 nodes=136002
+  projector contractions=6797 payload_steps=6752 internal=16952 nodes=136349
+  projector contractions=6829 payload_steps=6784 internal=16920 nodes=136682
+  projector contractions=6861 payload_steps=6816 internal=16888 nodes=137001
+  projector contractions=6893 payload_steps=6848 internal=16856 nodes=137320
+  projector contractions=6925 payload_steps=6880 internal=16824 nodes=137653
+  projector contractions=6957 payload_steps=6912 internal=16792 nodes=137986
+  projector contractions=6989 payload_steps=6944 internal=16760 nodes=138319
+  projector contractions=7021 payload_steps=6976 internal=16728 nodes=138652
+  projector contractions=7053 payload_steps=7008 internal=16696 nodes=139004
+  projector contractions=7085 payload_steps=7040 internal=16664 nodes=139328
+  projector contractions=7117 payload_steps=7072 internal=16632 nodes=139666
+  projector contractions=7149 payload_steps=7104 internal=16600 nodes=140004
+  projector contractions=7181 payload_steps=7136 internal=16568 nodes=140328
+  projector contractions=7213 payload_steps=7168 internal=16536 nodes=140652
+  projector contractions=7245 payload_steps=7200 internal=16504 nodes=140990
+  projector contractions=7277 payload_steps=7232 internal=16472 nodes=141300
+  projector contractions=7309 payload_steps=7264 internal=16440 nodes=141624
+  projector contractions=7341 payload_steps=7296 internal=16408 nodes=141948
+  projector contractions=7373 payload_steps=7328 internal=16376 nodes=142286
+  projector contractions=7405 payload_steps=7360 internal=16344 nodes=142610
+  projector contractions=7437 payload_steps=7392 internal=16312 nodes=142948
+  projector contractions=7469 payload_steps=7424 internal=16280 nodes=143300
+  projector contractions=7501 payload_steps=7456 internal=16248 nodes=143638
+  projector contractions=7533 payload_steps=7488 internal=16216 nodes=143976
+  projector contractions=7565 payload_steps=7520 internal=16184 nodes=144314
+  projector contractions=7597 payload_steps=7552 internal=16152 nodes=144652
+  projector contractions=7629 payload_steps=7584 internal=16120 nodes=144962
+  projector contractions=7661 payload_steps=7616 internal=16088 nodes=145300
+  projector contractions=7693 payload_steps=7648 internal=16056 nodes=145624
+  projector contractions=7725 payload_steps=7680 internal=16024 nodes=145962
+  projector contractions=7757 payload_steps=7712 internal=15992 nodes=146286
+  projector contractions=7789 payload_steps=7744 internal=15960 nodes=146568
+  projector contractions=7821 payload_steps=7776 internal=15928 nodes=146892
+  projector contractions=7853 payload_steps=7808 internal=15896 nodes=147230
+  projector contractions=7885 payload_steps=7840 internal=15864 nodes=147582
+  projector contractions=7917 payload_steps=7872 internal=15832 nodes=147906
+  projector contractions=7949 payload_steps=7904 internal=15800 nodes=148244
+  projector contractions=7981 payload_steps=7936 internal=15768 nodes=148568
+  projector contractions=8013 payload_steps=7968 internal=15736 nodes=148892
+  projector contractions=8045 payload_steps=8000 internal=15704 nodes=149188
+  projector contractions=8077 payload_steps=8032 internal=15672 nodes=149512
+  projector contractions=8109 payload_steps=8064 internal=15640 nodes=149794
+  projector contractions=8141 payload_steps=8096 internal=15608 nodes=150132
+  projector contractions=8173 payload_steps=8128 internal=15576 nodes=150456
+  projector contractions=8205 payload_steps=8160 internal=15544 nodes=150794
+  projector contractions=8237 payload_steps=8192 internal=15512 nodes=151146
+  projector contractions=8269 payload_steps=8224 internal=15480 nodes=151484
+  projector contractions=8301 payload_steps=8256 internal=15448 nodes=151808
+  projector contractions=8333 payload_steps=8288 internal=15416 nodes=152132
+  projector contractions=8365 payload_steps=8320 internal=15384 nodes=152414
+  projector contractions=8397 payload_steps=8352 internal=15352 nodes=152710
+  projector contractions=8429 payload_steps=8384 internal=15320 nodes=152992
+  projector contractions=8461 payload_steps=8416 internal=15288 nodes=153316
+  projector contractions=8493 payload_steps=8448 internal=15256 nodes=153626
+  projector contractions=8525 payload_steps=8480 internal=15224 nodes=153950
+  projector contractions=8557 payload_steps=8512 internal=15192 nodes=154232
+  projector contractions=8589 payload_steps=8544 internal=15160 nodes=154472
+  projector contractions=8621 payload_steps=8576 internal=15128 nodes=154712
+  projector contractions=8653 payload_steps=8608 internal=15096 nodes=154994
+  projector contractions=8685 payload_steps=8640 internal=15064 nodes=155121
+  projector contractions=8717 payload_steps=8672 internal=15032 nodes=155482
+  projector contractions=8749 payload_steps=8704 internal=15000 nodes=155547
+  projector contractions=8781 payload_steps=8736 internal=14968 nodes=155571
+  projector contractions=8813 payload_steps=8768 internal=14936 nodes=155595
+  projector contractions=8845 payload_steps=8800 internal=14904 nodes=156075
+  projector contractions=8877 payload_steps=8832 internal=14872 nodes=156832
+  projector contractions=8909 payload_steps=8864 internal=14840 nodes=157569
+  projector contractions=8941 payload_steps=8896 internal=14808 nodes=158422
+  projector contractions=8973 payload_steps=8928 internal=14776 nodes=159274
+  projector contractions=9005 payload_steps=8960 internal=14744 nodes=160175
+  projector contractions=9037 payload_steps=8992 internal=14712 nodes=161027
+  projector contractions=9069 payload_steps=9024 internal=14680 nodes=161936
+  projector contractions=9101 payload_steps=9056 internal=14648 nodes=162802
+  projector contractions=9133 payload_steps=9088 internal=14616 nodes=163632
+  projector contractions=9165 payload_steps=9120 internal=14584 nodes=164544
+  projector contractions=9197 payload_steps=9152 internal=14552 nodes=165397
+  projector contractions=9229 payload_steps=9184 internal=14520 nodes=166381
+  projector contractions=9261 payload_steps=9216 internal=14488 nodes=167466
+  projector contractions=9293 payload_steps=9248 internal=14456 nodes=168316
+  projector contractions=9325 payload_steps=9280 internal=14424 nodes=169329
+  projector contractions=9357 payload_steps=9312 internal=14392 nodes=170301
+  projector contractions=9389 payload_steps=9344 internal=14360 nodes=171196
+  projector contractions=9421 payload_steps=9376 internal=14328 nodes=172160
+  projector contractions=9453 payload_steps=9408 internal=14296 nodes=173177
+  projector contractions=9485 payload_steps=9440 internal=14264 nodes=174244
+  projector contractions=9517 payload_steps=9472 internal=14232 nodes=175278
+  projector contractions=9549 payload_steps=9504 internal=14200 nodes=176304
+  projector contractions=9581 payload_steps=9536 internal=14168 nodes=177388
+  projector contractions=9613 payload_steps=9568 internal=14136 nodes=178337
+  projector contractions=9645 payload_steps=9600 internal=14104 nodes=179343
+  projector contractions=9677 payload_steps=9632 internal=14072 nodes=180347
+  projector contractions=9709 payload_steps=9664 internal=14040 nodes=181325
+  projector contractions=9741 payload_steps=9696 internal=14008 nodes=182237
+  projector contractions=9773 payload_steps=9728 internal=13976 nodes=183217
+  projector contractions=9805 payload_steps=9760 internal=13944 nodes=184222
+  projector contractions=9837 payload_steps=9792 internal=13912 nodes=185198
+  projector contractions=9869 payload_steps=9824 internal=13880 nodes=186176
+  projector contractions=9901 payload_steps=9856 internal=13848 nodes=187088
+  projector contractions=9933 payload_steps=9888 internal=13816 nodes=188180
+  projector contractions=9965 payload_steps=9920 internal=13784 nodes=188937
+  projector contractions=9997 payload_steps=9952 internal=13752 nodes=189945
+  projector contractions=10029 payload_steps=9984 internal=13720 nodes=190781
+  projector contractions=10061 payload_steps=10016 internal=13688 nodes=191681
+  projector contractions=10093 payload_steps=10048 internal=13656 nodes=192337
+  projector contractions=10125 payload_steps=10080 internal=13624 nodes=193141
+  projector contractions=10157 payload_steps=10112 internal=13592 nodes=193901
+  projector contractions=10189 payload_steps=10144 internal=13560 nodes=194413
+  projector contractions=10221 payload_steps=10176 internal=13528 nodes=194647
+  projector contractions=10253 payload_steps=10208 internal=13496 nodes=194538
+  projector contractions=10285 payload_steps=10240 internal=13464 nodes=194460
+  projector contractions=10317 payload_steps=10272 internal=13432 nodes=194242
+  projector contractions=10349 payload_steps=10304 internal=13400 nodes=194052
+  projector contractions=10381 payload_steps=10336 internal=13368 nodes=193939
+  projector contractions=10413 payload_steps=10368 internal=13336 nodes=193766
+  projector contractions=10445 payload_steps=10400 internal=13304 nodes=193565
+  projector contractions=10477 payload_steps=10432 internal=13272 nodes=193347
+  projector contractions=10509 payload_steps=10464 internal=13240 nodes=193132
+  projector contractions=10541 payload_steps=10496 internal=13208 nodes=193002
+  projector contractions=10573 payload_steps=10528 internal=13176 nodes=192844
+  projector contractions=10605 payload_steps=10560 internal=13144 nodes=192716
+  projector contractions=10637 payload_steps=10592 internal=13112 nodes=192543
+  projector contractions=10669 payload_steps=10624 internal=13080 nodes=192322
+  projector contractions=10701 payload_steps=10656 internal=13048 nodes=192088
+  projector contractions=10733 payload_steps=10688 internal=13016 nodes=191894
+  projector contractions=10765 payload_steps=10720 internal=12984 nodes=191728
+  projector contractions=10797 payload_steps=10752 internal=12952 nodes=191495
+  projector contractions=10829 payload_steps=10784 internal=12920 nodes=191331
+  projector contractions=10861 payload_steps=10816 internal=12888 nodes=191154
+  projector contractions=10893 payload_steps=10848 internal=12856 nodes=191017
+  projector contractions=10925 payload_steps=10880 internal=12824 nodes=190800
+  projector contractions=10957 payload_steps=10912 internal=12792 nodes=190556
+  projector contractions=10989 payload_steps=10944 internal=12760 nodes=190350
+  projector contractions=11021 payload_steps=10976 internal=12728 nodes=190159
+  projector contractions=11053 payload_steps=11008 internal=12696 nodes=189977
+  projector contractions=11085 payload_steps=11040 internal=12664 nodes=189849
+  projector contractions=11117 payload_steps=11072 internal=12632 nodes=189583
+  projector contractions=11149 payload_steps=11104 internal=12600 nodes=189428
+  projector contractions=11181 payload_steps=11136 internal=12568 nodes=189280
+  projector contractions=11213 payload_steps=11168 internal=12536 nodes=189008
+  projector contractions=11245 payload_steps=11200 internal=12504 nodes=188853
+  projector contractions=11277 payload_steps=11232 internal=12472 nodes=188584
+  projector contractions=11309 payload_steps=11264 internal=12440 nodes=188430
+  projector contractions=11341 payload_steps=11296 internal=12408 nodes=188302
+  projector contractions=11373 payload_steps=11328 internal=12376 nodes=188138
+  projector contractions=11405 payload_steps=11360 internal=12344 nodes=187994
+  projector contractions=11437 payload_steps=11392 internal=12312 nodes=187842
+  projector contractions=11469 payload_steps=11424 internal=12280 nodes=187657
+  projector contractions=11501 payload_steps=11456 internal=12248 nodes=187475
+  projector contractions=11533 payload_steps=11488 internal=12216 nodes=187284
+  projector contractions=11565 payload_steps=11520 internal=12184 nodes=187193
+  projector contractions=11597 payload_steps=11552 internal=12152 nodes=186966
+  projector contractions=11629 payload_steps=11584 internal=12120 nodes=186831
+  projector contractions=11661 payload_steps=11616 internal=12088 nodes=186613
+  projector contractions=11693 payload_steps=11648 internal=12056 nodes=186351
+  projector contractions=11725 payload_steps=11680 internal=12024 nodes=186251
+  projector contractions=11757 payload_steps=11712 internal=11992 nodes=186101
+  projector contractions=11789 payload_steps=11744 internal=11960 nodes=185911
+  projector contractions=11821 payload_steps=11776 internal=11928 nodes=185783
+  projector contractions=11853 payload_steps=11808 internal=11896 nodes=185587
+  projector contractions=11885 payload_steps=11840 internal=11864 nodes=185333
+  projector contractions=11917 payload_steps=11872 internal=11832 nodes=185165
+  projector contractions=11949 payload_steps=11904 internal=11800 nodes=184999
+  projector contractions=11981 payload_steps=11936 internal=11768 nodes=184884
+  projector contractions=12013 payload_steps=11968 internal=11736 nodes=184738
+  projector contractions=12045 payload_steps=12000 internal=11704 nodes=184602
+  projector contractions=12077 payload_steps=12032 internal=11672 nodes=184438
+  projector contractions=12109 payload_steps=12064 internal=11640 nodes=184276
+  projector contractions=12141 payload_steps=12096 internal=11608 nodes=184109
+  projector contractions=12173 payload_steps=12128 internal=11576 nodes=183932
+  projector contractions=12205 payload_steps=12160 internal=11544 nodes=183850
+  projector contractions=12237 payload_steps=12192 internal=11512 nodes=183678
+  projector contractions=12269 payload_steps=12224 internal=11480 nodes=183488
+  projector contractions=12301 payload_steps=12256 internal=11448 nodes=183447
+  projector contractions=12333 payload_steps=12288 internal=11416 nodes=183478
+  projector contractions=12365 payload_steps=12320 internal=11384 nodes=185520
+  projector contractions=12397 payload_steps=12352 internal=11352 nodes=188383
+  projector contractions=12429 payload_steps=12384 internal=11320 nodes=191677
+  projector contractions=12461 payload_steps=12416 internal=11288 nodes=194025
+  projector contractions=12493 payload_steps=12448 internal=11256 nodes=194906
+  projector contractions=12525 payload_steps=12480 internal=11224 nodes=195267
+  projector contractions=12557 payload_steps=12512 internal=11192 nodes=195496
+  projector contractions=12589 payload_steps=12544 internal=11160 nodes=195651
+  projector contractions=12621 payload_steps=12576 internal=11128 nodes=196058
+  projector contractions=12653 payload_steps=12608 internal=11096 nodes=196517
+  projector contractions=12685 payload_steps=12640 internal=11064 nodes=197177
+  projector contractions=12717 payload_steps=12672 internal=11032 nodes=197563
+  projector contractions=12749 payload_steps=12704 internal=11000 nodes=198040
+  projector contractions=12781 payload_steps=12736 internal=10968 nodes=198511
+  projector contractions=12813 payload_steps=12768 internal=10936 nodes=198799
+  projector contractions=12845 payload_steps=12800 internal=10904 nodes=199305
+  projector contractions=12877 payload_steps=12832 internal=10872 nodes=199688
+  projector contractions=12909 payload_steps=12864 internal=10840 nodes=200159
+  projector contractions=12941 payload_steps=12896 internal=10808 nodes=200592
+  projector contractions=12973 payload_steps=12928 internal=10776 nodes=201027
+  projector contractions=13005 payload_steps=12960 internal=10744 nodes=201384
+  projector contractions=13037 payload_steps=12992 internal=10712 nodes=201814
+  projector contractions=13069 payload_steps=13024 internal=10680 nodes=202195
+  projector contractions=13101 payload_steps=13056 internal=10648 nodes=202483
+  projector contractions=13133 payload_steps=13088 internal=10616 nodes=202981
+  projector contractions=13165 payload_steps=13120 internal=10584 nodes=203470
+  projector contractions=13197 payload_steps=13152 internal=10552 nodes=203882
+  projector contractions=13229 payload_steps=13184 internal=10520 nodes=204128
+  projector contractions=13261 payload_steps=13216 internal=10488 nodes=204626
+  projector contractions=13293 payload_steps=13248 internal=10456 nodes=204978
+  projector contractions=13325 payload_steps=13280 internal=10424 nodes=205476
+  projector contractions=13357 payload_steps=13312 internal=10392 nodes=205906
+  projector contractions=13389 payload_steps=13344 internal=10360 nodes=206271
+  projector contractions=13421 payload_steps=13376 internal=10328 nodes=206643
+  projector contractions=13453 payload_steps=13408 internal=10296 nodes=207021
+  projector contractions=13485 payload_steps=13440 internal=10264 nodes=207316
+  projector contractions=13517 payload_steps=13472 internal=10232 nodes=207678
+  projector contractions=13549 payload_steps=13504 internal=10200 nodes=207837
+  projector contractions=13581 payload_steps=13536 internal=10168 nodes=208281
+  projector contractions=13613 payload_steps=13568 internal=10136 nodes=208718
+  projector contractions=13645 payload_steps=13600 internal=10104 nodes=209128
+  projector contractions=13677 payload_steps=13632 internal=10072 nodes=210094
+  projector contractions=13709 payload_steps=13664 internal=10040 nodes=211246
+  projector contractions=13741 payload_steps=13696 internal=10008 nodes=212290
+  projector contractions=13773 payload_steps=13728 internal=9976 nodes=213003
+  projector contractions=13805 payload_steps=13760 internal=9944 nodes=213839
+  projector contractions=13837 payload_steps=13792 internal=9912 nodes=214561
+  projector contractions=13869 payload_steps=13824 internal=9880 nodes=216101
+  projector contractions=13901 payload_steps=13856 internal=9848 nodes=217075
+  projector contractions=13933 payload_steps=13888 internal=9816 nodes=218021
+  projector contractions=13965 payload_steps=13920 internal=9784 nodes=218682
+  projector contractions=13997 payload_steps=13952 internal=9752 nodes=220090
+  projector contractions=14029 payload_steps=13984 internal=9720 nodes=221738
+  projector contractions=14061 payload_steps=14016 internal=9688 nodes=222610
+  projector contractions=14093 payload_steps=14048 internal=9656 nodes=223638
+  projector contractions=14125 payload_steps=14080 internal=9624 nodes=224545
+  projector contractions=14157 payload_steps=14112 internal=9592 nodes=225692
+  projector contractions=14189 payload_steps=14144 internal=9560 nodes=226938
+  projector contractions=14221 payload_steps=14176 internal=9528 nodes=227799
+  projector contractions=14253 payload_steps=14208 internal=9496 nodes=229045
+  projector contractions=14285 payload_steps=14240 internal=9464 nodes=230333
+  projector contractions=14317 payload_steps=14272 internal=9432 nodes=231559
+  projector contractions=14349 payload_steps=14304 internal=9400 nodes=232487
+  projector contractions=14381 payload_steps=14336 internal=9368 nodes=234451
+  projector contractions=14413 payload_steps=14368 internal=9336 nodes=235590
+  projector contractions=14445 payload_steps=14400 internal=9304 nodes=237936
+  projector contractions=14477 payload_steps=14432 internal=9272 nodes=239788
+  projector contractions=14509 payload_steps=14464 internal=9240 nodes=240443
+  projector contractions=14541 payload_steps=14496 internal=9208 nodes=242403
+  projector contractions=14573 payload_steps=14528 internal=9176 nodes=243107
+  projector contractions=14605 payload_steps=14560 internal=9144 nodes=244431
+  projector contractions=14637 payload_steps=14592 internal=9112 nodes=245906
+  projector contractions=14669 payload_steps=14624 internal=9080 nodes=245639
+  projector contractions=14701 payload_steps=14656 internal=9048 nodes=246230
+  projector contractions=14733 payload_steps=14688 internal=9016 nodes=248012
+  projector contractions=14765 payload_steps=14720 internal=8984 nodes=249175
+  projector contractions=14797 payload_steps=14752 internal=8952 nodes=252520
+  projector contractions=14829 payload_steps=14784 internal=8920 nodes=255054
+  projector contractions=14861 payload_steps=14816 internal=8888 nodes=257576
+  projector contractions=14893 payload_steps=14848 internal=8856 nodes=257895
+  projector contractions=14925 payload_steps=14880 internal=8824 nodes=259333
+  projector contractions=14957 payload_steps=14912 internal=8792 nodes=260203
+  projector contractions=14989 payload_steps=14944 internal=8760 nodes=260231
+  projector contractions=15021 payload_steps=14976 internal=8728 nodes=261316
+  projector contractions=15053 payload_steps=15008 internal=8696 nodes=262595
+  projector contractions=15085 payload_steps=15040 internal=8664 nodes=263485
+  projector contractions=15117 payload_steps=15072 internal=8632 nodes=264127
+  projector contractions=15149 payload_steps=15104 internal=8600 nodes=265494
+  projector contractions=15181 payload_steps=15136 internal=8568 nodes=267141
+  projector contractions=15213 payload_steps=15168 internal=8536 nodes=268244
+  projector contractions=15245 payload_steps=15200 internal=8504 nodes=272327
+  projector contractions=15277 payload_steps=15232 internal=8472 nodes=284985
+  projector contractions=15309 payload_steps=15264 internal=8440 nodes=299453
+  projector contractions=15341 payload_steps=15296 internal=8408 nodes=318923
+  projector contractions=15373 payload_steps=15328 internal=8376 nodes=347374
+  projector contractions=15405 payload_steps=15360 internal=8344 nodes=372428
+  projector contractions=15437 payload_steps=15392 internal=8312 nodes=393554
+  projector contractions=15469 payload_steps=15424 internal=8280 nodes=415892
+  projector contractions=15501 payload_steps=15456 internal=8248 nodes=438240
+  projector contractions=15533 payload_steps=15488 internal=8216 nodes=458107
+  projector contractions=15565 payload_steps=15520 internal=8184 nodes=473104
+  projector contractions=15597 payload_steps=15552 internal=8152 nodes=496376
+  projector contractions=15629 payload_steps=15584 internal=8120 nodes=515861
+  projector contractions=15661 payload_steps=15616 internal=8088 nodes=535444
+  projector contractions=15693 payload_steps=15648 internal=8056 nodes=551950
+  projector contractions=15725 payload_steps=15680 internal=8024 nodes=555646
+  projector contractions=15757 payload_steps=15712 internal=7992 nodes=560232
+  projector contractions=15789 payload_steps=15744 internal=7960 nodes=562922
+  projector contractions=15821 payload_steps=15776 internal=7928 nodes=563463
+  projector contractions=15853 payload_steps=15808 internal=7896 nodes=570469
+  projector contractions=15885 payload_steps=15840 internal=7864 nodes=576836
+  projector contractions=15917 payload_steps=15872 internal=7832 nodes=583553
+  projector contractions=15949 payload_steps=15904 internal=7800 nodes=588843
+  projector contractions=15981 payload_steps=15936 internal=7768 nodes=593547
+  projector contractions=16013 payload_steps=15968 internal=7736 nodes=600107
+  projector contractions=16045 payload_steps=16000 internal=7704 nodes=606069
+  projector contractions=16077 payload_steps=16032 internal=7672 nodes=613615
+  projector contractions=16109 payload_steps=16064 internal=7640 nodes=636516
+  projector contractions=16141 payload_steps=16096 internal=7608 nodes=665846
+  projector contractions=16173 payload_steps=16128 internal=7576 nodes=697358
+  projector contractions=16205 payload_steps=16160 internal=7544 nodes=720307
+  projector contractions=16237 payload_steps=16192 internal=7512 nodes=746789
+  projector contractions=16269 payload_steps=16224 internal=7480 nodes=779789
+  projector contractions=16301 payload_steps=16256 internal=7448 nodes=800140
+  projector contractions=16333 payload_steps=16288 internal=7416 nodes=825972
+  projector contractions=16365 payload_steps=16320 internal=7384 nodes=854282
+  projector contractions=16397 payload_steps=16352 internal=7352 nodes=869631
+  projector contractions=16429 payload_steps=16384 internal=7320 nodes=875421
+  projector contractions=16461 payload_steps=16416 internal=7288 nodes=883095
+  projector contractions=16493 payload_steps=16448 internal=7256 nodes=888175
+  projector contractions=16525 payload_steps=16480 internal=7224 nodes=897993
+  projector contractions=16557 payload_steps=16512 internal=7192 nodes=903683
+  projector contractions=16589 payload_steps=16544 internal=7160 nodes=931621
+  projector contractions=16621 payload_steps=16576 internal=7128 nodes=958078
+  projector contractions=16653 payload_steps=16608 internal=7096 nodes=985215
+  projector contractions=16685 payload_steps=16640 internal=7064 nodes=1010683
+  projector contractions=16717 payload_steps=16672 internal=7032 nodes=1040099
+  projector contractions=16749 payload_steps=16704 internal=7000 nodes=1059029
+  projector contractions=16781 payload_steps=16736 internal=6968 nodes=1092685
+  projector contractions=16813 payload_steps=16768 internal=6936 nodes=1129189
+  projector contractions=16845 payload_steps=16800 internal=6904 nodes=1148290
+  projector contractions=16877 payload_steps=16832 internal=6872 nodes=1181800
+  projector contractions=16909 payload_steps=16864 internal=6840 nodes=1210068
+  projector contractions=16941 payload_steps=16896 internal=6808 nodes=1243231
+  projector contractions=16973 payload_steps=16928 internal=6776 nodes=1257433
+  projector contractions=17005 payload_steps=16960 internal=6744 nodes=1277325
+  projector contractions=17037 payload_steps=16992 internal=6712 nodes=1286610
+  projector contractions=17069 payload_steps=17024 internal=6680 nodes=1292195
+  projector contractions=17101 payload_steps=17056 internal=6648 nodes=1310559
+  projector contractions=17133 payload_steps=17088 internal=6616 nodes=1321731
+  projector contractions=17165 payload_steps=17120 internal=6584 nodes=1339254
+  projector contractions=17197 payload_steps=17152 internal=6552 nodes=1371756
+  projector contractions=17229 payload_steps=17184 internal=6520 nodes=1421320
+  projector contractions=17261 payload_steps=17216 internal=6488 nodes=1428359
+  projector contractions=17293 payload_steps=17248 internal=6456 nodes=1456471
+  projector contractions=17325 payload_steps=17280 internal=6424 nodes=1514465
+  projector contractions=17357 payload_steps=17312 internal=6392 nodes=1584233
+  projector contractions=17389 payload_steps=17344 internal=6360 nodes=1679093
+  projector contractions=17421 payload_steps=17376 internal=6328 nodes=1686732
+  projector contractions=17453 payload_steps=17408 internal=6296 nodes=1702817
+  projector contractions=17485 payload_steps=17440 internal=6264 nodes=1730834
+  projector contractions=17517 payload_steps=17472 internal=6232 nodes=1757697
+  projector contractions=17549 payload_steps=17504 internal=6200 nodes=1823577
+  projector contractions=17581 payload_steps=17536 internal=6168 nodes=1927339
+  projector contractions=17613 payload_steps=17568 internal=6136 nodes=2007515
+  projector contractions=17645 payload_steps=17600 internal=6104 nodes=2248650
+  projector contractions=17677 payload_steps=17632 internal=6072 nodes=2348670
+  projector contractions=17709 payload_steps=17664 internal=6040 nodes=2410801
+  projector contractions=17741 payload_steps=17696 internal=6008 nodes=2509218
+  projector contractions=17773 payload_steps=17728 internal=5976 nodes=2584041
+  projector contractions=17805 payload_steps=17760 internal=5944 nodes=2745646
+  projector contractions=17837 payload_steps=17792 internal=5912 nodes=3047743
+  projector contractions=17869 payload_steps=17824 internal=5880 nodes=3379626
+  projector contractions=17901 payload_steps=17856 internal=5848 nodes=3473624
+  projector contractions=17933 payload_steps=17888 internal=5816 nodes=3561863
+  projector contractions=17965 payload_steps=17920 internal=5784 nodes=3643300
+  projector contractions=17997 payload_steps=17952 internal=5752 nodes=3761146
+  projector contractions=18029 payload_steps=17984 internal=5720 nodes=3813403
+  projector contractions=18061 payload_steps=18016 internal=5688 nodes=4239982
+  projector contractions=18093 payload_steps=18048 internal=5656 nodes=4944006
+  projector contractions=18125 payload_steps=18080 internal=5624 nodes=5109480
+  projector contractions=18157 payload_steps=18112 internal=5592 nodes=5371542
+  projector contractions=18189 payload_steps=18144 internal=5560 nodes=5919768
+  projector contractions=18221 payload_steps=18176 internal=5528 nodes=6927825
+  projector contractions=18253 payload_steps=18208 internal=5496 nodes=10158473
+  projector contractions=18285 payload_steps=18240 internal=5464 nodes=14328419
+  projector contractions=18317 payload_steps=18272 internal=5432 nodes=19148615
+  projector contractions=18349 payload_steps=18304 internal=5400 nodes=21585124
+  projector contractions=18381 payload_steps=18336 internal=5368 nodes=22157635
+  projector contractions=18413 payload_steps=18368 internal=5336 nodes=22589423
+  projector contractions=18445 payload_steps=18400 internal=5304 nodes=22907864
+  projector contractions=18477 payload_steps=18432 internal=5272 nodes=23449562
+  projector contractions=18509 payload_steps=18464 internal=5240 nodes=25003292
+  projector contractions=18541 payload_steps=18496 internal=5208 nodes=25867249
+  projector contractions=18573 payload_steps=18528 internal=5176 nodes=26340596
+  projector contractions=18605 payload_steps=18560 internal=5144 nodes=30931246
+  projector contractions=18637 payload_steps=18592 internal=5112 nodes=31909171
+  projector contractions=18669 payload_steps=18624 internal=5080 nodes=34131411
+  projector contractions=18701 payload_steps=18656 internal=5048 nodes=35050729
+  projector contractions=18733 payload_steps=18688 internal=5016 nodes=36151169
+  projector contractions=18765 payload_steps=18720 internal=4984 nodes=36624625
+  projector contractions=18797 payload_steps=18752 internal=4952 nodes=36898799
+  projector contractions=18829 payload_steps=18784 internal=4920 nodes=45132390
+  projector contractions=18861 payload_steps=18816 internal=4888 nodes=48418638
+  projector contractions=18893 payload_steps=18848 internal=4856 nodes=50447662
+  projector contractions=18925 payload_steps=18880 internal=4824 nodes=51487900
+  projector contractions=18957 payload_steps=18912 internal=4792 nodes=52558032
+  projector contractions=18989 payload_steps=18944 internal=4760 nodes=54649752
+  projector contractions=19021 payload_steps=18976 internal=4728 nodes=57199530
+  projector contractions=19053 payload_steps=19008 internal=4696 nodes=70590270
+  projector contractions=19085 payload_steps=19040 internal=4664 nodes=76536257
+  projector contractions=19117 payload_steps=19072 internal=4632 nodes=85664457
+  projector contractions=19149 payload_steps=19104 internal=4600 nodes=83034174
+  projector contractions=19181 payload_steps=19136 internal=4568 nodes=95492202
+  projector contractions=19213 payload_steps=19168 internal=4536 nodes=104359311
+  projector contractions=19245 payload_steps=19200 internal=4504 nodes=111319738

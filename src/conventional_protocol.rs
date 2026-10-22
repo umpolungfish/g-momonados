@@ -8,6 +8,35 @@ use crate::{ququart_decision::DecisionArena,ququart4::QuquartMatrix,
     anyon_ququart::FixedQuquartSic};
 
 type Matrix=[(SignedWordTape,SignedWordTape);16];
+
+pub(crate) struct PreparedProtocol {
+    pub format:FixedPointFormat,
+    pub frame:FixedQuquartSic,
+    pub dual:crate::anyon_ququart::PreparedSicDual,
+    pub central_step:Matrix,
+    pub engagement:Matrix,
+    pub model:crate::parasm::SelfModel,
+}
+impl PreparedProtocol {
+    pub(crate) fn prepare(bits:u64)->Result<Self,String>{
+        let format=FixedPointFormat::for_modulus_bits(bits)?;
+        let frame=FixedQuquartSic::new(&format)?;
+        let dual=frame.prepare_exact_dual()?;
+        let x=QuquartMatrix::x(&format);let z=QuquartMatrix::z(&format);
+        let central=z.multiply(&x,&format).multiply(&z.adjoint(),&format).multiply(&x.adjoint(),&format);
+        let mut expected=QuquartMatrix::identity(&format);
+        let phase=FixedComplex{re:BigInt::zero(),im:format.scale()};
+        for entry in &mut expected.0{*entry=entry.mul(&phase,&format);}
+        if central!=expected{return Err("compiled central Weyl phase is not iI".into());}
+        let mut engagement=core::array::from_fn(|_|(SignedWordTape::zero(),SignedWordTape::zero()));
+        for col in 0..4 {for row in 0..4 {if row==col||row>=2 {
+            engagement[4*row+col]=(SignedWordTape::from_small(1),SignedWordTape::zero());
+        }}}
+        Ok(Self{central_step:words(&central,&format)?,format,frame,dual,engagement,
+            model:crate::parasm::SelfModel::prepare()?})
+    }
+}
+
 fn words(matrix:&QuquartMatrix,format:&FixedPointFormat)->Result<Matrix,String>{
     let scale=format.scale();
     if matrix.0.iter().any(|z| &z.re%&scale!=BigInt::zero() || &z.im%&scale!=BigInt::zero()){
@@ -77,8 +106,8 @@ fn gram(arena:&mut DecisionArena,root:usize,wires:[usize;2])->[(BigInt,BigInt);1
     }
     arena.control_gram(&aligned)
 }
-fn sic(arena:&mut DecisionArena,root:usize,wires:[usize;2],format:&FixedPointFormat)->Result<Value,String>{
-    let gram=gram(arena,root,wires);let frame=FixedQuquartSic::new(format)?;
+fn sic(arena:&mut DecisionArena,root:usize,wires:[usize;2],frame:&FixedQuquartSic)->Result<Value,String>{
+    let gram=gram(arena,root,wires);
     let masses=frame.gram_mass_numerators(&gram)?;
     let result=frame.certify_gram_frame_unrounded_masses(&gram,&masses)?;
     Ok(json!({"dimension":4,"nonempty_state":!arena.mass(root).is_zero(),
@@ -96,7 +125,12 @@ fn sic(arena:&mut DecisionArena,root:usize,wires:[usize;2],format:&FixedPointFor
 /// is retained when X raises a degree-three input; it is never wrapped mod 4.
 pub(crate) fn clink(arena:&mut DecisionArena,root:usize,wires:[usize;2],bits:u64)
     ->Result<(usize,Vec<usize>,Value),String>{
-    let format=FixedPointFormat::for_modulus_bits(bits)?;let zero=arena.zero();
+    let prepared=PreparedProtocol::prepare(bits)?;
+    clink_prepared(arena,root,wires,&prepared)
+}
+pub(crate) fn clink_prepared(arena:&mut DecisionArena,root:usize,wires:[usize;2],prepared:&PreparedProtocol)
+    ->Result<(usize,Vec<usize>,Value),String>{
+    let zero=arena.zero();
     let mut polynomial=Vec::new();
     for label in 0..4{
         let mut coefficient=restrict(arena,root,wires,1<<label);
@@ -112,7 +146,7 @@ pub(crate) fn clink(arena:&mut DecisionArena,root:usize,wires:[usize;2],bits:u64
     };
     let ppsi=momentum(arena,&polynomial);let xp=position(&ppsi);
     let xpsi=position(&polynomial);let px=momentum(arena,&xpsi);
-    let before=sic(arena,root,wires,&format)?;let mut changed=zero;
+    let before=sic(arena,root,wires,&prepared.frame)?;let mut changed=zero;
     let mut coefficients=Vec::new();
     for k in 0..polynomial.len(){
         let negative=arena.scale_words_numerator(px[k],&(SignedWordTape::from_small(1).negate(),SignedWordTape::zero()));
@@ -128,7 +162,7 @@ pub(crate) fn clink(arena:&mut DecisionArena,root:usize,wires:[usize;2],bits:u64
     if changed!=expected || recovered!=root || arena.mass(changed)!=arena.mass(root){
         return Err("CLINK lost its complete correlated commutator return".into());
     }
-    let after=sic(arena,changed,wires,&format)?;
+    let after=sic(arena,changed,wires,&prepared.frame)?;
     let mut banks=polynomial.clone();banks.extend_from_slice(&ppsi);banks.extend_from_slice(&xp);
     banks.extend_from_slice(&xpsi);banks.extend_from_slice(&px);banks.extend_from_slice(&coefficients);
     Ok((changed,banks,json!({"operation":"XP-PX","position":"multiply by formal X",
@@ -145,16 +179,17 @@ pub(crate) fn clink(arena:&mut DecisionArena,root:usize,wires:[usize;2],bits:u64
 /// Retain the old coordinate as ancestry before adjoining both information
 /// flags. Distinct incoming complex amplitudes cannot cancel through erasure.
 pub(crate) fn engage(arena:&mut DecisionArena,root:usize,wires:[usize;2],history:[usize;2])->Result<(usize,Value),String>{
+    let prepared=PreparedProtocol::prepare(1)?;
+    engage_prepared(arena,root,wires,history,&prepared)
+}
+pub(crate) fn engage_prepared(arena:&mut DecisionArena,root:usize,wires:[usize;2],history:[usize;2],prepared:&PreparedProtocol)->Result<(usize,Value),String>{
     let mut copied=root;
     for bit in 0..2{
         if !arena.wire_is_zero(copied,history[bit]){return Err("engagement ancestry bank was reused".into());}
         copied=arena.controlled_flip(copied,history[bit],&[wires[bit]]);
     }
-    let mut matrix:Matrix=core::array::from_fn(|_|(SignedWordTape::zero(),SignedWordTape::zero()));
-    for col in 0..4{
-        for row in 0..4{if row==col || row>=2{matrix[4*row+col]=(SignedWordTape::from_small(1),SignedWordTape::zero());}}
-    }
-    let changed=arena.apply_control_matrix_numerator(copied,wires,&matrix)?;
+    let matrix=&prepared.engagement;
+    let changed=arena.apply_control_matrix_numerator(copied,wires,matrix)?;
     let zero=arena.zero();let mut recovered=zero;
     for label in 0..4{
         let selected=restrict(arena,changed,wires,1<<label);
@@ -165,21 +200,18 @@ pub(crate) fn engage(arena:&mut DecisionArena,root:usize,wires:[usize;2],history
     if recovered!=root{return Err("engagement lost its complete complex source ancestry".into());}
     Ok((changed,json!({"operation":"adjoin t,f with retained coordinate ancestry",
         "input_root":root,"output_root":changed,"history_wires":history,
-        "matrix":entries(&matrix),"ancestry_retained":true,"exact_ancestry_return":true})))
+        "matrix":entries(matrix),"ancestry_retained":true,"exact_ancestry_return":true})))
 }
 
 /// Four actual central Weyl phase steps close on the same state. The path's
 /// lifted quarter-turn count is retained separately from endpoint equality.
 pub(crate) fn fix_phase(arena:&mut DecisionArena,root:usize,wires:[usize;2],bits:u64)->Result<(usize,Vec<usize>,Value),String>{
-    let format=FixedPointFormat::for_modulus_bits(bits)?;
-    let x=QuquartMatrix::x(&format);let z=QuquartMatrix::z(&format);
-    let loop_operator=z.multiply(&x,&format).multiply(&z.adjoint(),&format).multiply(&x.adjoint(),&format);
-    let mut expected=QuquartMatrix::identity(&format);
-    let phase=FixedComplex{re:BigInt::zero(),im:format.scale()};
-    for entry in &mut expected.0{*entry=entry.mul(&phase,&format);}
-    if loop_operator!=expected{return Err("central Weyl phase is not iI".into());}
-    let matrix=words(&loop_operator,&format)?;let mut live=root;let mut banks=Vec::new();
-    for _ in 0..4{live=arena.apply_control_matrix_numerator(live,wires,&matrix)?;banks.push(live);}
+    let prepared=PreparedProtocol::prepare(bits)?;
+    fix_phase_prepared(arena,root,wires,&prepared)
+}
+pub(crate) fn fix_phase_prepared(arena:&mut DecisionArena,root:usize,wires:[usize;2],prepared:&PreparedProtocol)->Result<(usize,Vec<usize>,Value),String>{
+    let matrix=&prepared.central_step;let mut live=root;let mut banks=Vec::new();
+    for _ in 0..4{live=arena.apply_control_matrix_numerator(live,wires,matrix)?;banks.push(live);}
     if live!=root{return Err("four-quarter-turn phase did not return the complete state".into());}
     let witness=json!({"operation":"(ZXZ_dagger X_dagger)^4","central_step":"iI",
         "executed_steps":4,"lifted_quarter_turns":4,"operator_winding":1,
@@ -190,6 +222,9 @@ pub(crate) fn fix_phase(arena:&mut DecisionArena,root:usize,wires:[usize;2],bits
 
 pub(crate) fn source_reflect(arena:&DecisionArena,root:usize,n:&BigUint,word:&str)->Result<Value,String>{
     let model=crate::parasm::SelfModel::prepare()?;
+    source_reflect_prepared(arena,root,n,word,&model)
+}
+pub(crate) fn source_reflect_prepared(arena:&DecisionArena,root:usize,n:&BigUint,word:&str,model:&crate::parasm::SelfModel)->Result<Value,String>{
     let payload=json!({"N":n.to_string(),"word":word,"register":arena.prepared_record(root)});
     let bytes=serde_json::to_vec(&payload).map_err(|e|e.to_string())?;
     if !model.contains(&bytes)||model.reflect(&bytes)!=bytes{return Err("IMSCRIB failed complete carried-state self-return".into());}

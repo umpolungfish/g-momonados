@@ -1,0 +1,9 @@
+phase reconstruction (recover the phase word from the closed ring — flat autocorrelation ⟺ cyclization):
+  best order: [fsplit · tensor_product_operation · ffuse · sic_povm]
+  ✓ ring closes — the relative phase word is FIXED (modulo one global phase):
+    ψ[0] = fsplit   ⊥-phase 𐑓
+    ψ[1] = tensor_product_operation   ⊥-phase 𐑖
+    ψ[2] = ffuse   ⊥-phase 𐑖
+    ψ[3] = sic_povm   ⊥-phase 𐑖
+  reconstructed phase word ⊥: 𐑓𐑖𐑖𐑖
+  residual freedom: ONE global phase (the ring's rotational symmetry over 4 units) — the flat autocorrelation fixes every RELATIVE phase but not the overall gauge, exactly as C_m = 1/(d+1) fixes ψ modulo a global phase.

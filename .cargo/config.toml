@@ -2,8 +2,10 @@
 # no [build] target override here: `cargo build` uses the ambient host
 # target, hosted defaults on (see Cargo.toml's [features]), and that is the
 # whole build.
-[build]
-rustflags = ["-D", "warnings"]
+# CUDA must load the system driver through the host's dynamic C runtime.
+# These target flags override the parent build defaults.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-D", "warnings", "-C", "target-feature=-crt-static"]
 
 [alias]
-resident-static = ["build", "--offline", "--release", "--target", "x86_64-unknown-linux-musl", "--example", "resident_prepared", "-j", "1"]
+resident-static = "!env RUSTFLAGS='-D warnings -C target-feature=+crt-static' cargo build --offline --release --target x86_64-unknown-linux-musl --example resident_prepared -j 1"

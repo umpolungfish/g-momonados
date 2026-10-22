@@ -22,6 +22,8 @@ extern crate alloc;
 pub mod conventional_translation;
 #[cfg(feature = "hosted")]
 pub mod conventional_spectrum;
+pub mod idempotent_moment;
+pub mod idempotent_projector;
 #[cfg(feature="hosted")]
 pub mod reentry_wells;
 #[cfg(feature="hosted")]
@@ -46,8 +48,12 @@ pub mod runtime_nesting;
 pub mod word_tape;
 pub mod reentry_powerset;
 pub mod baked_resident;
+#[cfg(feature="hosted")]
+pub mod baked_point;
 #[cfg(feature = "hosted")]
 pub mod gpu_ecm_word;
+#[cfg(feature = "hosted")]
+pub mod factor_observable;
 #[cfg(feature = "hosted")]
 pub mod gpu_ecm;
 pub mod gpu_rho;
@@ -110,3 +116,6 @@ pub mod whole_register_phase;
 pub mod factor_synthesis;
 pub mod resident_glut;
 pub mod resident_frame;
+
+#[cfg(feature = "hosted")]
+pub mod codex_isomorphism;

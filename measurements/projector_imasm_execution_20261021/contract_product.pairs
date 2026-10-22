@@ -1,0 +1,13 @@
+OPEN   CLOSE  SPAN   WORK  INTERIOR
+60     65     5      yes   ⋈⊞⋈⊙
+54     66     12     yes   ⋈⋈⊞⊞⊞∈⋈⊞⋈⊙∋
+85     90     5      yes   ⋈⊞⋈⊙
+79     91     12     yes   ⋈⋈⊞⊞⊞∈⋈⊞⋈⊙∋
+103    111    8      yes   ⋈⊞⊞⋈⋈⊙⋈
+98     112    14     yes   ⋈⊞⊞⊞∈⋈⊞⊞⋈⋈⊙⋈∋
+
+letters      120
+regions      6 paired, 6 substantial
+unanswered   1 division(s) at 8
+unopened     0 rejoining(s) at -
+verdict      B

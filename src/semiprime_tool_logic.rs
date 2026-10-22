@@ -4,7 +4,7 @@
 //! Focus: Conjunctive reconstruction of N = p * q via anyonic ququart phase measurement.
 
 use crate::anyon_pair::{PairMatrix, COMPUTATIONAL_CHANNELS, LEAKAGE_CHANNEL};
-use crate::godel_calculus::{check, decode, encode_cell_binary, Family, Nat, Operator};
+use crate::godel_calculus::{check, encode_cell_binary, Nat, Operator};
 use crate::phase_unbraid::FixedPointFormat;
 use crate::ququart_factor::{QuquartFactorExecutor, QuquartFactorShot};
 use crate::ququart_folded_work::QuquartFoldedWorkDevice;
@@ -77,16 +77,7 @@ mod tests {
 
 pub fn process_semiprime(raw_input: &str) -> Result<SemiprimeReport, String> {
     let raw_input = raw_input.trim();
-    let value = if raw_input.starts_with('⊢') {
-        let reading = decode(raw_input).map_err(|e| e.to_string())?;
-        if reading.family != Family::CellBinary {
-            return Err("Input must be a cell-binary word or decimal natural".into());
-        }
-        reading.value
-    } else {
-        Nat::from_decimal(raw_input)
-            .ok_or_else(|| format!("Invalid natural number: {}", raw_input))?
-    };
+    let value = crate::godel_analyzer::parse_input(raw_input)?;
 
     let word = encode_cell_binary(&value);
     let source_big = biguint_from_nat(&value);

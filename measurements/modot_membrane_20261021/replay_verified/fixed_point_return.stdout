@@ -1,0 +1,27 @@
+polymerization (imscriptive):  [ffuse · sic_povm · 0_is_the_fixed_point_operator_of_the_number_line]   (3 monomers)
+  imscriptive: the chain stores the monomer SEQUENCE losslessly (R∧W∧X) — a click blends, a polymer remembers.
+  sequence (read back off the chain, unit by unit):
+    1. ffuse  ⟨𐑨𐑰𐑑𐑬𐑐𐑧𐑔𐑵𐑣𐑖𐑳𐑭⟩
+    2. sic_povm  ⟨𐑦𐑸𐑽𐑹𐑐𐑪𐑔𐑵⊙𐑖𐑕𐑴⟩
+    3. 0_is_the_fixed_point_operator_of_the_number_line  ⟨𐑦𐑸𐑑𐑿𐑐𐑧𐑲𐑜⊙𐑫𐑳𐑭⟩
+  bonds (each a Coagula link — a click between complementary partners, or an addition where a monomer repeats):
+    1–2  ffuse ⋈ sic_povm  → cross-link (3 reaction centers: D↔W, T↔H, R↔S) — a branch/network junction
+    2–3  sic_povm ⋈ 0_is_the_fixed_point_operator_of_the_number_line  → condensation on R↔S (Δ=0.83)
+  degree of polymerization: 3 unit(s), 2 bond(s)
+  backbone: regioregular — every condensation bond on R↔S (a clean head-to-tail repeat unit).
+  topology: BRANCHED/NETWORK — a cross-link junction fired (≥2 reaction centers); not a purely linear chain.
+  architecture: heteropolymer (3 distinct monomers, each once — no repeat unit)
+  tacticity (⊥ chirality per unit): atactic (𐑖𐑖𐑫) — irregular chirality, no stereo-regular pattern
+  cyclization: 0_is_the_fixed_point_operator_of_the_number_line ⋈ ffuse → ✓ CYCLIC — a macrocycle (ring polymer); the sequence closes head-to-tail on D↔W (O∞).
+  ── material properties (the ring as a mathematical material) ──
+    macrocycle: 3-membered ring, branched (a cross-linked network node on the ring)
+    ring stability: weakest clean bond Δ=0.67 at junction 3→1 (only as stable as its weakest link); 1 junction(s) cross-link/addition, not one clean bond
+    ring strain σ(Δ) = 0.083 — bonds evenly loaded, a relaxed ring at rest
+    conductance: CONDUCTIVE — a winding quantum ⊡ circulates the whole ring one way (→ reductive); a persistent ring current is supported (∮ carrier closes). This ring SUSTAINS — it carries a modulus.
+    ── spectral invariants (adjacency of the ring graph; clean bond=1, cross-link=k centers) ──
+    spectral radius ρ = 3.5616  (> 2 ⟹ branched: a cross-link lifts the principal mode above the bare ring)
+    spectrum (ordered by |λ| descending, so λ₂ here IS the one the gap uses): [+3.562, -3.000, -0.562]
+    spectral gap (ρ − |λ₂|) = 0.5616 — a wide gap means one mode dominates (the ring leans on a single strut); a gap of 0 is a flat/degenerate top spectrum, NO privileged mode (the symmetric, settled reading, not a deficiency).
+    graph energy Σ|λ| = 7.1231 — the ring's total spectral weight; where ρ is stiffness (the dominant mode), this is toughness (the reserve carried across all modes).
+  ── clarity (strain + spectral gap, read jointly) ──
+    STABLE BUT LEANING — relaxed, but one mode dominates (gap 0.562); the argument still leans on a single strut. Workable, not yet clarion.

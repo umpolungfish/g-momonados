@@ -33,6 +33,9 @@ pub const WORD: &str = "⊢∈⊞≺∋⊡⊣";
 
 /// Parse interlace word cells ≻⋈∈bit∋ -> MSB-first bit vec.
 pub fn parse_word_cells(w: &str) -> Vec<u8> {
+    if let Ok(bits) = vox_core::combined_factor::decode_hex_bits(w) {
+        return bits.into_iter().map(u8::from).collect();
+    }
     let cs: Vec<char> = w.chars().collect(); let mut out = Vec::new();
     let mut i = 0;
     while i + 4 < cs.len() {
@@ -407,9 +410,7 @@ fn canonical_numeral_word(raw: &str) -> Option<String> {
     // Native-word input: accept it only when it is already the exact canonical
     // word emitted by native_numeral::encode for its decoded value.
     if raw.starts_with('⊢') {
-        let n = numeral_decode(raw)?;
-        let canonical = numeral_encode(&n.to_string());
-        return if canonical == raw { Some(canonical) } else { None };
+        return WordTape::from_canonical_word(raw).map(|word| word.as_word().into());
     }
 
     // Decimal input: parse it, then immediately enter the one canonical word
@@ -504,7 +505,7 @@ pub fn repl_factor_membrane(args: &[&str]) -> String {
 
     match args[0] {
         "encode" => {
-            if args.len() != 2 { return String::from("usage: factor_membrane encode <canonical-native-word>"); }
+            if args.len() != 2 { return String::from("usage: factor_membrane encode <native-or-hex-word>"); }
             let raw = args[1..].join(" ");
             let w = match WordTape::from_canonical_word(&raw) {
                 Some(w) => w,
@@ -514,9 +515,9 @@ pub fn repl_factor_membrane(args: &[&str]) -> String {
         }
 
         "word" => {
-            if args.len() != 3 { return String::from("usage: factor_membrane word <P-native-word> <Q-native-word>"); }
+            if args.len() != 3 { return String::from("usage: factor_membrane word <P-native-or-hex-word> <Q-native-or-hex-word>"); }
             let (p, q) = match (WordTape::from_canonical_word(args[1]), WordTape::from_canonical_word(args[2])) {
-                (Some(a), Some(b)) => (a, b), _ => return String::from("bad P/Q: each must be a canonical native word"),
+                (Some(a), Some(b)) => (a, b), _ => return String::from("bad P/Q: each must be a canonical native or hex word"),
             };
             let n = p.mul(&q);
             let w = p.interlace(&q);
@@ -526,7 +527,7 @@ pub fn repl_factor_membrane(args: &[&str]) -> String {
         }
 
         "cross" | "separate" => {
-            if args.len() != 2 { return String::from("usage: factor_membrane cross <canonical-native-word>"); }
+            if args.len() != 2 { return String::from("usage: factor_membrane cross <native-or-hex-word>"); }
             let raw = args[1..].join(" ");
             let w = match WordTape::from_canonical_word(&raw) {
                 Some(w) => w,
@@ -542,7 +543,7 @@ pub fn repl_factor_membrane(args: &[&str]) -> String {
         }
 
         "factor" => {
-            if args.len() != 2 { return String::from("usage: factor_membrane factor <canonical-native-word>"); }
+            if args.len() != 2 { return String::from("usage: factor_membrane factor <native-or-hex-word>"); }
             let raw = args[1..].join(" ");
             let n = match WordTape::from_canonical_word(&raw) {
                 Some(w) => w,
@@ -570,7 +571,7 @@ pub fn repl_factor_membrane(args: &[&str]) -> String {
         }
 
         "recurse" => {
-            if args.len() != 2 { return String::from("usage: factor_membrane recurse <canonical-native-word>"); }
+            if args.len() != 2 { return String::from("usage: factor_membrane recurse <native-or-hex-word>"); }
             let raw = args[1..].join(" ");
             let value = match WordTape::from_canonical_word(&raw) {
                 Some(w) => w,

@@ -1,0 +1,84 @@
+regs at halt: rax=2000 rbx=2001920f0 rcx=2a4 rdx=280 rsi=200315e9a rdi=7 rbp=e2 rsp=7ffffffe9040 r12=bd r13=200191e53 r14=20019208a r15=7ffffffe9078
+call chain:
+entry(...) halted: step budget 100000000 reached, still running at 0x165da1
+  previous 12:
+  165d24: ⋈ mov m:rax:r12:4:0x0:4 r:ebp
+  165d28: ⊞ inc r:r12
+  165d2b: ⋈ mov m:r15::1:0x10:8 r:r12
+  165d2f: ⊤ cmp r:r14 r:rbx
+  165d32: ∈ e i:0x165de0
+  165d38: ⋈ movzx r:ebp m:r14::1:0x0:1
+  165d3c: ⊤ test r:bpl r:bpl
+  165d3f: ∈ ns i:0x165d10
+  165d41: ⋈ mov r:eax r:ebp
+  165d43: ⊞ and r:eax i:0x1f
+  165d46: ⋈ movzx r:edx m:r14::1:0x1:1
+  165d4b: ⊞ and r:edx i:0x3f
+  165d4e: ⊤ cmp r:bpl i:-0x21
+  165d52: ∈ be i:0x165d8a
+  165d54: ⋈ movzx r:ecx m:r14::1:0x2:1
+  165d59: ⊞ shl r:edx i:0x6
+  165d5c: ⊞ and r:ecx i:0x3f
+  165d5f: ⊞ or r:ecx r:edx
+  165d61: ⊤ cmp r:bpl i:-0x10
+  165d65: ∈ b i:0x165d9a
+  165d9a: ⊞ add r:r14 i:0x3
+  165d9e: ⊞ shl r:eax i:0xc
+  165da1: ⊞ or r:ecx r:eax
+  165da3: ⋈ mov r:ebp r:ecx
+  165da5: ≺ jmp i:0x165d13
+  165d13: ⋈ mov r:r12 m:r15::1:0x10:8
+  165d17: ⊤ cmp r:r12 m:r15::1:0x0:8
+  165d1a: ∈ e i:0x165daa
+  165d20: ⋈ mov r:rax m:r15::1:0x8:8
+  165d24: ⋈ mov m:rax:r12:4:0x0:4 r:ebp
+  165d28: ⊞ inc r:r12
+  165d2b: ⋈ mov m:r15::1:0x10:8 r:r12
+  165d2f: ⊤ cmp r:r14 r:rbx
+  165d32: ∈ e i:0x165de0
+  165d38: ⋈ movzx r:ebp m:r14::1:0x0:1
+  165d3c: ⊤ test r:bpl r:bpl
+  165d3f: ∈ ns i:0x165d10
+  165d41: ⋈ mov r:eax r:ebp
+  165d43: ⊞ and r:eax i:0x1f
+  165d46: ⋈ movzx r:edx m:r14::1:0x1:1
+  165d4b: ⊞ and r:edx i:0x3f
+  165d4e: ⊤ cmp r:bpl i:-0x21
+  165d52: ∈ be i:0x165d8a
+  165d54: ⋈ movzx r:ecx m:r14::1:0x2:1
+  165d59: ⊞ shl r:edx i:0x6
+  165d5c: ⊞ and r:ecx i:0x3f
+  165d5f: ⊞ or r:ecx r:edx
+  165d61: ⊤ cmp r:bpl i:-0x10
+  165d65: ∈ b i:0x165d9a
+  165d9a: ⊞ add r:r14 i:0x3
+  165d9e: ⊞ shl r:eax i:0xc
+  165da1: ⊞ or r:ecx r:eax
+  165da3: ⋈ mov r:ebp r:ecx
+  165da5: ≺ jmp i:0x165d13
+  165d13: ⋈ mov r:r12 m:r15::1:0x10:8
+  165d17: ⊤ cmp r:r12 m:r15::1:0x0:8
+  165d1a: ∈ e i:0x165daa
+  165d20: ⋈ mov r:rax m:r15::1:0x8:8
+  165d24: ⋈ mov m:rax:r12:4:0x0:4 r:ebp
+  165d28: ⊞ inc r:r12
+  165d2b: ⋈ mov m:r15::1:0x10:8 r:r12
+  165d2f: ⊤ cmp r:r14 r:rbx
+  165d32: ∈ e i:0x165de0
+  165d38: ⋈ movzx r:ebp m:r14::1:0x0:1
+  165d3c: ⊤ test r:bpl r:bpl
+  165d3f: ∈ ns i:0x165d10
+  165d41: ⋈ mov r:eax r:ebp
+  165d43: ⊞ and r:eax i:0x1f
+  165d46: ⋈ movzx r:edx m:r14::1:0x1:1
+  165d4b: ⊞ and r:edx i:0x3f
+  165d4e: ⊤ cmp r:bpl i:-0x21
+  165d52: ∈ be i:0x165d8a
+  165d54: ⋈ movzx r:ecx m:r14::1:0x2:1
+  165d59: ⊞ shl r:edx i:0x6
+  165d5c: ⊞ and r:ecx i:0x3f
+  165d5f: ⊞ or r:ecx r:edx
+  165d61: ⊤ cmp r:bpl i:-0x10
+  165d65: ∈ b i:0x165d9a
+  165d9a: ⊞ add r:r14 i:0x3
+  165d9e: ⊞ shl r:eax i:0xc   [100000001 steps]

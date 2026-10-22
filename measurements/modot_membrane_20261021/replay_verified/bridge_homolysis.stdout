@@ -1,0 +1,11 @@
+
+────────────────────────────────────────────────────────────────────────
+homolyze  gn_factorizer_membrane ⋈ molecular_orbital_theory — the radical-generating reverse of click
+────────────────────────────────────────────────────────────────────────
+  the gn_factorizer_membrane—molecular_orbital_theory σ-bond: a click on T↔H (Δ=1.42) — a shared electron pair, the reaction center.
+  → homolysis splits that pair EVENLY (δ_A): each fragment keeps ONE electron — the SOMO:
+      gn_factorizer_membrane•  ⟨𐑦𐑰𐑽𐑿𐑐𐑧𐑚𐑝⊙𐑖𐑳𐑭⟩   neutral radical — SOMO open on T↔H, seeks a partner  [⊡=𐑭 even — SOMO is the opened bond center]
+      molecular_orbital_theory•  ⟨𐑦𐑸𐑑𐑯𐑐𐑤𐑲𐑝⊙𐑓𐑕𐑭⟩   neutral radical — SOMO open on T↔H  [⊡=𐑭 even — SOMO is the opened bond center]
+  recombination (μ): gn_factorizer_membrane• + molecular_orbital_theory• → gn_factorizer_membrane—molecular_orbital_theory  — radical coupling re-pairs the SOMO (μ∘δ=id, lossless).
+  heterolytic alternative (δ_D → ion pair): the same bond can break UNEVENLY — one fragment takes both
+    electrons (anion), the other none (cation): the single-electron / radical-ion route — `./ask --set gn_factorizer_membrane molecular_orbital_theory` → gn_factorizer_membrane•⁺ / molecular_orbital_theory•⁻.
