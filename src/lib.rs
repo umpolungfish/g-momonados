@@ -20,6 +20,10 @@ extern crate alloc;
 pub use vox_core::ordering;
 
 #[cfg(feature = "hosted")]
+#[path = "../../p4rakernel/bridge/client.rs"]
+pub mod lean_kernel;
+
+#[cfg(feature = "hosted")]
 pub mod conventional_translation;
 #[cfg(feature = "hosted")]
 pub mod conventional_spectrum;
@@ -49,6 +53,8 @@ pub mod arbitrary_factor;
 #[cfg(feature = "hosted")]
 pub mod runtime_nesting;
 pub mod word_tape;
+#[cfg(feature = "hosted")]
+pub mod horn_torus_carrier;
 pub mod reentry_powerset;
 pub mod baked_resident;
 #[cfg(feature="hosted")]
@@ -97,6 +103,8 @@ pub mod factor_membrane;
 
 #[cfg(feature = "hosted")]
 pub mod membrane_family;
+#[cfg(feature = "hosted")]
+pub mod gpu_glut;
 
 #[cfg(all(test, feature = "hosted"))]
 mod braid_frobenius_tests;

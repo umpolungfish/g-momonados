@@ -23,7 +23,7 @@ use crate::native_numeral::{
     encode as numeral_encode, decode as numeral_decode, interlace_words,
     deinterlace_word, syzygy_preserves, multiply_via_word, divmod_via_word,
     modulo_via_word, pow2, hensel_unbraid, range_prune_unbraid,
-    UnbraidBudget, is_prime_miller_rabin, subtract_via_word,
+    UnbraidBudget, is_prime_miller_rabin, subtract_via_word, selected_unbraid_widths,
 
 };
 use num_bigint::BigInt;
@@ -159,33 +159,31 @@ fn propagate_word_states(n: &BigUint) -> Option<(BigUint, BigUint)> {
     let total_bits = n.bits() as usize;
     let stop = AtomicBool::new(false);
     // Balanced splits first: real factor pairs sit near bits(N)/2 each.
-    for p_bits in (2..=(total_bits / 2 + 1)).rev() {
-        for q_bits in [total_bits + 1 - p_bits, total_bits - p_bits] {
-            if q_bits < p_bits || q_bits == 0 { continue; }
-            // Low arm: Hensel lift from the bottom bit (daughter-word states
-            // L_k=(p_<k,q_<k,c_k), carry propagated word-exactly).
-            let mut b = UnbraidBudget { nodes: 0, cap: u64::MAX };
-            let p0 = BigUint::from(1u32);
-            let q0 = BigUint::from(1u32);
-            let n_minus_1 = subtract_via_word(n, &one).unwrap();
-            let c0 = BigInt::from_biguint(num_bigint::Sign::Minus,
-                divmod_via_word(&n_minus_1, &BigUint::from(2u32)).unwrap().0);
-            if let Some((p, q)) = hensel_unbraid(&n_signed, p_bits, q_bits, 1, p0, q0, c0, &mut b, &stop) {
-                // Bridge + terminal closure: word product AND syzygy agree.
-                if multiply_via_word(&p, &q) == *n && syzygy_preserves(n, &p, &q) {
-                    return Some((p, q));
-                }
+    let (widths, _) = selected_unbraid_widths(total_bits).ok()?;
+    for (p_bits, q_bits) in widths {
+        // Low arm: Hensel lift from the bottom bit (daughter-word states
+        // L_k=(p_<k,q_<k,c_k), carry propagated word-exactly).
+        let mut b = UnbraidBudget { nodes: 0, cap: u64::MAX, ..Default::default() };
+        let p0 = BigUint::from(1u32);
+        let q0 = BigUint::from(1u32);
+        let n_minus_1 = subtract_via_word(n, &one).unwrap();
+        let c0 = BigInt::from_biguint(num_bigint::Sign::Minus,
+            divmod_via_word(&n_minus_1, &BigUint::from(2u32)).unwrap().0);
+        if let Some((p, q)) = hensel_unbraid(&n_signed, p_bits, q_bits, 1, p0, q0, c0, &mut b, &stop) {
+            // Bridge + terminal closure: word product AND syzygy agree.
+            if multiply_via_word(&p, &q) == *n && syzygy_preserves(n, &p, &q) {
+                return Some((p, q));
             }
-            // High arm: top-down interval prune (daughter-word states H_l
-            // with the prefix-interval bridge condition).
-            let mut b2 = UnbraidBudget { nodes: 0, cap: u64::MAX };
-            let start_pos = (p_bits.max(q_bits) as i64) - 2;
-            let p_hi = pow2(p_bits - 1);
-            let q_hi = pow2(q_bits - 1);
-            if let Some((p, q)) = range_prune_unbraid(n, p_bits, q_bits, start_pos, p_hi, q_hi, &mut b2, &stop) {
-                if multiply_via_word(&p, &q) == *n && syzygy_preserves(n, &p, &q) {
-                    return Some((p, q));
-                }
+        }
+        // High arm: top-down interval prune (daughter-word states H_l
+        // with the prefix-interval bridge condition).
+        let mut b2 = UnbraidBudget { nodes: 0, cap: u64::MAX, ..Default::default() };
+        let start_pos = (p_bits.max(q_bits) as i64) - 2;
+        let p_hi = pow2(p_bits - 1);
+        let q_hi = pow2(q_bits - 1);
+        if let Some((p, q)) = range_prune_unbraid(n, p_bits, q_bits, start_pos, p_hi, q_hi, &mut b2, &stop) {
+            if multiply_via_word(&p, &q) == *n && syzygy_preserves(n, &p, &q) {
+                return Some((p, q));
             }
         }
     }
@@ -284,10 +282,13 @@ fn range_prune_unbraid_word(
     *nodes = nodes.saturating_add(1);
     if *nodes > cap { return None; }
     if pos < 0 { return if p.mul(&q) == *n { Some((p, q)) } else { None }; }
-    let span = WordTape::one_at((pos as usize)+1).sub(&WordTape::one()).unwrap();
-    let p_max = p.add(&span);
-    let q_max = q.add(&span);
-    if p.mul(&q).gt(n) || n.gt(&p_max.mul(&q_max)) { return None; }
+    let free = pos as usize + 1;
+    let one = WordTape::one();
+    let p_span = WordTape::one_at(free.min(p_bits.saturating_sub(1))).sub(&one)?;
+    let q_span = WordTape::one_at(free.min(q_bits.saturating_sub(1))).sub(&one)?;
+    let p_max = p.add(&p_span);
+    let q_max = q.add(&q_span);
+    if p.add(&one).mul(&q.add(&one)).gt(n) || n.gt(&p_max.mul(&q_max)) { return None; }
     let p_free = (pos as usize) < p_bits.saturating_sub(1) && pos > 0;
     let q_free = (pos as usize) < q_bits.saturating_sub(1) && pos > 0;
     let choices = |free: bool| -> &'static [u8] { if free { &[0,1] } else if pos == 0 { &[1] } else { &[0] } };
@@ -318,21 +319,19 @@ fn propagate_word_states_imasm(n: &WordTape) -> Option<(WordTape, WordTape)> {
     let total_bits = n.bit_len();
     let n_minus_one = n.sub(&one)?;
     let (carry0, _) = n_minus_one.divmod(&WordTape::from_small(2))?;
-    for p_bits in (2..=(total_bits/2+1)).rev() {
-        for q_bits in [total_bits+1-p_bits, total_bits-p_bits] {
-            if q_bits < p_bits || q_bits == 0 { continue; }
-            let mut nodes = 0u64;
-            let carry = SignedWord::negative(carry0.clone());
-            if let Some(pair) = hensel_unbraid_word(n,p_bits,q_bits,1,one.clone(),one.clone(),carry,&mut nodes,u64::MAX) {
-                return Some(pair);
-            }
-            let mut nodes = 0u64;
-            let start_pos = p_bits.max(q_bits) as i64 - 2;
-            let p_hi = WordTape::one_at(p_bits-1);
-            let q_hi = WordTape::one_at(q_bits-1);
-            if let Some(pair) = range_prune_unbraid_word(n,p_bits,q_bits,start_pos,p_hi,q_hi,&mut nodes,u64::MAX) {
-                return Some(pair);
-            }
+    let (widths, _) = selected_unbraid_widths(total_bits).ok()?;
+    for (p_bits, q_bits) in widths {
+        let mut nodes = 0u64;
+        let carry = SignedWord::negative(carry0.clone());
+        if let Some(pair) = hensel_unbraid_word(n,p_bits,q_bits,1,one.clone(),one.clone(),carry,&mut nodes,u64::MAX) {
+            return Some(pair);
+        }
+        let mut nodes = 0u64;
+        let start_pos = p_bits.max(q_bits) as i64 - 2;
+        let p_hi = WordTape::one_at(p_bits-1);
+        let q_hi = WordTape::one_at(q_bits-1);
+        if let Some(pair) = range_prune_unbraid_word(n,p_bits,q_bits,start_pos,p_hi,q_hi,&mut nodes,u64::MAX) {
+            return Some(pair);
         }
     }
     None
@@ -590,6 +589,22 @@ pub fn repl_factor_membrane(args: &[&str]) -> String {
 
 #[cfg(test)] mod tests {
     use super::*;
+    #[test]
+    fn unbraid_lifecycle_128_word_lane_bounds() {
+        for source in [
+            include_str!("../../measurements/braid_order_review_20261024/fresh_balanced_128_target.txt"),
+            include_str!("../../measurements/braid_order_review_20261024/fresh_balanced_128_control.txt"),
+        ] {
+            let source_value = BigUint::parse_bytes(source.trim().as_bytes(), 10).unwrap();
+            let word = WordTape::from_biguint(&source_value);
+            let mut nodes = 0;
+            let result = range_prune_unbraid_word(&word, 2, 127, 125,
+                WordTape::one_at(1), WordTape::one_at(126), &mut nodes, 1000);
+            assert!(result.is_none());
+            assert!(nodes <= 1000, "short WordTape lane retained invented high marks");
+            std::println!("word_lane_source={} nodes={nodes}", source.trim());
+        }
+    }
     fn big(s: &str) -> BigUint { s.parse().unwrap() }
     #[test] fn gamma_roundtrip_gives_factors() {
         // W = gamma(13,17): cells MSB-first, P*Q=N verified.

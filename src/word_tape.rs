@@ -45,16 +45,7 @@ impl PartialOrd for WordTape {
 
 // ── entry/exit: the only two places BigUint appears ──────────────────────
 fn biguint_to_bits(n: &BigUint) -> Vec<bool> {
-    let mut v = Vec::new();
-    let mut m = n.clone();
-    let two = BigUint::from(2u32);
-    while !m.is_zero() {
-        let q = &m / &two;
-        let r = &m % &two;
-        v.push(!r.is_zero());
-        m = q;
-    }
-    v
+    (0..n.bits()).map(|bit| n.bit(bit)).collect()
 }
 
 fn bits_to_biguint(bits: &[bool]) -> BigUint {
@@ -76,11 +67,6 @@ fn trim(bits: &[bool]) -> &[bool] {
 }
 
 impl WordTape {
-    fn numeral(&self) -> vox_core::fixed_point_imasm::ImasmNumeralWord {
-        vox_core::fixed_point_imasm::ImasmNumeralWord::checked(self.as_word())
-            .expect("WordTape retains canonical numeral framing")
-    }
-
     pub(crate) fn parity_cells(&self) -> Vec<char> { self.vox_tape() }
 
     /// Construct or recover the payload of an IMSCRIB numeral carried as
@@ -234,150 +220,33 @@ impl WordTape {
     }
 }
 
-// ── bit walks shared by the arithmetic (no BigUint, no limbs) ────────────
-fn bits_add(a: &[bool], b: &[bool]) -> Vec<bool> {
-    let n = a.len().max(b.len());
-    let mut out = Vec::with_capacity(n + 1);
-    let mut carry = false;
-    for i in 0..n {
-        let x = a.get(i).copied().unwrap_or(false);
-        let y = b.get(i).copied().unwrap_or(false);
-        out.push((x ^ y) ^ carry);
-        carry = (x & y) | (x & carry) | (y & carry);
-    }
-    if carry { out.push(true); }
-    out
-}
-
-/// a − b. None if a < b (borrow runs out).
-fn bits_sub(a: &[bool], b: &[bool]) -> Option<Vec<bool>> {
-    let n = a.len().max(b.len());
-    let mut out = Vec::with_capacity(n);
-    let mut borrow = false;
-    for i in 0..n {
-        let x = a.get(i).copied().unwrap_or(false);
-        let y = b.get(i).copied().unwrap_or(false);
-        let (d, bo) = match (x, y, borrow) {
-            (false, false, false) => (false, false),
-            (false, false, true) => (true, true),
-            (false, true, false) => (true, true),
-            (false, true, true) => (false, true),
-            (true, false, false) => (true, false),
-            (true, false, true) => (false, false),
-            (true, true, false) => (false, false),
-            (true, true, true) => (true, true),
-        };
-        out.push(d);
-        borrow = bo;
-    }
-    if borrow { None } else { Some(out) }
-}
-
-fn bits_cmp(a: &[bool], b: &[bool]) -> core::cmp::Ordering {
-    let a = trim(a);
-    let b = trim(b);
-    if a.len() != b.len() { return a.len().cmp(&b.len()); }
-    for i in (0..a.len()).rev() {
-        if a[i] != b[i] { return a[i].cmp(&b[i]); }
-    }
-    core::cmp::Ordering::Equal
-}
-
-/// Schoolbook shift-and-add on the bit list.
-fn bits_mul(a: &[bool], b: &[bool]) -> Vec<bool> {
-    let a = trim(a);
-    let b = trim(b);
-    let mut acc = vec![false; a.len() + b.len()];
-    for i in 0..a.len() {
-        if a[i] {
-            let mut carry = false;
-            for j in 0..b.len() {
-                let idx = i + j;
-                let x = acc[idx];
-                let y = b[j];
-                acc[idx] = (x ^ y) ^ carry;
-                carry = (x & y) | (x & carry) | (y & carry);
-            }
-            let mut k = i + b.len();
-            while carry {
-                let x = acc[k];
-                acc[k] = x ^ carry;
-                carry = x & carry;
-                k += 1;
-            }
-        }
-    }
-    trim(&acc).to_vec()
-}
-
-/// Restoring long division. None if b is zero.
-fn bits_divmod(a: &[bool], b: &[bool]) -> Option<(Vec<bool>, Vec<bool>)> {
-    let bt = trim(b);
-    if bt.is_empty() { return None; }
-    let at = trim(a);
-    let mut rem: Vec<bool> = Vec::new();
-    let mut q = Vec::with_capacity(at.len());
-    for i in (0..at.len()).rev() {
-        rem.insert(0, at[i]); // rem = rem·2 + bring-down bit
-        match bits_sub(&rem, bt) {
-            Some(r) => { rem = r; q.push(true); }
-            None => q.push(false),
-        }
-    }
-    q.reverse();
-    Some((trim(&q).to_vec(), rem))
-}
-
-/// Floor square root by Newton descent from 2^ceil(bits/2), with a final
-/// safety sweep so the result is the exact floor under floor division.
-fn bits_isqrt(a: &[bool]) -> Vec<bool> {
-    let at = trim(a);
-    if at.is_empty() { return Vec::new(); }
-    let bl = at.len();
-    let mut x = vec![false; bl / 2 + 2];
-    x[bl / 2 + 1] = true; // 2^ceil(bl/2), strictly above sqrt
-    loop {
-        let (q, _) = bits_divmod(&at, &x).unwrap();
-        let y = bits_add(&x, &q)[1..].to_vec(); // (x + a/x) >> 1
-        if bits_cmp(&y, &x) != core::cmp::Ordering::Less { break; }
-        x = y;
-    }
-    while bits_cmp(&bits_mul(&x, &x), &at) == core::cmp::Ordering::Greater {
-        x = bits_sub(&x, &[true]).unwrap();
-    }
-    while bits_cmp(&bits_mul(&bits_add(&x, &[true]), &bits_add(&x, &[true])), &at)
-        != core::cmp::Ordering::Greater {
-        x = bits_add(&x, &[true]);
-    }
-    trim(&x).to_vec()
-}
-
-// ── arithmetic: word-walks over the cell bits ────────────────────────────
 impl WordTape {
+    /// The numerical carrier is FOUR; canonical words expose its definite slice.
+    pub fn belnap_cells(&self) -> vox_core::belnap_word::BelnapWord {
+        let marks: Vec<char> = self.0.chars().collect();
+        let cells = marks[1..marks.len()-3].chunks(5)
+            .map(|cell| crate::belnap::B4::from_parity(cell[3])).collect();
+        vox_core::belnap_word::BelnapWord::new(cells)
+    }
+    pub fn from_belnap_cells(cells: &vox_core::belnap_word::BelnapWord) -> Result<Self,&'static str> {
+        Ok(Self::from_vox_tape(&cells.to_parity()?))
+    }
     pub fn add(&self, b: &Self) -> Self {
-        if self.is_zero() { return b.clone(); }
-        if b.is_zero() { return self.clone(); }
-        Self(vox_core::fixed_point_word_arithmetic::add(&self.numeral(), &b.numeral())
-            .expect("canonical word addition").as_str().into())
+        Self::from_belnap_cells(&self.belnap_cells().add(&b.belnap_cells()))
+            .expect("definite numerical addition")
     }
     pub fn sub(&self, b: &Self) -> Option<Self> {
-        if b.is_zero() { return Some(self.clone()); }
-        if self == b { return Some(Self::zero()); }
-        if !self.ge(b) { return None; }
-        Some(Self(vox_core::fixed_point_word_arithmetic::subtract(&self.numeral(), &b.numeral())
-            .expect("ordered canonical word subtraction").as_str().into()))
+        let (difference,borrow)=self.belnap_cells().subtract(&b.belnap_cells());
+        if borrow != crate::belnap::B4::F {return None;}
+        Self::from_belnap_cells(&difference).ok()
     }
     pub fn mul(&self, b: &Self) -> Self {
-        if self.is_zero() || b.is_zero() { return Self::zero(); }
-        if self.is_one() { return b.clone(); }
-        if b.is_one() { return self.clone(); }
-        Self(vox_core::fixed_point_word_arithmetic::multiply(&self.numeral(), &b.numeral())
-            .expect("canonical word multiplication").as_str().into())
+        Self::from_belnap_cells(&self.belnap_cells().multiply(&b.belnap_cells()))
+            .expect("definite numerical multiplication")
     }
-    pub fn divmod(&self, b: &Self) -> Option<(Self, Self)> {
-        if b.is_zero() { return None; }
-        let (q, r) = vox_core::fixed_point_word_arithmetic::divide(&self.numeral(), &b.numeral()).ok()?;
-        Some((Self(q.as_str().into()), Self(r.as_str().into())))
+    pub fn divmod(&self, b: &Self) -> Option<(Self,Self)> {
+        let (q,r)=self.belnap_cells().divide(&b.belnap_cells()).ok()?;
+        Some((Self::from_belnap_cells(&q).ok()?,Self::from_belnap_cells(&r).ok()?))
     }
 
     /// Modular powers consume the exponent's own numeral cells. Every product
@@ -408,12 +277,7 @@ impl WordTape {
     }
 
     pub fn compare(&self, b: &Self) -> core::cmp::Ordering {
-        let width = self.bit_len();
-        let other_width = b.bit_len();
-        if width != other_width { return width.cmp(&other_width); }
-        if self == b { return core::cmp::Ordering::Equal; }
-        vox_core::fixed_point_word_arithmetic::compare(&self.numeral(), &b.numeral())
-            .expect("canonical word comparison")
+        self.belnap_cells().compare(&b.belnap_cells()).expect("definite numeral ordering")
     }
 
     /// Shift left: insert n empty low bit-cells before the existing ones.
@@ -449,10 +313,9 @@ impl WordTape {
 
     /// Newton square root, entirely on the word.
     pub fn isqrt(&self) -> Self {
-        Self(vox_core::fixed_point_word_arithmetic::sqrt_floor(&self.numeral())
-            .expect("canonical word square root").as_str().into())
+        Self::from_parity_cells(&vox_core::morphism_factor::isqrt(&self.parity_cells()))
+            .expect("definite numerical square root")
     }
-    /// Concavity-bounded Newton continuation from a lower floor root.
     pub(crate) fn isqrt_from(&self, lower: &Self) -> Self {
         let bits = self.bits_low_first();
         let at = trim(&bits);
@@ -658,10 +521,46 @@ impl PartialOrd for SignedWordTape {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn belnap_numerical_boundary_preserves_open_cells_and_exact_128_product() {
+        use vox_core::{belnap::B4,belnap_word::BelnapWord};
+        for value in [B4::N,B4::B] {
+            let resident=BelnapWord::new(alloc::vec![value;128]);
+            assert!(super::WordTape::from_belnap_cells(&resident).is_err());
+            assert_eq!(resident.0,alloc::vec![value;128]);
+        }
+        let p=super::WordTape::from_small(12362336585629042303);
+        let q=super::WordTape::from_small(17072830917575103563);
+        let n=p.mul(&q);
+        assert_eq!(n.bit_len(),128);
+        assert_eq!(n.to_biguint(),p.to_biguint()*q.to_biguint());
+        assert_eq!(n.belnap_cells(),p.belnap_cells().multiply(&q.belnap_cells()));
+        assert_eq!(n.divmod(&p),Some((q,super::WordTape::zero())));
+    }
     use super::*;
     use num_traits::One;
 
     fn b(n: u64) -> BigUint { BigUint::from(n) }
+
+    #[test]
+    fn initial_128_boundary_agrees_with_native_codec_and_signed_return() {
+        for decimal in [
+            "211060082272597355141159798675733025589",
+            "218225791294202901887497812282378937747",
+        ] {
+            let source = BigUint::parse_bytes(decimal.as_bytes(), 10).unwrap();
+            assert_eq!(source.bits(), 128);
+            let word = WordTape::from_biguint(&source);
+            assert_eq!(word.as_word(), crate::native_numeral::encode(decimal));
+            assert_eq!(crate::native_numeral::decode(word.as_word()), Some(source.clone()));
+            assert_eq!(word.to_biguint(), source);
+            for sign in [num_bigint::Sign::Plus, num_bigint::Sign::Minus] {
+                let value = num_bigint::BigInt::from_biguint(sign, source.clone());
+                assert_eq!(SignedWordTape::from_bigint(&value).to_bigint(), value);
+            }
+            assert_eq!(word.mul(&word).to_biguint(), &source * &source);
+        }
+    }
 
     #[test]
     fn word_product_split_matches_dense_and_unequal_width_operands() {

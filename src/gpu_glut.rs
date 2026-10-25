@@ -113,6 +113,46 @@ fn validate_enclosing_checkpoint(v:&[Vec<u32>],ops:&[u32])->Result<bool,String> 
  Ok(true)
 }
 
+/// The full domains and their original bank remain resident beside the
+/// numerical decision continuation for the lifetime of this GPU computation.
+struct CudaBelnapCarrier {
+ domains:cudarc::driver::CudaSlice<u32>,
+ bank:cudarc::driver::CudaSlice<u32>,
+ held:cudarc::driver::CudaSlice<u32>,
+ receipt:Vec<u32>,
+}
+fn execute_belnap_relations(stream:&std::sync::Arc<cudarc::driver::CudaStream>,
+ module:&std::sync::Arc<cudarc::driver::CudaModule>,relation:&vox_core::glut_system::DeviceCorrelation)
+ ->Result<CudaBelnapCarrier,String> {
+ let mut offsets=vec![0u32];let mut cells=Vec::new();let mut supports=Vec::new();let mut rows=Vec::new();
+ for gate in &relation.gates {
+   cells.extend(gate.cells.iter().map(|&cell|cell as u32));
+   supports.extend(gate.full_supports.iter().flat_map(|values|values.iter().copied()));
+   offsets.push(cells.len() as u32);rows.push(gate.full_rows);
+ }
+ let before:Vec<u32>=relation.belnap_prepared_bank.iter().map(|d|d.mask() as u32).collect();
+ let d_offsets=stream.clone_htod(&offsets).map_err(|e|e.to_string())?;
+ let d_cells=stream.clone_htod(&cells).map_err(|e|e.to_string())?;
+ let d_supports=stream.clone_htod(&supports).map_err(|e|e.to_string())?;
+ let d_rows=stream.clone_htod(&rows).map_err(|e|e.to_string())?;
+ let mut domains=stream.clone_htod(&before).map_err(|e|e.to_string())?;
+ let bank=stream.clone_htod(&before).map_err(|e|e.to_string())?;
+ let mut held=stream.alloc_zeros::<u32>(rows.len().max(1)).map_err(|e|e.to_string())?;
+ let mut receipt=stream.alloc_zeros::<u32>(4).map_err(|e|e.to_string())?;
+ let gates=rows.len() as u32;
+ let kernel=module.load_function("glut_belnap_relations").map_err(|e|e.to_string())?;
+ let single=LaunchConfig{grid_dim:(1,1,1),block_dim:(1,1,1),shared_mem_bytes:0};
+ let mut launch=stream.launch_builder(&kernel);
+ launch.arg(&d_offsets).arg(&d_cells).arg(&d_supports).arg(&d_rows).arg(&gates)
+   .arg(&mut domains).arg(&mut held).arg(&mut receipt);
+ unsafe{launch.launch(single)}.map_err(|e|format!("Belnap relation launch: {e}"))?;
+ let observed=stream.clone_dtoh(&domains).map_err(|e|e.to_string())?;
+ let expected:Vec<u32>=relation.belnap_domains.iter().map(|d|d.mask() as u32).collect();
+ if observed!=expected{return Err("device Belnap relation changed the prepared full-FOUR domains".into());}
+ let receipt=stream.clone_dtoh(&receipt).map_err(|e|e.to_string())?;
+ Ok(CudaBelnapCarrier{domains,bank,held,receipt})
+}
+
 pub fn run(n:&BigUint)->Result<String,String> {
  let started=Instant::now();
  if n.bits()==0 || n.bits()>1024 {return Err("GPU GLUT source must be nonzero and fit the 1024-bit arithmetic carrier".into());}
@@ -175,6 +215,28 @@ pub fn run(n:&BigUint)->Result<String,String> {
  let (ctx,device)=selected.ok_or("GPU GLUT requires CUDA device 0 or 1")?;
  let src=format!("{}\n{}",include_str!("membrane_family_gpu.cuh"),include_str!("gpu_glut.cuh"));
  let module=ctx.load_module(compile_ptx(src).map_err(|e|format!("GLUT NVRTC: {e}"))?).map_err(|e|format!("GLUT load: {e}"))?;
+ let belnap_resident=execute_belnap_relations(&ctx.default_stream(),&module,&relation)?;
+ let belnap_stream=ctx.default_stream();
+ eprintln!("GLUT_BELNAP_RETURN {}",serde_json::json!({"source":n.to_string(),"cell_carrier":"Belnap FOUR",
+   "domains":belnap_stream.clone_dtoh(&belnap_resident.domains).map_err(|e|e.to_string())?,
+   "prepared_bank":belnap_stream.clone_dtoh(&belnap_resident.bank).map_err(|e|e.to_string())?,
+   "held":belnap_stream.clone_dtoh(&belnap_resident.held).map_err(|e|e.to_string())?,
+   "receipt":belnap_resident.receipt}));
+ if !relation.belnap_preparation.numeral_projection {
+   return Ok(serde_json::json!({"boundary":"held","source":n.to_string(),"cell_carrier":"Belnap FOUR",
+     "domains":belnap_stream.clone_dtoh(&belnap_resident.domains).map_err(|e|e.to_string())?,
+     "prepared_bank":belnap_stream.clone_dtoh(&belnap_resident.bank).map_err(|e|e.to_string())?,
+     "held":belnap_stream.clone_dtoh(&belnap_resident.held).map_err(|e|e.to_string())?,
+     "receipt":belnap_resident.receipt}).to_string());
+ }
+ // The numerical continuation consumes the device's FOUR readout, rather
+ // than recreating its root masks from the host preparation.
+ let belnap_root_masks=belnap_stream.clone_dtoh(&belnap_resident.domains).map_err(|e|e.to_string())?
+   .into_iter().map(|mask| {
+     let mask=u8::try_from(mask).map_err(|_|String::from("device Belnap domain exceeds FOUR"))?;
+     vox_core::belnap_relation::BelnapSet::from_mask(mask).ok_or("device Belnap domain exceeds FOUR")?
+       .numeral_projection().map_err(str::to_owned)
+   }).collect::<Result<Vec<u32>,String>>()?;
  let propagate=module.load_function("glut_propagate").map_err(|e|format!("GLUT propagate: {e}"))?;
  let control=module.load_function("glut_control").map_err(|e|format!("GLUT control: {e}"))?;
  let parity=module.load_function("glut_parity").map_err(|e|format!("GLUT parity: {e}"))?;
@@ -198,7 +260,7 @@ pub fn run(n:&BigUint)->Result<String,String> {
  let phase_gates=factor_phase.targets.len() as u32;let phase_cells=factor_phase.cells as u32;
  let mut d_phase_workspace=zeros!(u32,factor_phase.cells);let mut d_phase_receipt=zeros!(u32,4);
  let d_parity_offsets=upload!(&parity_offsets);let d_parity_cells=upload!(&parity_cells);let d_parity_marks=upload!(&parity_marks);
- let mut d_masks=upload!(resume.as_ref().map_or(&relation.masks,|v|&v[10]));let d_p=upload!(&p);let d_q=upload!(&q);
+ let mut d_masks=upload!(resume.as_ref().map_or(&belnap_root_masks,|v|&v[10]));let d_p=upload!(&p);let d_q=upload!(&q);
  let limbs=nwords.len() as u32;
  let d_expected=upload!(&nwords);let mut d_n=zeros!(u32,limbs as usize);
  let payload=crate::native_numeral::encode(&n.to_string());
@@ -227,9 +289,7 @@ pub fn run(n:&BigUint)->Result<String,String> {
  let mut d_verify_carries=zeros!(u32,source_bits as usize+1);let mut d_verify_receipt=zeros!(u32,2);
  let carrier=vox_core::glut_system::GlutComponentProgram::compile()?;
  let carrier_word:String=carrier.collapsed.iter().collect();
- if crate::membrane_family::compile_dissolved_word(&carrier_word)?!=carrier_word {
-   return Err("GLUT enclosing graph admission changed its compiled word".into());
- }
+ crate::membrane_family::validate_protocol_word(&carrier_word)?;
  if !carrier_word.starts_with("⊢∈")||!carrier_word.ends_with("∋⊡⊣")
    ||carrier.collapsed.iter().filter(|&&c|c=='∈').count()!=1 {
    return Err("GLUT device transport requires its compiled enclosing frame".into());
@@ -391,18 +451,53 @@ pub fn run(n:&BigUint)->Result<String,String> {
 
 #[cfg(test)]
 mod tests {
+ #[test]
+ fn belnap_cuda_full_relations_preserve_all_values_and_held_neighbors() {
+   use vox_core::{belnap::B4,belnap_relation::{BelnapSet,GateKind},glut_system::{DeviceCorrelation,DeviceCorrelationGate}};
+   let mut gates=Vec::new();let mut domains=Vec::new();let mut expected=Vec::new();
+   for kind in [GateKind::And,GateKind::Not,GateKind::Equal,GateKind::Add] {
+     for row in 0..kind.table().rows {
+       let values=kind.row(row);let start=domains.len();
+       for at in 0..kind.width() {domains.push(if at<kind.input_count(){BelnapSet::singleton(values[at])}else{BelnapSet::COMPLETE});}
+       gates.push(DeviceCorrelationGate::from_full(kind,(start..start+kind.width()).collect()));
+       expected.extend_from_slice(&values[..kind.width()]);
+     }
+   }
+   let source_domains=domains.clone();
+   let relation=DeviceCorrelation::from_belnap(gates,domains);
+   let ctx=CudaContext::new(1).or_else(|_|CudaContext::new(0)).expect("Belnap CUDA requires a live device");
+   let stream=ctx.default_stream();
+   let module=ctx.load_module(compile_ptx(format!("{}\n{}",include_str!("membrane_family_gpu.cuh"),include_str!("gpu_glut.cuh"))).unwrap()).unwrap();
+   let returned=execute_belnap_relations(&stream,&module,&relation).unwrap();
+   let observed=stream.clone_dtoh(&returned.domains).unwrap();
+   assert_eq!(observed,expected.iter().map(|&v|BelnapSet::singleton(v).mask() as u32).collect::<Vec<_>>());
+   assert_eq!(stream.clone_dtoh(&returned.bank).unwrap(),source_domains.iter().map(|d|d.mask() as u32).collect::<Vec<_>>());
+   assert_eq!(returned.receipt[0],B4::T as u32);
+   let held=DeviceCorrelation::from_belnap(vec![
+      DeviceCorrelationGate::from_full(GateKind::And,vec![0,1,2]),
+      DeviceCorrelationGate::from_full(GateKind::And,vec![3,4,5])],
+      vec![BelnapSet::singleton(B4::T),BelnapSet::singleton(B4::T),BelnapSet::singleton(B4::F),
+           BelnapSet::singleton(B4::B),BelnapSet::singleton(B4::F),BelnapSet::COMPLETE]);
+   let returned=execute_belnap_relations(&stream,&module,&held).unwrap();
+   assert_eq!(returned.receipt[0],B4::B as u32);
+   assert_eq!(stream.clone_dtoh(&returned.held).unwrap()[..2],[3,0]);
+   let values=stream.clone_dtoh(&returned.domains).unwrap();
+   assert_eq!(values[3],BelnapSet::singleton(B4::B).mask() as u32);
+   assert_eq!(values[5],BelnapSet::singleton(B4::F).mask() as u32);
+ }
+
  use super::*;
 
  #[test]
  #[ignore="requires CUDA; 128-bit enclosing carrier return and payload identity control"]
  fn enclosing_carrier_return_matches_native_observation_transport() {
-   let n=include_str!("../measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")
+   let n=std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")).expect("historical N-only fixture must be restored before this ignored test runs")
      .trim().parse::<BigUint>().unwrap();assert_eq!(n.bits(),128);
    let bits:Vec<_>=(0..128).map(|i|if n.bit(i){'⊥'}else{'⊤'}).collect();
    let relation=vox_core::glut_system::prepare_device_correlation(&bits);assert!(!relation.empty);
    let program=vox_core::glut_system::GlutComponentProgram::compile().unwrap();
    let word:String=program.collapsed.iter().collect();let expected=vox_core::phase_word::execute(&word,&()).unwrap();
-   assert_eq!(crate::membrane_family::compile_dissolved_word(&word).unwrap(),word);
+   assert!(crate::membrane_family::validate_protocol_word(&word).is_ok());
    assert!(expected.exposed==0&&expected.restored>0);
    let ops=crate::membrane_family::word_ops(&word);let length=ops.len() as u32;
    let ctx=CudaContext::new(1).unwrap();let stream=ctx.default_stream();
@@ -480,7 +575,7 @@ mod tests {
  #[ignore="requires CUDA; 128-bit shared midpoint-square relation wiring control"]
  fn square_coordinates_transform_the_same_resident_factor_relation() {
    let prepared=Instant::now();
-   let n=include_str!("../measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")
+   let n=std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")).expect("historical N-only fixture must be restored before this ignored test runs")
      .trim().parse::<BigUint>().unwrap();assert_eq!(n.bits(),128);
    let bits:Vec<_>=(0..128).map(|i|if n.bit(i){'⊥'}else{'⊤'}).collect();
    let relation=vox_core::glut_system::prepare_device_correlation(&bits);assert!(!relation.empty);
@@ -530,7 +625,7 @@ mod tests {
  #[test]
  #[ignore="requires CUDA; 128-bit source-derived Admission family wiring control"]
  fn admission_selectors_execute_and_return_in_the_same_device_cells() {
-   let n=include_str!("../measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")
+   let n=std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")).expect("historical N-only fixture must be restored before this ignored test runs")
      .trim().parse::<BigUint>().unwrap();assert_eq!(n.bits(),128);
    let bits:Vec<_>=(0..128).map(|i|if n.bit(i){'⊥'}else{'⊤'}).collect();
    let relation=vox_core::glut_system::prepare_device_admission(&bits);assert!(!relation.empty);
@@ -619,7 +714,7 @@ mod tests {
  #[test]
  #[ignore="requires CUDA; 128-bit complete carry-envelope wiring control"]
  fn masks_complete_envelope_matches_canonical_terminal_carry() {
-   let n=include_str!("../measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")
+   let n=std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")).expect("historical N-only fixture must be restored before this ignored test runs")
      .trim().parse::<BigUint>().unwrap();assert_eq!(n.bits(),128);
    let bits:Vec<_>=(0..128).map(|i|if n.bit(i){'⊥'}else{'⊤'}).collect();
    let ctx=CudaContext::new(1).unwrap();let stream=ctx.default_stream();
@@ -660,7 +755,7 @@ mod tests {
  #[test]
  #[ignore="requires CUDA; 128-bit interval transport compared with the resident Masks operation"]
  fn masks_interval_transport_matches_canonical_source_bound_extrema() {
-   let n=include_str!("../measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")
+   let n=std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")).expect("historical N-only fixture must be restored before this ignored test runs")
      .trim().parse::<BigUint>().unwrap();assert_eq!(n.bits(),128);
    let bits:Vec<_>=(0..128).map(|i|if n.bit(i){'⊥'}else{'⊤'}).collect();
    let root=vox_core::morphism_factor::tape_to_limbs(&vox_core::morphism_factor::isqrt(&bits),4);
@@ -706,7 +801,7 @@ mod tests {
  #[test]
  #[ignore="requires CUDA; 128-bit Masks port rewiring control"]
  fn masks_port_forces_one_corner_and_retains_unresolved_diagonal() {
-   let n=include_str!("../measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")
+   let n=std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")).expect("historical N-only fixture must be restored before this ignored test runs")
      .trim().parse::<BigUint>().unwrap();assert_eq!(n.bits(),128);assert!(n.bit(0));
    let ctx=CudaContext::new(1).unwrap();let stream=ctx.default_stream();
    let src=format!("{}\n{}",include_str!("membrane_family_gpu.cuh"),include_str!("gpu_glut.cuh"));
@@ -756,7 +851,7 @@ mod tests {
  #[test]
  #[ignore="requires CUDA; N-only 128-bit Quantum port rewiring control"]
  fn quantum_port_executes_canonical_gates_on_retained_factor_cells() {
-   let source=include_str!("../measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only");
+   let source=std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_rewiring_20261014/inputs/balanced_128.n-only")).expect("historical N-only fixture must be restored before this ignored test runs");
    let n=source.trim().parse::<BigUint>().unwrap();assert_eq!(n.bits(),128);
    let bits:Vec<_>=(0..n.bits()).map(|i|if n.bit(i){'⊥'}else{'⊤'}).collect();
    let program=FactorPhaseProgram::prepare(&bits).unwrap();
@@ -816,9 +911,9 @@ mod tests {
    let src=format!("{}\n{}",include_str!("membrane_family_gpu.cuh"),include_str!("gpu_glut.cuh"));
    let module=ctx.load_module(compile_ptx(src).unwrap()).unwrap();
    let kernel=module.load_function("glut_holonomy").unwrap();
-   for input in [include_str!("../measurements/membrane_gpu_wiring_20261013/300bit/case_1.n-only"),
-     include_str!("../measurements/membrane_gpu_wiring_20261013/300bit/case_2.n-only"),
-     include_str!("../measurements/membrane_gpu_wiring_20261013/300bit/case_3.n-only")] {
+   for input in [std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_gpu_wiring_20261013/300bit/case_1.n-only")).expect("historical N-only fixture must be restored before this ignored test runs"),
+     std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_gpu_wiring_20261013/300bit/case_2.n-only")).expect("historical N-only fixture must be restored before this ignored test runs"),
+     std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"),"/measurements/membrane_gpu_wiring_20261013/300bit/case_3.n-only")).expect("historical N-only fixture must be restored before this ignored test runs")] {
      let n=input.trim().parse::<BigUint>().unwrap();assert_eq!(n.bits(),300);
      let bits:Vec<_>=(0..n.bits()).map(|i|if n.bit(i){'⊥'}else{'⊤'}).collect();
      let relation=vox_core::glut_system::prepare_device_correlation(&bits);

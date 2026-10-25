@@ -22,7 +22,7 @@ fn run(args: &[String]) -> Result<(), String> {
         &std::fs::read_to_string(&args[0]).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())?;
     let (source, matrix, metrics) = support::contract(&prepared)?;
-    if source.bits() < 200 { return Err("stack audit requires a source of at least 200 bits".into()); }
+    if source.bits() < 128 { return Err("stack audit requires a source of at least 128 bits".into()); }
     let base: BigUint = args[1].parse().map_err(|_| "invalid base")?;
     let schedule = QuquartPowerSchedule::prepare(&source, &base)?;
     if prepared.get("base_word").is_none() {

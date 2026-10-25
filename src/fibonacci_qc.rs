@@ -2291,6 +2291,11 @@ pub fn repl_compile(spec: &str, net_depth: usize, sk_depth: usize, render: u8) {
 /// is separated at this root exactly when the imaginary part is nonzero. A real
 /// value means the invariant cannot see the chirality here, NOT that the knot
 /// is amphichiral: the cinquefoil is chiral and evaluates real.
+pub fn physical_inverse_return(n: usize, word: &[i32]) -> Result<(Vec<i32>, f64), String> {
+    let residual = braid_inverse_return_residual(n, word)?;
+    if residual > 1e-8 { return Err(alloc::format!("physical inverse return residual {residual:.8e}")); }
+    Ok((word.iter().rev().map(|g| -*g).collect(),residual))
+}
 pub fn repl_jones(n: usize, word: &[i32]) {
     let selected = match vox_core::ordering::selected_braid(word) {
         Ok(word) => word, Err(error) => { sprintln!("ordering: {error}"); return; }
@@ -2322,6 +2327,10 @@ pub fn repl_jones(n: usize, word: &[i32]) {
         }
         crate::heap_reset(mark);
         return;
+    }
+    match physical_inverse_return(n, word) {
+        Ok((inverse,residual))=>sprintln!("  physical inverse: {:?}; return residual {:.8e}", inverse,residual),
+        Err(error)=>{ sprintln!("{}",error); crate::heap_reset(mark); return; }
     }
     let v = jones_polynomial(n, word);
     let writhe: i32 = word.iter().map(|g| if *g > 0 { 1 } else { -1 }).sum();

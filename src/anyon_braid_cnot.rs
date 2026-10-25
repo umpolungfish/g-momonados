@@ -429,6 +429,9 @@ fn compile_variant(
     append_inverse(&mut word, &basis);
     word.extend_from_slice(&control_phase);
 
+    // Internal templates retain canonical reference order. Select the public
+    // emitted word once, at this boundary, then measure that physical operator.
+    let word = if render_report { vox_core::ordering::selected_braid(&word)? } else { word };
     let physical = pair.evaluate(&word)?;
     let in_computational_channels = pair.in_pair_channels(&physical);
     let residual = pair.cnot_residual(&in_computational_channels);
@@ -443,6 +446,16 @@ fn compile_variant(
         ));
     }
     let report = if render_report {
+        let inverse: Vec<i32> = word.iter().rev().map(|g| -*g).collect();
+        let returned = pair.evaluate(&inverse)?.multiply(&physical,pair.format());
+        let identity = g_momonados::anyon_pair::PairMatrix::identity(pair.format());
+        let inverse_residual = returned.0.iter().zip(&identity.0)
+            .map(|(a,b)| (&a.re-&b.re).abs().max((&a.im-&b.im).abs()).to_biguint().unwrap())
+            .max().unwrap_or_default();
+        let inverse_tolerance = BigUint::from(word.len().max(1)) * BigUint::from(4096u32);
+        if inverse_residual > inverse_tolerance {
+            return Err(format!("CNOT physical inverse residual {inverse_residual} exceeds tolerance {inverse_tolerance}"));
+        }
         let residual_bits = if residual.maximum().is_zero() {
             "exact".to_string()
         } else {
@@ -464,6 +477,7 @@ fn compile_variant(
             }
             output.push_str(&gate.to_string());
         }
+        output.push_str(&format!("\ninverse_return_integer_units={inverse_residual} tolerance_integer_units={inverse_tolerance} return_verified=true\n"));
         output
     } else {
         String::new()
@@ -1686,31 +1700,17 @@ mod tests {
         carrier.finish().unwrap();
     }
 }
-/// Try to compile a sequence of Fourier braid targets with dual-path fallback
-/// for CNOT gates, mirroring the logic in `compile_selected`.
 fn try_compile_fourier_targets(
     compiler: &mut FibonacciBraidCompiler,
     targets: &[BraidTarget],
-    _accuracy: usize,
     per_target: usize,
-    _split_fuse: bool,
     word: &mut Vec<i32>,
 ) -> Result<(), String> {
     for target in targets {
-        match compiler.compile_target_to(target, per_target, |generator| {
+        compiler.compile_target_to(target, per_target, |generator| {
             word.push(generator);
             Ok(())
-        }) {
-            Ok(()) => {}
-            Err(e) if e.starts_with("CNOT braid reaches ") && matches!(target, BraidTarget::Cnot { .. }) => {
-                // Fallback: try the opposite split/fuse mode
-                // We need to recompile this target with the alternate mode
-                // Since the compiler state may be corrupted, we return the error
-                // to let the caller handle the full fallback
-                return Err(e);
-            }
-            Err(e) => return Err(e),
-        }
+        })?;
     }
     Ok(())
 }
@@ -1754,41 +1754,11 @@ pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
     let mut word = Vec::new();
     let targets = fourier_braid_targets(inverse);
 
-    // Try compilation with dual-path fallback for CNOT
-    match try_compile_fourier_targets(
-        &mut compiler,
-        &targets,
-        accuracy,
-        per_target,
-        false,
-        &mut word,
-    ) {
-        Ok(()) => {}
-        Err(e) if e.starts_with("CNOT braid reaches ") => {
-            // Fallback: clear the word and try with a fresh compiler
-            // (templates may be cached with the failed mode)
-            word.clear();
-            compiler = FibonacciBraidCompiler::new(
-                &source,
-                depth,
-                net,
-                capacity,
-                refinement,
-            )?;
-            try_compile_fourier_targets(
-                &mut compiler,
-                &targets,
-                accuracy,
-                per_target,
-                true,
-                &mut word,
-            )?;
-        }
-        Err(e) => return Err(e),
-    }
+    // Each CNOT template executes both synthesis variants inside compile_selected.
+    try_compile_fourier_targets(&mut compiler, &targets, per_target, &mut word)?;
 
     let braid_order = vox_core::ordering::selected("braid", word.len())?;
-    let order_orientation = if vox_core::ordering::setting("IG_ORDER_SPEC").as_deref() == Some("inverse") {
+    let order_orientation = if vox_core::ordering::braid_orientation_is_inverse()? {
         "inverse"
     } else {
         "forward"

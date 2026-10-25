@@ -420,3 +420,35 @@ extern "C" __global__ void glut_control(unsigned *masks,unsigned count,
    state[1]=3;
  }
 }
+
+// Powerset-of-FOUR relation propagation. Bit positions name N,T,F,B;
+// a set of alternatives is not an evidence value. Incompatible local rows
+// deposit B without clearing their inputs or unrelated neighboring cells.
+extern "C" __global__ void glut_belnap_relations(
+ const unsigned *offsets,const unsigned *cells,const unsigned long long *supports,
+ const unsigned long long *rows,unsigned gates,unsigned *domains,
+ unsigned *held,unsigned *receipt) {
+ if(blockIdx.x||threadIdx.x)return;
+ unsigned sweeps=0,updates=0;bool changed;
+ do {
+   changed=false;++sweeps;
+   for(unsigned g=0;g<gates;++g) {
+     unsigned long long viable=rows[g];
+     for(unsigned at=offsets[g];at<offsets[g+1];++at) {
+       unsigned long long admitted=0;unsigned domain=domains[cells[at]];
+       for(unsigned value=0;value<4;++value)if(domain&(1u<<value))admitted|=supports[4*at+value];
+       viable&=admitted;
+     }
+     if(!viable){held[g]=3;continue;}
+     for(unsigned at=offsets[g];at<offsets[g+1];++at) {
+       unsigned allowed=0;
+       for(unsigned value=0;value<4;++value)if(viable&supports[4*at+value])allowed|=1u<<value;
+       unsigned cell=cells[at],next=domains[cell]&allowed;
+       if(next!=domains[cell]){domains[cell]=next;++updates;changed=true;}
+     }
+   }
+ }while(changed);
+ unsigned evidence=1,count=0;
+ for(unsigned g=0;g<gates;++g)if(held[g]){evidence=3;++count;}
+ receipt[0]=evidence;receipt[1]=sweeps;receipt[2]=updates;receipt[3]=count;
+}

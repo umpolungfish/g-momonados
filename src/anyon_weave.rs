@@ -62,15 +62,21 @@ pub fn refine_sequence(seed: &[FusionStep], iterations: usize) -> Result<Vec<Fus
 /// Complete an exchange seed with diagonal R steps as specified by the
 /// fusion hexagon. These steps preserve the off-diagonal magnitude.
 pub fn compile_exchange(steps: &[FusionStep]) -> Result<WeaveWord, String> {
-    let mut completed = steps.to_vec();
-    let mut weave = compile_weave(&completed)?;
+    let order = vox_core::ordering::selected("weave", steps.len())?;
+    let mut completed = order.apply(steps)?;
+    if order.inverse().apply(&completed)?.iter().zip(steps).any(|(a,b)| match (a,b) {
+        (FusionStep::F,FusionStep::F) => false,
+        (FusionStep::R(a),FusionStep::R(b)) => a != b,
+        _ => true,
+    }) { return Err("exchange weave order failed its inverse return".into()); }
+    let mut weave = compile_weave_in_order(&completed)?;
     if weave.final_vertex == 2 || weave.final_vertex == 3 {
         completed.insert(0, FusionStep::R(1));
-        weave = compile_weave(&completed)?;
+        weave = compile_weave_in_order(&completed)?;
     }
     if weave.final_vertex == 5 {
         completed.push(FusionStep::R(1));
-        weave = compile_weave(&completed)?;
+        weave = compile_weave_in_order(&completed)?;
     }
     if weave.final_vertex != 4 {
         return Err("fusion sequence is not an exchange seed".into());

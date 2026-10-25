@@ -599,7 +599,10 @@ fn main() {
         }
         return;
     }
-    let membrane_args = if argv.first().map(String::as_str) == Some("membrane") {
+    let native_membrane_command = argv.get(1).is_some_and(|command|
+        matches!(command.as_str(), "factor" | "cross" | "separate" | "word" | "recurse" | "encode"));
+    let membrane_args = if argv.first().map(String::as_str) == Some("membrane")
+        && !native_membrane_command {
         Some(&argv[1..])
     } else if argv.first().map(String::as_str) == Some("vox")
         && argv.get(1).map(String::as_str) == Some("membrane") {
@@ -672,6 +675,26 @@ fn main() {
     if !argv.is_empty() {
         // Direct CLI: word-valued factoring routes bypass the REPL line reader.
         let head = argv[0].as_str();
+        if matches!(head,"gpu_glut"|"gpu-glut") {
+            if argv.len()!=2 || argv[1]=="help" {
+                println!("gpu_glut N: execute the shared Belnap relation and its numerical factor continuation on CUDA; N is the sole instance input. GLUT_GPU_DEVICE selects the device; GLUT_CHECKPOINT and GLUT_RESUME retain the continuation.");
+                return;
+            }
+            let Some(n)=num_bigint::BigUint::parse_bytes(argv[1].as_bytes(),10) else {eprintln!("invalid N-only decimal source");std::process::exit(2);};
+            match g_momonados::gpu_glut::run(&n) {
+                Ok(report)=>println!("{report}"),
+                Err(error)=>{eprintln!("{error}");std::process::exit(2);},
+            }
+            return;
+        }
+        if head == "horn_factor" {
+            let args: Vec<_> = argv[1..].iter().map(String::as_str).collect();
+            match g_momonados::horn_torus_carrier::run(&args) {
+                Ok((report, produced)) => { print!("{report}"); if !produced { std::process::exit(3); } },
+                Err(error) => { eprintln!("{error}"); std::process::exit(2); },
+            }
+            return;
+        }
         if matches!(head, "gpu_gnfs" | "gpu-gnfs") {
             if argv.len() < 2 || argv[1] == "help" {
                 println!("{}", gpu_gnfs::help());

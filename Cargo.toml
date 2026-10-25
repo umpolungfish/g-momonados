@@ -195,3 +195,8 @@ opt-level = 3
 
 [lints.rust]
 warnings = "deny"
+
+[[bin]]
+name = "horn_factor"
+path = "src/bin/horn_factor.rs"
+required-features = ["hosted"]

@@ -8,7 +8,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.len() != 1 { return Err("usage: anyon_weave_probe N-only-decimal".into()); }
     let source = BigUint::parse_bytes(args[0].as_bytes(), 10).ok_or("invalid N-only decimal")?;
-    if source.bits() < 200 { return Err("weave probe requires at least 200 source bits".into()); }
+    if source.bits() < 128 { return Err("weave probe requires at least 128 source bits".into()); }
     let steps = [FusionStep::F, FusionStep::R(-1), FusionStep::F,
         FusionStep::R(1), FusionStep::F, FusionStep::R(-1)];
     let selected = vox_core::ordering::selected("weave", steps.len())?;

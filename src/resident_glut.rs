@@ -833,14 +833,8 @@ impl ResidentGlut {
             return Err(String::from("circuit braid coordinates are not in canonical ququart order"));
         }
         let read_gram = |arena: &mut DecisionArena, root: usize| {
-            let zero = arena.zero();
-            let mut aligned = [zero; 4];
-            for (label, arm) in aligned.iter_mut().enumerate() {
-                let controls = [(wires[0], label & 1 != 0), (wires[1], label & 2 != 0)];
-                *arm = arena.conditional_literals(zero, root, &controls);
-                for (wire, active) in controls { if active { *arm = arena.flip(*arm, wire); } }
-            }
-            arena.control_gram(&aligned)
+            let coordinate=arena.belnap_coordinate(wires).expect("validated resident Belnap coordinate");
+            arena.belnap_gram(root,coordinate)
         };
         const FRACTION_BITS: usize = 52;
         let scale = (1u64 << FRACTION_BITS) as f64;
@@ -854,10 +848,10 @@ impl ResidentGlut {
         // DecisionArena's two-cell operator uses little-endian coordinate
         // labels. This is U tensor I on the ordered pair [factor-p, factor-q].
         let matrix = core::array::from_fn(|entry| {
-            let row = entry / 4;
-            let col = entry % 4;
-            if (row & 2) != (col & 2) { (SignedWordTape::zero(), SignedWordTape::zero()) }
-            else { local[2 * (row & 1) + (col & 1)].clone() }
+            let (row_truth,row_falsehood)=crate::belnap::B4::from_u8((entry/4) as u8).to_wh2();
+            let (col_truth,col_falsehood)=crate::belnap::B4::from_u8((entry%4) as u8).to_wh2();
+            if row_falsehood!=col_falsehood {(SignedWordTape::zero(),SignedWordTape::zero())}
+            else {local[2*(row_truth as usize)+(col_truth as usize)].clone()}
         });
         self.root = crate::reentry_powerset::bind_one(self.root, |root|
             self.arena.apply_control_matrix(root, wires, &matrix, FRACTION_BITS))?;
@@ -891,14 +885,8 @@ impl ResidentGlut {
             return Err(String::from("circuit braid coordinates are not in canonical ququart order"));
         }
         let read_gram = |arena: &mut DecisionArena, root: usize| {
-            let zero = arena.zero();
-            let mut aligned = [zero; 4];
-            for (label, arm) in aligned.iter_mut().enumerate() {
-                let controls = [(wires[0], label & 1 != 0), (wires[1], label & 2 != 0)];
-                *arm = arena.conditional_literals(zero, root, &controls);
-                for (wire, active) in controls { if active { *arm = arena.flip(*arm, wire); } }
-            }
-            arena.control_gram(&aligned)
+            let coordinate=arena.belnap_coordinate(wires).expect("validated resident Belnap coordinate");
+            arena.belnap_gram(root,coordinate)
         };
         let gram_before = read_gram(&mut self.arena, self.root);
         let mass_before = self.arena.mass_word(self.root).to_biguint();
@@ -979,17 +967,9 @@ impl ResidentGlut {
         let oracle = FactorPhaseOracle::from_n(&self.tape).map_err(String::from)?;
         let wires = [self.wire_map[oracle.layout().p.start],
             self.wire_map[oracle.layout().q.start]];
-        let zero = self.arena.zero();
-        let mut roots = [zero; 4];
-        for (label, root) in roots.iter_mut().enumerate() {
-            let controls = [(wires[0], label & 1 != 0), (wires[1], label & 2 != 0)];
-            *root = self.arena.conditional_literals(zero, self.root, &controls);
-            for (wire, active) in controls {
-                if active { *root = self.arena.flip(*root, wire); }
-            }
-        }
         let gram = if self.diagram_ready {
-            self.arena.control_gram(&roots)
+            let coordinate=self.arena.belnap_coordinate(wires)?;
+            self.arena.belnap_gram(self.root,coordinate)
         } else {
             // In every declared width class, both low factor bits are free.
             // Aligning them yields the same work vector in all four branches.

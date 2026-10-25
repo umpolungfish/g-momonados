@@ -66,7 +66,7 @@ pub fn word_ops(word:&str)->Vec<u32> {
 /// Admit a linear spelling through the canonical IMASM protocol graph builder
 /// and close-condition engine. A local stack check is insufficient: it can
 /// approve a word whose actual protocol graph is open or ill-typed.
-fn validate_protocol_word(word:&str)->Result<(char,ClosureState),String> {
+pub(crate) fn validate_protocol_word(word:&str)->Result<(char,ClosureState),String> {
     let mut tokens=Vec::new();
     for glyph in word.chars() {
         let token=Token::parse(&glyph.to_string())

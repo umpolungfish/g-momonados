@@ -191,7 +191,8 @@ impl GodelComplexCarrier {
             preparation_clock.elapsed().as_secs_f64(),relation.masks.len(),relation.gates.len(),
             type_record.frontier.as_ref().map_or(0,Vec::len),type_record.operations.contractions,type_record.operations.descents);
         if relation.empty{return Err("prepared Gödel relation is empty".into());}
-        let fixed:Vec<_>=relation.masks.iter().map(|m|match m{1=>Some(false),2=>Some(true),_=>None}).collect();
+        let fixed:Vec<_>=relation.belnap_domains.iter().map(|domain|
+            domain.only().and_then(|value|value.definite())).collect();
         let factor_cells:BTreeSet<_>=relation.p.iter().chain(&relation.q).copied().collect();
         let mut order:Vec<_>=factor_cells.iter().copied().collect();
         let count=order.len();order.extend((0..relation.masks.len()).filter(|w|!factor_cells.contains(w)));
@@ -210,9 +211,16 @@ impl GodelComplexCarrier {
             &mut tables,&mut resident_cells,&shared_factor_cells.iter().copied().collect::<Vec<_>>())?;
         let graph=json!({"source_word":source.as_word(),"old_to_resident":map,"boundary":boundary,
             "preparation":"native nested gates and equality transport, before DQI elimination or decisions",
+            "cell_carrier":"Belnap FOUR","belnap_domains":relation.belnap_domains.iter().map(|d|d.mask()).collect::<Vec<_>>(),
+            "belnap_prepared_bank":relation.belnap_prepared_bank.iter().map(|d|d.mask()).collect::<Vec<_>>(),
+            "belnap_preparation":{"evidence":relation.belnap_preparation.evidence.name(),"sweeps":relation.belnap_preparation.sweeps,
+                "updates":relation.belnap_preparation.updates,"held":relation.belnap_preparation.held.iter().map(|(gate,domains)|json!([gate,domains.iter().map(|d|d.mask()).collect::<Vec<_>>()])).collect::<Vec<_>>(),
+                "numeral_projection":relation.belnap_preparation.numeral_projection},
             "masks":relation.masks,"p":relation.p,"q":relation.q,"midpoint":relation.midpoint,
             "gap":relation.gap,"parity":relation.parity,"admission":relation.admission,
-            "gates":relation.gates.iter().map(|g|json!({"cells":g.cells,"supports":g.supports,"all":g.all})).collect::<Vec<_>>(),
+            "gates":relation.gates.iter().map(|g|json!({"cells":g.cells,"kind":format!("{:?}",g.full_kind),
+                "full_supports":g.full_supports,"full_rows":g.full_rows,
+                "numeral_supports":g.supports,"numeral_rows":g.all})).collect::<Vec<_>>(),
             "sic_d12":{"dimension":12,"outcomes":144,"source_product_residue":source_residue,
                 "factor_address":"(p mod 12, q mod 12) from the same factor bit cells",
                 "mass_numerators":"13 at selected outcome; 1 at each other outcome; denominator 156; one-hot total 156",
@@ -237,11 +245,13 @@ impl GodelComplexCarrier {
             let scope:Vec<_>=gate.cells.iter().copied().filter(|&w|fixed[w].is_none()||map[w]<boundary)
                 .map(|w|map[w]).collect::<BTreeSet<_>>().into_iter().collect();
             let mut rows=BTreeSet::new();
-            for row in 0..8{
-                if gate.all&(1<<row)==0{continue;}
+            for row in 0..gate.full_kind.table().rows {
+                if gate.full_rows&(1u64<<row)==0{continue;}
+                let full=gate.full_kind.row(row);
                 let mut values=BTreeMap::new();let mut valid=true;
                 for (at,&old) in gate.cells.iter().enumerate(){
-                    let mark=gate.supports[at][1]&(1<<row)!=0;
+                    if !relation.belnap_domains[old].contains(full[at]){valid=false;break;}
+                    let mark=full[at].definite().ok_or("coherent numeral projection retains N/B alternatives")?;
                     if fixed[old].is_some_and(|v|v!=mark)||values.insert(map[old],mark).is_some_and(|v|v!=mark){valid=false;break;}
                 }
                 if valid{rows.insert(scope.iter().enumerate().fold(0usize,|r,(at,w)|r|(usize::from(values[w])<<at)));}

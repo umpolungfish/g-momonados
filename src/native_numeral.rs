@@ -2172,9 +2172,90 @@ pub(crate) fn pow2(k: usize) -> BigUint {
     r
 }
 
+#[derive(Default)]
 pub(crate) struct UnbraidBudget {
     pub(crate) nodes: u64,
     pub(crate) cap: u64,
+    pub(crate) coupled_checks: u64,
+    pub(crate) coupled_prunes: u64,
+    pub(crate) deadline: Option<std::time::Instant>,
+}
+
+impl UnbraidBudget {
+    fn expired(&self, stop: &core::sync::atomic::AtomicBool) -> bool {
+        if self.deadline.is_some_and(|deadline| std::time::Instant::now() >= deadline) {
+            stop.store(true, core::sync::atomic::Ordering::Relaxed);
+        }
+        self.nodes > self.cap || stop.load(core::sync::atomic::Ordering::Relaxed)
+    }
+}
+
+/// Bounds on the same low-bit lanes that carry the Hensel relation. The
+/// leading marks come from the current source-derived width split, while
+/// every lower mark remains the live lane's own residue modulo 2^k.
+struct UnbraidInterval {
+    p_min: BigUint,
+    p_max: BigUint,
+    q_min: BigUint,
+    q_max: BigUint,
+}
+
+fn unbraid_low_bounds(value: &BigUint, fixed: usize, width: usize) -> Option<(BigUint, BigUint)> {
+    if fixed >= width {
+        return (value.bits() as usize == width).then(|| (value.clone(), value.clone()));
+    }
+    let minimum = add_via_word(value, &pow2(width - 1));
+    let maximum = add_via_word(value, &subtract_via_word(&pow2(width), &pow2(fixed))?);
+    Some((minimum, maximum))
+}
+
+fn unbraid_ceil_div(value: &BigUint, divisor: &BigUint) -> Option<BigUint> {
+    let (q, r) = divmod_via_word(value, divisor)?;
+    Some(if r.is_zero() { q } else { add_via_word(&q, &BigUint::from(1u32)) })
+}
+
+fn unbraid_clip_residue(
+    minimum: &BigUint, maximum: &BigUint, required_min: &BigUint,
+    required_max: &BigUint, step: &BigUint,
+) -> Option<(BigUint, BigUint)> {
+    if required_min > maximum || required_max < minimum || required_min > required_max {
+        return None;
+    }
+    let low = if required_min > minimum {
+        let distance = subtract_via_word(required_min, minimum)?;
+        add_via_word(minimum, &multiply_via_word(&unbraid_ceil_div(&distance, step)?, step))
+    } else { minimum.clone() };
+    let high = if required_max < maximum {
+        let distance = subtract_via_word(maximum, required_max)?;
+        subtract_via_word(maximum, &multiply_via_word(&unbraid_ceil_div(&distance, step)?, step))?
+    } else { maximum.clone() };
+    (low <= high).then_some((low, high))
+}
+
+impl UnbraidInterval {
+    fn from_low(n: &BigUint, p: &BigUint, q: &BigUint, fixed: usize,
+                p_width: usize, q_width: usize) -> Option<Self> {
+        let (mut p_min, mut p_max) = unbraid_low_bounds(p, fixed, p_width)?;
+        let (mut q_min, mut q_max) = unbraid_low_bounds(q, fixed, q_width)?;
+        // The interval arm's product test now acts on these retained low
+        // lanes before their next parity split, rather than on another walk.
+        if !unbraid_product_interval_contains(n, &p_min, &p_max, &q_min, &q_max) {
+            return None;
+        }
+        let step = pow2(fixed);
+        let required_min = unbraid_ceil_div(n, &p_max)?;
+        let required_max = divmod_via_word(n, &p_min)?.0;
+        (q_min, q_max) = unbraid_clip_residue(&q_min, &q_max, &required_min, &required_max, &step)?;
+        let required_min = unbraid_ceil_div(n, &q_max)?;
+        let required_max = divmod_via_word(n, &q_min)?.0;
+        (p_min, p_max) = unbraid_clip_residue(&p_min, &p_max, &required_min, &required_max, &step)?;
+        Some(Self { p_min, p_max, q_min, q_max })
+    }
+}
+
+fn unbraid_product_interval_contains(n: &BigUint, p_min: &BigUint, p_max: &BigUint,
+                                    q_min: &BigUint, q_max: &BigUint) -> bool {
+    *n >= multiply_via_word(p_min, q_min) && *n <= multiply_via_word(p_max, q_max)
 }
 
 /// Diagnostic trace for hensel_unbraid, engaged only by the
@@ -2202,19 +2283,23 @@ pub(crate) fn range_prune_unbraid(
     stop: &core::sync::atomic::AtomicBool,
 ) -> Option<(BigUint, BigUint)> {
     budget.nodes += 1;
-    if budget.nodes > budget.cap || stop.load(core::sync::atomic::Ordering::Relaxed) {
+    if budget.expired(stop) {
         return None;
     }
     if pos < 0 {
         return if multiply_via_word(&p_fixed, &q_fixed) == *n { Some((p_fixed, q_fixed)) } else { None };
     }
     let k = (pos + 1) as usize;
-    let span = subtract_via_word(&pow2(k), &BigUint::from(1u32)).unwrap();
-    let p_max = add_via_word(&p_fixed, &span);
-    let q_max = add_via_word(&q_fixed, &span);
-    let lo = multiply_via_word(&p_fixed, &q_fixed);
-    let hi = multiply_via_word(&p_max, &q_max);
-    if *n < lo || *n > hi {
+    // Each lane has its own remaining width. A shared span would invent
+    // high marks on the shorter lane and retain impossible product cells.
+    let one = BigUint::from(1u32);
+    let p_span = subtract_via_word(&pow2(k.min(p_bits.saturating_sub(1))), &one).unwrap();
+    let q_span = subtract_via_word(&pow2(k.min(q_bits.saturating_sub(1))), &one).unwrap();
+    let p_min = add_via_word(&p_fixed, &one);
+    let q_min = add_via_word(&q_fixed, &one);
+    let p_max = add_via_word(&p_fixed, &p_span);
+    let q_max = add_via_word(&q_fixed, &q_span);
+    if !unbraid_product_interval_contains(n, &p_min, &p_max, &q_min, &q_max) {
         return None;
     }
     let p_has_free_bit = (pos as usize) < p_bits.saturating_sub(1) && pos > 0;
@@ -2260,7 +2345,27 @@ pub(crate) fn hensel_unbraid(
     stop: &core::sync::atomic::AtomicBool,
 ) -> Option<(BigUint, BigUint)> {
     budget.nodes += 1;
-    if budget.nodes > budget.cap || stop.load(core::sync::atomic::Ordering::Relaxed) {
+    if budget.expired(stop) {
+        return None;
+    }
+    budget.coupled_checks += 1;
+    let Some(interval) = UnbraidInterval::from_low(n.magnitude(), &p_val, &q_val, k, p_bits, q_bits) else {
+        budget.coupled_prunes += 1;
+        return None;
+    };
+    if interval.p_min == interval.p_max || interval.q_min == interval.q_max {
+        let p = if interval.p_min == interval.p_max { interval.p_min.clone() }
+            else { divmod_via_word(n.magnitude(), &interval.q_min)?.0 };
+        let (q, remainder) = divmod_via_word(n.magnitude(), &p)?;
+        let step = pow2(k);
+        if remainder.is_zero() && q >= interval.q_min && q <= interval.q_max
+            && p >= interval.p_min && p <= interval.p_max
+            && modulo_via_word(&p, &step)? == p_val
+            && modulo_via_word(&q, &step)? == q_val
+            && multiply_via_word(&p, &q) == *n.magnitude() {
+            return Some((p, q));
+        }
+        budget.coupled_prunes += 1;
         return None;
     }
     let short = p_bits.min(q_bits);
@@ -2295,6 +2400,9 @@ pub(crate) fn hensel_unbraid(
         let step = pow2(k);
         for &p_bit in &[0u32, 1u32] {
             let q_bit = (c_parity + p_bit) % 2;
+            if (k + 1 == p_bits && p_bit == 0) || (k + 1 == q_bits && q_bit == 0) {
+                continue;
+            }
             let new_p = if p_bit == 1 { add_via_word(&p_val, &step) } else { p_val.clone() };
             let new_q = if q_bit == 1 { add_via_word(&q_val, &step) } else { q_val.clone() };
             // p_bit·q_val + q_bit·p_val + p_bit·q_bit·2^k, but p_bit and
@@ -2336,10 +2444,94 @@ pub(crate) fn hensel_unbraid(
     }
 }
 
-/// Try every (p_bits, q_bits) split consistent with N's own bit length, real
-/// unbraiding each via the Hensel lift above. Reports the factor pair found,
-/// or the exact node count spent if the budget ran out first — a measured
-/// count, not an estimate of how close it got.
+/// Observe the candidate returned by complementary unbraiding. An unfinished
+/// search supplies no candidate and retains N evidence with a held boundary.
+/// Product refutation remains beside the lane evidence through their join.
+fn unbraid_lifecycle_readout(
+    n: &BigUint,
+    candidate: Option<(&BigUint, &BigUint)>,
+    order: &vox_core::ordering::Permutation,
+    inverse_return_verified: bool,
+    nodes: u64,
+    coupled: (u64, u64),
+) -> String {
+    use crate::belnap::B4;
+    let mut p_evidence = B4::N;
+    let mut q_evidence = B4::N;
+    let mut product_evidence = B4::N;
+    let mut quotient = None;
+    let mut remainder = None;
+    let mut product = None;
+    let mut paired_boundary = false;
+    let mut proper_divisor = false;
+    if let Some((p, q)) = candidate {
+        let one = BigUint::from(1u32);
+        proper_divisor = p > &one && p < n;
+        let division = divmod_via_word(n, p);
+        let p_valid = proper_divisor && division.as_ref().is_some_and(|(_, r)| r.is_zero());
+        let q_valid = q > &one && q < n
+            && division.as_ref().is_some_and(|(derived, r)| derived == q && r.is_zero());
+        p_evidence = p_evidence.join(if p_valid { B4::T } else { B4::F });
+        q_evidence = q_evidence.join(if q_valid { B4::T } else { B4::F });
+        let actual_product = multiply_via_word(p, q);
+        product_evidence = product_evidence.join(if actual_product == *n { B4::T } else { B4::F });
+        paired_boundary = syzygy_preserves(n, p, q);
+        product = Some(actual_product.to_string());
+        if let Some((derived, residual)) = division {
+            quotient = Some(derived.to_string());
+            remainder = Some(residual.to_string());
+        }
+    }
+    let arm_join = p_evidence.join(q_evidence);
+    let fused_evidence = arm_join.join(product_evidence);
+    let closed = proper_divisor && p_evidence == B4::T && q_evidence == B4::T
+        && product_evidence == B4::T && paired_boundary && inverse_return_verified;
+    let observation = serde_json::json!({
+        "schema": "horn-torus-unbraid-v1", "source": n.to_string(),
+        "source_word": encode_biguint(n),
+        "p": candidate.map(|(p, _)| p.to_string()),
+        "q": candidate.map(|(_, q)| q.to_string()),
+        "p_word": candidate.map(|(p, _)| encode_biguint(p)),
+        "q_word": candidate.map(|(_, q)| encode_biguint(q)),
+        "p_evidence": p_evidence.name(), "q_evidence": q_evidence.name(),
+        "arm_join": arm_join.name(), "product_evidence": product_evidence.name(),
+        "fused_evidence": fused_evidence.name(),
+        "core": if candidate.is_some() { product_evidence.name() } else { "N" },
+        "proper_divisor": proper_divisor, "derived_quotient": quotient,
+        "remainder": remainder, "product": product, "paired_boundary": paired_boundary,
+        "selected_order": order.indices, "inverse_order": order.inverse().indices,
+        "inverse_return_verified": inverse_return_verified, "nodes": nodes,
+        "coupled_interval_checks": coupled.0, "coupled_interval_prunes": coupled.1,
+        "boundary": if closed { "closed" } else { "held" },
+        "evidence_question": "proper factor lanes, source product, and native interlace return",
+        "producer": "native-numeral-complementary-unbraid"
+    });
+    format!("HORN_TORUS_RETURN {observation}\n")
+}
+
+/// One source-derived family shared by native and WordTape separators.
+/// Return the physical order only after its inverse recovers every pair.
+pub(crate) fn selected_unbraid_widths(total_bits: usize)
+    -> Result<(Vec<(usize, usize)>, vox_core::ordering::Permutation), String> {
+    let mut canonical = Vec::new();
+    for p_bits in (2..=(total_bits / 2 + 1)).rev() {
+        for q_bits in [total_bits + 1 - p_bits, total_bits - p_bits] {
+            if q_bits >= p_bits && q_bits > 0 {
+                canonical.push((p_bits, q_bits));
+            }
+        }
+    }
+    let order = vox_core::ordering::selected("separating", canonical.len())?;
+    let physical = order.apply(&canonical)?;
+    if order.inverse().apply(&physical)? != canonical {
+        return Err(String::from("separating order failed exact inverse return"));
+    }
+    std::eprintln!("UNBRAID_ORDER_RETURN width={} verified=true", canonical.len());
+    Ok((physical, order))
+}
+
+/// Try every source-derived width split with the complementary Hensel and
+/// interval arms; return their exact native-word closure or held observations.
 pub fn unbraid_report(n_str: &str, node_cap: u64) -> String {
     // Accepts encode()'s own output too, not only a plain decimal string —
     // the braiding search should take what the numeral mapping actually
@@ -2392,35 +2584,36 @@ pub fn unbraid_report(n_str: &str, node_cap: u64) -> String {
     let n_signed = BigInt::from(n.clone());
     let total_bits = n.bits() as usize;
     let mut total_nodes = 0u64;
+    let mut coupled = (0u64, 0u64);
+    let deadline = match std::env::var("IG_UNBRAID_SECONDS") {
+        Ok(raw) => match raw.parse::<u64>().ok().filter(|seconds| *seconds > 0)
+            .and_then(|seconds| std::time::Instant::now().checked_add(std::time::Duration::from_secs(seconds))) {
+                Some(deadline) => Some(deadline),
+                None => return String::from("unbraid: IG_UNBRAID_SECONDS requires a positive representable duration\n"),
+            },
+        Err(std::env::VarError::NotPresent) => None,
+        Err(error) => return format!("unbraid: invalid execution boundary: {error}\n"),
+    };
     // Balanced splits first: a real semiprime's factors sit near bits(N)/2
     // each, so start at the middle and converge downward through
     // increasingly unbalanced splits, rather than starting at p_bits=2 —
     // splits small-prime peel already covers — and burning the budget
     // before ever reaching the realistic case.
-    let mut width_pairs = Vec::new();
-    for p_bits in (2..=(total_bits / 2 + 1)).rev() {
-        let q_bits_candidates = [total_bits + 1 - p_bits, total_bits - p_bits];
-        for &q_bits in q_bits_candidates.iter() {
-            if q_bits < p_bits || q_bits == 0 {
-                continue;
-            }
-            width_pairs.push((p_bits, q_bits));
-        }
-    }
-    let width_order = match vox_core::ordering::selected("separating", width_pairs.len()) {
-        Ok(order) => order,
+    let (ordered_width_pairs, width_order) = match selected_unbraid_widths(total_bits) {
+        Ok(selection) => selection,
         Err(error) => return format!("unbraid: invalid separating order: {error}\n"),
     };
-    let width_pairs = match width_order.apply(&width_pairs) {
-        Ok(pairs) => pairs,
-        Err(error) => return format!("unbraid: cannot apply separating order: {error}\n"),
-    };
-    for (p_bits, q_bits) in width_pairs {
+    let inverse_return_verified = true;
+    for (p_bits, q_bits) in ordered_width_pairs {
+            if deadline.is_some_and(|deadline| std::time::Instant::now() >= deadline) {
+                return format!("N = {n}\nunbraid reached its retained execution boundary after {total_nodes} nodes.\n{}",
+                    unbraid_lifecycle_readout(&n, None, &width_order, inverse_return_verified, total_nodes, coupled));
+            }
             let share = node_cap.saturating_sub(total_nodes);
             if share == 0 {
                 return format!(
-                    "N = {}\nunbraid exhausted the node budget ({}) before finishing every split.\n",
-                    n, node_cap
+                    "N = {}\nunbraid exhausted the node budget ({}) before finishing every split.\n{}",
+                    n, node_cap, unbraid_lifecycle_readout(&n, None, &width_order, inverse_return_verified, total_nodes, coupled)
                 );
             }
             // Both arms of the same identity, run as real concurrent threads,
@@ -2437,11 +2630,11 @@ pub fn unbraid_report(n_str: &str, node_cap: u64) -> String {
             // a fast win on one side left the other running to completion
             // pointlessly.
             let stop = std::sync::Arc::new(core::sync::atomic::AtomicBool::new(false));
-            let (bottom_result, bottom_nodes, top_result, top_nodes) = std::thread::scope(|scope| {
+            let (bottom_result, bottom_nodes, top_result, top_nodes, coupled_checks, coupled_prunes) = std::thread::scope(|scope| {
                 let n_signed_ref = &n_signed;
                 let stop_b = stop.clone();
                 let bottom = scope.spawn(move || {
-                    let mut b = UnbraidBudget { nodes: 0, cap: share };
+                    let mut b = UnbraidBudget { nodes: 0, cap: share, deadline, ..Default::default() };
                     let p0 = BigUint::from(1u32);
                     let q0 = BigUint::from(1u32);
                     // c0 = (1 - N) / 2, truncating toward zero same as BigInt's
@@ -2456,12 +2649,12 @@ pub fn unbraid_report(n_str: &str, node_cap: u64) -> String {
                     let c0 = BigInt::from_biguint(num_bigint::Sign::Minus, divmod_via_word(&n_minus_1, &BigUint::from(2u32)).unwrap().0);
                     let r = hensel_unbraid(n_signed_ref, p_bits, q_bits, 1, p0, q0, c0, &mut b, &stop_b);
                     if r.is_some() { stop_b.store(true, core::sync::atomic::Ordering::Relaxed); }
-                    (r, b.nodes)
+                    (r, b.nodes, b.coupled_checks, b.coupled_prunes)
                 });
                 let n_ref = &n;
                 let stop_t = stop.clone();
                 let top = scope.spawn(move || {
-                    let mut b = UnbraidBudget { nodes: 0, cap: share };
+                    let mut b = UnbraidBudget { nodes: 0, cap: share, deadline, ..Default::default() };
                     let start_pos = (p_bits.max(q_bits) as i64) - 2;
                     let p_hi = pow2(p_bits - 1);
                     let q_hi = pow2(q_bits - 1);
@@ -2469,27 +2662,36 @@ pub fn unbraid_report(n_str: &str, node_cap: u64) -> String {
                     if r.is_some() { stop_t.store(true, core::sync::atomic::Ordering::Relaxed); }
                     (r, b.nodes)
                 });
-                let (br, bn) = bottom.join().unwrap();
+                let (br, bn, checks, prunes) = bottom.join().unwrap();
                 let (tr, tn) = top.join().unwrap();
-                (br, bn, tr, tn)
+                (br, bn, tr, tn, checks, prunes)
             });
             total_nodes += bottom_nodes + top_nodes;
+            coupled.0 += coupled_checks;
+            coupled.1 += coupled_prunes;
+            std::eprintln!("UNBRAID_COUPLED_STATE p_bits={p_bits} q_bits={q_bits} checks={coupled_checks} prunes={coupled_prunes}");
             if let Some((p, q)) = bottom_result {
                 let syzygy = syzygy_preserves(&n, &p, &q);
                 if !syzygy { return format!("INTERNAL SYZYGY FAILURE after bottom-up unbraid of N={}", n); }
                 return format!(
-                    "N = {}\nunbraid found p={} bits, q={} bits after {} node(s) (bottom-up arm, {} bottom / {} top):\np = {}\nq = {}\np × q = N: {}\n{}\n{}\n",
-                    n, p_bits, q_bits, total_nodes, bottom_nodes, top_nodes, p, q, multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q), factor_words_line(&p, &q)
+                    "N = {}\nunbraid found p={} bits, q={} bits after {} node(s) (bottom-up arm, {} bottom / {} top):\np = {}\nq = {}\np × q = N: {}\n{}\n{}\n{}",
+                    n, p_bits, q_bits, total_nodes, bottom_nodes, top_nodes, p, q, multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q), factor_words_line(&p, &q),
+                    unbraid_lifecycle_readout(&n, Some((&p, &q)), &width_order, inverse_return_verified, total_nodes, coupled)
                 );
             }
             if let Some((p, q)) = top_result {
                 let syzygy = syzygy_preserves(&n, &p, &q);
                 if !syzygy { return format!("INTERNAL SYZYGY FAILURE after top-down unbraid of N={}", n); }
                 return format!(
-                    "N = {}\nunbraid found p={} bits, q={} bits after {} node(s) (top-down arm, {} bottom / {} top):\np = {}\nq = {}\np × q = N: {}\n{}\n{}\n",
-                    n, p_bits, q_bits, total_nodes, bottom_nodes, top_nodes, p, q, multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q), factor_words_line(&p, &q)
+                    "N = {}\nunbraid found p={} bits, q={} bits after {} node(s) (top-down arm, {} bottom / {} top):\np = {}\nq = {}\np × q = N: {}\n{}\n{}\n{}",
+                    n, p_bits, q_bits, total_nodes, bottom_nodes, top_nodes, p, q, multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q), factor_words_line(&p, &q),
+                    unbraid_lifecycle_readout(&n, Some((&p, &q)), &width_order, inverse_return_verified, total_nodes, coupled)
                 );
             }
+    }
+    if deadline.is_some_and(|deadline| std::time::Instant::now() >= deadline) {
+        return format!("N = {n}\nunbraid reached its retained execution boundary after {total_nodes} nodes.\n{}",
+            unbraid_lifecycle_readout(&n, None, &width_order, inverse_return_verified, total_nodes, coupled));
     }
     // "No factor found" is not one claim, it's two, and this search alone
     // can't tell them apart: N could be provably prime (no two-factor
@@ -2499,7 +2701,7 @@ pub fn unbraid_report(n_str: &str, node_cap: u64) -> String {
     // one actually happened instead of leaving both readings open.
     let (is_prime, held) = is_prime_miller_rabin(&n);
     let det_bound = BigUint::parse_bytes(b"3300000000000000000000000", 10).unwrap();
-    if is_prime {
+    let report = if is_prime {
         format!(
             "N = {}\nunbraid exhausted every (p_bits, q_bits) split within {} node(s) total, no factor found.\nMiller-Rabin, 12 fixed witnesses ({} held both live before closing): N is prime{} — no two-factor unbraid exists, definitionally, not merely unfound.\n",
             n, total_nodes, held,
@@ -2510,7 +2712,8 @@ pub fn unbraid_report(n_str: &str, node_cap: u64) -> String {
             "N = {}\nunbraid exhausted every (p_bits, q_bits) split within {} node(s) total, no factor found.\nMiller-Rabin, 12 fixed witnesses ({} held both live before closing): N is composite — a real factor pair exists, this search just did not reach it within the node budget.\n",
             n, total_nodes, held
         )
-    }
+    };
+    format!("{report}{}", unbraid_lifecycle_readout(&n, None, &width_order, inverse_return_verified, total_nodes, coupled))
 }
 
 fn bits_from_biguint(n: &BigUint) -> Vec<bool> {
@@ -3258,6 +3461,109 @@ mod unbraid_arm_tests {
     use super::*;
 
     #[test]
+    fn unbraid_lifecycle_128_verification_controls() {
+        // Reference factors enter this post-production readout control only.
+        // The N-only producer is exercised separately below.
+        for reference in [
+            include_str!("../../measurements/braid_order_review_20261024/references/fresh_balanced_128_target.reference.json"),
+            include_str!("../../measurements/braid_order_review_20261024/references/fresh_balanced_128_control.reference.json"),
+        ] {
+            let reference: serde_json::Value = serde_json::from_str(reference).unwrap();
+            let parse = |key| BigUint::parse_bytes(reference[key].as_str().unwrap().as_bytes(), 10).unwrap();
+            let (n, p, q) = (parse("N"), parse("p"), parse("q"));
+            assert_eq!(n.bits(), 128);
+            // The shorter width must not inherit the long lane's free marks.
+            // This is an N-only execution of an actual source-derived split.
+            let mut high_budget = UnbraidBudget { nodes: 0, cap: 1000, ..Default::default() };
+            let high_stop = core::sync::atomic::AtomicBool::new(false);
+            let high = range_prune_unbraid(&n, 2, 127, 125, pow2(1), pow2(126),
+                &mut high_budget, &high_stop);
+            assert!(high.is_none());
+            assert!(high_budget.nodes <= high_budget.cap, "short lane retained invented high marks");
+            // A real high prefix still reaches the verified product boundary.
+            let low_mask = pow2(4);
+            let p_high = subtract_via_word(&p, &modulo_via_word(&p, &low_mask).unwrap()).unwrap();
+            let q_high = subtract_via_word(&q, &modulo_via_word(&q, &low_mask).unwrap()).unwrap();
+            let mut prefix_budget = UnbraidBudget { nodes: 0, cap: 1000, ..Default::default() };
+            let recovered = range_prune_unbraid(&n, 64, 64, 3, p_high, q_high,
+                &mut prefix_budget, &high_stop).expect("true high prefix was pruned");
+            assert_eq!(multiply_via_word(&recovered.0, &recovered.1), n);
+            std::println!("n_only_short_lane_source={n} nodes={} high_prefix_return=true", high_budget.nodes);
+            // Verify the actual interval action against the reference after
+            // production. Every genuine low prefix must retain both factors.
+            for fixed in 1..=p.bits().max(q.bits()) as usize {
+                let step = pow2(fixed);
+                let p_low = modulo_via_word(&p, &step).unwrap();
+                let q_low = modulo_via_word(&q, &step).unwrap();
+                let interval = UnbraidInterval::from_low(&n, &p_low, &q_low, fixed,
+                    p.bits() as usize, q.bits() as usize).expect("true prefix was pruned");
+                assert!(interval.p_min <= p && p <= interval.p_max);
+                assert!(interval.q_min <= q && q <= interval.q_max);
+                assert_eq!(modulo_via_word(&interval.p_min, &step).unwrap(), p_low);
+                assert_eq!(modulo_via_word(&interval.q_min, &step).unwrap(), q_low);
+            }
+            let order = vox_core::ordering::Permutation::parse("perm:1,2,0", 3).unwrap();
+            let read = |candidate, inverse| {
+                let text = unbraid_lifecycle_readout(&n, candidate, &order, inverse, 0, (0, 0));
+                serde_json::from_str::<serde_json::Value>(text.trim().strip_prefix("HORN_TORUS_RETURN ").unwrap()).unwrap()
+            };
+            let good = read(Some((&p, &q)), true);
+            assert_eq!(good["boundary"], "closed");
+            assert_eq!(good["remainder"], "0");
+            assert_eq!(good["product"], reference["N"]);
+            assert_eq!(good["derived_quotient"], reference["q"]);
+            assert_eq!(good["paired_boundary"], true);
+            let changed_q = add_via_word(&q, &BigUint::from(2u32));
+            let bad = read(Some((&p, &changed_q)), true);
+            assert_eq!(bad["p_evidence"], "T");
+            assert_eq!(bad["q_evidence"], "F");
+            assert_eq!(bad["product_evidence"], "F");
+            assert_eq!(bad["fused_evidence"], "B");
+            assert_eq!(bad["boundary"], "held");
+            assert_eq!(read(Some((&p, &q)), false)["boundary"], "held");
+            let unit = BigUint::from(1u32);
+            assert_eq!(read(Some((&unit, &n)), true)["boundary"], "held");
+            let held = read(None, true);
+            assert_eq!(held["boundary"], "held");
+            assert_eq!(held["core"], "N");
+            assert_eq!(held["fused_evidence"], "N");
+            assert!(held["p"].is_null() && held["q"].is_null());
+            // Exercise the production recursion on N alone, with no reference
+            // prefix or factor entering its initial odd-lane state.
+            let n_signed = BigInt::from(n.clone());
+            let one = BigUint::from(1u32);
+            let c0 = -BigInt::from(divmod_via_word(&subtract_via_word(&n, &one).unwrap(), &pow2(1)).unwrap().0);
+            let mut budget = UnbraidBudget { nodes: 0, cap: 10000, ..Default::default() };
+            let stop = core::sync::atomic::AtomicBool::new(false);
+            let produced = hensel_unbraid(&n_signed, 64, 64, 1, one.clone(), one,
+                c0, &mut budget, &stop);
+            assert!(budget.coupled_checks > 0 && budget.coupled_prunes > 0);
+            if let Some((produced_p, produced_q)) = produced {
+                assert_eq!(multiply_via_word(&produced_p, &produced_q), n);
+            }
+            std::println!("n_only_coupled_source={n} nodes={} interval_checks={} interval_prunes={}",
+                budget.nodes, budget.coupled_checks, budget.coupled_prunes);
+            std::println!("readout_control_source={} exact_return=true corrupt_product_fused=B unfinished=N", n);
+        }
+    }
+
+    #[test]
+    fn unbraid_lifecycle_128_n_only_held_return() {
+        for source in [
+            include_str!("../../measurements/braid_order_review_20261024/fresh_balanced_128_target.txt"),
+            include_str!("../../measurements/braid_order_review_20261024/fresh_balanced_128_control.txt"),
+        ] {
+            let report = unbraid_report(source, 0);
+            let observation = report.lines().find_map(|line| line.strip_prefix("HORN_TORUS_RETURN ")).unwrap();
+            let observation: serde_json::Value = serde_json::from_str(observation).unwrap();
+            assert_eq!(observation["source"], source.trim());
+            assert_eq!(observation["boundary"], "held");
+            assert_eq!(observation["inverse_return_verified"], true);
+            assert_eq!(observation["nodes"], 0);
+        }
+    }
+
+    #[test]
     fn range_prune_unbraid_finds_a_known_close_pair() {
         // 1009 x 1013 = 1022117, both 10 bits, both odd, top bits both 1.
         let n = BigUint::from(1022117u32);
@@ -3266,7 +3572,7 @@ mod unbraid_arm_tests {
         let p_hi = pow2(p_bits - 1);
         let q_hi = pow2(q_bits - 1);
         let start_pos = (p_bits.max(q_bits) as i64) - 2;
-        let mut budget = UnbraidBudget { nodes: 0, cap: 1_000_000 };
+        let mut budget = UnbraidBudget { nodes: 0, cap: 1_000_000, ..Default::default() };
         let stop = core::sync::atomic::AtomicBool::new(false);
         let (p, q) = range_prune_unbraid(&n, p_bits, q_bits, start_pos, p_hi, q_hi, &mut budget, &stop)
             .expect("range_prune_unbraid should find 1009 x 1013");
@@ -3286,7 +3592,7 @@ mod unbraid_arm_tests {
         let p_hi = pow2(p_bits - 1);
         let q_hi = pow2(q_bits - 1);
         let start_pos = (p_bits.max(q_bits) as i64) - 2;
-        let mut budget = UnbraidBudget { nodes: 0, cap: 1_000_000 };
+        let mut budget = UnbraidBudget { nodes: 0, cap: 1_000_000, ..Default::default() };
         let stop = core::sync::atomic::AtomicBool::new(false);
         let (p, q) = range_prune_unbraid(&n, p_bits, q_bits, start_pos, p_hi, q_hi, &mut budget, &stop)
             .expect("range_prune_unbraid should find 97 x 8191");
@@ -3304,7 +3610,7 @@ mod unbraid_arm_tests {
         let p0 = BigUint::from(1u32);
         let q0 = BigUint::from(1u32);
         let c0 = (BigInt::from(1) - &n_signed) / BigInt::from(2);
-        let mut budget = UnbraidBudget { nodes: 0, cap: 1_000_000 };
+        let mut budget = UnbraidBudget { nodes: 0, cap: 1_000_000, ..Default::default() };
         let stop = core::sync::atomic::AtomicBool::new(false);
         let (p, q) = hensel_unbraid(&n_signed, p_bits, q_bits, 1, p0, q0, c0, &mut budget, &stop)
             .expect("hensel_unbraid should find 1009 x 1013");
@@ -3327,7 +3633,7 @@ mod unbraid_arm_tests {
         let p0 = BigUint::from(1u32);
         let q0 = BigUint::from(1u32);
         let c0 = (BigInt::from(1) - &n_signed) / BigInt::from(2);
-        let mut budget = UnbraidBudget { nodes: 0, cap: 1_000_000 };
+        let mut budget = UnbraidBudget { nodes: 0, cap: 1_000_000, ..Default::default() };
         let stop = core::sync::atomic::AtomicBool::new(false);
         let (p, q) = hensel_unbraid(&n_signed, p_bits, q_bits, 1, p0, q0, c0, &mut budget, &stop)
             .expect("hensel_unbraid should find 97 x 8191");
@@ -3363,7 +3669,7 @@ mod unbraid_arm_tests {
                     let p0 = BigUint::from(1u32);
                     let q0 = BigUint::from(1u32);
                     let c0 = (BigInt::from(1) - &n_signed) / BigInt::from(2);
-                    let mut budget = UnbraidBudget { nodes: 0, cap: 200_000 };
+                    let mut budget = UnbraidBudget { nodes: 0, cap: 200_000, ..Default::default() };
                     let stop = core::sync::atomic::AtomicBool::new(false);
                     if let Some((p, q)) =
                         hensel_unbraid(&n_signed, p_bits, q_bits, 1, p0, q0, c0, &mut budget, &stop)

@@ -8,6 +8,19 @@ use alloc::collections::BTreeMap;
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
 use core::sync::atomic::{AtomicU64, Ordering};
+use crate::belnap::B4;
+
+/// One FOUR coordinate carried by two evidence rails. Neither is the
+/// (0,0) coordinate and both is (1,1); neither is an empty amplitude support.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BelnapCoordinate { truth:usize, falsehood:usize }
+impl BelnapCoordinate {
+    fn literals(self,value:B4)->[(usize,bool);2] {
+        let (truth,falsehood)=value.to_wh2();
+        [(self.truth,truth),(self.falsehood,falsehood)]
+    }
+}
+const BELNAP_COORDINATES:[B4;4]=[B4::N,B4::T,B4::F,B4::B];
 
 // Native Vox reads these while the process is stopped. They do not enter
 // arithmetic, evidence, or the terminal readout.
@@ -139,6 +152,51 @@ impl Node {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn belnap_coherent_coordinate_preserves_all_four_complex_arms_and_banks() {
+        use vox_core::belnap_relation::BelnapSet;
+        let source=BigUint::parse_bytes(b"211060082272597355141159798675733025589",10).unwrap();
+        assert_eq!(source.bits(),128);
+        let mut arena=DecisionArena::new(128);
+        let coordinate=arena.belnap_coordinate([9,63]).unwrap();
+        let bank=arena.basis(&source,BigInt::one());
+        let mut root=arena.zero();
+        let amplitudes=[(3,2),(-5,7),(11,-13),(-17,-19)];
+        for (value,(re,im)) in BELNAP_COORDINATES.into_iter().zip(amplitudes) {
+            let mut address=source.clone();let (truth,falsehood)=value.to_wh2();
+            address.set_bit(9,truth);address.set_bit(63,falsehood);
+            let basis=arena.basis(&address,BigInt::one());
+            let arm=arena.scale_words(basis,&(SignedWordTape::from_bigint(&BigInt::from(re)),
+                SignedWordTape::from_bigint(&BigInt::from(im))),0);
+            root=arena.sum(root,arm);
+        }
+        assert_eq!(arena.belnap_alternatives(root,coordinate),BelnapSet::COMPLETE);
+        let zero=arena.zero();assert_eq!(arena.belnap_alternatives(zero,coordinate),BelnapSet::EMPTY);
+        for value in BELNAP_COORDINATES {
+            let arm=arena.restrict_belnap(root,coordinate,value);
+            assert_eq!(arena.fixed_belnap_value(arm,coordinate),Some(value));
+            assert!(!arena.mass_word(arm).is_zero());
+        }
+        let before=arena.belnap_gram(root,coordinate);
+        let banked=arena.control_gram(&[root,bank,root,bank]);
+        let mut matrix=core::array::from_fn(|_|(SignedWordTape::zero(),SignedWordTape::zero()));
+        for value in BELNAP_COORDINATES {
+            matrix[4*(value.bnot() as usize)+value as usize]=(SignedWordTape::from_small(1),SignedWordTape::zero());
+        }
+        let changed=arena.apply_control_matrix(root,[9,63],&matrix,0).unwrap();
+        assert_ne!(changed,root);
+        let after=arena.belnap_gram(changed,coordinate);
+        for row in BELNAP_COORDINATES {for col in BELNAP_COORDINATES {
+            assert_eq!(after[4*row as usize+col as usize],before[4*row.bnot() as usize+col.bnot() as usize]);
+        }}
+        let numerator=arena.apply_control_matrix_numerator(root,[9,63],&matrix).unwrap();
+        assert_eq!(changed,numerator);
+        let restored=arena.apply_control_matrix(changed,[9,63],&matrix,0).unwrap();
+        assert_eq!(restored,root);
+        assert_eq!(arena.control_gram(&[restored,bank,restored,bank]),banked);
+        assert_eq!(arena.belnap_alternatives(restored,coordinate),BelnapSet::COMPLETE);
+    }
+
     use super::*;
     use num_traits::One;
 
@@ -1118,6 +1176,42 @@ impl DecisionArena {
     pub fn zero(&mut self) -> usize {
         self.intern(Node::Leaf(SignedWordTape::zero(), SignedWordTape::zero()))
     }
+    pub fn belnap_coordinate(&self,wires:[usize;2])->Result<BelnapCoordinate,String> {
+        if wires[0]>=wires[1] || wires[1]>=self.cells {
+            return Err("Belnap coordinate needs two ordered evidence rails".into());
+        }
+        Ok(BelnapCoordinate{truth:wires[0],falsehood:wires[1]})
+    }
+    pub fn restrict_belnap(&mut self,root:usize,coordinate:BelnapCoordinate,value:B4)->usize {
+        assert!(coordinate.falsehood<self.cells,"Belnap coordinate outside this register");
+        let zero=self.zero();
+        self.conditional_literals(zero,root,&coordinate.literals(value))
+    }
+    pub fn fixed_belnap_value(&self,root:usize,coordinate:BelnapCoordinate)->Option<B4> {
+        Some(B4::from_wh2(self.fixed_cell_value(root,coordinate.truth)?,
+            self.fixed_cell_value(root,coordinate.falsehood)?))
+    }
+    pub fn belnap_alternatives(&mut self,root:usize,coordinate:BelnapCoordinate)->vox_core::belnap_relation::BelnapSet {
+        let mut values=vox_core::belnap_relation::BelnapSet::EMPTY;
+        for value in BELNAP_COORDINATES {
+            let arm=self.restrict_belnap(root,coordinate,value);
+            if !self.mass_word(arm).is_zero() {values=values.union(vox_core::belnap_relation::BelnapSet::singleton(value));}
+        }
+        values
+    }
+    fn aligned_belnap(&mut self,root:usize,coordinate:BelnapCoordinate)->[usize;4] {
+        let zero=self.zero();let mut aligned=[zero;4];
+        for value in BELNAP_COORDINATES {
+            let mut arm=self.restrict_belnap(root,coordinate,value);
+            for (wire,present) in coordinate.literals(value) {if present {arm=self.flip(arm,wire);}}
+            aligned[value as usize]=arm;
+        }
+        aligned
+    }
+    pub fn belnap_gram(&mut self,root:usize,coordinate:BelnapCoordinate)->[(BigInt,BigInt);16] {
+        let aligned=self.aligned_belnap(root,coordinate);
+        self.control_gram(&aligned)
+    }
     pub fn fixed_cell_value(&self,root:usize,wire:usize)->Option<bool> {
         if self.fixed[root].empty {return None;}
         if self.fixed[root].zero.bit(wire as u64){Some(false)}
@@ -1372,15 +1466,9 @@ impl DecisionArena {
         if wires[0] >= wires[1] || wires[1] >= self.cells {
             return Err("coordinate operator needs two ordered resident cells".into());
         }
-        let zero = self.zero();
-        let mut aligned = [zero; 4];
-        for (label, arm) in aligned.iter_mut().enumerate() {
-            let controls = [(wires[0], label & 1 != 0), (wires[1], label & 2 != 0)];
-            *arm = self.conditional_literals(zero, root, &controls);
-            for (wire, active) in controls {
-                if active { *arm = self.flip(*arm, wire); }
-            }
-        }
+        let coordinate=self.belnap_coordinate(wires)?;
+        let zero=self.zero();
+        let aligned=self.aligned_belnap(root,coordinate);
         let mut result = zero;
         for row in 0..4 {
             let mut arm = zero;
@@ -1388,8 +1476,8 @@ impl DecisionArena {
                 let transformed = self.scale_words(aligned[col], &matrix[4*row+col], fractional_bits);
                 arm = self.sum(arm, transformed);
             }
-            for (bit, wire) in wires.into_iter().enumerate() {
-                if row & (1 << bit) != 0 { arm = self.flip(arm, wire); }
+            for (wire,present) in coordinate.literals(BELNAP_COORDINATES[row]) {
+                if present {arm=self.flip(arm,wire);}
             }
             result = self.sum(result, arm);
         }
@@ -1403,13 +1491,9 @@ impl DecisionArena {
         if wires[0] >= wires[1] || wires[1] >= self.cells {
             return Err("coordinate operator needs two ordered resident cells".into());
         }
-        let zero = self.zero();
-        let mut aligned = [zero; 4];
-        for (label, arm) in aligned.iter_mut().enumerate() {
-            let controls = [(wires[0], label & 1 != 0), (wires[1], label & 2 != 0)];
-            *arm = self.conditional_literals(zero, root, &controls);
-            for (wire, active) in controls { if active { *arm = self.flip(*arm, wire); } }
-        }
+        let coordinate=self.belnap_coordinate(wires)?;
+        let zero=self.zero();
+        let aligned=self.aligned_belnap(root,coordinate);
         let mut result = zero;
         for row in 0..4 {
             let mut arm = zero;
@@ -1417,8 +1501,8 @@ impl DecisionArena {
                 let transformed = self.scale_words_numerator(aligned[col], &matrix[4 * row + col]);
                 arm = self.sum(arm, transformed);
             }
-            for (bit, wire) in wires.into_iter().enumerate() {
-                if row & (1 << bit) != 0 { arm = self.flip(arm, wire); }
+            for (wire,present) in coordinate.literals(BELNAP_COORDINATES[row]) {
+                if present {arm=self.flip(arm,wire);}
             }
             result = self.sum(result, arm);
         }
