@@ -22,3 +22,4 @@ measurements/
 /--help/
 /membranes/**/membrane
 /membranes/vox_phase_factor_*.glyphs
+.imsgct-order-*.txt

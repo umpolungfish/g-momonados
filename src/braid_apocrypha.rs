@@ -48,6 +48,7 @@ pub fn braid_apocrypha_main(args: &[&str]) -> String {
                     Search braid words by increasing length for one whose Jones\n\
                     magnitude matches the target. The first hit is the shortest\n\
                     braid realizing it.\n\n\
+                    --ordering canonical|reverse|swap:i,j|perm:i,j,...|all selects braid-alphabet.\n\
                     Try:  braid-apocrypha --target 0.618034 --strands 3\n".to_string();
         }
     };
@@ -55,6 +56,18 @@ pub fn braid_apocrypha_main(args: &[&str]) -> String {
     let mut gens: Vec<i32> = Vec::new();
     for s in 1..strands as i32 { gens.push(s); gens.push(-s); }
     if gens.is_empty() { return "need at least 2 strands\n".to_string(); }
+    let order = match vox_core::ordering::selected("braid-alphabet", gens.len()) {
+        Ok(order) => order,
+        Err(error) => return format!("braid-apocrypha: {error}\n"),
+    };
+    let ordered = match order.apply(&gens) {
+        Ok(ordered) => ordered,
+        Err(error) => return format!("braid-apocrypha: {error}\n"),
+    };
+    if order.inverse().apply(&ordered).ok().as_ref() != Some(&gens) {
+        return "braid-apocrypha: generator alphabet failed inverse return\n".into();
+    }
+    let gens = ordered;
 
     let mut tested = 0usize;
     for len in 1..=max_len {
@@ -64,6 +77,13 @@ pub fn braid_apocrypha_main(args: &[&str]) -> String {
             tested += 1;
             let j = jones_polynomial(strands, &w).norm();
             if (j - target).abs() <= tol {
+                let inverse_return = match crate::fibonacci_qc::braid_inverse_return_residual(strands, &w) {
+                    Ok(residual) => residual,
+                    Err(error) => return format!("braid-apocrypha: {error}\n"),
+                };
+                if inverse_return > 1e-9 {
+                    return format!("braid-apocrypha: inverse return residual {inverse_return:.17e} exceeds 1e-9\n");
+                }
                 let mut ws = String::new();
                 for (k, g) in w.iter().enumerate() {
                     if k > 0 { ws.push(' '); }
@@ -75,6 +95,7 @@ pub fn braid_apocrypha_main(args: &[&str]) -> String {
                 out.push_str(&format!("found braid:     [{}]   ({} crossings, {} strands)\n", ws, w.len(), strands));
                 out.push_str(&format!("|Jones|:         {:.6}\n", j));
                 out.push_str(&format!("residual:        {:.2e}\n", (j - target).abs()));
+                out.push_str(&format!("generator order: {}\ninverse return:  {inverse_return:.17e}\nreturn_verified=true\n", order.label()));
                 out.push_str("\nshortest, because the hunt runs by increasing length and stops\n\
                               at the first match: nothing shorter realizes it.\n");
                 return out;

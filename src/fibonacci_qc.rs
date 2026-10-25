@@ -1042,6 +1042,32 @@ fn quantum_trace(n: usize, word: &[i32]) -> Complex {
     t1 + Complex::new(PHI, 0.0) * t2
 }
 
+/// Execute the physical inverse in both fusion sectors and measure both returns.
+pub fn braid_inverse_return_residual(n: usize, word: &[i32]) -> Result<f64, String> {
+    validate_braid_word(n, word)
+        .map_err(|bad| format!("braid inverse return: invalid generator {bad} on {n} strands"))?;
+    let inverse: Vec<_> = word.iter().rev().map(|g| -*g).collect();
+    let (first, second) = sector_reps(n);
+    let mut worst = 0.0f64;
+    for sigmas in [&first, &second] {
+        if sigmas.is_empty() { continue; }
+        let dimension = sigmas[0].len();
+        let forward = apply_word_to_sigmas(sigmas, word, dimension);
+        let backward = apply_word_to_sigmas(sigmas, &inverse, dimension);
+        for returned in [multiply_matrices(&backward, &forward), multiply_matrices(&forward, &backward)] {
+            for (i, row) in returned.iter().enumerate() {
+                for (j, actual) in row.iter().enumerate() {
+                    let expected = if i == j { Complex::one() } else { Complex::zero() };
+                    let residual = (*actual - expected).norm();
+                    if !residual.is_finite() { return Err("braid inverse return is non-finite".into()); }
+                    worst = worst.max(residual);
+                }
+            }
+        }
+    }
+    Ok(worst)
+}
+
 /// Real, computable question (not a scalar formula): does the Temperley-Lieb
 /// representation turn word_for(p), word_for(q), word_for(N) — three
 /// INDEPENDENT words, none built from the others by concatenation — into
