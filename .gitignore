@@ -16,3 +16,9 @@ gpu_port/**/target/
 .lake/
 momonados-proof-*/lean/.lake/
 measurements/
+# Local generated run artifacts
+/measurements_*
+/source_recovery_20261018/
+/--help/
+/membranes/**/membrane
+/membranes/vox_phase_factor_*.glyphs
