@@ -1,5 +1,0 @@
-backend=Lean-kernel SIXTEEN_3=active mask-order=N,T,F,B scope=runtime-transition-table
-table=[12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12]
-least=12 native-fixed-point-checked=true
-greatest=12 native-greatest-fixed-point-checked=true
-seed=0 transient=1 period=1 tick=4 value=12 orbit-closure-checked=true

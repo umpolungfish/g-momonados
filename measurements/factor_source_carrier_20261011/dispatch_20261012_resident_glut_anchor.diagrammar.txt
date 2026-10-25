@@ -1,3 +1,0 @@
-◇ CIRCUIT resident_glut 1 nodes, 0 wires open forks 0
-0 ⊢ RESIDENT_SOURCE_CARRIER
-  walk: CLOSED

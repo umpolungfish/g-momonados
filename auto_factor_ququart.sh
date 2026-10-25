@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Select an explicit operation order before the wrapper's original argument parser.
+for ig_order_arg in "$@"; do
+    if [[ "$ig_order_arg" == --ordering || "$ig_order_arg" == --orderings ]]; then
+        exec python3 "$(dirname -- "${BASH_SOURCE[0]}")/../Vox/ordering.py" "$0" "$@"
+    fi
+done
 # ==============================================================================
 # auto_factor_ququart.sh
 # Automated Closed-Circuit Anyonic Ququart Membrane Preparation & Execution
@@ -23,8 +29,9 @@ run_for_word() {
     echo "  RUNNING ANYONIC QUQUART MEMBRANE: ${case_name}"
     echo "========================================================================"
 
-    echo "[*] Cleaning and preparing target directory: $dest_dir"
-    rm -rf "$dest_dir"
+    dest_dir=$(python3 ../Vox/ordering.py --variant-path "$dest_dir")
+    echo "[*] Preparing target directory: $dest_dir"
+    [[ ! -e "$dest_dir" ]] || { echo "Preparation already exists: $dest_dir" >&2; return 1; }
 
     local braid_file=""
     if [[ "$case_name" =~ ^[0-9]+$ && -f "${MEASURE_DIR}/${case_name}/retained_braid_input.json" ]]; then

@@ -161,7 +161,7 @@ pub fn read_tangle(program: &[Token], n_strands: usize, start_depth: i32) -> Res
 // 3. COMPILATION
 // ===========================================================================
 
-pub fn braid_to_imasm(generators: &[i32], start_depth: i32, close: bool) -> Vec<Token> {
+fn braid_to_imasm_raw(generators: &[i32], start_depth: i32, close: bool) -> Vec<Token> {
     let mut prog = Vec::new();
     let mut depth = start_depth;
     for &g in generators {
@@ -189,6 +189,39 @@ pub fn braid_to_imasm(generators: &[i32], start_depth: i32, close: bool) -> Vec<
     prog
 }
 
+/// Lower generators in the selected physical order. The inverse permutation
+/// must recover the caller's generator sequence before the word is released.
+pub fn braid_to_imasm_selected(
+    generators: &[i32], start_depth: i32, close: bool,
+) -> Result<Vec<Token>, String> {
+    let order = vox_core::ordering::selected("braid-protocol", generators.len())?;
+    braid_to_imasm_in_order(generators, &order, start_depth, close)
+}
+
+fn braid_to_imasm_in_order(
+    generators: &[i32], order: &vox_core::ordering::Permutation,
+    start_depth: i32, close: bool,
+) -> Result<Vec<Token>, String> {
+    let ordered = order.apply(generators)?;
+    let returned = order.inverse().apply(&ordered)?;
+    if returned != generators {
+        return Err("selected braid protocol order failed its inverse return".into());
+    }
+    Ok(braid_to_imasm_raw(&ordered, start_depth, close))
+}
+
+/// Compatibility wrapper for existing infallible presentation callers.
+pub fn braid_to_imasm(generators: &[i32], start_depth: i32, close: bool) -> Vec<Token> {
+    braid_to_imasm_selected(generators, start_depth, close)
+        .expect("valid selected braid protocol order")
+}
+
+/// Apply the selected operation's inverse order to a tangle readout.
+pub fn recover_ordered_generators(generators: &[i32]) -> Result<Vec<i32>, String> {
+    let order = vox_core::ordering::selected("braid-protocol", generators.len())?;
+    order.inverse().apply(generators)
+}
+
 /// Embed a local braid above an existing carrier frame. Parent frames are
 /// protected: local sigma_i crosses at depth frame_depth+i, never below it.
 pub fn braid_to_imasm_in_frame(generators: &[i32], frame_depth: i32) -> Result<Vec<Token>, String> {
@@ -199,7 +232,7 @@ pub fn braid_to_imasm_in_frame(generators: &[i32], frame_depth: i32) -> Result<V
         frame_depth.checked_add(index).ok_or("carrier frame depth overflow")?;
     }
     // Relative depths make the token presentation independent of its parent.
-    Ok(braid_to_imasm(generators, frame_depth, true))
+    braid_to_imasm_selected(generators, frame_depth, true)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -222,7 +255,9 @@ pub fn audit_braid_frames(generators: &[i32], strands: usize, heights: &[i32])
     if generators.iter().any(|g| g.unsigned_abs() as usize >= strands) {
         return Err("braid generator lies outside its physical strand layout".into());
     }
-    let program = braid_to_imasm_in_frame(generators, 1)?;
+    let order = vox_core::ordering::selected("braid-protocol", generators.len())?;
+    let ordered = order.apply(generators)?;
+    let program = braid_to_imasm_raw(&ordered, 1, true);
     let mut reports = Vec::new();
     for &height in heights {
         if height < 1 { return Err("carrier frame depth must be positive".into()); }
@@ -240,7 +275,7 @@ pub fn audit_braid_frames(generators: &[i32], strands: usize, heights: &[i32])
                 Token::Afwd | Token::Arev => {
                     let index = depth.checked_sub(height).ok_or("crossing escaped parent frame")?;
                     let recovered = if *token == Token::Afwd { index } else { -index };
-                    if generators.get(returned) != Some(&recovered) {
+                    if ordered.get(returned) != Some(&recovered) {
                         return Err(format!("braid recovery changed generator {} at stack height {}", returned,height));
                     }
                     returned += 1;
@@ -251,8 +286,11 @@ pub fn audit_braid_frames(generators: &[i32], strands: usize, heights: &[i32])
             if depth < height { return Err("transformation consumed a parent frame".into()); }
             highest = highest.max(depth);
         }
-        if !frames.is_empty() || depth != height || returned != generators.len() {
+        if !frames.is_empty() || depth != height || returned != ordered.len() {
             return Err(format!("transformed frame did not close at height {}",height));
+        }
+        if order.inverse().apply(&ordered)? != generators {
+            return Err("selected braid frame failed its inverse order return".into());
         }
         reports.push(FrameRecovery { height, crossings:returned, highest_depth:highest, returned_depth:depth });
     }
@@ -438,4 +476,21 @@ pub fn report() -> String {
     lines.push(format!("Seal verification ({}): is_seal = {}", seal.name, seal.is_seal()));
     lines.push(String::from("======================================================================"));
     lines.join("\n")
+}
+
+#[cfg(test)]
+mod order_tests {
+    use super::*;
+
+    #[test]
+    fn selected_generator_order_returns_through_inverse_tangle_readout() {
+        let generators = [1, 2, -1, 3];
+        let order = vox_core::ordering::Permutation::parse("reverse", generators.len()).unwrap();
+        let program = braid_to_imasm_in_order(&generators, &order, 1, true).unwrap();
+        let reading = read_tangle(&program, 6, 1).unwrap();
+        let ordered = order.apply(&generators).unwrap();
+        assert_eq!(reading.generators, ordered);
+        assert_eq!(order.inverse().apply(&reading.generators).unwrap(), generators);
+        assert!(reading.closes);
+    }
 }

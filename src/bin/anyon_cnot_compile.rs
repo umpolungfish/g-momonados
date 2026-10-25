@@ -45,6 +45,8 @@ fn run() -> Result<bool, String> {
 }
 
 fn main() -> ExitCode {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     match run() {
         Ok(true) => ExitCode::SUCCESS,
         Ok(false) => ExitCode::from(2),

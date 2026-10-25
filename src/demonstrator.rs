@@ -43,11 +43,12 @@ pub fn demo_mu_delta(gens: &[i32]) -> Demo {
     lines.push(("OPERATION".to_string(), "μ — read_tangle".to_string()));
     let (out, passed, note) = match crate::braid_protocol::read_tangle(&prog, gens.len() + 2, 1) {
         Ok(r) => {
-            let same = r.generators == gens;
+            let returned = crate::braid_protocol::recover_ordered_generators(&r.generators);
+            let same = returned.as_ref().is_ok_and(|returned| returned == gens);
             (
                 format!(
-                    "{:?}   writhe {}, {} crossings",
-                    r.generators, r.writhe, r.crossings
+                    "physical={:?} returned={:?}   writhe {}, {} crossings",
+                    r.generators, returned.as_ref().ok(), r.writhe, r.crossings
                 ),
                 same,
                 if same {

@@ -28,12 +28,23 @@ fn powmod(a: &Big, e: &Big, n: &Big) -> Big {
 fn low(b: &Big) -> u64 { (0..64).filter(|&i| b.bit_at(i)).fold(0u64, |v, i| v | (1u64 << i)) }
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.is_empty() || args.len() > 2 {
-        eprintln!("usage: membrane_instant_read <canonical-IMASM-N> [leap-cap]");
-        std::process::exit(2);
+    let mut input = None;
+    let mut cap = 1u64 << 34;
+    let mut index = 0;
+    while index < args.len() {
+        let value = args.get(index + 1).unwrap_or_else(|| {
+            eprintln!("each flag requires a value");
+            std::process::exit(2);
+        });
+        match args[index].as_str() {
+            "--number" => input = Some(value.as_str()),
+            "--leap-cap" => cap = value.parse().unwrap_or_else(|_| { eprintln!("--leap-cap must be an integer"); std::process::exit(2); }),
+            flag => { eprintln!("unknown flag {flag}"); std::process::exit(2); }
+        }
+        index += 2;
     }
-    let n = from_word(&args[0]).unwrap_or_else(|| { eprintln!("expected canonical IMASM numeral word"); std::process::exit(2) });
-    let cap = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(1u64 << 34);
+    let input = input.unwrap_or_else(|| { eprintln!("usage: membrane_instant_read --number CANONICAL_IMASM_N [--leap-cap COUNT]"); std::process::exit(2) });
+    let n = from_word(input).unwrap_or_else(|| { eprintln!("expected canonical IMASM numeral word"); std::process::exit(2) });
     let a = from_u32(2);
     const B: usize = 64;
     let mut seed: u64 = 0x2545F4914F6CDD1D;

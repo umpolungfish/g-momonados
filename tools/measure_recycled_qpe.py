@@ -86,4 +86,9 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys as _order_sys
+    from pathlib import Path as _OrderPath
+    _order_sys.path.insert(0, str(_OrderPath(__file__).resolve().parents[2] / "Vox"))
+    from ordering import intercept as _order_intercept
+    _order_intercept()
     raise SystemExit(main())

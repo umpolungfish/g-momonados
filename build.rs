@@ -16,6 +16,8 @@ use std::{env, fs, path::PathBuf};
 
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=IG_ORDER_SITE");
+    println!("cargo:rerun-if-env-changed=IG_ORDER_SPEC");
     println!("cargo:rerun-if-env-changed=QUQUART_PREPARED_FILE");
     let contents = match env::var("QUQUART_PREPARED_FILE") {
         Ok(path) => {

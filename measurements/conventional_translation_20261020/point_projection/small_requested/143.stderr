@@ -1,4 +1,0 @@
-conventional point stage=prepare source_bits=8
-conventional point stage=arithmetic nodes=39 support=N-2
-conventional point op=16 row=1 column=8 nodes=320 elapsed=0.001
-conventional point op=32 row=4 column=6 nodes=443 elapsed=0.003

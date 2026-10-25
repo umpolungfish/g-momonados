@@ -1,5 +1,0 @@
-conventional prepare <N> [--receipt <prepared.json>]
-conventional read <prepared.json|-> [--receipt <return.json>]
-conventional <srfp|dnn|both> <N> [--receipt <return.json>] [--write-source <path>]
-Preparation receives N alone and completes the numerical state before read-off.
-Read consumes the prepared artifact and never invokes a producer. '-' reads that artifact from stdin.

@@ -231,6 +231,9 @@ impl FibonacciLocal {
             }
         }
     }
+    pub fn evaluate_ordered(&self, word: &[i32], order: &vox_core::ordering::Permutation) -> Result<LocalMatrix, String> {
+        self.evaluate(&order.apply(word)?)
+    }
     pub fn evaluate(&self, word: &[i32]) -> Result<LocalMatrix, String> {
         // Carry guard precision through the full word, then round once to the
         // source scale. This avoids accumulated unitary drift for long braids.

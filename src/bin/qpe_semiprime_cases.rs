@@ -308,6 +308,8 @@ fn generate() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     if let Err(error) = generate() {
         eprintln!("{error}");
         std::process::exit(1);

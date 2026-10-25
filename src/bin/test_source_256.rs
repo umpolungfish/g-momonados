@@ -1,6 +1,8 @@
 
 use g_momonados::arbitrary_factor::*;
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let source_word = std::fs::read_to_string("membranes/ququart_closed_256_radix4_20261005/source.imasm").unwrap().trim().to_string();
     println!("Testing source_word on 256 bits...");
     match native_factor_word_pair(&source_word) {

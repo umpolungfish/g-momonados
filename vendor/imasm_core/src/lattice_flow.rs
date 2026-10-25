@@ -129,6 +129,11 @@ pub fn cycle_report(word: &str) -> String {
         let reg = run_word_register(&rot);
         let (v, _) = tri_ancestral_verdict(&rot);
         sw!(out, "   {:>3}  {:<6} {:<8} {}", k, reg, v, render(&rot));
+        sw!(out, "execution {} {}", k, crate::imasm16_3::execution_audit(&rot).json());
+        if let Some(bank) = banked_walk(&render(&rot)) {
+            sw!(out, "banking {} {{\"live_clears\":{},\"deposits\":{},\"inert_steps\":{},\"exposed_clears\":{},\"holds\":{},\"vacuous\":{}}}",
+                k, bank.live_clears, bank.deposits, bank.inert, bank.exposed.len(), bank.holds(), bank.vacuous());
+        }
         finals.push((reg, k));
     }
 
@@ -382,6 +387,11 @@ pub fn banked_report(word: &str) -> String {
         (b.exposed, b.live_clears, b.deposits, b.inert, b.reg);
 
     sw!(out, "word   : {}", render(&steps));
+    let execution = crate::imasm16_3::execution_audit(&steps);
+    sw!(out, "  executed return: {} ({} open frames, {} executed reconnections, {} skipped ∋)",
+        if execution.returned() { "complete" } else { "held" }, execution.open_frames,
+        execution.executed_reconnections, execution.skipped_fuses);
+
     if exposed.is_empty() && live_clears == 0 {
         // Passing because nothing was ever at risk is not the same as passing
         // because the frame held.
@@ -542,6 +552,11 @@ pub fn weight_report(word: &str) -> String {
         return out;
     }
     sw!(out, "word   : {}", render(&steps));
+    let execution = crate::imasm16_3::execution_audit(&steps);
+    sw!(out, "  executed return: {} ({} open frames, {} executed reconnections, {} skipped ∋)",
+        if execution.returned() { "complete" } else { "held" }, execution.open_frames,
+        execution.executed_reconnections, execution.skipped_fuses);
+
 
     // Base values are indexed T, F, t, f throughout.
     const NAMES: [&str; 4] = ["T", "F", "t", "f"];

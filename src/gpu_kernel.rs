@@ -452,7 +452,7 @@ __device__ __forceinline__ void step2(unsigned char mt,
 __device__ __forceinline__ void nest_scratch(unsigned long long leaves)
 {
     unsigned char INTERP[12] = {0,2,4,6,7,5,9,10,11,3,1,15};
-    unsigned char sst[8]; int stop = 0; unsigned char sr0 = 0; unsigned int sacc = 0;
+    unsigned char sst[16]; int stop = 0; unsigned char sr0 = 0; unsigned int sacc = 0;
     for (unsigned long long c = 0; c < leaves; c++) {
         unsigned char smt = INTERP[(unsigned int)(c % 12ULL)];
         step2(smt, sst, &stop, &sr0, &sacc);
@@ -2297,15 +2297,132 @@ pub fn bench_search(depth: u32, target: u32, device: usize) -> String {
 
 /// Several searches woven through one tower, all contained. One enumeration of
 /// the length-depth words feeds `lanes` separate censuses, each sealed in its
-/// own lane. The control is the single-lane run: lane zero at target zero must
-/// return the standalone census count exactly, proving the lanes share the walk
-/// without leaking into each other.
+/// own lane. Each lane sees its routed subsequence of the full word. Its
+/// standalone census is multiplied by the choices at all other positions.
+fn ordered_interleave_source(source: &str, order: &vox_core::ordering::Permutation, lanes: usize) -> Result<String, String> {
+    vox_core::ordering::Permutation::checked(order.indices.clone(), lanes)?;
+    let mut indices = order.indices.clone();
+    indices.resize(4, 0);
+    let mut inverse = order.inverse().indices;
+    inverse.resize(4, 0);
+    let declarations = format!(
+        "const unsigned int ig_order[4] = {{{},{},{},{}}}; const unsigned int ig_inverse[4] = {{{},{},{},{}}};",
+        indices[0], indices[1], indices[2], indices[3],
+        inverse[0], inverse[1], inverse[2], inverse[3],
+    );
+    let scope = "if (lanes < 1) lanes = 1; if (lanes > 4) lanes = 4;";
+    if source.matches(scope).count() != 1 {
+        return Err("GPU ordering site must have exactly one function-scope lane boundary".into());
+    }
+    let source = source.replace(scope, &format!("{scope} {declarations}"));
+    let dispatch_count = source.matches("unsigned int lane = L % lanes;").count();
+    if dispatch_count != 1 {
+        return Err("GPU ordering site must have exactly one lane-dispatch operation".into());
+    }
+    let replacement = format!("unsigned int lane = lanes == {lanes} ? ig_order[L % lanes] : L % lanes;");
+    let source = source.replace("unsigned int lane = L % lanes;", &replacement);
+    let result_count = source.matches("if (result == tg[l]) hits[l]++;").count();
+    if result_count != 1 {
+        return Err("GPU ordering site must have exactly one lane readout".into());
+    }
+    let source = source.replace(
+        "if (result == tg[l]) hits[l]++;",
+        &format!("unsigned int logical = lanes == {lanes} ? ig_inverse[l] : l; if (result == tg[logical]) hits[l]++;"),
+    );
+    if source.contains("dep[l]") {
+        let depth_count = source.matches("unsigned long long v=1ULL; for (unsigned int i=0;i<dep[l];i++) v*=12ULL; leaves[l]=v;").count();
+        if depth_count != 1 {
+            return Err("GPU nested ordering site must have exactly one lane-depth map".into());
+        }
+        let source = source.replace(
+            "unsigned long long v=1ULL; for (unsigned int i=0;i<dep[l];i++) v*=12ULL; leaves[l]=v;",
+            &format!("unsigned int logical = lanes == {lanes} ? ig_inverse[l] : l; unsigned long long v=1ULL; for (unsigned int i=0;i<dep[logical];i++) v*=12ULL; leaves[l]=v;"),
+        );
+        return Ok(source);
+    }
+    Ok(source)
+}
+
+fn restore_gpu_lane_order(counts: &mut [u64], order: &vox_core::ordering::Permutation, lanes: usize) {
+    if lanes != order.indices.len() {
+        return;
+    }
+    let physical = counts.to_vec();
+    for (logical, &physical_lane) in order.indices.iter().enumerate().take(lanes) {
+        counts[logical] = physical[physical_lane];
+    }
+}
+
+fn interleave_targets(spec: Option<&str>) -> Result<[u32; 3], String> {
+    let Some(spec) = spec else { return Ok([0, 5, 9]); };
+    let values = spec.split(',').map(|value| {
+        let parsed = value.parse::<u32>().map_err(|_| String::from("interleave targets must be three comma-separated bytes"))?;
+        if parsed > 255 { return Err(String::from("interleave targets must be in 0..=255")); }
+        Ok(parsed)
+    }).collect::<Result<Vec<_>, _>>()?;
+    values.try_into().map_err(|_| String::from("interleave targets require exactly three values"))
+}
+
+#[cfg(test)]
+mod ordering_generation_tests {
+    use super::*;
+
+    #[test]
+    fn interleave_kernel_carries_selected_order_and_inverse_readout() {
+        let order = vox_core::ordering::Permutation::parse("reverse", 3).unwrap();
+        let source = ordered_interleave_source(KERNEL_INTERLEAVE_SRC, &order, 3).unwrap();
+        assert!(source.contains("const unsigned int ig_order[4] = {2,1,0,0}"));
+        assert!(source.contains("const unsigned int ig_inverse[4] = {2,1,0,0}"));
+        assert!(source.contains("ig_order[L % lanes]"));
+        assert!(source.contains("ig_inverse[l] : l; if (result == tg[logical])"));
+        assert!(!source.contains("unsigned int lane = L % lanes;"));
+        assert!(source.find("ig_inverse[4]").unwrap() < source.find("for (unsigned long long idx").unwrap());
+    }
+
+    #[test]
+    fn nested_interleave_kernel_returns_lane_depths_through_inverse_map() {
+        let order = vox_core::ordering::Permutation::parse("reverse", 3).unwrap();
+        let source = ordered_interleave_source(KERNEL_INTERLEAVE_DEEP_SRC, &order, 3).unwrap();
+        assert!(source.contains("dep[logical]"));
+        assert!(source.contains("tg[logical]"));
+        assert!(source.find("ig_inverse[4]").unwrap() < source.find("for (unsigned long long idx").unwrap());
+    }
+
+    #[test]
+    fn gpu_readout_is_restored_to_logical_lane_order() {
+        let order = vox_core::ordering::Permutation::parse("reverse", 3).unwrap();
+        let mut counts = [30, 20, 10, 0];
+        restore_gpu_lane_order(&mut counts, &order, 3);
+        assert_eq!(&counts[..3], &[10, 20, 30]);
+        let mut single_lane_control = [30, 20, 10, 0];
+        restore_gpu_lane_order(&mut single_lane_control, &order, 1);
+        assert_eq!(single_lane_control, [30, 20, 10, 0]);
+    }
+
+    #[test]
+    fn interleave_target_schedule_is_three_valid_bytes() {
+        assert_eq!(interleave_targets(None).unwrap(), [0, 5, 9]);
+        assert_eq!(interleave_targets(Some("2,17,255")).unwrap(), [2, 17, 255]);
+        assert!(interleave_targets(Some("0,1")).is_err());
+        assert!(interleave_targets(Some("0,1,256")).is_err());
+    }
+}
+
 pub fn bench_interleave(depth: u32, device: usize) -> String {
     let ctx = match CudaContext::new(device) {
         Ok(c) => c, Err(e) => return format!("bench_interleave: no CUDA: {e}"),
     };
     let stream = ctx.default_stream();
-    let module = match compile_ptx(KERNEL_INTERLEAVE_SRC).map(|p| ctx.load_module(p)) {
+    let lane_order = match vox_core::ordering::selected("gpu-lanes-3", 3) {
+        Ok(order) => order, Err(error) => return error,
+    };
+    let target_values = match interleave_targets(std::env::var("IG_GPU_INTERLEAVE_TARGETS").ok().as_deref()) {
+        Ok(targets) => targets, Err(error) => return format!("bench_interleave: {error}"),
+    };
+    let ordered_source = match ordered_interleave_source(KERNEL_INTERLEAVE_SRC, &lane_order, 3) {
+        Ok(source) => source, Err(error) => return error,
+    };
+    let module = match compile_ptx(ordered_source).map(|p| ctx.load_module(p)) {
         Ok(Ok(m)) => m, Ok(Err(e)) => return format!("bench_interleave: module: {e}"),
         Err(e) => return format!("bench_interleave: nvrtc: {e}"),
     };
@@ -2319,41 +2436,56 @@ pub fn bench_interleave(depth: u32, device: usize) -> String {
     let grid = (nt + block - 1) / block;
     let cfg = LaunchConfig { grid_dim: (grid,1,1), block_dim: (block,1,1), shared_mem_bytes: 0 };
 
-    let run = |lanes: u32, t: [u32;4]| -> Result<(Vec<u64>, f64), String> {
+    let run = |lanes: u32, t: [u32;4], walk_depth: u32| -> Result<(Vec<u64>, f64), String> {
+        let space = 12u64.saturating_pow(walk_depth);
         let mut d_counts = stream.alloc_zeros::<u64>(4).map_err(|e| format!("alloc: {e}"))?;
         // warm
         { let mut b = stream.launch_builder(&func);
-          b.arg(&space); b.arg(&depth); b.arg(&lanes); b.arg(&t[0]); b.arg(&t[1]); b.arg(&t[2]); b.arg(&t[3]); b.arg(&mut d_counts); b.arg(&nt);
+          b.arg(&space); b.arg(&walk_depth); b.arg(&lanes); b.arg(&t[0]); b.arg(&t[1]); b.arg(&t[2]); b.arg(&t[3]); b.arg(&mut d_counts); b.arg(&nt);
           unsafe { b.launch(cfg) }.map_err(|e| format!("launch: {e}"))?; }
         let _ = stream.clone_dtoh(&d_counts);
         let mut d2 = stream.alloc_zeros::<u64>(4).map_err(|e| format!("alloc2: {e}"))?;
         let t0 = std::time::Instant::now();
         { let mut b = stream.launch_builder(&func);
-          b.arg(&space); b.arg(&depth); b.arg(&lanes); b.arg(&t[0]); b.arg(&t[1]); b.arg(&t[2]); b.arg(&t[3]); b.arg(&mut d2); b.arg(&nt);
+          b.arg(&space); b.arg(&walk_depth); b.arg(&lanes); b.arg(&t[0]); b.arg(&t[1]); b.arg(&t[2]); b.arg(&t[3]); b.arg(&mut d2); b.arg(&nt);
           unsafe { b.launch(cfg) }.map_err(|e| format!("launch: {e}"))?; }
-        let host = stream.clone_dtoh(&d2).map_err(|e| format!("sync: {e}"))?;
+        let mut host = stream.clone_dtoh(&d2).map_err(|e| format!("sync: {e}"))?;
+        restore_gpu_lane_order(&mut host, &lane_order, lanes as usize);
         Ok((host, t0.elapsed().as_secs_f64().max(1e-9)))
     };
 
     let mut out = format!(
-        "interleave: {} length-{} words, {} threads, lanes woven by level index\n  one walk carries every lane's census at once",
-        space, depth, nt);
+        "interleave: {} length-{} words, {} threads, logical targets {:?}, lanes carried through the selected order\n  one walk carries every lane's census at once",
+        space, depth, nt, target_values);
 
-    // Control: one lane, target 0. Must match the standalone census.
-    match run(1, [0,0,0,0]) {
-        Ok((c, secs)) => out.push_str(&format!(
-            "\n  CONTROL lanes=1 target 0 : {} solutions  ({:.4}s)  [standalone census = 165554580]",
-            c[0], secs)),
-        Err(e) => return format!("bench_interleave: {}", e),
+    let mut controls = [0u64; 3];
+    for logical in 0..3u32 {
+        let lane_depth = if depth > logical { 1 + (depth - 1 - logical) / 3 } else { 0 };
+        let multiplicity = 12u64.saturating_pow(depth - lane_depth);
+        match run(1, [target_values[logical as usize],0,0,0], lane_depth) {
+            Ok((c, secs)) => {
+                let Some(expected) = c[0].checked_mul(multiplicity) else {
+                    return "bench_interleave: projected control count overflow".into();
+                };
+                controls[logical as usize] = expected;
+                out.push_str(&format!(
+                    "\n  CONTROL lane{logical} length={lane_depth} target {} : {} x {multiplicity} = {expected} solutions ({secs:.4}s)",
+                    target_values[logical as usize], c[0]));
+            }
+            Err(e) => return format!("bench_interleave: {e}"),
+        }
     }
 
-    // Three interleaved censuses in one contained walk: targets 0, 5, 9.
-    match run(3, [0,5,9,0]) {
+    // Three logical targets share one contained walk.
+    match run(3, [target_values[0],target_values[1],target_values[2],0], depth) {
         Ok((c, secs)) => {
+            if c[..3] != controls {
+                return format!("bench_interleave: logical lane counts {:?} differ from projected controls {controls:?}", &c[..3]);
+            }
             let rate = space as f64 / secs / 1e9;
             out.push_str(&format!(
-                "\n  lanes=3 one walk        : lane0(t0)={}  lane1(t5)={}  lane2(t9)={}  ({:.4}s, {:.2} Gword/s)",
-                c[0], c[1], c[2], secs, rate));
+                "\n  lanes=3 one walk        : lane0(t{})={}  lane1(t{})={}  lane2(t{})={}  ({:.4}s, {:.2} Gword/s) projected_controls_match=true",
+                target_values[0], c[0], target_values[1], c[1], target_values[2], c[2], secs, rate));
         }
         Err(e) => return format!("bench_interleave: {}", e),
     }
@@ -2428,7 +2560,13 @@ pub fn bench_interleave_deep(depth: u32, depths: [u32; 4], targets: [u32; 4], la
         Ok(c) => c, Err(e) => return format!("bench_interleave_deep: no CUDA: {e}"),
     };
     let stream = ctx.default_stream();
-    let module = match compile_ptx(KERNEL_INTERLEAVE_DEEP_SRC).map(|p| ctx.load_module(p)) {
+    let lane_order = match vox_core::ordering::selected(&format!("gpu-lanes-{}", lanes.clamp(1,4)), lanes.clamp(1,4) as usize) {
+        Ok(order) => order, Err(error) => return error,
+    };
+    let ordered_source = match ordered_interleave_source(KERNEL_INTERLEAVE_DEEP_SRC, &lane_order, lanes.clamp(1,4) as usize) {
+        Ok(source) => source, Err(error) => return error,
+    };
+    let module = match compile_ptx(ordered_source).map(|p| ctx.load_module(p)) {
         Ok(Ok(m)) => m, Ok(Err(e)) => return format!("bench_interleave_deep: module: {e}"),
         Err(e) => return format!("bench_interleave_deep: nvrtc: {e}"),
     };
@@ -2455,7 +2593,8 @@ pub fn bench_interleave_deep(depth: u32, depths: [u32; 4], targets: [u32; 4], la
         b.arg(&mut d_counts); b.arg(&nt);
         if let Err(e) = unsafe { b.launch(cfg) } { return format!("bench_interleave_deep: launch: {e}"); }
     }
-    let host = match stream.clone_dtoh(&d_counts) { Ok(v) => v, Err(e) => return format!("bench_interleave_deep: sync: {e}") };
+    let mut host = match stream.clone_dtoh(&d_counts) { Ok(v) => v, Err(e) => return format!("bench_interleave_deep: sync: {e}") };
+    restore_gpu_lane_order(&mut host, &lane_order, lanes as usize);
     let secs = t0.elapsed().as_secs_f64().max(1e-9);
 
     let mut out = format!(

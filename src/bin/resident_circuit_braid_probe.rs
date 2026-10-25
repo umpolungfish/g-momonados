@@ -4,6 +4,8 @@ use num_traits::{Signed, Zero};
 use std::{env, fs, time::Instant};
 
 fn main() -> Result<(), String> {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let mut args = env::args().skip(1);
     let source_path = args.next().ok_or("usage: resident_circuit_braid_probe N_ONLY_IMASM OPERATOR_JSON")?;
     let receipt_path = args.next().ok_or("missing split/fuse operator receipt")?;

@@ -1,9 +1,0 @@
-
-────────────────────────────────────────────────────────────────────────
-column  elute by affinity to sic_povm, least-retained first: {gn_factorizer_membrane, spectral_phase_factorizer_membrane, ac_factorizer_membrane, fixed_point_spectral_construction}
-────────────────────────────────────────────────────────────────────────
-  fraction  1: gn_factorizer_membrane   retention=0.00   Δ→next=0.00   ⚠ co-elutes with the next (shared fraction)
-  fraction  2: spectral_phase_factorizer_membrane   retention=0.00   Δ→next=0.50
-  fraction  3: ac_factorizer_membrane   retention=0.50   Δ→next=0.00   ⚠ co-elutes with the next (shared fraction)
-  fraction  4: fixed_point_spectral_construction   retention=0.50   (most retained, last off)
-  ⚠ 2 neighboring pair(s) co-elute (B) — overlap in a shared fraction.

@@ -1,7 +1,0 @@
-302495 execve("/home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/static_bakers_20261015/native_kernel/native_kernel_check", ["/home/mrnob0dy666/imsgct/G-mOMon"..., "--test-threads=1"], 0x7fff1a58d7e0 /* 0 vars */) = 0
-302496 +++ exited with 0 +++
-302497 +++ exited with 0 +++
-302498 +++ exited with 0 +++
-302499 +++ exited with 0 +++
-302500 +++ exited with 0 +++
-302495 +++ exited with 0 +++

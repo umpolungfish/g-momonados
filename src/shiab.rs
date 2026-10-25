@@ -50,24 +50,23 @@ fn delta(n: &BigUint) -> (BigUint, usize) {
     for (i, bit) in bits.iter().enumerate() {
         if i % 2 == 0 { even.push(*bit) } else { odd.push(*bit) }
     }
-    let half = even.len();
-    let boundary = from_bits(&even) + (from_bits(&odd) << half);
+    let lanes = vox_core::ordering::selected("lanes",2).expect("valid lane order")
+        .apply(&[even,odd]).expect("two lanes");
+    let boundary = from_bits(&lanes[0]) + (from_bits(&lanes[1]) << lanes[0].len());
     (boundary, b)
 }
 
 /// μ: reinterleave the two lanes of a boundary value back into the bulk. `b` is
 /// the original bit length, so the split point is known.
 fn mu(boundary: &BigUint, b: usize) -> BigUint {
-    let half = b.div_ceil(2);                 // number of even positions
-    let low_mask = (BigUint::one() << half) - BigUint::one();
-    let e = boundary & &low_mask;
-    let o = boundary >> half;
-    let ebits = {
-        let mut v = bits_of(&e); v.resize(half, false); v
-    };
-    let obits = {
-        let mut v = bits_of(&o); v.resize(b - half, false); v
-    };
+    let order=vox_core::ordering::selected("lanes",2).expect("valid lane order");
+    let widths=order.apply(&[b.div_ceil(2),b/2]).expect("two widths");
+    let half=widths[0];
+    let low_mask=(BigUint::one()<<half)-BigUint::one();
+    let mut first=bits_of(&(boundary & &low_mask));first.resize(half,false);
+    let mut second=bits_of(&(boundary>>half));second.resize(widths[1],false);
+    let lanes=order.inverse().apply(&[first,second]).expect("two lanes");
+    let (ebits,obits)=(&lanes[0],&lanes[1]);
     let mut out = vec![false; b];
     for i in 0..b {
         out[i] = if i % 2 == 0 { ebits[i / 2] } else { obits[i / 2] };

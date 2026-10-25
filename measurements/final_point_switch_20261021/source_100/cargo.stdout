@@ -1,4 +1,0 @@
-[g-momonados 0.1.0] cargo:rerun-if-env-changed=QUQUART_PREPARED_FILE
-[g-momonados 0.1.0] cargo:rerun-if-env-changed=FINAL_POINT_SOURCE_FILE
-[g-momonados 0.1.0] cargo:rerun-if-env-changed=POINT_SOURCE_FILE
-[g-momonados 0.1.0] cargo:rerun-if-changed=/home/mrnob0dy666/imsgct/G-mOMonadOS/measurements/final_point_switch_20261021/source_100/source.txt

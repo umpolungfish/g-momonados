@@ -218,6 +218,35 @@ mod tests {
         assert!(DecisionArena::from_prepared_record(&corrupt).is_err());
     }
 
+    #[cfg(feature="hosted")]
+    #[test]
+    fn locked_source_sparse_restore_checks_high_coordinates_and_complex_banks(){
+        let source=WordTape::from_canonical_word(include_str!(
+            "../measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.imasm").trim()).unwrap();
+        assert!(source.bit_len()>=200);
+        let mut arena=DecisionArena::new(source.bit_len());
+        let base=source.to_biguint();
+        let bank=arena.basis(&base,BigInt::from(-3));
+        let bank=arena.scale_words_numerator(bank,&(SignedWordTape::from_small(2),SignedWordTape::from_small(5)));
+        let high=arena.cells+1_000_000;arena.cells=high+1;
+        let mut unit=DecisionArena::new(0);let one=unit.basis(&BigUint::zero(),BigInt::one());
+        let one=arena.import_shifted(&unit,one,0).unwrap();let zero=arena.zero();
+        let marker=arena.conditional_literals(zero,one,&[(high,true)]);
+        let record=arena.compiled_record_many(&[bank,marker]);
+        let (restored,roots)=DecisionArena::from_prepared_record_many(&record).unwrap();
+        assert_eq!(restored.amplitude(roots[0],&base),arena.amplitude(bank,&base));
+        assert_eq!(restored.fixed_cell_value(roots[1],high),Some(true));
+        assert_eq!(restored.compiled_record_many(&roots),record);
+        let mut corrupt=record.clone();
+        let pool=corrupt["support_wires"].as_array_mut().unwrap();
+        let entry=pool.iter_mut().find(|row|row.as_array().unwrap().contains(&serde_json::json!(high))).unwrap();
+        *entry=serde_json::json!([high-1]);
+        assert!(DecisionArena::from_prepared_record_many(&corrupt).is_err());
+        let mut corrupt=record;
+        corrupt["support_wires"][0]=serde_json::json!([high,high]);
+        assert!(DecisionArena::from_prepared_record_many(&corrupt).is_err());
+    }
+
     #[test]
     fn locked_source_digit_prefixes_preserve_joint_complex_branches_and_recovery() {
         let source=WordTape::from_canonical_word(include_str!(
@@ -852,6 +881,14 @@ enum SupportStorage {
 #[derive(Clone)]
 struct SupportMask(Option<SupportStorage>);
 impl SupportMask {
+    fn equals_sparse(&self,wires:&[u64])->bool{
+        match &self.0{
+            None=>wires.is_empty(),
+            Some(SupportStorage::Sparse(actual))=>actual.as_slice()==wires,
+            Some(SupportStorage::CompiledSparse(actual))=>*actual==wires,
+            _=>self.wires()==wires,
+        }
+    }
     #[cfg(test)]
     fn is_zero(&self) -> bool {self.0.is_none()}
     fn bit(&self, wire:u64) -> bool {
@@ -1114,6 +1151,44 @@ impl DecisionArena {
     /// this is their tensor product in one resident diagram.
     pub fn amplitude_product(&mut self, first: usize, second: usize) -> usize {
         self.amplitude_product_cached(first,second,&mut OperationCache::default())
+    }
+    /// An enclosing tensor's exact coordinate chart. Omitted wires must be
+    /// spectators: encountering a dependency outside the chart is an error.
+    pub(crate) fn scoped(&self, root:usize, scope:&[usize])->Result<(Self,usize),String>{
+        if scope.windows(2).any(|w|w[0]>=w[1])||scope.iter().any(|&w|w>=self.cells){
+            return Err("invalid enclosing tensor chart".into());
+        }
+        fn visit(a:&DecisionArena,b:&mut DecisionArena,id:usize,scope:&[usize],
+            memo:&mut OperationCache<usize,usize>)->Result<usize,String>{
+            if let Some(&v)=memo.get(&id){return Ok(v);}
+            let v=match a.node(id){
+                Node::Leaf(re,im)=>b.intern(Node::Leaf(re.clone(),im.clone())),
+                Node::Branch{wire,low,high}=>{
+                    let at=scope.binary_search(wire).map_err(|_|String::from("tensor escaped its enclosing chart"))?;
+                    let l=visit(a,b,*low,scope,memo)?;let h=visit(a,b,*high,scope,memo)?;
+                    b.branch(at,l,h)
+                }
+            };memo.insert(id,v);Ok(v)
+        }
+        let mut b=Self::new(scope.len());
+        let root=visit(self,&mut b,root,scope,&mut OperationCache::default())?;
+        Ok((b,root))
+    }
+    pub(crate) fn scope_signature(&self,root:usize,scope:&[usize])->Result<alloc::string::String,String>{
+        fn visit(a:&DecisionArena,id:usize,scope:&[usize],rows:&mut Vec<alloc::string::String>,
+            memo:&mut OperationCache<usize,usize>)->Result<usize,String>{
+            if let Some(&v)=memo.get(&id){return Ok(v);}
+            let row=match a.node(id){
+                Node::Leaf(re,im)=>alloc::format!("L({},{})",re.to_bigint(),im.to_bigint()),
+                Node::Branch{wire,low,high}=>{
+                    let w=scope.binary_search(wire).map_err(|_|"tensor escaped its enclosing signature")?;
+                    let l=visit(a,*low,scope,rows,memo)?;let h=visit(a,*high,scope,rows,memo)?;
+                    alloc::format!("B({w},{l},{h})")
+                }
+            };let at=rows.len();rows.push(row);memo.insert(id,at);Ok(at)
+        }
+        let mut rows=Vec::new();let root=visit(self,root,scope,&mut rows,&mut OperationCache::default())?;
+        Ok(alloc::format!("{}:{root}:{}",scope.len(),rows.join(";")))
     }
     fn amplitude_product_cached(&mut self, first:usize, second:usize,
         memo:&mut OperationCache<(usize,usize),usize>)->usize {
@@ -2023,6 +2098,31 @@ impl DecisionArena {
             (false,true,true,false)=>Some(true),_=>None,
         }
     }
+    /// Copy/complement with Gaussian-unit phases on its two accepted arms.
+    /// Magnitude-weighted and partial tensors are excluded. Weights are ordered
+    /// by the eliminated coordinate, independently of physical wire ordering.
+    pub(crate) fn phase_copy_relation(&self,root:usize,first:usize,second:usize)
+        ->Option<(bool,[(SignedWordTape,SignedWordTape);2])>{
+        let (a,b)=if first<second{(first,second)}else{(second,first)};
+        if a==b{return None;}
+        let Node::Branch{wire,low,high}=*self.node(root) else{return None;};if wire!=a{return None;}
+        let pair=|id|match *self.node(id){Node::Branch{wire,low,high} if wire==b=>Some((low,high)),_=>None};
+        let (ll,lh)=pair(low)?;let (hl,hh)=pair(high)?;
+        let leaf=|id|match self.node(id){Node::Leaf(r,i)=>Some((r.clone(),i.clone())),_=>None};
+        let values=[leaf(ll)?,leaf(lh)?,leaf(hl)?,leaf(hh)?];
+        let one=SignedWordTape::from_small(1);
+        let is_unit=|(r,i):&(SignedWordTape,SignedWordTape)|
+            (r.abs()==one&&i.is_zero())||(r.is_zero()&&i.abs()==one);
+        for complement in [false,true]{
+            let at=|x:usize|{let y=x^usize::from(complement);if first==a{2*x+y}else{2*y+x}};
+            let accepted=[at(0),at(1)];
+            if accepted.iter().all(|&at|is_unit(&values[at]))&&(0..4).filter(|at|!accepted.contains(at))
+                .all(|at|values[at].0.is_zero()&&values[at].1.is_zero()){
+                return Some((complement,[values[accepted[0]].clone(),values[accepted[1]].clone()]));
+            }
+        }
+        None
+    }
 
     /// Fuse two incident tensors directly through their shared internal wire.
     /// Splitting before multiplication avoids retaining a joined copy of the
@@ -2596,6 +2696,20 @@ impl DecisionArena {
         let index = |key: &str| record[key].as_u64().and_then(|n| usize::try_from(n).ok())
             .ok_or_else(|| alloc::format!("invalid prepared register {key}"));
         let mut arena = Self::new(index("cells")?);
+        // The saved carrier already supplies sparse support. Validate that
+        // representation directly instead of allocating a dense, source-wide
+        // integer twice for every node in a multi-million-node register.
+        let sparse_support=record.get("support_wires").map(|pool|{
+            pool.as_array().ok_or("invalid prepared sparse support pool")?.iter().map(|row|{
+                let wires=row.as_array().ok_or("invalid prepared sparse support")?.iter()
+                    .map(|w|w.as_u64().ok_or("invalid prepared sparse coordinate"))
+                    .collect::<Result<Vec<_>,_>>()?;
+                if wires.iter().any(|&w|w>=arena.cells as u64)||wires.windows(2).any(|w|w[0]>=w[1]){
+                    return Err("prepared sparse support lost its coordinate order");
+                }
+                Ok(wires)
+            }).collect::<Result<Vec<_>,_>>()
+        }).transpose()?;
         let mut nodes = Vec::new();
         for row in record["nodes"].as_array().ok_or("missing prepared register nodes")? {
             let node = if row.get("re").is_some() {
@@ -2615,21 +2729,19 @@ impl DecisionArena {
             };
             if let Some(fixed) = record.get("fixed") {
                 let row = fixed.get(nodes.len()).ok_or("prepared support lost its node")?;
+                if let Some(pool)=&sparse_support{
+                    let mask=|slot:usize|row[slot].as_u64().and_then(|id|usize::try_from(id).ok())
+                        .and_then(|id|pool.get(id)).ok_or("prepared sparse support escaped its pool");
+                    let actual=&arena.fixed[node];
+                    if row[0].as_bool()!=Some(actual.empty)||!actual.zero.equals_sparse(mask(1)?)
+                        ||!actual.one.equals_sparse(mask(2)?){
+                        return Err("prepared support differs from its amplitude diagram".into());
+                    }
+                    nodes.push(node);continue;
+                }
                 let mask = |slot:usize| -> Result<BigUint,String> {
                     let id=row[slot].as_u64().and_then(|id|usize::try_from(id).ok())
                         .ok_or("invalid prepared support address")?;
-                    if let Some(pool)=record.get("support_wires"){
-                        let wires=pool[id].as_array().ok_or("prepared sparse support escaped its pool")?;
-                        let mut mask=BigUint::zero();let mut previous=None;
-                        for wire in wires {
-                            let wire=wire.as_u64().ok_or("invalid prepared sparse coordinate")?;
-                            if wire>=arena.cells as u64||previous.is_some_and(|old|old>=wire){
-                                return Err("prepared sparse support lost its coordinate order".into());
-                            }
-                            mask.set_bit(wire,true);previous=Some(wire);
-                        }
-                        return Ok(mask);
-                    }
                     let digits=record["support_masks"][id].as_array().ok_or("prepared support escaped its pool")?
                         .iter().map(|digit| digit.as_u64().and_then(|n|u32::try_from(n).ok())
                             .ok_or_else(||String::from("invalid prepared support limb")))

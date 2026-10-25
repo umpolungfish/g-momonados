@@ -1,6 +1,0 @@
-elapsed_ms=5295
-source_bits=895
-base=2
-leap_budget=10000
-winding_multiple=none_within_budget
-factor_pair=none

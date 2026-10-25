@@ -1,6 +1,0 @@
-shift=0 exact_complex_support=true mass_preserved=true disabled_arm=true invalid_arm=true inverse_bank_recovery=true
-monad_left_unit=true right_unit=true associativity=true nested_distinction=true empty_distinction=true
-shift=1 exact_complex_support=true mass_preserved=true disabled_arm=true invalid_arm=true inverse_bank_recovery=true
-shift=7 exact_complex_support=true mass_preserved=true disabled_arm=true invalid_arm=true inverse_bank_recovery=true
-shift=199 exact_complex_support=true mass_preserved=true disabled_arm=true invalid_arm=true inverse_bank_recovery=true
-source_bits=200 elapsed_seconds=1.839821574

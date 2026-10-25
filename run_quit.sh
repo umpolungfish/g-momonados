@@ -21,14 +21,22 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 PROFILE="${PROFILE:-release}"
-BIN="target/${PROFILE}/g-momonados"
+# An inherited Cargo build.target writes beneath target/<triple>/, not target/.
+# Bind the build and invocation to the same explicit host target.
+GM_TARGET="${GM_TARGET:-$(rustc -vV | sed -n 's/^host: //p')}"
+BIN="target/${GM_TARGET}/${PROFILE}/g-momonados"
 JOIN_AWK="$(dirname "$0")/join_digit_continuations.awk"
 
-if [ ! -x "$BIN" ]; then
-  PROFILE_FLAG=()
-  [ "$PROFILE" = "release" ] && PROFILE_FLAG=(--release)
-  cargo build "${PROFILE_FLAG[@]}" >&2
-fi
+PROFILE_FLAG=()
+case "$PROFILE" in
+  release) PROFILE_FLAG=(--release) ;;
+  debug) ;;
+  *) echo "PROFILE must be release or debug" >&2; exit 2 ;;
+esac
+# Incremental Cargo freshness checks prevent an existing stale executable from
+# silently surviving source repairs.
+cargo build --offline --quiet --target-dir target --target "$GM_TARGET" --bin g-momonados "${PROFILE_FLAG[@]}" >&2
+
 
 # Join digit wraps within one command stream; never across separate argv.
 emit_cmds() {

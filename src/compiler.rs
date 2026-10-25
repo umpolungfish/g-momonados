@@ -14,7 +14,7 @@ extern crate alloc;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use crate::braid_protocol::{braid_to_imasm, parse_token_name, read_tangle, token_glyph};
+use crate::braid_protocol::{braid_to_imasm, parse_token_name, read_tangle, recover_ordered_generators, token_glyph};
 use crate::fibonacci_qc::jones_polynomial;
 use crate::tokens::Token;
 
@@ -72,8 +72,11 @@ pub fn compiler_main(args: &[&str]) -> String {
             let prog = braid_to_imasm(&gens, 1, false);
             // The IMASM side speaks glyphs, not names: the word is the symbols.
             let word: String = prog.iter().map(|t| token_glyph(t)).collect();
+            let recovered = read_tangle(&prog, gens.len() + 2, 1)
+                .and_then(|reading| recover_ordered_generators(&reading.generators));
             out.push_str(&format!("braid → imasm:  {}\n", word));
             out.push_str("certificate:    δ (braid_to_imasm), closure-preserving\n");
+            out.push_str(&format!("inverse return:  {}\n", if recovered.as_ref().is_ok_and(|word| word == &gens) { "PASS" } else { "FAIL" }));
         }
         ("braid", "jones") => {
             let gens = parse_ints(&src[1..]);
@@ -83,7 +86,11 @@ pub fn compiler_main(args: &[&str]) -> String {
         ("braid", "lean") => {
             let gens = parse_ints(&src[1..]);
             let prog = braid_to_imasm(&gens, 1, false);
-            let closes = read_tangle(&prog, gens.len() + 2, 1).map(|t| t.closes).unwrap_or(false);
+            let closes = read_tangle(&prog, gens.len() + 2, 1)
+                .and_then(|reading| {
+                    let returned = recover_ordered_generators(&reading.generators)?;
+                    Ok(reading.closes && returned == gens)
+                }).unwrap_or(false);
             out.push_str("braid → Lean:   theorem: μ∘δ = id\n");
             out.push_str(&format!("closure:        {}\n", if closes { "PASS (tangle closes)" } else { "FAIL (tangle open)" }));
         }

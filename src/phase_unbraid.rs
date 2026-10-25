@@ -640,6 +640,52 @@ fn qft(buf: &mut [Cx]) {
     for a in buf.iter_mut() { *a = a.scale(inv); }
 }
 
+fn permute_qft_register(buf: &mut [Cx], order: &vox_core::ordering::Permutation) -> Result<(), String> {
+    if !buf.len().is_power_of_two() {
+        return Err("ordered QFT register length must be a power of two".into());
+    }
+    let width = buf.len().trailing_zeros() as usize;
+    vox_core::ordering::Permutation::checked(order.indices.clone(), width)?;
+    if order.indices.iter().enumerate().all(|(i, &source)| i == source) {
+        return Ok(());
+    }
+    let mut visited = alloc::vec![false; buf.len()];
+    for start in 0..buf.len() {
+        if visited[start] { continue; }
+        let mut current = start;
+        let mut carried = buf[start];
+        loop {
+            visited[current] = true;
+            let mut destination = 0usize;
+            for (position, &source) in order.indices.iter().enumerate() {
+                destination |= ((current >> source) & 1) << position;
+            }
+            if destination == start {
+                buf[destination] = carried;
+                break;
+            }
+            core::mem::swap(&mut carried, &mut buf[destination]);
+            current = destination;
+        }
+    }
+    Ok(())
+}
+
+fn transform_ordered<F>(
+    transform: &mut F,
+    start: usize,
+    total: usize,
+    buffer: &mut [Cx],
+    order: &vox_core::ordering::Permutation,
+) -> Result<(), String>
+where
+    F: FnMut(usize, usize, &mut [Cx]) -> Result<(), String>,
+{
+    permute_qft_register(buffer, order)?;
+    transform(start, total, buffer)?;
+    permute_qft_register(buffer, &order.inverse())
+}
+
 fn gcd_big(mut a: BigUint, mut b: BigUint) -> BigUint {
     while !b.is_zero() { let t = b.clone(); b = &a % &b; a = t; }
     a
@@ -1334,6 +1380,9 @@ where
     if prepare_on_gpu && block_amps != m {
         return Err(format!("CUDA QFT requires the complete register in one transform (M={m}, mem_cap={block_amps}); independent block FFTs are not a full-register QFT"));
     }
+    let phase_order = vox_core::ordering::selected("phase-bits", block_amps.trailing_zeros() as usize)?;
+    trace.push_str(&format!("phase-register-order={} inverse={} width={}\n",
+        phase_order.label(), phase_order.inverse().label(), phase_order.indices.len()));
     let mut a = if a0 < BigUint::from(2u32) { BigUint::from(2u32) } else { a0 };
     let seed_mix = (&n_val % BigUint::from(u64::MAX)).iter_u64_digits().next().unwrap_or(0);
     let mut rng = XorShift(0x9E37_79B9_7F4A_7C15 ^ seed_mix);
@@ -1384,7 +1433,7 @@ where
                     let mut x = start;
                     while x < end { buf[x - start] = Cx::new(amp, 0.0); x += r_true_us; }
                 }
-                transform(start, m, &mut buf)?;
+                transform_ordered(&mut transform, start, m, &mut buf, &phase_order)?;
                 let mut s = 0.0f64;
                 let mut per_cell: Vec<f64> = if tape_dir_buf.is_some() {
                     alloc::vec![0.0f64; block_amps]
@@ -1449,7 +1498,7 @@ where
                     let mut x = start;
                     while x < end { buf[x - start] = Cx::new(amp, 0.0); x += r_true_us; }
                 }
-                transform(start, m, &mut buf)?;
+                transform_ordered(&mut transform, start, m, &mut buf, &phase_order)?;
                 cum = 0.0;
                 for (i, c) in buf.iter().enumerate() {
                     cum += c.norm2();
@@ -1601,6 +1650,29 @@ pub fn repl_phase_unbraid(args: &[&str]) -> String {
 #[cfg(test)]
 mod phase_tests_big {
     use super::*;
+
+    #[test]
+    fn selected_qft_order_changes_the_transform_and_returns_through_its_inverse_map() {
+        let order = vox_core::ordering::Permutation::parse("reverse", 3).unwrap();
+        let input = [
+            Cx::new(1.0, 0.0), Cx::new(0.25, -0.5), Cx::new(-0.75, 0.125), Cx::new(0.5, 0.25),
+            Cx::new(0.0, 0.75), Cx::new(-0.125, -0.25), Cx::new(0.875, 0.0), Cx::new(0.375, -0.625),
+        ];
+        let mut actual = input;
+        transform_ordered(&mut |_, _, buffer| { qft(buffer); Ok(()) }, 0, 8, &mut actual, &order).unwrap();
+        let mut expected = input;
+        permute_qft_register(&mut expected, &order).unwrap();
+        qft(&mut expected);
+        permute_qft_register(&mut expected, &order.inverse()).unwrap();
+        let residual = actual.iter().zip(&expected).map(|(a, b)|
+            (a.re - b.re).abs().max((a.im - b.im).abs())).fold(0.0f64, f64::max);
+        assert!(residual < 1e-12, "ordered QFT return residual={residual}");
+        let mut canonical = input;
+        qft(&mut canonical);
+        let separation = actual.iter().zip(&canonical).map(|(a, b)|
+            (a.re - b.re).abs().max((a.im - b.im).abs())).fold(0.0f64, f64::max);
+        assert!(separation > 1e-6, "selected order did not change the QFT transform");
+    }
     #[test]
     fn measured_word_fraction_closes_its_exact_source_and_rejects_wrong_winding() {
         for (source,denominator) in [(15u64,4u64),(91,12)] {

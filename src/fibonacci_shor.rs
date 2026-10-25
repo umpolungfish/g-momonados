@@ -176,7 +176,9 @@ pub fn inverse_qft_braid(n_qubits: usize) -> Vec<i32> {
         word.push(base + 3);
         word.push(base + 2);
     }
-    word
+    // The paired forward QFT is built by reversing and sign-inverting this
+    // selected physical word, so it returns through the operation executed.
+    vox_core::ordering::selected_braid(&word).expect("valid QFT braid order")
 }
 
 pub use crate::fibonacci_shor_plan::ShorGate;

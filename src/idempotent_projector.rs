@@ -70,6 +70,129 @@ pub struct Projector {
     pub copy_returns:Vec<(usize,usize,bool)>,
 }
 impl Projector {
+    /// Lift the already prepared Gödel relations without rebuilding a product
+    /// circuit or enumerating factor candidates. Cell renaming is carried by
+    /// the caller; all gate rows and source pins enter the same complex arena.
+    pub(crate) fn from_relations(arena:&mut DecisionArena,boundary:usize,
+        tables:Vec<(Vec<usize>,Vec<usize>)>)->Result<Self,String>{
+        if boundary>arena.cells{return Err("relation boundary exceeds register".into());}
+        let mut unit=DecisionArena::new(0);
+        let one=unit.basis(&BigUint::from(0u8),BigInt::one());
+        let one=arena.import_shifted(&unit,one,0)?;let zero=arena.zero();
+        let mut factors=Vec::new();let mut incidence:BTreeMap<usize,BTreeSet<usize>>=BTreeMap::new();
+        for (scope,rows) in tables{
+            if scope.windows(2).any(|w|w[0]>=w[1])||scope.iter().any(|&w|w>=arena.cells)
+                ||scope.len()>=usize::BITS as usize{return Err("invalid prepared gate chart".into());}
+            let mut root=zero;
+            for row in rows.into_iter().collect::<BTreeSet<_>>(){
+                if row>>scope.len()!=0{return Err("gate row exceeds its chart".into());}
+                let literals:Vec<_>=scope.iter().enumerate().map(|(i,&w)|(w,row&(1<<i)!=0)).collect();
+                let arm=arena.conditional_literals(zero,one,&literals);root=arena.sum(root,arm);
+            }
+            let index=factors.len();for &w in &scope{incidence.entry(w).or_default().insert(index);}
+            factors.push(Some(Factor{root,scope:scope.into_iter().collect()}));
+        }
+        let internal=incidence.keys().copied().filter(|&w|w>=boundary).collect();
+        let constraints=factors.len();
+        let mut result=Self{factors,incidence,internal,first_internal:boundary,
+            pending:BinaryHeap::new(),versions:BTreeMap::new(),constraints,contractions:0,copy_returns:Vec::new()};
+        for w in result.internal.iter().copied().collect::<Vec<_>>(){result.schedule(w);}
+        Ok(result)
+    }
+    pub(crate) fn enclosing_banks(&self)->Vec<(usize,Vec<usize>)>{
+        self.factors.iter().flatten().map(|f|(f.root,f.scope.iter().copied().collect())).collect()
+    }
+    pub(crate) fn enclosing_arm(&self,index:usize)->Result<(usize,Vec<usize>),String>{
+        self.factors.get(index).and_then(|f|f.as_ref()).map(|f|
+            (f.root,f.scope.iter().copied().collect())).ok_or_else(||"lost catalytic arm".into())
+    }
+    /// Split the whole incident family on its shared coordinate. These are
+    /// the executing tensors, including their Gaussian gauges and spectators.
+    pub(crate) fn joint_boundary_arm(&self,arena:&mut DecisionArena,wire:usize)
+        ->Result<(usize,Vec<usize>),String>{
+        let indices=self.incidence.get(&wire).ok_or("lost shared measurement coordinate")?;
+        let mut root=None;let mut scope=BTreeSet::new();
+        for &index in indices{
+            let factor=self.factors[index].as_ref().ok_or("lost incident measurement arm")?;
+            root=Some(match root{None=>factor.root,Some(r)=>arena.amplitude_product(r,factor.root)});
+            scope.extend(&factor.scope);
+        }
+        Ok((root.ok_or("empty incident measurement family")?,scope.into_iter().collect()))
+    }
+    /// Return SIC-observed support to every incident arm. The zero/one mask
+    /// changes no surviving complex coefficient. A neighbor sees the
+    /// existential projection onto the focus coordinates that it actually
+    /// carries, so no new independent coordinate or producer is introduced.
+    pub(crate) fn return_measured_support(&mut self,arena:&mut DecisionArena,
+        focus:&[usize],labels:u8)->Result<usize,String>{
+        if focus.is_empty()||focus.len()>2||focus.windows(2).any(|w|w[0]>=w[1])
+            ||labels==0||labels>> (1usize<<focus.len())!=0{
+            return Err("invalid shared SIC support return".into());
+        }
+        let neighbors:BTreeSet<_>=focus.iter().flat_map(|w|
+            self.incidence.get(w).into_iter().flatten().copied()).collect();
+        let mut changed=Vec::new();let mut affected=BTreeSet::new();
+        let zero=arena.zero();
+        for index in neighbors{
+            let factor=self.factors[index].as_mut().ok_or("lost support-return arm")?;
+            let projected:Vec<_>=focus.iter().enumerate().filter(|(_,w)|factor.scope.contains(w))
+                .map(|(at,&wire)|(at,wire)).collect();
+            let before=factor.root;
+            for assignment in 0..1usize<<projected.len(){
+                let supported=(0..1usize<<focus.len()).any(|label|labels&(1<<label)!=0&&
+                    projected.iter().enumerate().all(|(bit,(original,_))|
+                        ((label>>original)&1)==((assignment>>bit)&1)));
+                if !supported{
+                    let controls:Vec<_>=projected.iter().enumerate().map(|(at,&(_,wire))|
+                        (wire,assignment&(1<<at)!=0)).collect();
+                    factor.root=arena.conditional_literals(factor.root,zero,&controls);
+                }
+            }
+            if factor.root!=before{
+                affected.extend(factor.scope.iter().filter(|w|self.internal.contains(w)).copied());
+                changed.push(index);
+            }
+        }
+        let count=changed.len();
+        for index in changed{self.fixed_point_return(arena,index,true);}
+        for wire in affected{if self.internal.contains(&wire){self.schedule(wire);}}
+        Ok(count)
+    }
+    pub(crate) fn retain_boundary_literals(&mut self,arena:&mut DecisionArena,literals:&[(usize,bool)])
+        ->Result<(),String>{
+        if literals.iter().any(|&(w,_)|w>=self.first_internal)
+            ||literals.windows(2).any(|w|w[0].0>=w[1].0){return Err("returned frame escaped its factor boundary".into());}
+        let mut unit=DecisionArena::new(0);let one=unit.basis(&BigUint::from(0u8),BigInt::one());
+        let one=arena.import_shifted(&unit,one,0)?;let zero=arena.zero();
+        let root=arena.conditional_literals(zero,one,literals);
+        let scope:BTreeSet<_>=literals.iter().map(|v|v.0).collect();let index=self.factors.len();
+        for &w in &scope{self.incidence.entry(w).or_default().insert(index);}
+        self.factors.push(Some(Factor{root,scope}));
+        self.fixed_point_return(arena,index,true);Ok(())
+    }
+    /// Exact Gaussian gauge exchange on two arms at their shared wire.
+    /// The product is invariant pointwise, while both carried arms change.
+    /// It precedes the ordinary FSPLIT/FFUSE contraction of this same bucket.
+    pub(crate) fn exchange_at_boundary(&mut self,arena:&mut DecisionArena,turn:i32)
+        ->Result<Option<(usize,usize,usize)>,String>{
+        let wire=loop{
+            let Some(Reverse((_,w,v)))=self.pending.peek().copied() else{return Ok(None);};
+            if self.internal.contains(&w)&&self.versions.get(&w)==Some(&v){break w;}
+            self.pending.pop();
+        };
+        let arms:Vec<_>=self.incidence.get(&wire).into_iter().flatten().copied().take(2).collect();
+        if arms.len()!=2{return Ok(None);}
+        let phase=|q:i32|{let (re,im)=match q.rem_euclid(4){0=>(1,0),1=>(0,1),2=>(-1,0),_=>(0,-1)};
+            (crate::word_tape::SignedWordTape::from_bigint(&BigInt::from(re)),
+             crate::word_tape::SignedWordTape::from_bigint(&BigInt::from(im)))};
+        for (&index,q) in arms.iter().zip([turn,-turn]){
+            let f=self.factors[index].as_mut().unwrap();let zero=arena.zero();
+            let selected=arena.conditional_literals(zero,f.root,&[(wire,true)]);
+            let rotated=arena.scale_words_numerator(selected,&phase(q));
+            f.root=arena.conditional_literals(f.root,rotated,&[(wire,true)]);
+        }
+        Ok(Some((wire,arms[0],arms[1])))
+    }
     pub(crate) fn from_baked(p:&crate::baked_point::BakedPointProjector,roots:&[usize])->Result<Self,String>{
         if roots.len()!=p.scopes.len(){return Err("compiled projector lost a tensor bank".into());}
         Ok(Self{
@@ -115,7 +238,9 @@ impl Projector {
         let pending:Vec<(usize,usize,usize)>=serde_json::from_value(p["pending"].clone()).map_err(|e|e.to_string())?;
         let versions:Vec<(usize,usize)>=serde_json::from_value(p["versions"].clone()).map_err(|e|e.to_string())?;
         let versions:BTreeMap<_,_>=versions.into_iter().collect();
-        if internal.iter().any(|wire|!pending.iter().any(|&(_,w,v)|w==*wire&&versions.get(wire)==Some(&v))){
+        let live_pending:BTreeSet<_>=pending.iter().filter_map(|&(_,w,v)|
+            (versions.get(&w)==Some(&v)).then_some(w)).collect();
+        if !internal.is_subset(&live_pending){
             return Err("held projector lost its live contraction continuation".into());
         }
         Ok(Self{factors,incidence,internal,first_internal,
@@ -296,6 +421,7 @@ impl Projector {
         Ok(())
     }
     pub fn roots(&self)->Vec<usize>{self.factors.iter().filter_map(|f|f.as_ref().map(|f|f.root)).collect()}
+    pub(crate) fn carries_internal(&self,wire:usize)->bool{self.internal.contains(&wire)}
     fn schedule(&mut self,wire:usize) {
         let scope:BTreeSet<_>=self.incidence.get(&wire).into_iter().flatten().flat_map(|&i|
             self.factors[i].as_ref().unwrap().scope.iter().copied()).collect();
@@ -326,10 +452,20 @@ impl Projector {
             let factor=self.factors[index].as_ref()?;
             if factor.scope.len()!=2 {return None;}
             let other=*factor.scope.iter().find(|&&w|w!=wire)?;
-            arena.unit_copy_relation(factor.root,wire,other)
-                .map(|complement|(index,factor.root,other,complement))
+            arena.phase_copy_relation(factor.root,wire,other)
+                .map(|(complement,weights)|(index,factor.root,other,complement,weights))
         });
-        let Some((index,delta,other,complement))=relation else {return false;};
+        let Some((index,weighted_delta,other,complement,weights))=relation else {return false;};
+        // Extract the copy phase once. Pullback through each arm uses only the
+        // unit delta, otherwise a degree-k bucket would multiply its phase k times.
+        let mut delta=weighted_delta;
+        for (x,weight) in weights.iter().enumerate(){
+            if weight.0==crate::word_tape::SignedWordTape::from_small(1)&&weight.1.is_zero(){continue;}
+            let zero=arena.zero();let controls=[(wire,x!=0)];
+            let selected=arena.conditional_literals(zero,delta,&controls);
+            let unphased=arena.scale_words_numerator(selected,&(weight.0.clone(),weight.1.negate()));
+            delta=arena.conditional_literals(delta,unphased,&controls);
+        }
         self.factors[index]=None;
         for &w in &[wire,other] {
             if let Some(indices)=self.incidence.get_mut(&w){indices.remove(&index);}
@@ -346,10 +482,21 @@ impl Projector {
         if changed.is_empty() {
             // An isolated copy still leaves the other coordinate free. Keep
             // its unit tensor so a later sum retains its branch multiplicity.
-            let root=arena.contract_internal_wire(delta,wire);
+            let root=arena.contract_internal_wire(weighted_delta,wire);
             self.factors[index]=Some(Factor{root,scope:[other].into_iter().collect()});
             self.incidence.entry(other).or_default().insert(index);
             changed.push(index);affected.insert(other);
+        }else{
+            // sum_x w(x) delta(x,f(y)) product_i F_i(x)
+            //   = w(f(y)) product_i F_i(f(y)). Restore w on one arm only.
+            let target=self.factors[changed[0]].as_mut().unwrap();
+            for (x,weight) in weights.iter().enumerate(){
+                if weight.0==crate::word_tape::SignedWordTape::from_small(1)&&weight.1.is_zero(){continue;}
+                let controls=[(other,(x!=0)^complement)];let zero=arena.zero();
+                let selected=arena.conditional_literals(zero,target.root,&controls);
+                let phased=arena.scale_words_numerator(selected,weight);
+                target.root=arena.conditional_literals(target.root,phased,&controls);
+            }
         }
         self.internal.remove(&wire);self.incidence.remove(&wire);
         self.contractions+=1;self.copy_returns.push((wire,other,complement));
@@ -363,6 +510,16 @@ impl Projector {
             let Reverse((_,wire,version))=self.pending.pop().ok_or("missing contraction queue")?;
             if self.internal.contains(&wire)&&self.versions.get(&wire)==Some(&version){break wire;}
         };
+        self.contract_selected_wire(arena,wire,discharge_fixed)
+    }
+    /// Fuse the coordinate whose transformed arms were measured. A support
+    /// return may already have discharged it by its exact delta; in that case
+    /// do not silently substitute another bucket for the recorded ancestry.
+    pub(crate) fn advance_at_boundary(&mut self,arena:&mut DecisionArena,wire:usize)->Result<bool,String>{
+        if !self.internal.contains(&wire){return Ok(self.internal.is_empty());}
+        self.contract_selected_wire(arena,wire,true)
+    }
+    fn contract_selected_wire(&mut self,arena:&mut DecisionArena,wire:usize,discharge_fixed:bool)->Result<bool,String>{
         if discharge_fixed&&self.copy_return(arena,wire){return Ok(self.internal.is_empty());}
         let bucket=self.incidence.get(&wire).cloned().unwrap_or_default();
         let mut roots=Vec::with_capacity(bucket.len());let mut scope=BTreeSet::new();
@@ -410,6 +567,35 @@ impl Projector {
 mod tests {
     use super::*;
     use crate::word_tape::SignedWordTape;
+
+    #[test]
+    fn source_202_complex_exchange_and_return_share_one_carrier(){
+        let n=BigUint::parse_bytes(b"4479106148067194240380817417142593728490011937516752269508037",10).unwrap();
+        let width=n.bits() as usize;assert!(width>=200);
+        for complement in [false,true]{for turn in [-1,1]{
+        let mut arena=DecisionArena::new(width+3);
+        // Build the spectator directly in the shared register's source chart.
+        let mut unit=DecisionArena::new(0);let one=unit.basis(&BigUint::from(0u8),BigInt::one());
+        let one=arena.import_shifted(&unit,one,0).unwrap();let zero=arena.zero();
+        let pins:Vec<_>=(0..width).map(|w|(w,n.bit(w as u64))).collect();
+        let bank=arena.conditional_literals(zero,one,&pins);
+        let mut p=Projector::from_relations(&mut arena,width+2,vec![
+            (vec![width,width+2],if complement{vec![1,2]}else{vec![0,3]}),
+            (vec![width+1,width+2],vec![1,2,3]),
+        ]).unwrap();
+        let before=p.roots();let product=arena.amplitude_product(before[0],before[1]);
+        let expected=arena.contract_amplitude_family(&before,width+2);
+        assert!(p.exchange_at_boundary(&mut arena,turn).unwrap().is_some());
+        let after=p.roots();assert_ne!(before,after);
+        assert_eq!(product,arena.amplitude_product(after[0],after[1]));
+        assert!(p.advance(&mut arena).unwrap());
+        assert_eq!(p.copy_returns.len(),1,"phased catalyst disabled the exact copy return");
+        let root=p.finish_banked(&mut arena,&[bank]).unwrap();
+        assert_eq!(root,expected);assert_eq!(arena.cells,width+2);
+        let expected_bank=arena.conditional_literals(zero,one,&pins);
+        assert_eq!(bank,expected_bank);
+        }}
+    }
 
     #[test]
     fn source_sized_copy_return_preserves_complex_arms() {

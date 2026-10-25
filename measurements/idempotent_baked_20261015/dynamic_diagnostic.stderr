@@ -1,1 +1,0 @@
-Error: "DriverError(CUDA_ERROR_INVALID_PTX, \"a PTX JIT compilation failed\")"

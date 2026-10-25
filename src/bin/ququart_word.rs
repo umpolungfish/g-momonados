@@ -6,12 +6,16 @@
 
 #[cfg(not(feature = "hosted"))]
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     eprintln!("ququart_word: rebuild with --features hosted");
     std::process::exit(2);
 }
 
 #[cfg(feature = "hosted")]
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let raw: Vec<String> = std::env::args().skip(1).collect();
     if raw.is_empty() {
         eprintln!(

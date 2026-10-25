@@ -1,2 +1,0 @@
-exit_code=130
-reason=stopped after SIC tolerance exposed missing Q52 fractional shift

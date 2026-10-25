@@ -125,6 +125,8 @@ fn prepare() -> Result<String, String> {
 }
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     match prepare() {
         Ok(report) => {
             if std::io::stdout().lock().write_all(report.as_bytes()).is_err() { std::process::exit(1); }

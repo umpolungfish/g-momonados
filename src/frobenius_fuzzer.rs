@@ -95,10 +95,13 @@ pub fn run(len: usize, want_examples: usize) -> Run {
             }
         };
 
-        // δ — compile the braid word back to IMASM.
+        // δ — compile in the selected physical order, then compare μ after
+        // the selected inverse map has returned the source generators.
         let back = crate::braid_protocol::braid_to_imasm(&reading.generators, 1, false);
+        let returned = crate::braid_protocol::read_tangle(&back, toks.len() + 2, 1)
+            .and_then(|physical| crate::braid_protocol::recover_ordered_generators(&physical.generators));
 
-        if back == toks {
+        if returned.as_ref().is_ok_and(|word| word == &reading.generators) {
             r.survivors += 1;
             if reading.crossings > 0 {
                 r.nontrivial += 1;
@@ -126,7 +129,7 @@ pub fn format_run(r: &Run) -> String {
         "space:        every word of length {} — {} readable programs\n",
         r.len, r.candidates
     ));
-    out.push_str("test:         δ(μ(prog)) == prog, token for token\n\n");
+    out.push_str("test:         selected braid lowering and inverse-order generator return\n\n");
 
     let pct = |n: usize| {
         if r.candidates == 0 {

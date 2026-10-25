@@ -25,6 +25,8 @@ pub struct ResidentGlut {
     constraint_gates: usize,
     sic_format: FixedPointFormat,
     sic_frame: Option<FixedQuquartSic>,
+    native_membrane:Option<vox_core::glut_system::PreparedGlutMembrane>,
+    retained_probe:Option<Box<crate::factor_synthesis::RetainedArmProbe>>,
 }
 
 /// One joint amplitude function owns both the constrained factor relation and
@@ -121,7 +123,7 @@ impl ResidentPhaseCarrier {
         eprintln!("resident-import stage=Y-clock");
         let reentry=Some(ResidentReentry::from_record(&reentry_record)?);
         Ok(Self {resident:ResidentGlut {source,tape,arena,root,initial:root,banked_roots:Vec::new(),
-            preparation_sic_ancestry:Some(String::from(data.preparation_sic_json)),wire_map,
+            preparation_sic_ancestry:Some(String::from(data.preparation_sic_json)),wire_map,native_membrane:None,retained_probe:None,
             diagram_ready:true,initial_mass,boundary,constraint_gates:data.constraint_gates,sic_format,sic_frame:Some(sic_frame)},
             circuit,next_product_columns,source_producer:None,phase_source_relation:data.phase_source_relation,
             phase_evidence:Default::default(),reentry})
@@ -191,7 +193,7 @@ impl ResidentPhaseCarrier {
         let product_closure_prepared = record["product_closure_prepared"].as_bool().unwrap_or(false);
         let next_product_columns = if product_closure_prepared { tape.len()+1 } else { 0 };
         Ok(Self { resident:ResidentGlut { source,tape,arena,root,initial:root,banked_roots:Vec::new(),
-            preparation_sic_ancestry:Some(serde_json::json!({"signed":record["SIC_signed_residuals"],
+            native_membrane:None,retained_probe:None,preparation_sic_ancestry:Some(serde_json::json!({"signed":record["SIC_signed_residuals"],
                 "denominator":record["SIC_rational_denominator_word"],"rational":record["SIC_rational_residual_words"],
                 "circuit_braid":record["circuit_braid"]}).to_string()),wire_map,diagram_ready:true,
             initial_mass,boundary,constraint_gates,sic_format,sic_frame:Some(sic_frame) },
@@ -409,12 +411,53 @@ impl ResidentPhaseReturn {
     }
 }
 
+impl vox_core::membrane_interface::Membrane for ResidentPhaseCarrier {
+    type Input = ResidentGlut;
+    type Readout = GlutReadout;
+    type Continuation = ResidentPhaseReturn;
+    type Error = String;
+
+    fn prepare(input: Self::Input) -> Result<Self, Self::Error> {
+        input.into_whole_register_phase()
+    }
+
+    fn advance(
+        &mut self,
+    ) -> Result<vox_core::membrane_interface::MembraneProgress, Self::Error> {
+        Ok(if ResidentPhaseCarrier::advance(self)? {
+            vox_core::membrane_interface::MembraneProgress::ReadyToClose
+        } else {
+            vox_core::membrane_interface::MembraneProgress::Open
+        })
+    }
+
+    fn close(
+        self,
+    ) -> Result<
+        vox_core::membrane_interface::MembraneClosure<Self, Self::Continuation, Self::Readout>,
+        Self::Error,
+    > {
+        match self.fire()?.close()? {
+            ResidentClosure::Open(continuation) => {
+                Ok(vox_core::membrane_interface::MembraneClosure::Open(continuation))
+            }
+            ResidentClosure::Closed(readout) => {
+                Ok(vox_core::membrane_interface::MembraneClosure::Closed {
+                    membrane: None,
+                    readout,
+                })
+            }
+        }
+    }
+}
+
 pub enum ResidentClosure {
     Closed(GlutReadout),
     Open(ResidentPhaseReturn),
 }
 
 impl GlutReadout {
+    pub fn retained_resident(&self) -> Option<&ResidentGlut> { self.retained_membrane.as_deref() }
     pub fn program_source_word(&self) -> Option<&str> {
         self.program.as_ref().map(|program|program.source_word())
     }
@@ -459,6 +502,50 @@ impl ParityBoundary {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "hosted")]
+    #[test]
+    fn working_100_bit_return_preserves_producer_and_catalyst() {
+        let n = BigUint::parse_bytes(b"865215737338779001445548059997", 10).unwrap();
+        let tape = vox_core::morphism_factor::decimal_to_tape(&n.to_string()).unwrap();
+        let mut producer = vox_core::factor_synthesis::FactorSynthesis::new(&tape).unwrap();
+        let produced = loop { if let Some(value) = producer.advance().unwrap() { break value; } };
+        let membrane = produced.membrane.as_ref().unwrap();
+        let address = membrane.resident_identity();
+        let turns = membrane.stats().catalyst_turns;
+        let repeated = producer.advance().unwrap().unwrap();
+        let reread = repeated.membrane.as_ref().unwrap();
+        assert_eq!(address, reread.resident_identity());
+        assert_eq!(turns, reread.stats().catalyst_turns);
+        assert_eq!((produced.p, produced.q), (repeated.p, repeated.q));
+        let result = ResidentGlut::new(n.clone()).unwrap().readout(|_, _| {}).unwrap().unwrap();
+        assert_eq!(&result.divisor * &result.quotient, n);
+        assert!(result.divisor > BigUint::one() && result.divisor < n);
+        assert!(result.gamma_delta_closed && result.product_closed);
+        let retained = result.retained_resident().unwrap();
+        let native = retained.retained_native_membrane().unwrap();
+        let read = native.retained_readout().unwrap();
+        assert_eq!(read.exposed, 0);
+        assert!(read.restored > 0);
+        assert!(read.surviving.iter().all(|d| d.observation == native.resident_identity()));
+        let observations = native.catalyst_observations();
+        assert!(!observations.is_empty());
+        for observation in observations {
+            assert_eq!(observation.returned, observation.resting);
+            let source = WordTape::from_parity_cells(&observation.source).unwrap().to_biguint();
+            assert_eq!(source, n);
+            for residual in observation.residuals {
+                let from = |word: &[char]| WordTape::from_parity_cells(word).unwrap().to_biguint();
+                let product = from(&residual.left) * from(&residual.right);
+                assert_eq!(product, from(&residual.product));
+                let difference = if n >= product { &n - &product } else { &product - &n };
+                assert_eq!(difference, from(&residual.residual));
+                let common = vox_core::morphism_factor::gcd(residual.residual.clone(), observation.source.clone());
+                assert_eq!(common, residual.common);
+            }
+        }
+    }
+
 
     #[cfg(feature = "hosted")]
     #[test]
@@ -969,7 +1056,7 @@ impl ResidentGlut {
         let sic_format = FixedPointFormat::for_modulus_bits(source.bit_len().saturating_sub(1) as u64)?;
         Ok(Self { source, tape, arena, root, initial: root, wire_map,
             banked_roots:Vec::new(),
-            preparation_sic_ancestry:None,
+            preparation_sic_ancestry:None,native_membrane:None,retained_probe:None,
             diagram_ready: false, initial_mass, boundary, constraint_gates: 0, sic_format, sic_frame: None })
     }
 
@@ -1025,13 +1112,14 @@ impl ResidentGlut {
         Ok(())
     }
 
-    pub fn readout(self, observe: impl FnMut(usize, usize)) -> Result<Option<GlutReadout>, String> {
+    pub fn readout(mut self, observe: impl FnMut(usize, usize)) -> Result<Option<GlutReadout>, String> {
         let trace = std::env::var_os("GM_FACTOR_TRACE").is_some();
         let trace_started = std::time::Instant::now();
         let mut retained = crate::factor_synthesis::RetainedArmProbe::new(self.source.to_biguint())?;
         let expected_source = self.source.clone();
         let expected_tape = self.tape.clone();
         let mut port_calls = 0u64;
+        let mut native_return=None;
         if let Some(returned) = vox_core::morphism_factor::source_carrier_divisor_with_port_and_observer(
             &self.tape, |source_tape| {
                 if source_tape != expected_tape {
@@ -1060,6 +1148,7 @@ impl ResidentGlut {
                     }
                 }
                 let Some(result) = result else { return Ok(None) };
+                native_return=result.native_membrane;
                 let divisor = result.factors.into_iter().map(|factor| WordTape::from_biguint(&factor)).find(|factor|
                     factor.gt(&WordTape::one()) && !factor.ge(&expected_source)
                         && expected_source.divmod(factor).is_some_and(|(_, remainder)| remainder.is_zero()))
@@ -1077,6 +1166,8 @@ impl ResidentGlut {
             })? {
             let divisor = WordTape::from_parity_cells(&returned.divisor)
                 .ok_or("source carrier boundary numeral conversion failed")?;
+            self.native_membrane=native_return;
+            self.retained_probe=Some(Box::new(retained));
             return self.readout_source_word_divisor(divisor, returned.producer);
         }
         self.readout_lowered(observe)
@@ -1084,6 +1175,11 @@ impl ResidentGlut {
 
     pub fn readout_source_carrier(self) -> Result<Option<GlutReadout>, String> {
         self.readout(|_, _| {})
+    }
+    pub fn retained_native_membrane(&self)->Option<&vox_core::glut_system::PreparedGlutMembrane>{self.native_membrane.as_ref()}
+    pub fn retained_phase_progress(&self)->Option<(usize,usize,usize)>{self.retained_probe.as_ref()?.joint_progress()}
+    pub fn retained_circuit_braid(&self)->Option<&vox_core::gfe_circuit_braid::GfeCircuitBraidState>{
+        self.retained_probe.as_ref()?.circuit_braid_state()
     }
 
     /// Execute low product constraints on this factor/product/carry support.

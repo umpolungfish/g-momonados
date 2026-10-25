@@ -581,6 +581,7 @@ pub fn heap_used() -> (usize, usize) {
 
 #[cfg(feature = "hosted")]
 fn main() {
+    vox_core::ordering::cli::intercept();
     if option_env!("PHASE_UNBRAID_BAKED_EXECUTE") == Some("1") {
         let base = option_env!("PHASE_UNBRAID_BAKED_BASE").unwrap_or("2");
         let shots = option_env!("PHASE_UNBRAID_BAKED_SHOTS").unwrap_or("8");
@@ -595,6 +596,30 @@ fn main() {
         if let Err(error) = dialect_factor_export::export(&argv[1..]) {
             eprintln!("{error}");
             std::process::exit(1);
+        }
+        return;
+    }
+    let membrane_args = if argv.first().map(String::as_str) == Some("membrane") {
+        Some(&argv[1..])
+    } else if argv.first().map(String::as_str) == Some("vox")
+        && argv.get(1).map(String::as_str) == Some("membrane") {
+        Some(&argv[2..])
+    } else {
+        None
+    };
+    if let Some(args) = membrane_args {
+        let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+        let extensions = [vox_core::membrane_cli::MembraneGenerator {
+            name: "resident-phase",
+            description: "G-mOMonadOS whole-register phase carrier and retained return",
+            runner: run_resident_phase_membrane,
+        }];
+        match vox_core::membrane_cli::execute_with(&refs, &extensions) {
+            Ok(output) => print!("{output}"),
+            Err(error) => {
+                eprintln!("{error}");
+                std::process::exit(2);
+            }
         }
         return;
     }
@@ -631,6 +656,12 @@ fn main() {
         std::process::exit(run_y_divisor(&argv[1..], |bytes| {
              let _ = std::io::stdout().lock().write_all(bytes);
         }));
+    }
+    if argv.first().map(String::as_str) == Some("vox-factor") {
+        std::process::exit(run_vox_factor(&argv[1..]));
+    }
+    if matches!(argv.first().map(String::as_str), Some("gfe-factor" | "geometer-factor")) {
+        std::process::exit(run_geometer_factor(&argv[1..]));
     }
     if argv.first().map(String::as_str) == Some("lcaa") {
         use std::io::Write as _;
@@ -832,6 +863,57 @@ fn main() {
     kmain()
 }
 
+fn run_resident_phase_membrane(
+    source: Vec<char>,
+    steps: usize,
+) -> Result<String, String> {
+    use vox_core::membrane_interface::{Membrane, MembraneClosure, MembraneProgress};
+
+    let limbs = vox_core::morphism_factor::tape_to_limbs(&source, (source.len() + 31) / 32);
+    let source_number = num_bigint::BigUint::new(limbs);
+    let mut carrier = <g_momonados::resident_glut::ResidentPhaseCarrier as Membrane>::prepare(
+        g_momonados::resident_glut::ResidentGlut::new(source_number.clone())?,
+    )?;
+    let mut output = alloc::format!(
+        "prepared generator=resident-phase source={source_number}\n"
+    );
+    let mut ready = false;
+    for step in 1..=steps {
+        match <g_momonados::resident_glut::ResidentPhaseCarrier as Membrane>::advance(&mut carrier)? {
+            MembraneProgress::Open => output.push_str(&alloc::format!("advance {step}: open\n")),
+            MembraneProgress::ReadyToClose => {
+                output.push_str(&alloc::format!("advance {step}: ready-to-close\n"));
+                ready = true;
+                break;
+            }
+        }
+    }
+    if !ready {
+        output.push_str(&alloc::format!(
+            "closure=skipped reason=not-ready continuation=returned-to-caller steps={steps}; not persisted after this process exits\n"
+        ));
+        return Ok(output);
+    }
+    match <g_momonados::resident_glut::ResidentPhaseCarrier as Membrane>::close(carrier)? {
+        MembraneClosure::Open(_continuation) => {
+            output.push_str("closure=open continuation=returned-to-caller\n");
+        }
+        MembraneClosure::Closed { readout, .. } => {
+            let product_verified = &readout.divisor * &readout.quotient == source_number;
+            output.push_str(&alloc::format!(
+                "closed producer={} divisor={} quotient={} product_verified={} product_closed={} gamma_delta_closed={}\n",
+                readout.producer,
+                readout.divisor,
+                readout.quotient,
+                product_verified,
+                readout.product_closed,
+                readout.gamma_delta_closed,
+            ));
+        }
+    }
+    Ok(output)
+}
+
 #[cfg(feature = "hosted")]
 fn run_y_divisor(args: &[String], emit: impl FnOnce(&[u8])) -> i32 {
     let usage = "y_divisor factor N [both] | factors N [both] | from N D [both] | bitfold N [both] | winding N [BASE] [both]";
@@ -883,10 +965,47 @@ fn run_y_divisor(args: &[String], emit: impl FnOnce(&[u8])) -> i32 {
                 Err(error) => { eprintln!("y_divisor factor: {error}"); return 2; }
             };
             match result {
-                Some(result) => (result.divisor, format!(
-                    "candidate-source=resident-glut producer={} quotient={} SIC-residual={} SIC-tolerance={}\n",
-                    result.producer, result.quotient, result.sic.reconstruction.maximum_residual,
-                    result.sic.reconstruction.tolerance)),
+                Some(result) => {
+                    let mut evidence = format!(
+                        "candidate-source=resident-glut producer={} quotient={} SIC-residual={} SIC-tolerance={}\n",
+                        result.producer, result.quotient, result.sic.reconstruction.maximum_residual,
+                        result.sic.reconstruction.tolerance);
+                    if let Some(resident) = result.retained_resident() {
+                        if let Some(circuit) = resident.retained_circuit_braid() {
+                            evidence.push_str(&format!(
+                                "retained-circuit={} source-phase={} torus-axes={:?} applied-axes={:?} amplitudes={:?} norm-residual={}\n",
+                                circuit.circuit, circuit.source_phase_bin, circuit.torus_axis_order,
+                                circuit.axis_order, circuit.output, circuit.norm_residual));
+                        }
+                        if let Some(native) = resident.retained_native_membrane() {
+                            let stats = native.stats();
+                            let square_torus = native.square_torus_observations();
+                            let changed = square_torus.iter().filter(|o| o.before != o.after).count();
+                            evidence.push_str(&format!("square-torus-actions={} changed={} inverse-recovered={} before-extraction=true\n",
+                                square_torus.len(), changed, square_torus.iter().all(|o| o.before == o.recovered)));
+                            if std::env::var_os("GM_FACTOR_TRACE").is_some() {
+                                let decimal = |tape: &[char]| vox_core::morphism_factor::dec_of(tape);
+                                for o in &square_torus {
+                                    eprintln!("square-torus-receipt {}", serde_json::json!({
+                                        "source":decimal(&o.source),"reentry":o.reentry,
+                                        "winding":decimal(&o.winding),"inverse":decimal(&o.inverse),
+                                        "before":o.before.iter().map(|v|decimal(v)).collect::<Vec<_>>(),
+                                        "after":o.after.iter().map(|v|decimal(v)).collect::<Vec<_>>(),
+                                        "recovered":o.recovered.iter().map(|v|decimal(v)).collect::<Vec<_>>()
+                                    }));
+                                }
+                            }
+                            let observations = native.catalyst_observations();
+                            let regenerated = observations.iter().all(|o| o.returned == o.resting);
+                            evidence.push_str(&format!(
+                                "retained-register={} producing-port={} catalyst-turns={} catalyst-products={} catalyst-gcds={} catalyst-regenerated={} retained-phase={:?}\n",
+                                native.resident_identity(), stats.producing_port, stats.catalyst_turns,
+                                stats.catalyst_products, stats.catalyst_gcds, regenerated,
+                                resident.retained_phase_progress()));
+                        }
+                    }
+                    (result.divisor, evidence)
+                },
                 None => (n.clone(), "candidate-source=resident-glut empty-proper-product-support\n".to_owned()),
             }
         }
@@ -955,6 +1074,291 @@ fn run_y_divisor(args: &[String], emit: impl FnOnce(&[u8])) -> i32 {
     output.extend_from_slice(&bridge_output);
     emit(&output);
     code
+}
+
+#[cfg(feature = "hosted")]
+fn run_vox_factor(args: &[String]) -> i32 {
+    let number = match args {
+        [flag, value] if flag == "--number" => value,
+        _ => {
+            eprintln!("vox-factor --number DECIMAL_N");
+            return 2;
+        }
+    };
+    let source = match number.parse::<num_bigint::BigUint>() {
+        Ok(source) if source > num_bigint::BigUint::from(1u8) => source,
+        _ => {
+            eprintln!("vox-factor: --number must be a decimal integer greater than one");
+            return 2;
+        }
+    };
+    let mut membrane = match g_momonados::factor_synthesis::RetainedArmProbe::new(source.clone()) {
+        Ok(membrane) => membrane,
+        Err(error) => {
+            eprintln!("vox-factor: {error}");
+            return 2;
+        }
+    };
+    let started = std::time::Instant::now();
+    loop {
+        match membrane.advance_native() {
+            Ok(Some(result)) => {
+                let Some(divisor) = result.factors.first() else {
+                    eprintln!("vox-factor: Vox returned an empty factor pair");
+                    return 2;
+                };
+                let Some(cofactor) = result.factors.get(1) else {
+                    eprintln!("vox-factor: Vox returned an incomplete factor pair");
+                    return 2;
+                };
+                if divisor <= &num_bigint::BigUint::from(1u8)
+                    || cofactor <= &num_bigint::BigUint::from(1u8)
+                    || divisor * cofactor != source {
+                    eprintln!("vox-factor: Vox return failed exact proper product verification");
+                    return 2;
+                }
+                println!("producer={} factor={} cofactor={} product={} elapsed_seconds={:.6}",
+                    result.producer, divisor, cofactor, source, started.elapsed().as_secs_f64());
+                return 0;
+            }
+            Ok(None) => {}
+            Err(error) => {
+                eprintln!("vox-factor: {error}");
+                return 2;
+            }
+        }
+    }
+}
+
+#[cfg(feature = "hosted")]
+fn run_geometer_factor(args: &[String]) -> i32 {
+    let number = match args {
+        [flag, value] if flag == "--number" => value,
+        _ => {
+            eprintln!("gfe-factor --number DECIMAL_N");
+            return 2;
+        }
+    };
+    let started = std::time::Instant::now();
+    let last_progress = std::sync::Arc::new(std::sync::Mutex::new(None::<String>));
+    let watchdog_progress = std::sync::Arc::clone(&last_progress);
+    let run_limit_secs = std::env::var("GFE_RUN_LIMIT_SECS")
+        .ok().and_then(|value| value.parse::<u64>().ok()).unwrap_or(300);
+    let watchdog_secs = run_limit_secs.saturating_sub(1).max(1);
+    // The run boundary is explicit and user-configurable. It does not shorten
+    // the torus orbit or the resident's per-turn work.
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(watchdog_secs));
+        eprintln!("gfe-factor: {run_limit_secs}-second execution limit reached");
+        if let Ok(progress) = watchdog_progress.lock() {
+            if let Some(progress) = progress.as_ref() {
+                eprintln!("gfe-factor: last_resident_observation={progress}");
+            }
+        }
+        std::process::exit(124);
+    });
+    let mut extractor = match vox_core::geometer_factor_extractor::GeometerFactorExtractor::from_decimal(number) {
+        Ok(extractor) => extractor,
+        Err(error) => {
+            eprintln!("gfe-factor: {error}");
+            return 2;
+        }
+    };
+    let source_number = match num_bigint::BigUint::parse_bytes(number.as_bytes(), 10) {
+        Some(source) => source,
+        None => {
+            eprintln!("gfe-factor: N-only source parse failed");
+            return 2;
+        }
+    };
+    let source_tape = match vox_core::morphism_factor::decimal_to_tape(number) {
+        Some(tape) => tape,
+        None => {
+            eprintln!("gfe-factor: source IMASM tape preparation failed");
+            return 2;
+        }
+    };
+    let mut retained_arm = match g_momonados::factor_synthesis::RetainedArmProbe::phase_only_from_imasm_tape(&source_tape) {
+        Ok(probe) => probe,
+        Err(error) => {
+            eprintln!("gfe-factor: retained arm preparation failed: {error}");
+            return 2;
+        }
+    };
+    let mut collatz_probe = match collatz::TapeFactorProbe::from_imasm_tape(&source_tape) {
+        Ok(probe) => probe,
+        Err(error) => {
+            eprintln!("gfe-factor: Collatz tape preparation failed: {error}");
+            return 2;
+        }
+    };
+    let mut retained_phase = None;
+    let mut retained_port_calls = 0u64;
+    eprintln!("gfe-factor: prepared={}", extractor.progress_report());
+    let mut turns = 0u64;
+    loop {
+        turns += 1;
+        match extractor.advance_observed_with_source_port(|stats| {
+            if let Ok(mut progress) = last_progress.lock() {
+                *progress = Some(format!("{stats:?}"));
+            }
+        }, |port_source, gfe_resident, observe| {
+            if port_source != source_tape.as_slice() {
+                return Err(String::from("GFE retained arm source binding changed"));
+            }
+            if let Some(divisor) = collatz_probe.advance(4)? {
+                eprintln!("gfe collatz-return blocks={} steps={}",
+                    collatz_probe.blocks(), collatz_probe.steps());
+                return Ok(Some(vox_core::geometer_factor_extractor::GeometerSourcePortReturn {
+                    divisor: vox_core::morphism_factor::SourceDivisor {
+                        divisor, producer: "collatz-tape",
+                    },
+                    resident_closed: false,
+                }));
+            }
+            retained_port_calls = retained_port_calls.saturating_add(1);
+            if retained_port_calls % 32 == 0 {
+                eprintln!("gfe collatz-progress blocks={} steps={}",
+                    collatz_probe.blocks(), collatz_probe.steps());
+            }
+            if let Some(returned) = gfe_resident.advance_observed(|stats| observe(stats))? {
+                return Ok(Some(vox_core::geometer_factor_extractor::GeometerSourcePortReturn {
+                    divisor: vox_core::morphism_factor::SourceDivisor {
+                        divisor: returned.p, producer: returned.producer,
+                    },
+                    resident_closed: true,
+                }));
+            }
+            let phase_reads_before = retained_arm.phase_readouts();
+            let returned = retained_arm.advance_joint()?;
+            let phase_readout_completed = retained_arm.phase_readouts() > phase_reads_before;
+            eprintln!("gfe retained-port={} joint-work-progress={:?} phase-readout-completed={} factor-returned={}",
+                retained_port_calls, retained_arm.joint_progress(),
+                phase_readout_completed, returned.is_some());
+            if phase_readout_completed {
+                let phase = retained_arm.last_phase().expect("completed phase shot retains its readout");
+                eprintln!("gfe retained-port={} whole-register-readout={phase:?}",
+                    retained_port_calls);
+            }
+            let Some(returned) = returned else { return Ok(None) };
+            retained_phase = returned.phase.clone();
+            let divisor = returned.factors.into_iter().find(|factor|
+                factor > &num_bigint::BigUint::from(1u8)
+                    && factor < &source_number
+                    && (&source_number % factor).eq(&num_bigint::BigUint::from(0u8)))
+                .ok_or_else(|| String::from("GFE retained arm returned no proper divisor"))?;
+            let divisor_tape = vox_core::morphism_factor::decimal_to_tape(
+                &divisor.to_str_radix(10))
+                .ok_or_else(|| String::from("GFE retained divisor tape conversion failed"))?;
+            Ok(Some(vox_core::geometer_factor_extractor::GeometerSourcePortReturn {
+                divisor: vox_core::morphism_factor::SourceDivisor {
+                    divisor: divisor_tape, producer: returned.producer,
+                },
+                resident_closed: false,
+            }))
+        }) {
+            Ok(Some(readout)) => {
+                if let Some(phase) = retained_phase.as_ref() {
+                    eprintln!("gfe-factor: retained_whole_register_phase={phase:?}");
+                }
+                print_geometer_readout(number, readout, started.elapsed().as_secs_f64());
+                return 0;
+            }
+            Ok(None) => {
+                if turns % 100_000 == 0 {
+                    if let Ok(mut progress) = last_progress.lock() {
+                        *progress = Some(extractor.progress_report());
+                    }
+                }
+            }
+            Err(error) => {
+                eprintln!("gfe-factor: {error}");
+                return 2;
+            }
+        }
+    }
+}
+
+#[cfg(feature = "hosted")]
+fn print_geometer_readout(
+    source: &str,
+    readout: vox_core::geometer_factor_extractor::GeometerFrameReadout,
+    elapsed: f64,
+) {
+    let braid_reentries = readout.braid_dots.iter()
+        .map(|dot| dot.reentry.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+    let braid_closure = readout.braid_dots.iter()
+        .map(|dot| if dot.product_closed { "T" } else { "F" })
+        .collect::<Vec<_>>()
+        .join(",");
+    let morphism_trace = readout.morphism_applications.iter()
+        .map(|step| format!("{}:{}:{}", step.position, step.glyph,
+            step.observation.map(|value| if value { "T" } else { "F" }).unwrap_or("·")))
+        .collect::<Vec<_>>()
+        .join(",");
+    println!(
+        "producer={} factor={} cofactor={} product={} morphism_word={} morphism_trace={} catalyst_order_applied={} catalyst_inverse_returned={} gfe_monad_laws_verified={} torus_monad_laws_verified={} full_orbit_verified={} final_readout_fixed=⊡ torus_branch={:?} torus_position={:?} bit_braid={:?} singularity_crossing={:?} torus_snapshot={:?} log2_parts=p({}/{}/{}:{:.15}),q({}/{}/{}:{:.15}),n({}/{}/{}:{:.15}) fused_log2={:.15},{:.15},{:.15} phase_bins={},{},{} phase_residual_bins={} numberline_turns={:.12},{:.12},{:.12} numberline_wraps={},{},{} numberline_turn_residual={:.3e} numberline_wrap_balance={} winding={},{},{} omega={},{},{} sic_labels={},{} braid_reentries={} braid_product_closed={} gabor_score={:.12} sic_dual_score={:.12} combined_score={:.12} product_closed={} elapsed_seconds={:.6}",
+        readout.producer,
+        vox_core::morphism_factor::dec_of(&readout.p),
+        vox_core::morphism_factor::dec_of(&readout.q),
+        source,
+        vox_core::geometer_factor_extractor::GFE_MORPHISM_WORD,
+        morphism_trace,
+        readout.catalyst_order_applied,
+        readout.catalyst_inverse_returned,
+        readout.gfe_powerset_monad_laws_verified,
+        readout.torus_powerset_monad_laws_verified,
+        readout.torus_full_orbit_verified,
+        readout.torus_branch_id,
+        readout.torus_branch_position,
+        readout.torus_bit_braid,
+        readout.torus_singularity_crossing,
+        readout.torus_branch_snapshot,
+        readout.log2_p.integer_exponent,
+        readout.log2_p.leading_mantissa,
+        readout.log2_p.mantissa_bits,
+        readout.log2_p.fractional_log2,
+        readout.log2_q.integer_exponent,
+        readout.log2_q.leading_mantissa,
+        readout.log2_q.mantissa_bits,
+        readout.log2_q.fractional_log2,
+        readout.log2_n.integer_exponent,
+        readout.log2_n.leading_mantissa,
+        readout.log2_n.mantissa_bits,
+        readout.log2_n.fractional_log2,
+        readout.fused_log2_p,
+        readout.fused_log2_q,
+        readout.fused_log2_n,
+        readout.phase_bin_p,
+        readout.phase_bin_q,
+        readout.phase_bin_n,
+        readout.phase_residual_bins,
+        readout.numberline_turn_p,
+        readout.numberline_turn_q,
+        readout.numberline_turn_n,
+        readout.numberline_wrap_p,
+        readout.numberline_wrap_q,
+        readout.numberline_wrap_n,
+        readout.numberline_turn_residual,
+        readout.numberline_wrap_balance,
+        readout.winding_p,
+        readout.winding_q,
+        readout.winding_n,
+        readout.omega_p,
+        readout.omega_q,
+        readout.omega_n,
+        readout.sic_candidate_label,
+        readout.sic_source_label,
+        braid_reentries,
+        braid_closure,
+        readout.gabor_score,
+        readout.sic_dual_score,
+        readout.combined_score,
+        readout.product_closed,
+        elapsed,
+    );
 }
 
 // ── LCAA CLI: factor production with scaled timeout ────────────────────────
@@ -1285,6 +1689,8 @@ fn native_numeral_cli(args: &[&str]) -> String {
     match args[0] {
         "encode" if args.len() > 1 => native_numeral::encode(args[1]),
         "decode" if args.len() > 1 => native_numeral::decode_report(args[1]),
+        "interlace" if args.len() > 2 => native_numeral::interlace_report(args[1], args[2]),
+        "deinterlace" if args.len() > 1 => native_numeral::factor_report(args[1]),
         "factor" | "factor_decimal" if args.len() > 1 => native_numeral::factor_decimal(args[1]),
         "unbraid" if args.len() > 1 => {
             let cap = args.get(2).and_then(|s| s.parse::<u64>().ok()).unwrap_or(u64::MAX);

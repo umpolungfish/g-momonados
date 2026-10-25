@@ -14,6 +14,8 @@ fn execute() -> Result<String, String> {
 }
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     // No progress stream, socket, runtime input, or intermediate file writes.
     let result = execute();
     use std::io::Write;

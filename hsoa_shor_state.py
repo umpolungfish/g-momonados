@@ -19,6 +19,9 @@ Primitives checked (same eight as holomorphic_semiotic_operator_algebra):
 """
 
 from __future__ import annotations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "Vox"))
 import cmath
 import math
 import numpy as np
@@ -214,23 +217,27 @@ def dagger_ok(state: np.ndarray) -> bool:
     tr_dag = np.trace(P.conj().T)
     return abs(tr - tr_dag.conjugate()) < 1e-10
 
-def two_step_chirality(state: np.ndarray) -> bool:
-    """
-    S₂ ∘ S₁ ≈ id on the support of the state.
-    S₁ = even/odd split, S₂ = reverse split (odd/even).
-    Composition is the identity on any vector (bit-sheet transpose involution).
-    """
-    m = len(state)
-    even = state[0::2]
-    odd  = state[1::2]
-    L = max(len(even), len(odd))
-    even = np.pad(even, (0, L - len(even)))
-    odd  = np.pad(odd,  (0, L - len(odd)))
-    # reverse interleave (S₂)
-    recon = np.empty(2 * L, dtype=complex)
-    recon[0::2] = even
-    recon[1::2] = odd
-    recon = recon[:m]
+def split_ordered(state, order=None):
+    """Retain lane order and original length beside the split amplitudes."""
+    from ordering import selected, apply
+    order = tuple(selected("lanes", 2) if order is None else order)
+    lanes = apply(order, [state[0::2].copy(), state[1::2].copy()])
+    return lanes, order, len(state)
+
+
+def fuse_ordered(lanes, order, length):
+    """Undo the selected lane permutation before restoring index positions."""
+    from ordering import apply, inverse
+    even, odd = apply(inverse(order), lanes)
+    recon = np.empty(length, dtype=complex)
+    recon[0::2], recon[1::2] = even, odd
+    return recon
+
+
+def two_step_chirality(state: np.ndarray, order=None) -> bool:
+    """Check the actual inverse of a selected split, preserving odd lengths."""
+    lanes, retained_order, length = split_ordered(state, order)
+    recon = fuse_ordered(lanes, retained_order, length)
     return norm(recon - state) < 1e-10
 
 def tensor_dim(layers: int = 3, ops: int = 12) -> int:
@@ -340,6 +347,8 @@ def run(a: int, n: int, n_qubits: int = 8):
 
 
 if __name__ == "__main__":
+    from ordering import intercept
+    intercept()
     # Classic textbook instance: 15 = 3×5, a=7, r=4
     run(a=7, n=15, n_qubits=6)
     print()

@@ -1,8 +1,0 @@
-[package]
-name="idempotent-membrane"
-version="0.1.0"
-edition="2021"
-[workspace]
-[dependencies]
-g-momonados={path="/home/mrnob0dy666/imsgct/G-mOMonadOS"}
-vox_core={package="vox",path="/home/mrnob0dy666/imsgct/G-mOMonadOS/../Vox",default-features=false}

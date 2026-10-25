@@ -273,6 +273,8 @@ fn execute(open_readout: bool) -> Result<String, String> {
 }
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let args: Vec<_> = std::env::args().skip(1).collect();
     let result = match args.as_slice() {
         [] => execute(false),

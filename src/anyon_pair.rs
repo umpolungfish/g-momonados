@@ -609,6 +609,9 @@ impl FibonacciPair {
             .multiply(physical, &self.format)
             .multiply(&self.pair_channels, &self.format)
     }
+    pub fn evaluate_ordered(&self, word: &[i32], order: &vox_core::ordering::Permutation) -> Result<PairMatrix, String> {
+        self.evaluate(&order.apply(word)?)
+    }
     pub fn evaluate(&self, word: &[i32]) -> Result<PairMatrix, String> {
         let gates: Vec<PairMatrix> = self.generators.iter()
             .flat_map(|gate| [gate.clone(), gate.adjoint()])
@@ -777,6 +780,9 @@ impl FibonacciPair {
             };
             (generator, matrix)
         });
+        let generators = vox_core::ordering::selected("generators", generators.len())
+            .map_err(|_| CnotCompileError::Configuration("invalid generator order"))?
+            .apply(&generators).map_err(|_| CnotCompileError::Configuration("invalid generator order"))?;
         for depth in 1..=max_depth {
             let mut next: Vec<Candidate> = Vec::new();
             next.try_reserve(beam_width)

@@ -231,6 +231,8 @@ fn handle(mut stream: UnixStream, directory: PathBuf) -> Result<(), String> {
 }
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 3 {
         eprintln!("usage: anyon_generator <unix-socket-path> <prepared-operator-dir>");

@@ -1,4 +1,0 @@
-conventional affine_row=0 stage=enter nodes=2824
-conventional affine_row=0 stage=return nodes=6783 elapsed=0.016146501
-conventional affine_row=1 stage=enter nodes=14633
-conventional affine_row=1 stage=return nodes=27948 elapsed=0.083804405

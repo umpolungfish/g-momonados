@@ -83,6 +83,13 @@ impl WordTape {
 
     pub(crate) fn parity_cells(&self) -> Vec<char> { self.vox_tape() }
 
+    /// Construct or recover the payload of an IMSCRIB numeral carried as
+    /// canonical IMASM parity cells.
+    pub fn from_imasm_tape(cells: &[char]) -> Option<Self> {
+        Self::from_parity_cells(cells)
+    }
+    pub fn to_imasm_tape(&self) -> Vec<char> { self.parity_cells() }
+
     pub(crate) fn from_parity_cells(cells: &[char]) -> Option<Self> {
         if cells.iter().any(|cell| !matches!(cell, '⊤' | '⊥')) { return None; }
         Some(Self::from_vox_tape(cells))
@@ -204,8 +211,9 @@ impl WordTape {
         Self::from_bits(&bits[..k])
     }
     pub(crate) fn interlace(&self, other: &Self) -> Self {
-        let a = self.bits_low_first();
-        let b = other.bits_low_first();
+        let lanes = vox_core::ordering::selected("lanes", 2).expect("valid lane order")
+            .apply(&[self.bits_low_first(), other.bits_low_first()]).expect("complete lane permutation");
+        let (a, b) = (&lanes[0], &lanes[1]);
         let mut bits = Vec::with_capacity(a.len().max(b.len()) * 2);
         for i in 0..a.len().max(b.len()) {
             bits.push(a.get(i).copied().unwrap_or(false));
@@ -220,7 +228,9 @@ impl WordTape {
         for (i, bit) in bits.into_iter().enumerate() {
             if i % 2 == 0 { a.push(bit); } else { b.push(bit); }
         }
-        (Self::from_bits(&a), Self::from_bits(&b))
+        let lanes = vox_core::ordering::selected("lanes", 2).expect("valid lane order").inverse()
+            .apply(&[Self::from_bits(&a), Self::from_bits(&b)]).expect("complete inverse lane permutation");
+        (lanes[0].clone(), lanes[1].clone())
     }
 }
 

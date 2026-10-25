@@ -1,7 +1,0 @@
-Input: source.txt, N alone. No reference factors or factor-derived parameters.
-Entry: target/x86_64-unknown-linux-gnu/release/examples/idempotent_moment N --contract
-Diagnostic process boundary: 45 seconds, 2 GiB virtual memory, 64 MiB stack.
-No internal contraction cutoff. Preparation is included in the process lifetime.
-process.time records the external lifetime and maximum resident memory.
-stdout retains any returned membrane; stderr retains contraction and copy-return observations.
-exit.status records the terminal process exit.

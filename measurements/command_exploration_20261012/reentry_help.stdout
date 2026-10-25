@@ -1,6 +1,0 @@
-reentry [orbit SEED TICK] identity|negation|hold|seeded MASK|constant MASK|Y MASK|OP MASK
-reentry [orbit SEED TICK] program TOKEN ... (@ applies the two preceding terms)
-reentry word GLYPHS [SEED TICK]
-reentry table SEED TICK OUTPUT0 ... OUTPUT15
-reentry product SOURCE LEFT RIGHT (full-width arithmetic certificate)
-OP: join_i meet_i join_t meet_t join_f meet_f; native mask bits: N=1 T=2 F=4 B=8

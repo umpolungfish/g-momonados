@@ -9,6 +9,8 @@ use num_traits::Zero;
 use std::env;
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let args: Vec<String> = env::args().collect();
     if !(2..=3).contains(&args.len()) {
         eprintln!("Usage: ququart_factor <semiprime> [prepared Fourier operator JSON]");

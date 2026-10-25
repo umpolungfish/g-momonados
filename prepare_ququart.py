@@ -18,8 +18,11 @@ import sys
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT.parent / "Vox"))
 from numeral_codec import normalize_word
+from ordering import variant_path, order_receipt, selected, apply
 
 def run(args, **kwargs):
+    if args[:2] == ["cargo", "build"]:
+        args = [*args, "--target-dir", str(ROOT / "target"), "--target", "x86_64-unknown-linux-gnu"]
     return subprocess.run(args, cwd=ROOT, check=True, text=True,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
 
@@ -41,8 +44,10 @@ def retained_operator(case, inputs):
     if any(prepared.get(field) != inputs.get(field)
            for field in ("source_word", "accuracy_word")):
         raise RuntimeError("retained Fourier operator differs from requested source or accuracy")
-    run([str(ROOT / "target/release/ququart_verify_readout"), "--validate-prepared",
+    run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_verify_readout"), "--validate-prepared",
          str(case / "prepared.json")])
+    if order_receipt()["site"] == "braid" and manifest.get("ordering") != order_receipt():
+        raise RuntimeError("retained physical operator has a different braid order; compile the requested word")
     operator = prepared["prepared_operator"]
     if "controlled_power_words" not in operator or "phase_digits_word" not in operator:
         raise RuntimeError("retained factor operator lacks a prepared controlled-power schedule")
@@ -70,12 +75,12 @@ def main():
     parser.add_argument("--dynamic-work", action="store_true",
                         help="generate nested arithmetic operations at execution from baked source words")
     args = parser.parse_args()
-    case = args.destination.resolve()
+    case = variant_path(args.destination.resolve())
     case.mkdir(parents=True, exist_ok=False)
     build = run(["cargo", "build", "--release", "--bin", "ququart_prepare_operator",
                  "--bin", "ququart_verify_readout"])
     (case / "operator_build.log").write_text(build.stdout + build.stderr)
-    defaults = json.loads(run([str(ROOT / "target/release/ququart_prepare_operator"), "--defaults"]).stdout)
+    defaults = json.loads(run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_prepare_operator"), "--defaults"]).stdout)
     inputs = dict(defaults, source_word=input_word(args.source))
     for option in ("seed", "accuracy", "sk", "net", "refinement", "radix", "native_arm"):
         if getattr(args, option) is not None:
@@ -85,14 +90,14 @@ def main():
     inputs_path = case / "inputs.json"
     inputs_path.write_text(json.dumps(inputs, ensure_ascii=False, indent=2) + "\n")
     if args.base is not None:
-        scaling = run([str(ROOT / "target/release/ququart_prepare_operator"),
+        scaling = run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_prepare_operator"),
                        "--scale-base", str(inputs_path)])
         inputs.update(json.loads(scaling.stdout))
         inputs_path.write_text(json.dumps(inputs, ensure_ascii=False, indent=2) + "\n")
-    validation = run([str(ROOT / "target/release/ququart_verify_readout"),
+    validation = run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_verify_readout"),
                       "--validate-prepared", str(inputs_path)])
     (case / "input_validation.log").write_text(validation.stdout + validation.stderr)
-    run([str(ROOT / "target/release/ququart_prepare_operator"), "--validate-inputs", str(inputs_path)])
+    run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_prepare_operator"), "--validate-inputs", str(inputs_path)])
     source_word = inputs["source_word"]
     prepared = {"component": "ququart_fourier", "source_word": source_word,
                 "accuracy_word": inputs["accuracy_word"],
@@ -109,7 +114,7 @@ def main():
         else:
             compiler_build = run(["cargo", "build", "--release", "--bin", "g-momonados"])
             (case / "compiler_build.log").write_text(compiler_build.stdout + compiler_build.stderr)
-            report = run([str(ROOT / "target/release/g-momonados"), "anyon_ququart_word",
+            report = run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/g-momonados"), "anyon_ququart_word",
                           source_word, inputs["sk_word"], inputs["net_word"], inputs["capacity_word"],
                           inputs["refinement_word"], inputs["accuracy_word"]]).stdout
         compiled = json.loads(report)
@@ -117,6 +122,12 @@ def main():
                 or compiled.get("inverse_word") != defaults["capacity_word"]):
             raise RuntimeError("preparation requires a source-bound forward Fourier braid in IMASM words")
         prepared["exchange_words"] = compiled["exchange_words"]
+        if order_receipt()["site"] == "braid" and compiled.get("ordering") != order_receipt():
+            prepared["exchange_words"] = apply(selected("braid", len(prepared["exchange_words"])), prepared["exchange_words"])
+            if order_receipt()["spec"] == "inverse":
+                prepared["exchange_words"] = [("≺" if word[0] == "≻" else "≻") + word[1:] for word in prepared["exchange_words"]]
+        prepared["ordering"] = order_receipt()
+
         (case / "compiler.json").write_text(json.dumps(compiled, ensure_ascii=False, indent=2) + "\n")
     binary_name = "ququart_baked"
     if args.base is not None:
@@ -132,30 +143,30 @@ def main():
     binary = case / "membrane"
     with (ROOT / "target/ququart-bake.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        run([str(ROOT / "target/release/ququart_verify_readout"), "--validate-prepared", str(prepared_path)])
+        run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_verify_readout"), "--validate-prepared", str(prepared_path)])
         if not args.retained_case:
-            contraction = run([str(ROOT / "target/release/ququart_prepare_operator"), str(prepared_path)])
+            contraction = run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_prepare_operator"), str(prepared_path)])
             prepared["prepared_operator"] = json.loads(contraction.stdout)
             prepared.pop("exchange_words", None)
         prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
         if args.base is not None:
-            powers = run([str(ROOT / "target/release/ququart_prepare_operator"),
+            powers = run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_prepare_operator"),
                           "--prepare-powers", str(prepared_path)])
             prepared["prepared_operator"].update(json.loads(powers.stdout))
             prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
             if not args.dynamic_work:
-                work = run([str(ROOT / "target/release/ququart_prepare_operator"), "--prepare-work", str(prepared_path)])
+                work = run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_prepare_operator"), "--prepare-work", str(prepared_path)])
                 prepared["prepared_work"] = json.loads(work.stdout)
             prepared_path.write_text(json.dumps(prepared, ensure_ascii=False) + "\n")
         build = run(["cargo", "build", "--release", "--bin", binary_name,
                      "--bin", "ququart_verify_readout"], env=env)
         (case / "build.log").write_text(build.stdout + build.stderr)
-        validation = run([str(ROOT / "target/release/ququart_verify_readout"),
+        validation = run([str(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_verify_readout"),
                           "--validate-prepared", str(prepared_path)])
         (case / "prepared_validation.log").write_text(validation.stdout + validation.stderr)
-        shutil.copy2(ROOT / "target/release" / binary_name, binary)
-        shutil.copy2(ROOT / "target/release/ququart_verify_readout", case / "verify_readout")
-    manifest = {"component": prepared["component"], "binary": str(binary),
+        shutil.copy2(ROOT / "target/x86_64-unknown-linux-gnu/release" / binary_name, binary)
+        shutil.copy2(ROOT / "target/x86_64-unknown-linux-gnu/release/ququart_verify_readout", case / "verify_readout")
+    manifest = {"ordering": order_receipt(), "component": prepared["component"], "binary": str(binary),
                 "sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                 "verifier_sha256": hashlib.sha256((case / "verify_readout").read_bytes()).hexdigest(),
                 "prepared_sha256": hashlib.sha256(prepared_path.read_bytes()).hexdigest(),
@@ -206,4 +217,9 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys as _order_sys
+    from pathlib import Path as _OrderPath
+    _order_sys.path.insert(0, str(_OrderPath(__file__).resolve().parents[1] / "Vox"))
+    from ordering import intercept as _order_intercept
+    _order_intercept()
     main()

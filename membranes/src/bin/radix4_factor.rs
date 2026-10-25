@@ -2,15 +2,23 @@ use membranes::{divmod, factor_radix4_with_stats, from_word, is_zero, to_word};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.is_empty() || args.len() > 2 {
-        eprintln!("usage: membrane_radix4_factor <canonical-IMASM-N> [node-cap]");
-        std::process::exit(2);
+    let mut input = None;
+    let mut cap = 2_000_000u64;
+    let mut index = 0;
+    while index < args.len() {
+        let value = args.get(index + 1).unwrap_or_else(|| { eprintln!("each flag requires a value"); std::process::exit(2); });
+        match args[index].as_str() {
+            "--number" => input = Some(value.as_str()),
+            "--node-cap" => cap = value.parse().unwrap_or_else(|_| { eprintln!("--node-cap must be an integer"); std::process::exit(2); }),
+            flag => { eprintln!("unknown flag {flag}"); std::process::exit(2); }
+        }
+        index += 2;
     }
-    let Some(n) = from_word(&args[0]) else {
+    let input = input.unwrap_or_else(|| { eprintln!("usage: membrane_radix4_factor --number CANONICAL_IMASM_N [--node-cap COUNT]"); std::process::exit(2); });
+    let Some(n) = from_word(input) else {
         eprintln!("membrane_radix4_factor: expected a canonical IMASM numeral word");
         std::process::exit(2);
     };
-    let cap = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(2_000_000u64);
     let (factor, nodes, stats) = factor_radix4_with_stats(&n, cap);
     println!("radix-four input bits={}", n.bit_len());
     let profile = stats.prefix_frames.iter().enumerate().map(|(digit, frames)| {
