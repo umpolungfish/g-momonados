@@ -391,12 +391,60 @@ fn big_inv_pow2(a: &BigUint, m: usize) -> BigUint {
 /// digits. Sealing on h == 0 is exactly P·Q == N. Verified against the GPU
 /// kernel's own update, and verified at m=66 (past u64) in tests.
 pub fn closure_height_walk(n: &BigUint, m: usize, max_steps: usize) -> Option<BigUint> {
-    if m < 4 { return None; }
+    closure_height_walk_with_multiplier(n, m, max_steps, 9)
+}
+
+/// GFE-coupled toroidal walk. `multiplier` is source-phase selected and must
+/// remain 9 mod 16, so it generates the full 2-adic unit subgroup modulo 2^m.
+pub fn closure_height_walk_with_multiplier(
+    n: &BigUint,
+    m: usize,
+    max_steps: usize,
+    multiplier: u32,
+) -> Option<BigUint> {
+    closure_height_walk_inner(n, m, Some(max_steps), multiplier).factor
+}
+
+/// Run the complete four-coset toroidal orbit. The caller may impose an
+/// external execution boundary, but this walk has no internal step ceiling.
+pub fn closure_height_walk_complete(
+    n: &BigUint,
+    m: usize,
+    multiplier: u32,
+) -> Option<BigUint> {
+    closure_height_walk_inner(n, m, None, multiplier).factor
+}
+
+/// Return the torus candidate together with the monad-law observations made on
+/// its live four-coset branch family.
+pub fn closure_height_walk_complete_report(
+    n: &BigUint,
+    m: usize,
+    multiplier: u32,
+) -> ClosureWalkReport {
+    closure_height_walk_inner(n, m, None, multiplier)
+}
+
+#[derive(Clone, Debug)]
+pub struct ClosureWalkReport {
+    pub factor: Option<BigUint>,
+    pub powerset_monad_laws_verified: bool,
+}
+
+fn closure_height_walk_inner(
+    n: &BigUint,
+    m: usize,
+    max_steps: Option<usize>,
+    multiplier: u32,
+) -> ClosureWalkReport {
+    if m < 4 || multiplier % 16 != 9 {
+        return ClosureWalkReport { factor: None, powerset_monad_laws_verified: false };
+    }
     let two_m = BigUint::one() << m;
     let mask = &two_m - BigUint::one();
     let lead = BigUint::one() << (m - 1);
-    let nine = BigUint::from(9u32);
-    let inv9 = big_inv_pow2(&nine, m);
+    let step = BigUint::from(multiplier) & &mask;
+    let inv_step = big_inv_pow2(&step, m);
     let nm = n & &mask;
     let reps = [
         BigUint::one(),
@@ -409,31 +457,92 @@ pub fn closure_height_walk(n: &BigUint, m: usize, max_steps: usize) -> Option<Bi
     // only legitimate bound on the walk — not a silent 64-bit ceiling. The
     // min always fits back in `usize` because `max_steps` already does.
     let positions = BigUint::one() << (m - 3);
-    let max_steps_big = BigUint::from(max_steps);
-    let steps = if positions < max_steps_big { positions.to_usize().unwrap() } else { max_steps };
+    let steps = max_steps.map_or_else(|| positions.clone(), |budget| {
+        positions.clone().min(BigUint::from(budget))
+    });
+    let mut states = Vec::with_capacity(reps.len());
     for rep in &reps {
-        let mut p = rep % &two_m;
-        let mut q = (&nm * big_inv_pow2(&p, m)) & &mask;
+        let p = rep % &two_m;
+        let q = (&nm * big_inv_pow2(&p, m)) & &mask;
         // Seed h = (p·q - n)/2^m, signed and exact (p·q ≡ n mod 2^m).
         let mut h: BigInt = BigInt::from_biguint(Sign::Plus, &p * &q)
             - BigInt::from_biguint(Sign::Plus, n.clone());
         h >>= m;
-        for _ in 0..steps {
-            if h.is_zero() && p >= lead && q >= lead {
-                return Some(if p < q { p } else { q });
+        states.push(ClosureWalkState { p, q, h, position: BigUint::zero() });
+    }
+    let mut active = vox_core::reentry_powerset::bind(
+        vox_core::reentry_powerset::unit(0usize),
+        |_root| Ok::<_, core::convert::Infallible>(
+            [0usize, 1usize, 2usize, 3usize].into_iter().collect(),
+        ),
+    ).unwrap_or_else(|never| match never {});
+    if !verify_torus_powerset_laws(&active) {
+        return ClosureWalkReport { factor: None, powerset_monad_laws_verified: false };
+    }
+    while !active.is_empty() {
+        let mut found = None;
+        active = vox_core::reentry_powerset::bind(active, |branch| {
+            let state = &mut states[branch];
+            if state.position >= steps {
+                return Ok(vox_core::reentry_powerset::Held::new());
             }
-            let nine_p = &p * &nine;
-            let a = &nine_p >> m;
-            let p2 = &nine_p & &mask;
-            let q2 = (&q * &inv9) & &mask;
-            let d = ((&q2 * &nine) - &q) >> m;
-            h = h + BigInt::from_biguint(Sign::Plus, &d * &p)
+            if state.h.is_zero() && state.p >= lead && state.q >= lead {
+                found = Some(if state.p < state.q { state.p.clone() } else { state.q.clone() });
+                return Ok(vox_core::reentry_powerset::Held::new());
+            }
+            let step_p = &state.p * &step;
+            let a = &step_p >> m;
+            let p2 = &step_p & &mask;
+            let q2 = (&state.q * &inv_step) & &mask;
+            let d = ((&q2 * &step) - &state.q) >> m;
+            state.h = &state.h + BigInt::from_biguint(Sign::Plus, &d * &state.p)
                 - BigInt::from_biguint(Sign::Plus, &a * &q2);
-            p = p2;
-            q = q2;
+            state.p = p2;
+            state.q = q2;
+            state.position += BigUint::one();
+            Ok(vox_core::reentry_powerset::unit(branch))
+        }).unwrap_or_else(|never: core::convert::Infallible| match never {});
+        if found.is_some() {
+            return ClosureWalkReport { factor: found, powerset_monad_laws_verified: true };
         }
     }
-    None
+    ClosureWalkReport { factor: None, powerset_monad_laws_verified: true }
+}
+
+fn verify_torus_powerset_laws(active: &vox_core::reentry_powerset::Held<usize>) -> bool {
+    use vox_core::reentry_powerset::{bind, multiply, unit};
+    let identity = |branch| Ok::<_, core::convert::Infallible>(unit(branch));
+    let fan = |branch: usize| {
+        Ok::<_, core::convert::Infallible>(
+            [branch, (branch + 1) % 4].into_iter().collect(),
+        )
+    };
+    let rotate = |branch: usize| {
+        Ok::<_, core::convert::Infallible>(unit((branch + 2) % 4))
+    };
+    let left_unit = active.iter().all(|branch|
+        bind(unit(*branch), identity).unwrap_or_default() == unit(*branch));
+    let right_unit = bind(active.clone(), identity).unwrap_or_default() == *active;
+    let left = bind(bind(active.clone(), fan).unwrap_or_default(), rotate).unwrap_or_default();
+    let right = bind(active.clone(), |branch| {
+        bind(fan(branch)?, rotate)
+    }).unwrap_or_default();
+    let associativity = left == right;
+    let nested: vox_core::reentry_powerset::Held<
+        vox_core::reentry_powerset::Held<vox_core::reentry_powerset::Held<usize>>,
+    > = unit(unit(active.clone()));
+    let multiplication = multiply(multiply(nested.clone()))
+        == multiply(nested.into_iter().map(multiply).collect())
+        && multiply(unit(active.clone())) == *active
+        && multiply(active.iter().copied().map(unit).collect()) == *active;
+    left_unit && right_unit && associativity && multiplication
+}
+
+struct ClosureWalkState {
+    p: BigUint,
+    q: BigUint,
+    h: BigInt,
+    position: BigUint,
 }
 
 #[cfg(test)]

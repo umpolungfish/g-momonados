@@ -12,6 +12,8 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT.parent / "Vox"))
+from ordering import variant_path, order_receipt
 
 
 def main():
@@ -20,14 +22,14 @@ def main():
     args = parser.parse_args()
     directory = args.ladder_directory.resolve()
     ladder = json.loads((directory / "ladder.json").read_text())
-    result_path = directory / "executions.json"
+    result_path = variant_path(directory / "executions.json")
     if result_path.exists():
         raise RuntimeError("execution record already exists; preserve it")
     results = []
     for entry in ladder["sources"]:
         bits = entry["bits"]
         record = directory / str(bits)
-        case = ROOT / entry["case"]
+        case = variant_path(ROOT / entry["case"])
         if not (case / "manifest.json").exists():
             if case.exists():
                 raise RuntimeError("incomplete preparation exists; inspect its live handle or error")
@@ -40,10 +42,11 @@ def main():
                 ], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=True)
         manifest = json.loads((case / "manifest.json").read_text())
         assert manifest["source_word"] == entry["source_word"]
-        prefix = record / "execution"
+        prefix = variant_path(record / "execution")
         subprocess.run([sys.executable, str(ROOT / "debug_ququart.py"), str(case), str(prefix)],
                        cwd=ROOT, check=True)
         result = json.loads(Path(str(prefix) + ".json").read_text())
+        result["ordering"] = order_receipt()
         result["bits"] = bits
         result["runtime_source_inputs"] = []
         result["reference_factors_entered_preparation"] = False
@@ -74,4 +77,9 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys as _order_sys
+    from pathlib import Path as _OrderPath
+    _order_sys.path.insert(0, str(_OrderPath(__file__).resolve().parents[1] / "Vox"))
+    from ordering import intercept as _order_intercept
+    _order_intercept()
     main()

@@ -64,6 +64,8 @@ fn run(args: &[String]) -> Result<(), String> {
 }
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let args: Vec<_> = std::env::args().skip(1).collect();
     let worker = std::thread::Builder::new().stack_size(64 * 1024 * 1024)
         .spawn(move || run(&args)).expect("start stack auditor");

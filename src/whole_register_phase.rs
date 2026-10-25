@@ -179,7 +179,10 @@ impl WholeRegisterPhaseExecutor {
                 self.source.clone(), self.base.clone(), self.width.unwrap(),
                 &self.orientation, None)?);
         }
-        if !self.pending_circuit.as_mut().unwrap().advance_nested_work(bits, 8)? {
+        // Keep the full phase/work state resident while amortizing source-port
+        // re-entry across a wider bounded batch. No measurement occurs until
+        // every nested operation and the complete inverse QFT have finished.
+        if !self.pending_circuit.as_mut().unwrap().advance_nested_work(bits, 32)? {
             return Ok(None);
         }
         let mut circuit = self.pending_circuit.take().unwrap();
@@ -736,7 +739,7 @@ impl WholeRegisterPhaseCircuit {
             if self.banked_roots.is_empty() {self.banked_roots.push(self.root);}
             self.streaming_work = Some(StreamingWork { contracted:false, digit_bits, phase_wire: 0,
                 multiplier: self.base_word.clone(), operations: Vec::new(), cursor: 0,
-                pending_wires: (0..self.width).collect() });
+                pending_wires: vox_core::ordering::selected("phase-lanes", self.width)?.indices });
         }
         for _ in 0..quantum {
             let mut work = self.streaming_work.take().unwrap();
@@ -817,7 +820,7 @@ impl WholeRegisterPhaseCircuit {
             if self.banked_roots.is_empty() { self.banked_roots.push(self.root); }
             self.streaming_work = Some(StreamingWork { contracted:true, digit_bits:bits,
                 phase_wire:0, multiplier:self.base_word.clone(), operations:Vec::new(),cursor:0,
-                pending_wires:(0..self.width).collect() });
+                pending_wires:vox_core::ordering::selected("phase-lanes", self.width)?.indices });
         }
         let mut work = self.streaming_work.take().unwrap();
         if !work.contracted {

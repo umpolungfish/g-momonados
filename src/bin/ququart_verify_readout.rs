@@ -273,6 +273,8 @@ fn verify() -> Result<bool, String> {
     Ok(true)
 }
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     match verify() {
         Ok(true) => println!("verified terminal producing arm and Gödel factor product"),
         Ok(false) => {},

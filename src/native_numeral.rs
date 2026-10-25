@@ -976,6 +976,8 @@ pub fn help() -> String {
     let mut o = String::new();
     o.push_str("native_numeral — ob3ect-backed parity-graded numeral mapping\n");
     o.push_str("  Native numeral inputs also accept canonical hex-digit words.\n");
+    o.push_str("  --ordering canonical|reverse|swap:i,j|perm:i,j,...|all [--order-site SITE]\n");
+    o.push_str("  unbraid selects separating; interlace/deinterlace select lanes. Families accept --order-limit and --order-start.\n");
     o.push_str("  word          the canonical glyph word and its marks\n");
     o.push_str("  encode <n>    map n to its native parity-graded word\n");
     o.push_str("  decode <word>    the exact inverse of encode: read a native word back to its integer, with the round-trip check\n");
@@ -1491,8 +1493,10 @@ fn encode_bits_canonical(bits: &[bool]) -> String {
 /// Γ on native-numeral words: interlace two canonical `encode` outputs and
 /// return another canonical `encode` output.
 pub fn interlace_words(p_word: &str, q_word: &str) -> Result<String, &'static str> {
-    let p = canonical_encode_bits(p_word)?;
-    let q = canonical_encode_bits(q_word)?;
+    let lanes = vox_core::ordering::selected("lanes", 2).map_err(|_| "invalid lane ordering")?
+        .apply(&[canonical_encode_bits(p_word)?, canonical_encode_bits(q_word)?])
+        .map_err(|_| "invalid lane permutation")?;
+    let (p, q) = (&lanes[0], &lanes[1]);
     let width = p.len().max(q.len());
 
     let mut merged = Vec::with_capacity(width * 2);
@@ -1514,7 +1518,10 @@ pub fn deinterlace_word(word: &str) -> Result<(String, String), &'static str> {
         if i % 2 == 0 { p.push(bit); } else { q.push(bit); }
     }
 
-    Ok((encode_bits_canonical(&p), encode_bits_canonical(&q)))
+    let lanes = vox_core::ordering::selected("lanes", 2).map_err(|_| "invalid lane ordering")?.inverse()
+        .apply(&[encode_bits_canonical(&p), encode_bits_canonical(&q)])
+        .map_err(|_| "invalid inverse lane permutation")?;
+    Ok((lanes[0].clone(), lanes[1].clone()))
 }
 
 /// End-to-end syzygy invariant for the native numeral factor diagram.
@@ -2390,12 +2397,25 @@ pub fn unbraid_report(n_str: &str, node_cap: u64) -> String {
     // increasingly unbalanced splits, rather than starting at p_bits=2 —
     // splits small-prime peel already covers — and burning the budget
     // before ever reaching the realistic case.
+    let mut width_pairs = Vec::new();
     for p_bits in (2..=(total_bits / 2 + 1)).rev() {
         let q_bits_candidates = [total_bits + 1 - p_bits, total_bits - p_bits];
         for &q_bits in q_bits_candidates.iter() {
             if q_bits < p_bits || q_bits == 0 {
                 continue;
             }
+            width_pairs.push((p_bits, q_bits));
+        }
+    }
+    let width_order = match vox_core::ordering::selected("separating", width_pairs.len()) {
+        Ok(order) => order,
+        Err(error) => return format!("unbraid: invalid separating order: {error}\n"),
+    };
+    let width_pairs = match width_order.apply(&width_pairs) {
+        Ok(pairs) => pairs,
+        Err(error) => return format!("unbraid: cannot apply separating order: {error}\n"),
+    };
+    for (p_bits, q_bits) in width_pairs {
             let share = node_cap.saturating_sub(total_nodes);
             if share == 0 {
                 return format!(
@@ -2470,7 +2490,6 @@ pub fn unbraid_report(n_str: &str, node_cap: u64) -> String {
                     n, p_bits, q_bits, total_nodes, bottom_nodes, top_nodes, p, q, multiply_via_word(&p, &q) == n, syzygy_line(&n, &p, &q), factor_words_line(&p, &q)
                 );
             }
-        }
     }
     // "No factor found" is not one claim, it's two, and this search alone
     // can't tell them apart: N could be provably prime (no two-factor

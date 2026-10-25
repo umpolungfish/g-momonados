@@ -139,6 +139,7 @@ pub struct QuquartFoldedWorkDevice {
     expected: usize,
     count: usize,
     interleaved_work: bool,
+    work_order: Vec<usize>,
     digit_bits: usize,
     prepared_work: Option<PreparedModularWork>,
     sic_witnesses: Vec<SicControlWitness>,
@@ -166,6 +167,7 @@ impl QuquartFoldedWorkDevice {
             expected: 0,
             count: 0,
             interleaved_work: false,
+            work_order: vox_core::ordering::selected("work-wires", cells)?.inverse().indices,
             digit_bits: 1,
             prepared_work: None,
             sic_witnesses: Vec::new(),
@@ -272,16 +274,17 @@ impl QuquartFoldedWorkDevice {
         Ok(device)
     }
     fn work_wire(&self, wire: usize) -> usize {
+        if wire < 2 { return wire; }
         let width = self.source.bits() as usize;
-        if !self.interleaved_work || wire < 2 || wire > 2 * width + 1 { return wire; }
-        if wire <= width + 1 { 2 * (wire - 1) }
-        else { 2 * (wire - width - 1) + 1 }
+        let mapped = if !self.interleaved_work || wire > 2*width+1 {wire}
+            else if wire <= width+1 {2*(wire-1)} else {2*(wire-width-1)+1};
+        // The selected sequence lists the logical coordinate at each physical position.
+        2 + self.work_order[mapped-2]
     }
     fn work_address(&self, residue: &BigUint) -> BigUint {
-        if !self.interleaved_work { return residue.clone(); }
         let mut address = BigUint::zero();
         for bit in 0..residue.bits() {
-            address.set_bit(2 * bit, residue.bit(bit));
+            address.set_bit((self.work_wire(bit as usize+2)-2) as u64, residue.bit(bit));
         }
         address
     }

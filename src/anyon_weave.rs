@@ -82,6 +82,15 @@ pub fn compile_exchange(steps: &[FusionStep]) -> Result<WeaveWord, String> {
 /// Standard-basis endpoints are vertices 1 (returned) and 4 (exchanged).
 /// Other endpoints require a basis completion before use as a logical gate.
 pub fn compile_weave(steps: &[FusionStep]) -> Result<WeaveWord, String> {
+    let order = vox_core::ordering::selected("weave", steps.len())?;
+    let ordered_steps = order.apply(steps)?;
+    compile_weave_in_order(&ordered_steps)
+}
+
+/// Compile a fusion sequence whose operation order was selected by the caller.
+/// The returned physical braid is built from that ordered path, so vertex and
+/// phase ancestry describe the same execution that emitted the crossings.
+fn compile_weave_in_order(steps: &[FusionStep]) -> Result<WeaveWord, String> {
     let capacity = steps
         .iter()
         .try_fold(0usize, |total, step| {

@@ -21,6 +21,8 @@ use g_momonados::membrane_family as mf;
 use g_momonados::native_numeral as nn;
 
 fn main() -> ExitCode {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let t0 = Instant::now();
     let args: Vec<String> = env::args().skip(1).collect();
     let cmd = args.first().map(String::as_str).unwrap_or("help");

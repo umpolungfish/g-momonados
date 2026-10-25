@@ -124,6 +124,8 @@ fn execute() -> Result<serde_json::Value, String> {
 }
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     match execute() {
         Ok(record) => println!("{record}"),
         Err(error) => { eprintln!("ququart-work-probe: {error}"); std::process::exit(2); }

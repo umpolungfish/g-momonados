@@ -8,11 +8,14 @@ use num_bigint::BigUint;
 use std::env;
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let args: Vec<String> = env::args().skip(1).collect();
-    let Some(input) = args.first() else {
-        eprintln!("Usage: membrane_factor <decimal-number>");
+    if args.len() != 2 || args[0] != "--number" {
+        eprintln!("Usage: membrane_factor --number DECIMAL_N");
         std::process::exit(1);
-    };
+    }
+    let input = &args[1];
 
     let n = BigUint::parse_bytes(input.as_bytes(), 10)
         .ok_or_else(|| format!("Invalid decimal: {}", input))

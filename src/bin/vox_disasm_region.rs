@@ -1,6 +1,8 @@
 //! Decode a symbol-bounded ELF region with Vox's native decoder, including
 //! instructions unreachable to its default control-flow walker.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let args: Vec<_> = std::env::args().collect();
     if args.len() != 4 { return Err("usage: vox_disasm_region ELF START_HEX END_HEX".into()); }
     let raw = std::fs::read(&args[1])?;

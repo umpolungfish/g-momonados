@@ -167,6 +167,8 @@ fn run(args: &[String]) -> Result<(), SicError> {
     Ok(())
 }
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     if let Err(error) = run(&std::env::args().skip(1).collect::<Vec<_>>()) {
         eprintln!("sic-tool: {error}");
         std::process::exit(2);

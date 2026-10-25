@@ -310,10 +310,37 @@ pub fn factor_radix4(n: &Big, node_cap: u64) -> (Option<Big>, u64) {
 
 pub fn main_membrane(name: &str, word: &str) {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let steps = args.iter().position(|arg| arg == "steps")
-        .and_then(|i| args.get(i + 1)).and_then(|s| s.parse().ok()).unwrap_or(2_000_000u64);
-    let Some(raw) = args.first() else {
-        eprintln!("usage: {name} <canonical-IMASM-numeral-word> [steps K]");
+    let mut input = None;
+    let mut steps = 2_000_000u64;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--input" => {
+                index += 1;
+                input = args.get(index).map(String::as_str);
+                if input.is_none() {
+                    eprintln!("{name}: --input requires a canonical IMASM numeral word");
+                    std::process::exit(2);
+                }
+            }
+            "--steps" => {
+                index += 1;
+                steps = args.get(index).and_then(|value| value.parse().ok())
+                    .filter(|value| *value > 0)
+                    .unwrap_or_else(|| {
+                        eprintln!("{name}: --steps requires a positive integer");
+                        std::process::exit(2);
+                    });
+            }
+            flag => {
+                eprintln!("{name}: unknown flag {flag}; expected --input and optional --steps");
+                std::process::exit(2);
+            }
+        }
+        index += 1;
+    }
+    let Some(raw) = input else {
+        eprintln!("usage: {name} --input CANONICAL_IMASM_WORD [--steps COUNT]");
         std::process::exit(2);
     };
     let Some(n) = from_word(raw) else {

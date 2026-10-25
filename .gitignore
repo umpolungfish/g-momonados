@@ -15,3 +15,4 @@ gpu_port/**/target/
 .lake/packages/
 .lake/
 momonados-proof-*/lean/.lake/
+measurements/

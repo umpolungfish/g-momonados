@@ -2588,6 +2588,46 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 let tail: Vec<&str> = parts.collect();
                 let joined = tail.join(" ");
                 let rest: Vec<&str> = joined.split_whitespace().collect();
+                // Compile QFT and the requested gate circuit into one braid
+                // word, then certify the matrix of that exact composite word.
+                // Syntax: qc qft <qubits> <gates> <net_depth> <sk_depth>.
+                if rest.first().map(|s| s.eq_ignore_ascii_case("qft")).unwrap_or(false) {
+                    let n = rest.get(1).and_then(|s| s.parse::<usize>().ok()).unwrap_or(0);
+                    let spec = rest.get(2).copied().unwrap_or("");
+                    let depth = rest.get(3).and_then(|s| s.parse::<usize>().ok()).unwrap_or(8).max(1);
+                    let sk_depth = rest.get(4).and_then(|s| s.parse::<usize>().ok()).unwrap_or(1);
+                    if n == 0 || spec.is_empty() {
+                        sprintln!("qc qft <qubits> <gates> [net_depth] [sk_depth]");
+                    } else {
+                        let qft_word = crate::qft::qft_to_braid(n, false);
+                        match crate::fibonacci_qc::compose_circuit_matrix(spec) {
+                            Err(error) => sprintln!("{}", error),
+                            Ok(target) => {
+                                let net = crate::fibonacci_qc::GateNet::build(depth, 200000);
+                                let (qc_word, _, _) = crate::fibonacci_qc::sk_split_fuse(&target, sk_depth, &net, 8);
+                                let mut word = qft_word;
+                                word.extend(qc_word);
+                                let qft_matrix = crate::fibonacci_qc::synthesize_matrix2_4(
+                                    &crate::qft::qft_to_braid(n, false));
+                                let composite_target = target.mul(qft_matrix);
+                                let qc_matrix = crate::fibonacci_qc::synthesize_matrix2_4(
+                                    &word[crate::qft::qft_to_braid(n, false).len()..]);
+                                let composed_word_matrix = qc_matrix.mul(qft_matrix);
+                                let actual = crate::fibonacci_qc::synthesize_matrix2_4(&word);
+                                let target_residual = crate::fibonacci_qc::Matrix2::projective_distance(&actual, &composite_target);
+                                let word_residual = crate::fibonacci_qc::Matrix2::projective_distance(&actual, &composed_word_matrix);
+                                let encode = |m: &crate::fibonacci_qc::Matrix2| m.data.iter()
+                                    .map(|z| alloc::format!("{{\"re\":{:.17},\"im\":{:.17}}}", z.re, z.im))
+                                    .collect::<Vec<_>>().join(",");
+                                let word_json = word.iter().map(i32::to_string).collect::<Vec<_>>().join(",");
+                                sprintln!("BRAID_OPERATOR_JSON={{\"circuit\":\"QFT{}+{}\",\"target_matrix\":[{}],\"synthesized_matrix\":[{}],\"braid_word\":[{}],\"target_projective_residual\":{:.17},\"word_matrix_residual\":{:.17},\"unitary\":{}}}",
+                                    n, spec, encode(&composite_target), encode(&actual), word_json, target_residual, word_residual,
+                                    actual.is_unitary(1e-9) && word_residual < 1e-6);
+                            }
+                        }
+                    }
+                    continue;
+                }
                 // `draw` / `svg` in front of the circuit renders the word it
                 // compiles to instead of listing it as integers. The word is
                 // built inside the compile's heap scope and dies with it, so
@@ -2843,7 +2883,7 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                             let parse_w = |s: &str| -> Vec<i32> { s.split_whitespace().filter_map(|t| t.parse::<i32>().ok()).collect() };
                             let wp = parse_w(groups[0]);
                             let wq = parse_w(groups[1]);
-                            let wn = parse_w(groups[2]);
+                            let wn = vox_core::ordering::selected_braid(&parse_w(groups[2])).expect("valid braid order");
                             sprintln!("{}", crate::fibonacci_qc::rep_multiply_check(n, &wp, &wq, &wn));
                         }
                     }
@@ -2904,11 +2944,14 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                             }
                             sprintln!("");
                             match crate::braid_protocol::read_tangle(&prog, gens.len() + 2, 1) {
-                                Ok(r) => sprintln!(
-                                    "μ∘δ: {} — writhe {}, {} crossings, closes {}",
-                                    if r.generators == gens { "id" } else { "NOT id" },
-                                    r.writhe, r.crossings, r.closes
-                                ),
+                                Ok(r) => {
+                                    let returned = crate::braid_protocol::recover_ordered_generators(&r.generators);
+                                    sprintln!(
+                                        "μ∘δ: {} — physical {:?}, returned {:?}, writhe {}, {} crossings, closes {}",
+                                        if returned.as_ref().is_ok_and(|word| word == &gens) { "id" } else { "NOT id" },
+                                        r.generators, returned.ok(), r.writhe, r.crossings, r.closes
+                                    );
+                                }
                                 Err(e) => sprintln!("μ refused: {}", e),
                             }
                         }

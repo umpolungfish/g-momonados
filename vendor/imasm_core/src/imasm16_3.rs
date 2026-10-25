@@ -429,6 +429,69 @@ pub fn run_word_register(steps: &[Token16_3]) -> String {
     m.reg.name()
 }
 
+
+/// Execution evidence from the same transition function as `run_word_register`.
+/// A cyclic ancestry verdict does not certify that a paired fuse executed.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExecutionAudit {
+    pub final_register: String,
+    pub fixed_at: Option<usize>,
+    pub inert_steps: usize,
+    pub skipped_fuses: usize,
+    pub open_frames: usize,
+    pub abandoned_frames: usize,
+    pub unmatched_fuses: usize,
+    pub executed_reconnections: usize,
+}
+impl ExecutionAudit {
+    pub fn returned(&self) -> bool {
+        self.open_frames == 0 && self.abandoned_frames == 0
+            && self.unmatched_fuses == 0 && self.executed_reconnections > 0
+    }
+    pub fn json(&self) -> String {
+        format!("{{\"final_register\":\"{}\",\"fixed_at\":{},\"inert_steps\":{},\"skipped_fuses\":{},\"open_frames\":{},\"abandoned_frames\":{},\"unmatched_fuses\":{},\"executed_reconnections\":{},\"returned\":{}}}",
+            self.final_register, self.fixed_at.map(|i| i.to_string()).unwrap_or_else(|| "null".to_string()),
+            self.inert_steps, self.skipped_fuses, self.open_frames, self.abandoned_frames,
+            self.unmatched_fuses, self.executed_reconnections, self.returned())
+    }
+}
+
+pub fn execution_audit(steps: &[Token16_3]) -> ExecutionAudit {
+    let mut machine = Machine::new();
+    let mut work_frames: Vec<bool> = Vec::new();
+    let mut audit = ExecutionAudit { final_register: String::new(), fixed_at: None,
+        inert_steps: 0, skipped_fuses: 0, open_frames: 0, abandoned_frames: 0,
+        unmatched_fuses: 0, executed_reconnections: 0 };
+    for (i, &token) in steps.iter().enumerate() {
+        let inert = machine.fixed && token != Ifix && token != Imscrib;
+        if inert {
+            audit.inert_steps += 1;
+            if token == Ffuse3 { audit.skipped_fuses += 1; }
+        } else {
+            match token {
+                Vinit => { audit.abandoned_frames += work_frames.len(); work_frames.clear(); }
+                Fsplit3 => work_frames.push(false),
+                Ffuse3 => match work_frames.pop() {
+                    Some(worked) => {
+                        if worked { audit.executed_reconnections += 1; }
+                        if let Some(parent) = work_frames.last_mut() { *parent |= worked; }
+                    }
+                    None => audit.unmatched_fuses += 1,
+                },
+                _ => if token.is_work() {
+                    if let Some(frame) = work_frames.last_mut() { *frame = true; }
+                },
+            }
+            if token == Ifix && audit.fixed_at.is_none() { audit.fixed_at = Some(i+1); }
+        }
+        machine.step(token);
+    }
+    audit.final_register = machine.reg.name();
+    audit.open_frames = machine.split_stack.len();
+    debug_assert_eq!(audit.open_frames, work_frames.len());
+    audit
+}
+
 /// Pair FSPLIT3→FFUSE3 over the word read as a LOOP.
 ///
 /// A word is a cycle and ROTAT is the cyclic shift (Weyl–Heisenberg X), so a
@@ -520,7 +583,11 @@ fn run_trace(steps: &[Token16_3]) -> String {
     let _ = writeln!(out);
     let _ = writeln!(out, "  Closed walk: {closed}");
     let _ = writeln!(out, "  Final register: {}", mach.reg.name());
-    let _ = writeln!(out, "  Tri-ancestral verdict: {verdict} — {msg}");
+    let _ = writeln!(out, "  Cyclic ancestry verdict: {verdict} — {msg}");
+    let execution = execution_audit(steps);
+    let _ = writeln!(out, "  Executed return: {} ({} open frames, {} executed reconnections, {} skipped ∋)",
+        if execution.returned() { "complete" } else { "held" }, execution.open_frames,
+        execution.executed_reconnections, execution.skipped_fuses);
     out
 }
 
@@ -778,5 +845,36 @@ mod tests {
         assert_eq!(t.name(), "T");
         assert_eq!(tf.name(), "TF");
         assert_ne!(n.name(), a.name());
+    }
+}
+
+#[cfg(test)]
+mod execution_audit_tests {
+    use super::*;
+    #[test]
+    fn fixation_does_not_execute_a_structurally_paired_fuse() {
+        let word="⊢⊙≻⋈∈⊤≻⊡≺⊞⊙≻⋈⊤⊥⊡⊙≻⊤≺⊥⋈⊞⊡⊙≻⊤⊡⋈≺⊙≻⊤⋈≺⊞⊡⊙≻⊤⊡⊥≺⋈⊞⊡⊙≻⊤⊥⋈⊙⊡⊙⊤≻⊤≺⊥⋈⊡≻⊙⊤⋈⊡⊙⊤≻≺⊥⋈⊞⊡⊙≻⊤⋈⊤⊡⊙⊤≺⊥⋈⊡∋⊣";
+        let steps=parse_glyph_word(word);
+        assert_eq!(steps.len(),88);
+        assert_eq!(tri_ancestral_verdict(&steps).0,'T');
+        let audit=execution_audit(&steps);
+        assert_eq!(audit.final_register,"T");
+        assert_eq!(audit.fixed_at,Some(8));
+        assert_eq!(audit.inert_steps,56);
+        assert_eq!(audit.skipped_fuses,1);
+        assert_eq!(audit.open_frames,1);
+        assert_eq!(audit.executed_reconnections,0);
+        assert!(!audit.returned());
+        for cut in 0..steps.len() {
+            let mut rotated=steps.clone();rotated.rotate_left(cut);
+            assert_eq!(execution_audit(&rotated).final_register,run_word_register(&rotated));
+            assert_eq!(tri_ancestral_verdict(&rotated).0,'T');
+        }
+    }
+    #[test]
+    fn return_requires_an_executed_transformed_reconnection() {
+        assert!(execution_audit(&parse_glyph_word("⊢∈⊤≺∋⊡⊣")).returned());
+        assert!(!execution_audit(&parse_glyph_word("⊢∈∋⊡⊣")).returned());
+        assert!(!execution_audit(&parse_glyph_word("⊢∈⊤⊢∋⊡⊣")).returned());
     }
 }

@@ -120,6 +120,83 @@ pub fn f64_cos(x: f64) -> f64 { f64_sin(x + TAU / 4.0) }
 
 pub struct Collatz;
 
+/// N-only Collatz candidate port over the same IMASM tape used by GFE.
+/// Each transition checks whether the current trajectory value exposes a
+/// proper source divisor. The block boundary and trajectory remain resident
+/// between source-port calls.
+pub struct TapeFactorProbe {
+    source: crate::word_tape::WordTape,
+    current: crate::word_tape::WordTape,
+    block_start: crate::word_tape::WordTape,
+    blocks: u64,
+    steps: u64,
+    terminal: bool,
+}
+
+impl TapeFactorProbe {
+    pub fn from_imasm_tape(source: &[char]) -> Result<Self, String> {
+        let source = crate::word_tape::WordTape::from_imasm_tape(source)
+            .ok_or_else(|| String::from("Collatz source is not an IMASM numeral tape"))?;
+        if source <= crate::word_tape::WordTape::one() {
+            return Err(String::from("Collatz factor source must satisfy N > 1"));
+        }
+        Ok(Self { source: source.clone(), current: source.clone(),
+            block_start: source, blocks: 0, steps: 0, terminal: false })
+    }
+
+    pub fn blocks(&self) -> u64 { self.blocks }
+    pub fn steps(&self) -> u64 { self.steps }
+    pub fn current(&self) -> &crate::word_tape::WordTape { &self.current }
+
+    /// Advance a bounded number of shortcut transitions. A hit returns only
+    /// after exact tape division confirms 1 < d < N and d divides N.
+    pub fn advance(&mut self, transitions: usize) -> Result<Option<Vec<char>>, String> {
+        if self.terminal { return Ok(None); }
+        let three = crate::word_tape::WordTape::from_small(3);
+        let one = crate::word_tape::WordTape::one();
+        for _ in 0..transitions.max(1) {
+            self.current = if self.current.is_odd() {
+                self.current.mul(&three).add(&one).shr1()
+            } else {
+                self.current.shr1()
+            };
+            self.steps = self.steps.saturating_add(1);
+
+            let divisor = tape_gcd(self.source.clone(), self.current.clone());
+            if divisor > one && divisor < self.source {
+                let Some((_, remainder)) = self.source.divmod(&divisor) else {
+                    return Err(String::from("Collatz divisor port failed exact tape division"));
+                };
+                if remainder.is_zero() {
+                    return Ok(Some(divisor.to_imasm_tape()));
+                }
+            }
+
+            if self.current <= one {
+                self.terminal = true;
+                self.blocks = self.blocks.saturating_add(1);
+                return Ok(None);
+            }
+            if self.current < self.block_start {
+                self.blocks = self.blocks.saturating_add(1);
+                self.block_start = self.current.clone();
+            }
+        }
+        Ok(None)
+    }
+}
+
+fn tape_gcd(mut left: crate::word_tape::WordTape,
+    mut right: crate::word_tape::WordTape) -> crate::word_tape::WordTape {
+    while !right.is_zero() {
+        let (_, remainder) = left.divmod(&right)
+            .expect("nonzero Collatz gcd divisor has a tape quotient");
+        left = right;
+        right = remainder;
+    }
+    left
+}
+
 impl Collatz {
     pub fn help() -> String {
         let mut s = String::from("collatz — the block nesting, and the budget it spends\n\n");

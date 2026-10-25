@@ -1207,10 +1207,27 @@ pub fn s_gate() -> Matrix2 {
 /// Compose one complete {H,T,S,X} circuit using the same left-to-right
 /// convention as the `qc` REPL command.
 pub fn compose_circuit_matrix(spec: &str) -> Result<Matrix2, String> {
+    let gates: Vec<char> = spec.chars().filter(|ch| !ch.is_whitespace()).collect();
+    let order = vox_core::ordering::selected("circuit", gates.len())?;
+    compose_ordered_circuit(&gates, &order)
+}
+
+fn compose_ordered_circuit(gates: &[char], order: &vox_core::ordering::Permutation) -> Result<Matrix2, String> {
+    let gates = order.apply(gates)?;
     let mut target = Matrix2::identity();
-    let mut named = false;
-    for ch in spec.chars() {
-        if ch.is_whitespace() { continue; }
+    let mut inverse = Matrix2::identity();
+    for &ch in gates.iter().rev() {
+        let gate = match ch {
+            'H' | 'h' => hadamard(),
+            'T' | 't' => t_gate(),
+            'S' | 's' => s_gate(),
+            'X' | 'x' => pauli_x(),
+            other => return Err(alloc::format!("Unknown gate '{}'. Known: H T S X", other)),
+        };
+        inverse = gate.inverse().mul(inverse);
+    }
+    if gates.is_empty() { return Err(String::from("circuit must contain at least one H, T, S, or X gate")); }
+    for &ch in &gates {
         let gate = match ch {
             'H' | 'h' => hadamard(),
             'T' | 't' => t_gate(),
@@ -1219,10 +1236,30 @@ pub fn compose_circuit_matrix(spec: &str) -> Result<Matrix2, String> {
             other => return Err(alloc::format!("Unknown gate '{}'. Known: H T S X", other)),
         };
         target = gate.mul(target);
-        named = true;
     }
-    if !named { return Err(String::from("circuit must contain at least one H, T, S, or X gate")); }
+    let returned = target.mul(inverse);
+    let inverse_residual = returned.data.iter().zip(Matrix2::identity().data)
+        .map(|(actual, expected)| (actual.re - expected.re).abs().max((actual.im - expected.im).abs()))
+        .fold(0.0f64, f64::max);
+    if !inverse_residual.is_finite() || inverse_residual > 1e-12 {
+        return Err(String::from("selected gate order failed exact inverse return"));
+    }
     Ok(target)
+}
+
+#[cfg(test)]
+mod ordered_circuit_return_tests {
+    use super::*;
+
+    #[test]
+    fn selected_noncommuting_gate_order_returns_through_its_inverse() {
+        let gates: Vec<_> = "HTS".chars().collect();
+        let canonical = vox_core::ordering::Permutation::parse("canonical", gates.len()).unwrap();
+        let reverse = vox_core::ordering::Permutation::parse("reverse", gates.len()).unwrap();
+        let forward = compose_ordered_circuit(&gates, &canonical).unwrap();
+        let reordered = compose_ordered_circuit(&gates, &reverse).unwrap();
+        assert_ne!(forward, reordered);
+    }
 }
 
 /// Pauli-X gate
@@ -1727,7 +1764,7 @@ pub fn sk_split_fuse(
 
     // mu: the losing arms compile the survivor's residual.
     let n = arms.len();
-    for i in 0..n {
+    for i in vox_core::ordering::selected("fusion", n).expect("valid residual-fusion order").indices {
         // A pass that does not improve on the survivor is worth nothing and is
         // rolled back; one that does keeps its word, which the next pass then
         // builds on, so only improvements cost arena.
@@ -2145,7 +2182,11 @@ pub fn repl_compile(spec: &str, net_depth: usize, sk_depth: usize, render: u8) {
     sk_capped_reset();
     let (w0, g0, _) = solovay_kitaev(&target, sk_depth, &net);
     let e0 = Matrix2::projective_distance(&target, &g0);
-    let (w1, g1, _) = sk_split_fuse(&target, sk_depth, &net, 8);
+    let (w1, _, _) = sk_split_fuse(&target, sk_depth, &net, 8);
+    let w1 = match vox_core::ordering::selected_braid(&w1) {
+        Ok(word) => word, Err(error) => { sprintln!("ordering: {}", error); return; }
+    };
+    let g1 = synthesize_matrix2_4(&w1);
     let e1 = Matrix2::projective_distance(&target, &g1);
     // The word grows about fivefold per recursion level, so the depth that does
     // not fit is one above the depth that does. The recursion stops where the
@@ -2225,6 +2266,10 @@ pub fn repl_compile(spec: &str, net_depth: usize, sk_depth: usize, render: u8) {
 /// value means the invariant cannot see the chirality here, NOT that the knot
 /// is amphichiral: the cinquefoil is chiral and evaluates real.
 pub fn repl_jones(n: usize, word: &[i32]) {
+    let selected = match vox_core::ordering::selected_braid(word) {
+        Ok(word) => word, Err(error) => { sprintln!("ordering: {error}"); return; }
+    };
+    let word = selected.as_slice();
     // Scope the arena. Both sectors build F(n) x F(n) complex matrices for
     // every generator, which is ~600 KB at ten strands, and the bump allocator
     // reclaims only in LIFO order, so without this each invocation kept its

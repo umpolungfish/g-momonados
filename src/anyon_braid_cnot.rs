@@ -1787,10 +1787,27 @@ pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
         Err(e) => return Err(e),
     }
 
+    let braid_order = vox_core::ordering::selected("braid", word.len())?;
+    let order_orientation = if vox_core::ordering::setting("IG_ORDER_SPEC").as_deref() == Some("inverse") {
+        "inverse"
+    } else {
+        "forward"
+    };
+    let word = vox_core::ordering::selected_braid(&word)?;
     let algebra = FibonacciPair::new(&source)?;
     let physical = algebra.evaluate(&word)?;
-    let observed = algebra.in_pair_channels(&physical);
+    let inverse_word: Vec<_> = word.iter().rev().map(|generator| -*generator).collect();
+    let inverse_physical = algebra.evaluate(&inverse_word)?;
+    let returned = inverse_physical.multiply(&physical, algebra.format());
+    let identity = g_momonados::anyon_pair::PairMatrix::identity(algebra.format());
     let scale = algebra.format().scale();
+    let inverse_return = returned.0.iter().zip(&identity.0)
+        .map(|(actual, expected)| ratio(
+            &(&actual.re - &expected.re).abs().max((&actual.im - &expected.im).abs()),
+            &scale,
+        ))
+        .fold(0.0f64, f64::max);
+    let observed = algebra.in_pair_channels(&physical);
 
     // Compute projective overlap with ideal Fourier matrix
     let mut inner = Complex::new(0.0, 0.0);
@@ -1839,7 +1856,7 @@ pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
         })
         .fold(0.0f64, f64::max);
 
-    let maximum = computational.max(leakage).max(unitarity);
+    let maximum = computational.max(leakage).max(unitarity).max(inverse_return);
     let threshold = 2.0f64.powi(-(i32::try_from(accuracy).map_err(|_| "Fourier accuracy too large")?));
     if maximum > threshold {
         // Detailed per-channel diagnostic output
@@ -1887,11 +1904,13 @@ pub fn compile_ququart_fourier(args: &[&str]) -> Result<String, String> {
             "computational_word": scalar(computational.to_bits()),
             "leakage_word": scalar(leakage.to_bits()),
             "unitarity_word": scalar(unitarity.to_bits()),
+            "inverse_return_word": scalar(inverse_return.to_bits()),
             "exchange_words": exchange_words,
+            "ordering": {"site": vox_core::ordering::setting("IG_ORDER_SITE"), "spec": braid_order.label(), "inverse": braid_order.inverse().label(), "orientation": order_orientation},
         }).to_string());
     }
     let mut report = format!(
-        "Z4 Fourier Fibonacci braid\nsource_bits={} inverse={} physical_word_length={} frame_recovery_heights={}\ncomputational={computational:.8e} leakage={leakage:.8e} unitarity={unitarity:.8e}\nword=",
+        "Z4 Fourier Fibonacci braid\nsource_bits={} inverse={} physical_word_length={} frame_recovery_heights={}\ncomputational={computational:.8e} leakage={leakage:.8e} unitarity={unitarity:.8e} inverse_return={inverse_return:.8e}\nword=",
         source.bits(),
         inverse,
         word.len(),

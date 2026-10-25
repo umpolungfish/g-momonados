@@ -147,6 +147,25 @@ class RewireTests(unittest.TestCase):
         self.assertFalse(check["all_branch_splits_present"])
         self.assertFalse(check["publishable"])
 
+    def test_static_module_header_and_instruction_payload_survive_rewiring(self) -> None:
+        metadata, instructions = fixture_program()
+        result = rewirer.rewire(metadata, instructions, {}, fixture_diagram())
+        source = (
+            "; standalone static-v1\n; ⊙ module (elf x86-64)\n; entry 0x100\n; bits 64\n"
+            "@0x100\n∈\tje\ti:0x102\n@0x101\n⋈\tmov\tr:rax\tr:rbx\n"
+            "@0x102\n⊤\tadd\tr:rax\ti:0x1\n@0x103\n⊣\tret\n"
+        )
+        tape, check = rewirer._rewrite_imasm_text(source, result)
+        self.assertTrue(check["publishable"], check)
+        self.assertTrue(check["instruction_stream_preserved"])
+        self.assertTrue(tape.startswith("; standalone static-v1\n; ⊙ module (elf x86-64)\n"))
+
+    def test_static_header_does_not_admit_a_missing_module_header(self) -> None:
+        metadata, instructions = fixture_program()
+        result = rewirer.rewire(metadata, instructions, {}, fixture_diagram())
+        with self.assertRaisesRegex(ValueError, "complete executable IMASM"):
+            rewirer._rewrite_imasm_text("; standalone static-v1\n@0x100\n⊣\tret\n", result)
+
     def test_symbolic_transfer_fuse_stays_a_virtual_tape_relation(self) -> None:
         metadata, instructions = fixture_program()
         result = rewirer.rewire(metadata, instructions, {}, fixture_diagram())

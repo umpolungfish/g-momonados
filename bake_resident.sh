@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Select an explicit operation order before the wrapper's original argument parser.
+for ig_order_arg in "$@"; do
+    if [[ "$ig_order_arg" == --ordering || "$ig_order_arg" == --orderings ]]; then
+        exec python3 "$(dirname -- "${BASH_SOURCE[0]}")/../Vox/ordering.py" "$0" "$@"
+    fi
+done
 # Bake an N-only IMASM source into a resident membrane executable.
 # Execution is a separate step - the binary runs with no arguments.
 set -euo pipefail
@@ -20,6 +26,10 @@ bake_output=${2:-}
 bake_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 cd -- "$bake_root"
 
+if [[ -n $bake_output && -n ${IG_ORDER_SITE:-} ]]; then
+    bake_order_key=$(printf '%s\n' "$IG_ORDER_SITE" "${IG_ORDER_SPEC:-canonical}" | sha256sum | cut -c1-16)
+    bake_output="${bake_output}.order-${bake_order_key}"
+fi
 if [[ -z $bake_output ]]; then
     mkdir -p measurements/baked_resident
     bake_output=$(mktemp -d "$bake_root/measurements/baked_resident/factor.XXXXXXXX")
@@ -29,6 +39,7 @@ else
     mkdir -- "$bake_output"
 fi
 bake_output=$(cd -- "$bake_output" && pwd)
+printf 'site=%s\nspec=%s\n' "${IG_ORDER_SITE:-}" "${IG_ORDER_SPEC:-canonical}" >"$bake_output/ordering.txt"
 
 bake_fail() {
     printf 'Bake failed; build diagnostics are in %s\n' "$bake_output" >&2

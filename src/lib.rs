@@ -17,6 +17,7 @@
 #![allow(non_snake_case)]
 
 extern crate alloc;
+pub use vox_core::ordering;
 
 #[cfg(feature = "hosted")]
 pub mod conventional_translation;
@@ -24,6 +25,8 @@ pub mod conventional_translation;
 pub mod conventional_spectrum;
 pub mod idempotent_moment;
 pub mod idempotent_projector;
+#[cfg(feature="hosted")]
+pub mod godel_complex_carrier;
 #[cfg(feature="hosted")]
 pub mod reentry_wells;
 #[cfg(feature="hosted")]

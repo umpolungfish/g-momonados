@@ -278,7 +278,10 @@ fn dispatch(args: &[&str]) -> Result<String, String> {
         "analyze" => analyze_with_kernel(args),
         "frame-op" => frame_operation_with_kernel(args),
         "lte2" => vox_core::godel_analyzer::command(args),
-        "product" | "frame" | "shiab" | "separate" | "factor" => godel_product::command(args),
+        "product" | "frame" | "shiab" | "separate" => godel_product::command(args),
+        "factor" if args.get(1) == Some(&"--resume") || args.get(2) == Some(&"--cycle") =>
+            g_momonados::godel_complex_carrier::command(&args[1..]),
+        "factor" => godel_product::command(args),
         "selftest" | "verify" => {
             let mut out = godel_calculus::selftest_report()?;
             out.push_str(&godel_analyzer::selftest_report()?);
@@ -286,7 +289,7 @@ fn dispatch(args: &[&str]) -> Result<String, String> {
             Ok(out)
         }
         "help" | "-h" | "--help" => Ok(format!(
-            "{}{}{}",
+            "{}{}{}factor N --cycle CYCLE --hold STEPS RETURN\nfactor --resume RETURN --hold STEPS NEXT\n",
             vox_core::godel_calculus::help(),
             godel_analyzer::help_addendum(),
             godel_product::help_addendum()
@@ -296,6 +299,8 @@ fn dispatch(args: &[&str]) -> Result<String, String> {
 }
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let args: Vec<String> = std::env::args().skip(1).collect();
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     match dispatch(&refs) {

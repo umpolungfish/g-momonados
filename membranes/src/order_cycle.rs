@@ -140,15 +140,29 @@ fn advance_order_word(
 
 /// Run the shared classical squaring-cycle route on a canonical numeral word.
 pub fn run(name: &str, args: &[String], default_cap: u64) {
-    if args.is_empty() || args.len() > 2 {
-        eprintln!("usage: {name} <canonical-IMASM-N> [squaring-cap]");
-        std::process::exit(2);
+    let mut input = None;
+    let mut cap = default_cap;
+    let mut index = 0;
+    while index < args.len() {
+        let value = args.get(index + 1).unwrap_or_else(|| {
+            eprintln!("each flag requires a value");
+            std::process::exit(2);
+        });
+        match args[index].as_str() {
+            "--number" => input = Some(value.as_str()),
+            "--steps" => cap = value.parse().unwrap_or_else(|_| { eprintln!("--steps must be an integer"); std::process::exit(2); }),
+            flag => { eprintln!("unknown flag {flag}"); std::process::exit(2); }
+        }
+        index += 2;
     }
-    let n = from_word(&args[0]).unwrap_or_else(|| {
-        eprintln!("expected canonical IMASM numeral word");
+    let input = input.unwrap_or_else(|| {
+        eprintln!("usage: {name} --number CANONICAL_IMASM_N [--steps COUNT]");
         std::process::exit(2)
     });
-    let cap = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(default_cap);
+    let n = from_word(input).unwrap_or_else(|| {
+        eprintln!("expected canonical IMASM numeral word for --number");
+        std::process::exit(2)
+    });
     let base = from_u32(2);
     let mut tortoise = base.clone();
     let mut hare = base.clone();

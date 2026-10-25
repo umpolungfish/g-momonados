@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Select an explicit operation order before the wrapper's original argument parser.
+for ig_order_arg in "$@"; do
+    if [[ "$ig_order_arg" == --ordering || "$ig_order_arg" == --orderings ]]; then
+        exec python3 "$(dirname -- "${BASH_SOURCE[0]}")/../Vox/ordering.py" "$0" "$@"
+    fi
+done
 # make_proof_vehicle.sh — one emailable file carrying the OS, the QC surfaces,
 # and the proofs.
 #

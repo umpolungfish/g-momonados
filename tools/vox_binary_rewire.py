@@ -704,14 +704,15 @@ def _rewrite_imasm_text(module: str, result: dict) -> tuple[str, dict]:
     missing_fuses = sorted(address for address in fuses_at if address not in source_addresses)
 
     lines = module.splitlines()
-    if not lines or not lines[0].startswith("; ⊙ module ("):
+    header = 1 if lines and lines[0] == "; standalone static-v1" else 0
+    if len(lines) <= header or not lines[header].startswith("; ⊙ module ("):
         raise ValueError("Vox did not emit a complete executable IMASM module")
-    rewritten: list[str] = [lines[0],
+    rewritten: list[str] = [*lines[:header + 1],
         "; @vox-binary-rewire:v1",
         f"; @vox-binary-rewire:source-sha256 {hashlib.sha256(module.encode()).hexdigest()}",
         f"; @vox-binary-rewire:frobenius CLOSED pairs={len(result['rewiring']['frobenius_pairs'])}",
         f"; @vox-binary-rewire:instruction-addresses {len(source_addresses)}"]
-    rewritten.extend(lines[1:])
+    rewritten.extend(lines[header + 1:])
     out: list[str] = []
     inserted = 0
     for line in rewritten:

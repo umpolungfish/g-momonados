@@ -4,6 +4,8 @@ use num_bigint::BigInt;
 use std::{env, fs, time::Instant};
 
 fn main() -> Result<(), String> {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let mut args = env::args().skip(1);
     let source_path = args.next().ok_or("usage: resident_frobenius_exact_probe N_ONLY_IMASM OPERATOR_JSON")?;
     let operator_path = args.next().ok_or("missing circuit operator receipt")?;

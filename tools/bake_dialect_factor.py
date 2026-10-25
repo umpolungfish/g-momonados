@@ -318,6 +318,11 @@ __device__ bool fuse_source_arm(const Word &arm_word,const Word &n,ResidentState
 
 
 if __name__ == '__main__':
+    import sys as _order_sys
+    from pathlib import Path as _OrderPath
+    _order_sys.path.insert(0, str(_OrderPath(__file__).resolve().parents[2] / "Vox"))
+    from ordering import intercept as _order_intercept
+    _order_intercept()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path)
     parser.add_argument('output', type=Path)

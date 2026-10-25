@@ -63,6 +63,8 @@ fn try_topological(a: &BigUint, n: &BigUint, m: usize)
 }
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let raw: Vec<String> = env::args().skip(1).collect();
     if raw.len() < 2 {
         eprintln!("usage: shot_carrier <N> <q>   (q < 63)");

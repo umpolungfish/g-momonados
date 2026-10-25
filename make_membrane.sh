@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
+# Select an explicit operation order before the wrapper's original argument parser.
+for ig_order_arg in "$@"; do
+    if [[ "$ig_order_arg" == --ordering || "$ig_order_arg" == --orderings ]]; then
+        exec python3 "$(dirname -- "${BASH_SOURCE[0]}")/../Vox/ordering.py" "$0" "$@"
+    fi
+done
 # make_membrane.sh — mint a phase-unbraid membrane: value baked in, no input.
 #
-# Usage: ./make_membrane.sh <N> [a_base] [max_shots]
+# Usage: ./make_membrane.sh --number N [--base DECIMAL_A] [--shots COUNT] [--run]
 #   N        the value to be factored — mounted at compile time
 #   a_base   coprime base for the phase register (default 2)
 #   max_shots  bounded re-measurement budget (default 12)
@@ -13,9 +19,21 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-N="${1:?usage: make_membrane.sh <N> [a_base] [max_shots]}"
-A="${2:-2}"
-SHOTS="${3:-12}"
+N=""
+A=2
+SHOTS=12
+RUN=0
+while (($#)); do
+  case "$1" in
+    --number) (($# >= 2)) || { echo "--number requires DECIMAL_N" >&2; exit 2; }; N="$2"; shift 2 ;;
+    --base) (($# >= 2)) || { echo "--base requires DECIMAL_A" >&2; exit 2; }; A="$2"; shift 2 ;;
+    --shots) (($# >= 2)) || { echo "--shots requires COUNT" >&2; exit 2; }; SHOTS="$2"; shift 2 ;;
+    --run) RUN=1; shift ;;
+    --help|-h) echo "usage: $0 --number DECIMAL_N [--base DECIMAL_A] [--shots COUNT] [--run]"; exit 0 ;;
+    *) echo "unknown flag: $1" >&2; exit 2 ;;
+  esac
+done
+[[ -n "$N" ]] || { echo "usage: $0 --number DECIMAL_N [--base DECIMAL_A] [--shots COUNT] [--run]" >&2; exit 2; }
 NAME="membrane_${N}"
 
 if ! [[ "$N" =~ ^[0-9]+$ ]] || (( N < 4 )); then
@@ -76,5 +94,9 @@ cargo build --release --example "${NAME}" 2>&1 | grep -E "^error|Finished" || tr
 if [[ ! -x "target/release/examples/${NAME}" ]]; then
   echo "make_membrane: build failed" >&2; exit 12
 fi
-echo "make_membrane: running target/release/examples/${NAME}"
-"target/release/examples/${NAME}"
+artifact="$PWD/target/release/examples/${NAME}"
+echo "make_membrane: emitted $artifact"
+if (( RUN )); then
+  echo "make_membrane: running $artifact"
+  exec "$artifact"
+fi

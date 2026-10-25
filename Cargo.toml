@@ -87,6 +87,16 @@ path = "src/bin/anyon_stack_audit.rs"
 required-features = ["hosted"]
 
 [[bin]]
+name = "anyon_weave_probe"
+path = "src/bin/anyon_weave_probe.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "braid_order_probe"
+path = "src/bin/braid_order_probe.rs"
+required-features = ["hosted"]
+
+[[bin]]
 name = "ququart_verify_readout"
 path = "src/bin/ququart_verify_readout.rs"
 required-features = ["hosted"]
@@ -178,7 +188,6 @@ panic = "unwind"
 lto = false
 codegen-units = 16
 opt-level = 3
-prefer-dynamic = true
 
 # State construction executes in Cargo's host build, so optimize it too.
 [profile.release.build-override]

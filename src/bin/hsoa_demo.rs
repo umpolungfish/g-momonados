@@ -4,6 +4,8 @@ use num_bigint::BigUint;
 use vox::hsoa_winding;
 
 fn main() {
+    #[cfg(feature = "hosted")]
+    vox_core::ordering::cli::intercept();
     let cases: [(u64, u64, usize); 3] = [
         (7, 15, 64),
         (2, 21, 64),

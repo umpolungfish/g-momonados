@@ -10,7 +10,7 @@ extern crate alloc;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use crate::braid_protocol::{braid_to_imasm, read_tangle, token_name};
+use crate::braid_protocol::{braid_to_imasm_selected, read_tangle, token_name};
 
 pub fn proof_braider_main(args: &[&str]) -> String {
     let flat: Vec<&str> = args.iter().flat_map(|s| s.split_whitespace()).collect();
@@ -32,7 +32,14 @@ pub fn proof_braider_main(args: &[&str]) -> String {
         if gens.is_empty() {
             gens.push(1);
         }
-        let prog = braid_to_imasm(&gens, 1, true);
+        let prog = match braid_to_imasm_selected(&gens, 1, true) {
+            Ok(program) => program,
+            Err(error) => return format!("braid ordering failed: {error}"),
+        };
+        let order = match vox_core::ordering::selected("braid-protocol", gens.len()) {
+            Ok(order) => order,
+            Err(error) => return format!("braid ordering failed: {error}"),
+        };
         let mut imasm = String::new();
         for t in &prog {
             imasm.push_str(token_name(t));
@@ -46,10 +53,12 @@ pub fn proof_braider_main(args: &[&str]) -> String {
 
         match read_tangle(&prog, 8, 1) {
             Ok(tr) => {
-                let recovered = tr.generators == gens;
+                let recovered = order.inverse().apply(&tr.generators)
+                    .is_ok_and(|returned| returned == gens);
                 // Decode generators back to value bytes:
                 let mut recovered_bytes = Vec::new();
-                for chunk in tr.generators.chunks(8) {
+                let returned = order.inverse().apply(&tr.generators).unwrap_or_default();
+                for chunk in returned.chunks(8) {
                     let mut byte = 0u8;
                     for (i, &g) in chunk.iter().enumerate() {
                         if g == 2 {
@@ -91,7 +100,14 @@ pub fn proof_braider_main(args: &[&str]) -> String {
     // back. Closure survives iff μ recovers the same generators — the same
     // roundtrip criterion `demonstrate mu-delta` uses.
     let gens: [i32; 3] = [1, 2, -1];
-    let prog = braid_to_imasm(&gens, 1, false);
+    let prog = match braid_to_imasm_selected(&gens, 1, false) {
+        Ok(program) => program,
+        Err(error) => return format!("braid ordering failed: {error}"),
+    };
+    let order = match vox_core::ordering::selected("braid-protocol", gens.len()) {
+        Ok(order) => order,
+        Err(error) => return format!("braid ordering failed: {error}"),
+    };
     let mut imasm = String::new();
     for t in &prog {
         imasm.push_str(token_name(t));
@@ -107,7 +123,8 @@ pub fn proof_braider_main(args: &[&str]) -> String {
 
     match read_tangle(&prog, gens.len() + 2, 1) {
         Ok(tr) => {
-            let recovered = tr.generators == gens;
+            let recovered = order.inverse().apply(&tr.generators)
+                .is_ok_and(|returned| returned == gens);
             out.push_str(&format!("crossings: {}   writhe: {:+}\n", tr.crossings, tr.writhe));
             out.push_str(&format!(
                 "roundtrip: {}   (μ {} the braid)\n",
