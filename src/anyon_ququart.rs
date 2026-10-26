@@ -714,6 +714,21 @@ impl QuquartCarrier {
     pub fn amplitudes(&self) -> &[FixedComplex; 5] {
         &self.amplitudes
     }
+    /// Exact quarter-turn phase on retained computational channels. The fifth
+    /// fusion channel and every alternative remain resident. Complementary
+    /// masks have distinct Gram actions; inverse reverses the quarter turn.
+    pub fn phase_quarter_target(&mut self, marked:[bool;4], inverse:bool) {
+        for (k,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+            if marked[k] {
+                let z=&self.amplitudes[channel];
+                self.amplitudes[channel]=if inverse {
+                    FixedComplex{re:z.im.clone(),im:-&z.re}
+                }else{
+                    FixedComplex{re:-&z.im,im:z.re.clone()}
+                };
+            }
+        }
+    }
     /// Native Z4 Fourier target. A braid backend must synthesize this complete
     /// four-channel operator; applying H to one lane does not implement it.
     pub fn fourier_target(&mut self, inverse: bool) {
