@@ -241,28 +241,35 @@ pub struct SicExactReconstruction {
     pub denominator: BigInt,
 }
 
-pub(crate) struct PreparedSicDual {
+pub struct PreparedSicDual {
     pub denominator:BigInt,
     pub columns:alloc::vec::Vec<[(BigInt,BigInt);16]>,
 }
 impl PreparedSicDual {
-    pub(crate) fn apply(&self,frame:&FixedQuquartSic,masses:&[BigUint;16])->Result<SicExactReconstruction,String>{
+    pub fn apply(&self,frame:&FixedQuquartSic,masses:&[BigUint;16])->Result<SicExactReconstruction,String>{
         if self.columns.len()!=16{return Err("compiled SIC dual lost its columns".into());}
         let mut numerators=core::array::from_fn(|_|(BigInt::zero(),BigInt::zero()));
         for (column,mass) in self.columns.iter().zip(masses){
             let mass=BigInt::from(mass.clone());
             for (out,value) in numerators.iter_mut().zip(column){out.0+=&mass*&value.0;out.1+=&mass*&value.1;}
         }
+        let mut denominator=self.denominator.clone();
+        let mut common=denominator.clone();
+        for (re,im) in &numerators {for value in [re,im] {
+            let mut b=value.abs();while !b.is_zero(){let r=&common%&b;common=b;b=r;}
+        }}
+        denominator/=&common;
+        for (re,im) in &mut numerators {*re/=&common;*im/=&common;}
         let remeasured=frame.gram_mass_numerators(&numerators)?;
-        if remeasured.iter().zip(masses).any(|(a,b)|BigInt::from(a.clone())!=BigInt::from(b.clone())*&self.denominator){
+        if remeasured.iter().zip(masses).any(|(a,b)|BigInt::from(a.clone())!=BigInt::from(b.clone())*&denominator){
             return Err("compiled SIC dual did not recover every measured mass".into());
         }
-        Ok(SicExactReconstruction{numerators,denominator:self.denominator.clone()})
+        Ok(SicExactReconstruction{numerators,denominator})
     }
 }
 
 impl FixedQuquartSic {
-    pub(crate) fn prepare_exact_dual(&self)->Result<PreparedSicDual,String>{
+    pub fn prepare_exact_dual(&self)->Result<PreparedSicDual,String>{
         let mut inverses=alloc::vec::Vec::new();let mut denominator=BigInt::one();
         for column in 0..16 {
             let masses=core::array::from_fn(|i|if i==column{BigUint::one()}else{BigUint::zero()});
@@ -673,11 +680,21 @@ impl FixedQuquartSic {
     }
 }
 
+#[derive(Clone)]
 pub struct QuquartCarrier {
     format: FixedPointFormat,
     amplitudes: [FixedComplex; 5],
 }
 impl QuquartCarrier {
+    /// Import the already prepared computational state, preserving the fifth
+    /// fusion channel as zero rather than preparing an independent producer.
+    pub fn from_control_amplitudes(format: FixedPointFormat, values: [FixedComplex;4]) -> Self {
+        let mut amplitudes=core::array::from_fn(|_|zero());
+        for (index,channel) in COMPUTATIONAL_CHANNELS.into_iter().enumerate() {
+            amplitudes[channel]=values[index].clone();
+        }
+        Self{format,amplitudes}
+    }
     pub fn basis(algebra: &FibonacciPair, digit: QuquartDigit) -> Self {
         let channel = COMPUTATIONAL_CHANNELS[digit as usize];
         Self {
@@ -739,6 +756,10 @@ impl QuquartCarrier {
     }
     /// exp(-2 pi i k numerator/4^m), for all four computational channels.
     pub fn feedback_target(&mut self, numerator: &BigUint, m: usize) -> Result<(), String> {
+        self.feedback_target_recorded(numerator,m).map(|_|())
+    }
+    /// Return the actual applied winding coefficients for independent replay.
+    pub fn feedback_target_recorded(&mut self, numerator: &BigUint, m: usize) -> Result<[FixedComplex;4], String> {
         let bits = m
             .checked_mul(2)
             .ok_or("ququart feedback denominator overflow")?;
@@ -754,7 +775,7 @@ impl QuquartCarrier {
         for (k, &channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
             self.amplitudes[channel] = phases[k].mul(&self.amplitudes[channel], &self.format);
         }
-        Ok(())
+        Ok(phases)
     }
     pub fn exchange(&mut self, algebra: &FibonacciPair, index: i32) -> Result<(), String> {
         if self.format != *algebra.format() {
