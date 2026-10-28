@@ -25,7 +25,7 @@ fn main() -> Result<(),Box<dyn std::error::Error>> {
     map.set_frame(major,minor)?;map.wind(matrix)?;
     for (s,(index,token,_)) in map.stations.iter().zip(tokens.iter()) {
         assert_eq!((s.index,s.token as usize),(*index,*token));
-        let read=map.frame.readout(s.station,s.normal);
+        let read=map.frame.addressed_readout(s.lift);
         for (actual,expected) in read.into_iter().zip(s.lift) {
             assert!(phase_error(actual,expected)<1e-9);
         }
@@ -43,7 +43,7 @@ fn main() -> Result<(),Box<dyn std::error::Error>> {
     let mut residual: f64=0.0;
     let mut paired_count=0;
     for &lift in angles.iter().chain(transformed.iter()) {
-        let read=frame.readout(frame.point(lift,false),TorusFrame::normal(lift));
+        let read=frame.addressed_readout(lift);
         for (a,b) in read.into_iter().zip(lift) { residual=residual.max(phase_error(a,b)); }
         if let Some(pair) = frame.paired_readout(frame.point(lift,false),frame.point(lift,true)) {
             for (a,b) in pair.into_iter().zip(lift) {

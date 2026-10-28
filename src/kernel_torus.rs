@@ -103,6 +103,7 @@ impl TorusFrame {
     /// Paired spatial readout. At the shared horn throat, use `readout`
     /// with the retained normal instead; the pair alone has no azimuth there.
     pub fn paired_readout(&self, outer: Point3D, inner: Point3D) -> Option<[f64; 2]> {
+        if self.major == 0.0 { return None; }
         let c = sqrt(inner.x*inner.x+inner.y*inner.y)/self.major-1.0;
         let si = self.major*(1.0+c);
         let so = self.major+self.minor*c;
@@ -115,6 +116,20 @@ impl TorusFrame {
     pub fn readout(&self, point: Point3D, normal: Point3D) -> [f64; 2] {
         let a = atan2(point.y-self.minor*normal.y, point.x-self.minor*normal.x);
         [a, atan2(normal.z, normal.x*cos(a)+normal.y*sin(a))]
+    }
+    /// Sphere passage uses the retained source direction and both inner horns.
+    pub fn addressed_readout(&self, lift: [f64; 2]) -> [f64; 2] {
+        if self.major != 0.0 { return self.readout(self.point(lift,false),Self::normal(lift)); }
+        let n=Self::normal(lift);
+        let e=Point3D{x:cos(lift[0]),y:sin(lift[0]),z:0.0};
+        let a=self.minor/2.0;
+        let plus=Point3D{x:a*(n.x+e.x),y:a*(n.y+e.y),z:a*n.z};
+        let minus=Point3D{x:a*(n.x-e.x),y:a*(n.y-e.y),z:a*n.z};
+        let azimuth=atan2(plus.y-minus.y,plus.x-minus.x);
+        let nx=(plus.x+minus.x)/self.minor;
+        let ny=(plus.y+minus.y)/self.minor;
+        let nz=(plus.z+minus.z)/self.minor;
+        [azimuth,atan2(nz,nx*cos(azimuth)+ny*sin(azimuth))]
     }
 }
 
@@ -188,8 +203,8 @@ impl TorusMap {
 
     /// Re-embed the resident stations without changing token order or lifts.
     pub fn set_frame(&mut self, major: f64, minor: f64) -> Result<(), &'static str> {
-        if !major.is_finite() || !minor.is_finite() || major <= 0.0 || minor <= 0.0 {
-            return Err("positive finite radii required");
+        if !major.is_finite() || !minor.is_finite() || major < 0.0 || minor <= 0.0 {
+            return Err("nonnegative major and positive minor radius required");
         }
         self.frame = TorusFrame { major, minor };
         self.refresh_stations();
