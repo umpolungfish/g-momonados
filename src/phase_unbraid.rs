@@ -208,6 +208,21 @@ impl FixedComplex {
         }).collect()
     }
 
+    /// Source connector drift in rational radians, bounded to one radian.
+    /// Uses the same guarded word trigonometry as rational-turn windings.
+    pub fn connector_twiddle(numerator:&BigInt, denominator:&BigUint,
+        format:&FixedPointFormat)->Result<Self,String>{
+        if denominator.is_zero() || numerator.magnitude()>denominator {
+            return Err("connector drift must lie within one radian".into());
+        }
+        let work_bits=format.w_bits.checked_add(32).ok_or("connector precision overflow")?;
+        let scale=SignedWordTape::from_magnitude(WordTape::one_at(work_bits as usize),false);
+        let divisor=SignedWordTape::from_magnitude(WordTape::from_biguint(denominator),false);
+        let angle=word_round_div(&scale.mul(&SignedWordTape::from_bigint(numerator)),&divisor);
+        let(re,im)=word_sincos(&angle,&scale);
+        Ok(Self{re:re.rounded_shr(32).to_bigint(),im:im.rounded_shr(32).to_bigint()})
+    }
+
     pub fn qft_twiddle(index: &BigUint, stage: u64, inverse: bool, format: &FixedPointFormat) -> Result<Self, String> {
         Self::qft_twiddle_table(core::slice::from_ref(index), stage, inverse, format).map(|mut values| values.remove(0))
     }
