@@ -16,7 +16,7 @@
 
 use core::f64::consts::PI;
 use crate::{sprint, sprintln};
-use libm::{cos, sin, sqrt};
+use libm::{atan2, cos, sin, sqrt};
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::format;
@@ -80,6 +80,44 @@ impl HornTorus {
     }
 }
 
+/// The outer frame and miniature source horn use the same angular carrier.
+#[derive(Copy, Clone, Debug)]
+pub struct TorusFrame { pub major: f64, pub minor: f64 }
+
+impl TorusFrame {
+    pub fn wind_lift(lift: [f64; 2], m: [[i64; 2]; 2]) -> [f64; 2] {
+        let [a,b] = lift;
+        [m[0][0] as f64*a+m[0][1] as f64*b,
+         m[1][0] as f64*a+m[1][1] as f64*b]
+    }
+    pub fn normal(lift: [f64; 2]) -> Point3D {
+        let [a,b] = lift;
+        Point3D { x: cos(b)*cos(a), y: cos(b)*sin(a), z: sin(b) }
+    }
+    pub fn point(&self, lift: [f64; 2], miniature: bool) -> Point3D {
+        let n = Self::normal(lift);
+        let r = if miniature { self.major } else { self.minor };
+        Point3D { x: self.major*cos(lift[0])+r*n.x,
+                  y: self.major*sin(lift[0])+r*n.y, z: r*n.z }
+    }
+    /// Paired spatial readout. At the shared horn throat, use `readout`
+    /// with the retained normal instead; the pair alone has no azimuth there.
+    pub fn paired_readout(&self, outer: Point3D, inner: Point3D) -> Option<[f64; 2]> {
+        let c = sqrt(inner.x*inner.x+inner.y*inner.y)/self.major-1.0;
+        let si = self.major*(1.0+c);
+        let so = self.major+self.minor*c;
+        let (point, signed) = if si.abs() >= so.abs() { (inner,si) } else { (outer,so) };
+        if signed.abs() < 1e-12 { return None; }
+        let a = atan2(point.y/signed,point.x/signed);
+        Some([a,atan2(inner.z/self.major,c)])
+    }
+    /// Recover periodic directions; the station separately retains full turns.
+    pub fn readout(&self, point: Point3D, normal: Point3D) -> [f64; 2] {
+        let a = atan2(point.y-self.minor*normal.y, point.x-self.minor*normal.x);
+        [a, atan2(normal.z, normal.x*cos(a)+normal.y*sin(a))]
+    }
+}
+
 // ─── Token Station ────────────────────────────────────────────
 
 #[derive(Copy, Clone, Debug)]
@@ -89,6 +127,10 @@ pub struct TokenStation {
     pub name: &'static str,
     pub glyph: &'static str,
     pub angle: f64,
+    /// Full angular lift (azimuth, tube), never reduced modulo a turn.
+    pub lift: [f64; 2],
+    pub normal: Point3D,
+    pub miniature: Point3D,
     pub station: Point3D,
     pub label_pos: Point3D,
 }
@@ -96,6 +138,8 @@ pub struct TokenStation {
 pub struct TorusMap {
     pub program: Program,
     pub torus: HornTorus,
+    pub frame: TorusFrame,
+    pub winding: [[i64; 2]; 2],
     pub stations: Vec<TokenStation>,
     pub imscrib_station: Option<TokenStation>,
     pub vinit_station: Option<TokenStation>,
@@ -129,7 +173,8 @@ impl TorusMap {
 
             let ts = TokenStation {
                 index: i, token: tok, name: name(tok), glyph: glyph(tok),
-                angle, station, label_pos: torus.label_point(angle),
+                angle, lift: [angle, angle], normal: TorusFrame::normal([angle, angle]),
+                miniature: station, station, label_pos: torus.label_point(angle),
             };
 
             if tok == Token::Imscrib { im = Some(ts); }
@@ -137,8 +182,52 @@ impl TorusMap {
             stations.push(ts);
         }
 
-        TorusMap { program: *program, torus, stations, imscrib_station: im,
+        TorusMap { program: *program, torus, frame: TorusFrame { major: 2.0, minor: 2.0 }, winding: [[1,0],[0,1]], stations, imscrib_station: im,
                    vinit_station: vi, word_str: word }
+    }
+
+    /// Re-embed the resident stations without changing token order or lifts.
+    pub fn set_frame(&mut self, major: f64, minor: f64) -> Result<(), &'static str> {
+        if !major.is_finite() || !minor.is_finite() || major <= 0.0 || minor <= 0.0 {
+            return Err("positive finite radii required");
+        }
+        self.frame = TorusFrame { major, minor };
+        self.refresh_stations();
+        Ok(())
+    }
+
+    pub fn wind(&mut self, m: [[i64; 2]; 2]) -> Result<(), &'static str> {
+        let det = i128::from(m[0][0])*i128::from(m[1][1])
+                - i128::from(m[0][1])*i128::from(m[1][0]);
+        if det != 1 { return Err("determinant-one winding required"); }
+        let mut composed = [[0_i64; 2]; 2];
+        for (i,row) in composed.iter_mut().enumerate() {
+            for (j,entry) in row.iter_mut().enumerate() {
+                let value = i128::from(m[i][0])*i128::from(self.winding[0][j])
+                    + i128::from(m[i][1])*i128::from(self.winding[1][j]);
+                *entry = i64::try_from(value).map_err(|_| "winding composition overflow")?;
+            }
+        }
+        self.winding = composed;
+        for station in &mut self.stations {
+            station.lift = TorusFrame::wind_lift(station.lift, m);
+        }
+        self.refresh_stations();
+        Ok(())
+    }
+
+    fn refresh_stations(&mut self) {
+        for station in &mut self.stations {
+            station.station = self.frame.point(station.lift, false);
+            station.miniature = self.frame.point(station.lift, true);
+            station.normal = TorusFrame::normal(station.lift);
+            let a = station.lift[0];
+            station.label_pos = Point3D { x: (self.frame.major+1.9*self.frame.minor)*cos(a),
+                y: (self.frame.major+1.9*self.frame.minor)*sin(a),
+                z: 1.9*self.frame.minor*sin(station.lift[1]) };
+        }
+        self.imscrib_station = self.stations.iter().find(|s| s.token == Token::Imscrib).copied();
+        self.vinit_station = self.stations.iter().find(|s| s.token == Token::Vinit).copied();
     }
 
     pub fn len(&self) -> usize { self.stations.len() }
@@ -147,7 +236,7 @@ impl TorusMap {
         let off = match &self.imscrib_station {
             Some(s) => s.angle - PI, None => 0.0
         };
-        (0..n).map(|i| self.torus.winding_point(2.0 * PI * i as f64 / n as f64 + off)).collect()
+        (0..n).map(|i| self.frame.point(TorusFrame::wind_lift([2.0 * PI * i as f64 / n as f64 + off; 2], self.winding), false)).collect()
     }
 
     pub fn pinch_distance(&self) -> f64 {

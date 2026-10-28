@@ -13,7 +13,7 @@ vox_core = { path = "../Vox", package = "vox", default-features = false }
 # The batched SIXTEEN_3/catalog/crystal GPU kernels this build exists for.
 cudarc = { version = "=0.19.9", optional = true, default-features = false, features = ["driver", "nvrtc", "cuda-12040", "dynamic-loading", "std"] }
 # gpu_imasm_cycle.rs reads real ob3ect JSON files off disk.
-serde_json = { version = "1", optional = true }
+serde_json = { version = "1", optional = true, features = ["arbitrary_precision", "float_roundtrip"] }
 serde = { version = "1", optional = true, features = ["derive"] }
 
 # The Cargo host build constructs the same resident modules used by the target.
