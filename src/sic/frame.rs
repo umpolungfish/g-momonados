@@ -1,5 +1,6 @@
 use super::{error, SicError};
-use std::ops::{Add, Mul, Sub};
+use alloc::{vec, vec::Vec};
+use core::ops::{Add, Mul, Sub};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Complex {
@@ -20,7 +21,7 @@ impl Complex {
         Self::new(self.re * x, self.im * x)
     }
     pub fn phase(angle: f64) -> Self {
-        Self::new(angle.cos(), angle.sin())
+        Self::new(libm::cos(angle), libm::sin(angle))
     }
     pub fn finite(self) -> bool {
         self.re.is_finite() && self.im.is_finite()
@@ -142,13 +143,12 @@ impl Operator {
         if self.d != b.d {
             return Err(error("operator dimensions differ"));
         }
-        Ok(self
+        Ok(libm::sqrt(self
             .values
             .iter()
             .zip(&b.values)
             .map(|(a, b)| (*a - *b).abs2())
-            .sum::<f64>()
-            .sqrt())
+            .sum::<f64>()))
     }
 }
 

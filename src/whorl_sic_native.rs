@@ -1,0 +1,469 @@
+//! Native, auditable SIC/ordered-braid transaction runtime.
+//!
+//! Install AS A LIBRARY MODULE (src/whorl_sic_native.rs): WordTape's exact
+//! BigUint boundary and lane-order operations are pub(crate), deliberately.
+//! The library is the integration boundary; bin/whorl-sic-native.rs is thin.
+//!
+//! This transports *reference SIC labels* using the d=12 SIC-form Gram dual.
+//! It does not assert that an arbitrary matrix conjugation is a CPTP channel,
+//! that this CLI performs a quantum measurement, or that it factors a source.
+use crate::word_tape::WordTape;
+use num_bigint::BigUint;
+use num_traits::{One, Zero};
+use serde_json::{json, Value};
+use std::fs;
+use std::path::Path;
+
+const D: usize = 12;
+const N: usize = 144;
+const SIC_FORMAT: &str = "prime-whorl-sic12-v1";
+const CERT_FORMAT: &str = "prime-whorl-native-operation-v1";
+const WIDTH_LIMIT: usize = 4096;
+type Pair = (BigUint, BigUint);
+type ResultT<T> = Result<T, String>;
+
+fn err<T>(message: impl Into<String>) -> ResultT<T> { Err(message.into()) }
+fn parse_dec(value: &str) -> ResultT<BigUint> {
+    if value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) ||
+       (value.len() > 1 && value.starts_with('0')) {
+        return err("expected canonical unsigned decimal numeral");
+    }
+    BigUint::parse_bytes(value.as_bytes(), 10).ok_or_else(|| "invalid decimal numeral".into())
+}
+fn as_dec(v: &Value) -> ResultT<BigUint> {
+    let s = v.as_str().ok_or("expected decimal string, not JSON number")?;
+    parse_dec(s)
+}
+fn req_str<'a>(v: &'a Value, key: &str) -> ResultT<&'a str> {
+    v.get(key).and_then(Value::as_str).ok_or_else(|| format!("missing or invalid {key}"))
+}
+fn req_width(v: &Value) -> ResultT<usize> {
+    let width = v.get("width").and_then(Value::as_u64)
+        .ok_or("missing integer width")?;
+    let width = usize::try_from(width).map_err(|_| "width overflows usize")?;
+    if !(1..=WIDTH_LIMIT).contains(&width) {return err("width must be 1..4096 bits");}
+    Ok(width)
+}
+fn modulus(width: usize) -> BigUint { BigUint::one() << width }
+fn check_pair(pair: &Pair, width: usize) -> ResultT<()> {
+    let m = modulus(width);
+    if pair.0 >= m || pair.1 >= m {return err("lane exceeds advertised width");}
+    Ok(())
+}
+fn pair_to_json(pair: &Pair) -> Value { json!([pair.0.to_string(), pair.1.to_string()]) }
+fn pair_from_json(value: &Value) -> ResultT<Pair> {
+    let array = value.as_array().ok_or("expected pair of decimal strings")?;
+    if array.len()!=2 {return err("expected precisely two ordered lanes");}
+    Ok((as_dec(&array[0])?, as_dec(&array[1])?))
+}
+fn lane_count(width:usize)->usize {
+    let bound=modulus(width);
+    let mut capacity=BigUint::one();
+    let mut k=0;
+    while capacity < bound {capacity *= D as u32; k+=1;}
+    k.max(1)
+}
+fn labels_for_pair(pair: &Pair, width: usize) -> ResultT<Vec<usize>> {
+    check_pair(pair,width)?;
+    let mut a=pair.0.clone(); let mut b=pair.1.clone();
+    let radix=BigUint::from(D as u8);
+    let mut labels=Vec::with_capacity(lane_count(width));
+    for _ in 0..lane_count(width) {
+        let ad = (&a % &radix).to_u64_digits().first().copied().unwrap_or(0) as usize;
+        let bd = (&b % &radix).to_u64_digits().first().copied().unwrap_or(0) as usize;
+        labels.push(D*ad+bd);
+        a /= &radix; b /= &radix;
+    }
+    if !a.is_zero() || !b.is_zero() {return err("base-12 tensor truncated a lane");}
+    Ok(labels)
+}
+fn pair_from_labels(labels: &[usize], width:usize)->ResultT<Pair> {
+    if labels.len()!=lane_count(width) || labels.iter().any(|&x|x>=N) {
+        return err("incorrect number or range of SIC label layers");
+    }
+    let mut a=BigUint::zero(); let mut b=BigUint::zero(); let mut power=BigUint::one();
+    for &label in labels {
+        a += BigUint::from((label/D) as u8)*&power;
+        b += BigUint::from((label%D) as u8)*&power;
+        power *= D as u8;
+    }
+    let pair=(a,b);
+    check_pair(&pair,width)?;
+    Ok(pair)
+}
+fn fraction_equal(value:&Value, numerator:u16, denominator:u16)->ResultT<bool> {
+    // Accept any exact rational spelling representing 1/12 or 1/156,
+    // never floating estimates, decimals or JSON floats.
+    let text=value.as_str().ok_or("SIC probabilities must be exact rational strings")?;
+    if text.len()>300 {return err("rational too long");}
+    let (a,b)=text.split_once('/').unwrap_or((text,"1"));
+    if a.is_empty() || b.is_empty() || !a.bytes().all(|x|x.is_ascii_digit()) ||
+       !b.bytes().all(|x|x.is_ascii_digit()) {return err("invalid nonnegative rational");}
+    let an=BigUint::parse_bytes(a.as_bytes(),10).ok_or("invalid rational numerator")?;
+    let bn=BigUint::parse_bytes(b.as_bytes(),10).ok_or("invalid rational denominator")?;
+    if bn.is_zero() {return err("zero rational denominator");}
+    Ok(an * denominator == bn * numerator)
+}
+fn label_from_probabilities(array:&[Value])->ResultT<usize> {
+    if array.len()!=N {return err("SIC layer needs exactly 144 probabilities");}
+    let mut selected=None;
+    for (i,p) in array.iter().enumerate() {
+        let high=fraction_equal(p,1,12)?;
+        let low=fraction_equal(p,1,156)?;
+        if high {
+            if selected.replace(i).is_some() {return err("multiple SIC hot labels");}
+        } else if !low {return err("not an exact SIC reference-projector probability vector");}
+    }
+    selected.ok_or_else(||"missing SIC hot label".into())
+}
+fn encode(pair:&Pair,width:usize,compact:bool)->ResultT<Value> {
+    let labels=labels_for_pair(pair,width)?;
+    let layers:Vec<Value>=if compact {
+        labels.iter().map(|&label|json!({"label":label})).collect()
+    } else {
+        labels.iter().map(|&label|{
+            let probabilities:Vec<&str>=(0..N).map(|i|if i==label{"1/12"}else{"1/156"}).collect();
+            json!({"probabilities":probabilities})
+        }).collect()
+    };
+    Ok(json!({"format":SIC_FORMAT,"dimension":D,"width":width,
+        "representation":if compact {"symbolic-labels"}else{"exact-probabilities"},
+        "layers":layers}))
+}
+fn decode(doc:&Value)->ResultT<(Pair,usize)> {
+    if req_str(doc,"format")?!=SIC_FORMAT || doc.get("dimension")!=Some(&json!(D)) {
+        return err("unsupported SIC document version or dimension");
+    }
+    let width=req_width(doc)?;
+    let mode=req_str(doc,"representation")?;
+    let layers=doc.get("layers").and_then(Value::as_array).ok_or("missing layers")?;
+    if layers.len()!=lane_count(width) {return err("incorrect SIC tensor length");}
+    let mut labels=Vec::with_capacity(layers.len());
+    for layer in layers {
+        let label=match mode {
+            "symbolic-labels" => {
+                let i=layer.get("label").and_then(Value::as_u64).ok_or("invalid symbolic label")?;
+                usize::try_from(i).map_err(|_|"symbolic label exceeds usize")?
+            },
+            "exact-probabilities" => {
+                let ps=layer.get("probabilities").and_then(Value::as_array).ok_or("missing probability vector")?;
+                label_from_probabilities(ps)?
+            },
+            _=>return err("unsupported SIC coordinate representation")
+        };
+        labels.push(label);
+    }
+    Ok((pair_from_labels(&labels,width)?,width))
+}
+fn braid_word(pair:&Pair,width:usize)->ResultT<WordTape> {
+    check_pair(pair,width)?;
+    let a=WordTape::from_biguint(&pair.0);
+    let b=WordTape::from_biguint(&pair.1);
+    let w=a.interlace(&b);
+    let recovered=w.deinterlace();
+    if recovered.0.to_biguint()!=pair.0 || recovered.1.to_biguint()!=pair.1 {
+        return err("native selected lane order did not round-trip");
+    }
+    Ok(w)
+}
+fn canonical_braid(pair:&Pair,width:usize)->ResultT<BigUint> {
+    let word=braid_word(pair,width)?;
+    // Enforce the γ-even / λ-odd convention of Stage 5 and the user's 143/79
+    // witness. Abort if this repo has installed a different lane permutation.
+    let mut value=BigUint::zero();
+    for i in 0..width {
+        if pair.0.bit(i as u64) {value |= BigUint::one()<<(2*i);}
+        if pair.1.bit(i as u64) {value |= BigUint::one()<<(2*i+1);}
+    }
+    if word.to_biguint()!=value {return err("native lane-order policy differs from γ-even/λ-odd; refusing ambiguous certificate");}
+    Ok(value)
+}
+const M16: [[i64;2];2]=[[-47,256],[-9,49]];
+const M13: [[i64;2];2]=[[-38,169],[-9,40]];
+const SWAP: [[i64;2];2]=[[0,1],[1,0]];
+fn matrix(op:&str)->ResultT<[[i64;2];2]> {
+    match op {"M16"=>Ok(M16),"M13"=>Ok(M13),"S"=>Ok(SWAP),_=>err("unknown matrix operator")}
+}
+fn apply_matrix(m:[[i64;2];2],p:&Pair,width:usize)->Pair {
+    let q=modulus(width);
+    let term=|v:i64, x:&BigUint|->BigUint {
+        let z=(x*BigUint::from(v.unsigned_abs()))%&q;
+        if v>=0 || z.is_zero(){z}else{&q-z}
+    };
+    let row=|r:[i64;2]|->BigUint {(term(r[0],&p.0)+term(r[1],&p.1))%&q};
+    (row(m[0]),row(m[1]))
+}
+fn inverse(m:[[i64;2];2])->ResultT<[[i64;2];2]> {
+    let det=m[0][0]*m[1][1]-m[0][1]*m[1][0];
+    if det!=1 && det!= -1 {return err("non-unimodular operator");}
+    Ok([[m[1][1]/det,-m[0][1]/det],[-m[1][0]/det,m[0][0]/det]])
+}
+/// Exact unsigned-integer sheet selector for the four Stage 4 frame ratios.
+/// Sphere: cos(2π b/m)<0 <=> 1/4<b/m<3/4.
+/// Spindle: sqrt(1/2)+cos(2π b/m)<0 <=> 3/8<b/m<5/8.
+/// Horn and open: the signed expression is never negative.
+/// Equality at boundaries selects branch 0.
+fn branch(frame:&str,p:&Pair,width:usize)->ResultT<u8> {
+    let m=modulus(width);
+    let b=&p.1;
+    let yes=match frame {
+        "sphere"=> {let t=b*4u8; t>m.clone() && t < &m*3u8},
+        "spindle"=> {let t=b*8u8; t>&m*3u8 && t<&m*5u8},
+        "horn"|"open"=>false,
+        _=>return err("unknown geometric frame")
+    };
+    Ok(u8::from(yes))
+}
+fn parse_ops(spec:&str)->ResultT<Vec<String>> {
+    let mut out=Vec::new();
+    for raw in spec.split(',') {
+        let op=raw.trim().to_ascii_uppercase();
+        if op.is_empty(){continue;}
+        if !matches!(op.as_str(),"M16"|"M13"|"S"|"SWITCH:SPHERE"|"SWITCH:SPINDLE"|"SWITCH:HORN"|"SWITCH:OPEN") {
+            return err(format!("unknown operation: {op}"));
+        }
+        out.push(op);
+    }
+    if out.is_empty() || out.len()>10_000 {return err("operation count must be between 1 and 10000");}
+    Ok(out)
+}
+fn forward_step(p:&Pair,width:usize,op:&str)->ResultT<(Pair,Option<u8>)> {
+    if let Some(frame)=op.strip_prefix("SWITCH:") {
+        let b=branch(&frame.to_ascii_lowercase(),p,width)?;
+        Ok((apply_matrix(if b==0{M16}else{M13},p,width),Some(b)))
+    }else {Ok((apply_matrix(matrix(op)?,p,width),None))}
+}
+fn reverse_step(p:&Pair,width:usize,op:&str,tag:Option<u8>)->ResultT<Pair> {
+    if let Some(frame)=op.strip_prefix("SWITCH:") {
+        let b=tag.ok_or("missing branch history")?;
+        if b>1 {return err("invalid branch tag");}
+        let origin=apply_matrix(inverse(if b==0{M16}else{M13})?,p,width);
+        if branch(&frame.to_ascii_lowercase(),&origin,width)?!=b {return err("branch inconsistent with recovered source");}
+        Ok(origin)
+    }else {
+        if tag.is_some() {return err("unexpected branch tag on unconditional operation");}
+        Ok(apply_matrix(inverse(matrix(op)?)?,p,width))
+    }
+}
+fn event_tag(e:&Value)->ResultT<Option<u8>> {
+    match e.get("branch") {
+        None=>Ok(None),
+        Some(v)=>{
+            let n=v.as_u64().ok_or("invalid non-integer branch")?;
+            if n>1 {return err("branch must be 0 or 1");}
+            Ok(Some(n as u8))
+        }
+    }
+}
+fn run_doc(source:&Value,op_spec:&str,compact:bool)->ResultT<Value> {
+    let (start,width)=decode(source)?;
+    let operations=parse_ops(op_spec)?;
+    let mut current=start.clone();
+    let mut events=Vec::new();
+    for op in operations {
+        let before=current.clone();
+        let (next,tag)=forward_step(&current,width,&op)?;
+        current=next;
+        let mut event=json!({"operation":op,"before":pair_to_json(&before),"after":pair_to_json(&current)});
+        if let Some(b)=tag {event["branch"]=json!(b);}
+        events.push(event);
+    }
+    let final_state=encode(&current,width,compact)?;
+    let certificate=json!({
+        "format":CERT_FORMAT,"width":width,
+        "source_pair":pair_to_json(&start),"output_pair":pair_to_json(&current),
+        "source_braid":canonical_braid(&start,width)?.to_string(),
+        "output_braid":canonical_braid(&current,width)?.to_string(),
+        "source_word":braid_word(&start,width)?.as_word(),
+        "output_word":braid_word(&current,width)?.as_word(),
+        "retained_history":events,
+        "evidence_scope":"internal exact arithmetic and SIC reference-label reconstruction; no factor or quantum measurement claim"
+    });
+    let bundle=json!({"state":final_state,"certificate":certificate});
+    verify_bundle(&bundle)?;
+    Ok(bundle)
+}
+fn verify_bundle(bundle:&Value)->ResultT<Value> {
+    let cert=bundle.get("certificate").ok_or("missing certificate")?;
+    if req_str(cert,"format")?!=CERT_FORMAT {return err("unrecognized certificate format");}
+    let width=req_width(cert)?;
+    let (observed,doc_width)=decode(bundle.get("state").ok_or("missing SIC output state")?)?;
+    if width!=doc_width {return err("width disagreement");}
+    if observed!=pair_from_json(cert.get("output_pair").ok_or("missing output pair")?)? {
+        return err("output pair differs from independently decoded SIC state");
+    }
+    let events=cert.get("retained_history").and_then(Value::as_array).ok_or("missing retained history")?;
+    if events.is_empty() || events.len()>10_000 {return err("invalid operation count");}
+    let mut current=observed.clone();
+    for event in events.iter().rev() {
+        let op=req_str(event,"operation")?;
+        if parse_ops(op)? != vec![op.to_string()] {return err("noncanonical operation code");}
+        let after=pair_from_json(event.get("after").ok_or("missing event output")?)?;
+        if current!=after {return err("operation output chain mismatch");}
+        current=reverse_step(&current,width,op,event_tag(event)?)?;
+        if current!=pair_from_json(event.get("before").ok_or("missing event input")?)? {
+            return err("operation input chain mismatch");
+        }
+    }
+    let source=pair_from_json(cert.get("source_pair").ok_or("missing source pair")?)?;
+    if current!=source {return err("recovered source does not match certificate");}
+    // Independent forward execution from recovered origin, not just trusting inverse.
+    let mut check=source.clone();
+    for event in events {
+        let op=req_str(event,"operation")?;
+        let (next,branch)=forward_step(&check,width,op)?;
+        if check!=pair_from_json(event.get("before").ok_or("missing before")?)? ||
+           next!=pair_from_json(event.get("after").ok_or("missing after")?)? ||
+           branch!=event_tag(event)? {return err("forward replay or branch mismatch");}
+        check=next;
+    }
+    if check!=observed {return err("forward replay failed to reach output SIC state");}
+    if req_str(cert,"source_braid")?!=canonical_braid(&source,width)?.to_string() ||
+       req_str(cert,"output_braid")?!=canonical_braid(&observed,width)?.to_string() {
+        return err("braid numeral mismatch");
+    }
+    if req_str(cert,"source_word")?!=braid_word(&source,width)?.as_word() ||
+       req_str(cert,"output_word")?!=braid_word(&observed,width)?.as_word() {
+        return err("canonical IMASM word mismatch");
+    }
+    Ok(json!({"certified_internal_consistency":true,
+        "recovered_pair":pair_to_json(&source),
+        "recovered_braid":canonical_braid(&source,width)?.to_string(),
+        "output_pair":pair_to_json(&observed),
+        "operations_verified":events.len(),
+        "note":"Exact arithmetic certificate; neither authenticated signature nor factor/physical measurement proof"}))
+}
+fn option_value(args:&[String],name:&str)->ResultT<Option<String>> {
+    if let Some(i)=args.iter().position(|s|s==name) {
+        args.get(i+1).cloned().map(Some).ok_or_else(||format!("{name} requires a value"))
+    }else{Ok(None)}
+}
+fn positional(args:&[String])->Vec<&str> {
+    let mut out=Vec::new(); let mut skip=false;
+    for a in args {if skip {skip=false;continue;}
+        if matches!(a.as_str(),"--width"|"--out"|"--ops") {skip=true;continue;}
+        if !a.starts_with("--") {out.push(a.as_str());} }
+    out
+}
+fn write_json(doc:&Value,path:Option<&str>)->ResultT<()> {
+    let payload=serde_json::to_string_pretty(doc).map_err(|e|e.to_string())?;
+    if let Some(path)=path {fs::write(path,format!("{payload}\n")).map_err(|e|e.to_string())?;}
+    else {println!("{payload}");}
+    Ok(())
+}
+fn read_json(path:&str)->ResultT<Value> {
+    let text=fs::read_to_string(Path::new(path)).map_err(|e|e.to_string())?;
+    serde_json::from_str(&text).map_err(|e|format!("invalid JSON: {e}"))
+}
+/// Called by src/bin/whorl-sic-native.rs.
+pub fn command_line(args:&[String])->ResultT<()> {
+    if args.is_empty() {return err("usage: whorl-sic-native encode Γ Λ --width W [--compact] [--out FILE] | decode FILE | run FILE --ops CSV [--compact] [--out FILE] | reverse FILE | verify FILE");}
+    let out=option_value(args,"--out")?;
+    let compact=args.iter().any(|a|a=="--compact");
+    let ps=positional(&args[1..]);
+    match args[0].as_str() {
+        "encode"=>{
+            if ps.len()!=2 {return err("encode requires two ordered decimal lanes");}
+            let width=option_value(args,"--width")?.ok_or("encode requires --width")?
+                .parse::<usize>().map_err(|_|"invalid width")?;
+            if !(1..=WIDTH_LIMIT).contains(&width){return err("width must be 1..4096");}
+            let pair=(parse_dec(ps[0])?,parse_dec(ps[1])?);
+            canonical_braid(&pair,width)?;
+            write_json(&encode(&pair,width,compact)?,out.as_deref())
+        },
+        "decode"=>{
+            if ps.len()!=1 {return err("decode requires a source JSON filename");}
+            let (pair,width)=decode(&read_json(ps[0])?)?;
+            write_json(&json!({"gamma":pair.0.to_string(),"lambda":pair.1.to_string(),
+                "braided":canonical_braid(&pair,width)?.to_string(),
+                "canonical_word":braid_word(&pair,width)?.as_word()}),out.as_deref())
+        },
+        "run"=>{
+            if ps.len()!=1 {return err("run requires a source JSON filename");}
+            let ops=option_value(args,"--ops")?.ok_or("run requires --ops")?;
+            write_json(&run_doc(&read_json(ps[0])?,&ops,compact)?,out.as_deref())
+        },
+        "verify"|"reverse"=>{
+            if ps.len()!=1 {return err("verify/reverse requires one certificate filename");}
+            write_json(&verify_bundle(&read_json(ps[0])?)?,out.as_deref())
+        },
+        _=>err("unknown command; use encode, decode, run, reverse, verify")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn pair(a:u64,b:u64)->Pair {(BigUint::from(a),BigUint::from(b))}
+    #[test] fn ordered_witness_143_79() {
+        assert_eq!(canonical_braid(&pair(3,11),4).unwrap(), BigUint::from(143u64));
+        assert_eq!(canonical_braid(&pair(11,3),4).unwrap(), BigUint::from(79u64));
+        assert_eq!(canonical_braid(&apply_matrix(SWAP,&pair(3,11),4),4).unwrap(),BigUint::from(79u64));
+    }
+    #[test] fn native_sic_exact_144() {
+        let source=pair(3,11);
+        for compact in [true,false] {
+            let doc=encode(&source,4,compact).unwrap();
+            assert_eq!(decode(&doc).unwrap().0,source);
+        }
+    }
+    #[test] fn inverses_over_256_states() {
+        for a in 0..16 {for b in 0..16 {
+            let p=pair(a,b);
+            for op in ["S","M16","M13"] {
+                let (q,tag)=forward_step(&p,4,op).unwrap();
+                assert_eq!(reverse_step(&q,4,op,tag).unwrap(),p);
+            }
+            for frame in ["sphere","spindle","horn","open"] {
+                let op=format!("SWITCH:{}",frame.to_ascii_uppercase());
+                let (q,tag)=forward_step(&p,4,&op).unwrap();
+                assert_eq!(reverse_step(&q,4,&op,tag).unwrap(),p);
+            }
+        }}
+    }
+    #[test] fn tampered_history_rejected() {
+        let source=encode(&pair(3,11),4,true).unwrap();
+        let mut cert=run_doc(&source,"M16,S,SWITCH:SPHERE,M13",true).unwrap();
+        assert!(verify_bundle(&cert).is_ok());
+        let history=cert["certificate"]["retained_history"].as_array_mut().unwrap();
+        let e=history.iter_mut().find(|e|e.get("branch").is_some()).unwrap();
+        e.as_object_mut().unwrap().remove("branch");
+        assert!(verify_bundle(&cert).is_err());
+    }
+    #[test] fn truncation_and_wrong_hotspot_rejected() {
+        let mut doc=encode(&pair(3,11),4,false).unwrap();
+        doc["layers"][0]["probabilities"][1]=json!("1/12");
+        assert!(decode(&doc).is_err());
+        let mut doc=encode(&pair(3,11),4,true).unwrap();
+        doc["layers"].as_array_mut().unwrap().pop();
+        assert!(decode(&doc).is_err());
+    }
+    #[test] fn signed_sheet_exact_boundaries() {
+        assert_eq!(branch("sphere",&pair(0,4),4).unwrap(),0);
+        assert_eq!(branch("sphere",&pair(0,5),4).unwrap(),1);
+        assert_eq!(branch("spindle",&pair(0,6),4).unwrap(),0);
+        assert_eq!(branch("spindle",&pair(0,7),4).unwrap(),1);
+        assert_eq!(branch("spindle",&pair(0,10),4).unwrap(),0);
+    }
+}
+// Append these two helpers at module scope in src/whorl_sic_native.rs.
+// This extends the EXISTING Stage 6 SIC-label implementation rather than
+// introducing a second base-12 encoding.
+pub fn source_snapshot(n:&BigUint)->Result<Value,String>{
+    let word=WordTape::from_biguint(n);
+    let(g,l)=word.deinterlace();
+    let pair=(g.to_biguint(),l.to_biguint());
+    let width=(pair.0.bits().max(pair.1.bits()) as usize).max(1);
+    if width>WIDTH_LIMIT{return err("source width exceeds SIC tensor bound");}
+    if &canonical_braid(&pair,width)?!=n{return err("source order mismatch");}
+    encode(&pair,width,true)
+}
+pub fn verify_source_snapshot(n:&BigUint,sic:&Value)->ResultT<()> {
+    let canonical=source_snapshot(n)?;
+    let (original,width)=decode(&canonical)?;
+    let (received,w)=decode(sic)?;
+    if w!=width || received!=original || sic!=&canonical{
+        return err("SIC source label tensor changed");
+    }
+    Ok(())
+}

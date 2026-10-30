@@ -1,0 +1,14 @@
+{
+  "dimension": 12,
+  "format": "prime-whorl-sic12-v1",
+  "layers": [
+    {
+      "label": 47
+    },
+    {
+      "label": 0
+    }
+  ],
+  "representation": "symbolic-labels",
+  "width": 4
+}

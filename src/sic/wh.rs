@@ -2,7 +2,8 @@
 //! Consequently <psi|D|psi>=tau^(-pq) DFT_+[conj(psi[n])psi[n-p]].
 use super::frame::{Complex, Operator, Sic};
 use super::{error, SicError};
-use std::f64::consts::PI;
+use alloc::{vec, vec::Vec};
+use core::f64::consts::PI;
 
 pub(crate) fn turn_phase(numerator: u128, denominator: u128) -> Complex {
     Complex::phase(2.0 * PI * ((numerator % denominator) as f64) / (denominator as f64))
@@ -160,4 +161,20 @@ impl Sic for WhSic {
         }
         Operator::projector(&self.displaced(i / self.d, i % self.d)?)
     }
+}
+
+/// Canonical cyclic WH(4) frame, shared by hosted and resident carriers.
+/// Appleby quant-ph/0412001 equation 149; the convention is frozen above.
+pub fn ququart_frame() -> super::frame::SicFrame {
+    let a = libm::sqrt((5.0 - libm::sqrt(5.0)) / 40.0);
+    let c = libm::sqrt(2.0 + libm::sqrt(2.0)) / 2.0;
+    let s = libm::sqrt(2.0 - libm::sqrt(2.0)) / 2.0;
+    let u = libm::sqrt(2.0 + libm::sqrt(5.0));
+    let wh = WhSic::new(vec![
+        Complex::new(2.0 * a * c, 0.0),
+        Complex::new(a * (1.0 - u) * s, a * (1.0 + u) * c),
+        Complex::new(0.0, 2.0 * a * s),
+        Complex::new(a * (1.0 + u) * s, a * (1.0 - u) * c),
+    ]).unwrap();
+    super::frame::SicFrame::new((0..16).map(|i| wh.projector(i).unwrap()).collect()).unwrap()
 }

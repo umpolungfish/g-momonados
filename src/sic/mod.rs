@@ -4,6 +4,7 @@ pub mod certificate;
 pub mod exact;
 pub mod fixed;
 pub mod frame;
+pub mod carrier;
 pub mod gpu;
 pub mod qubit;
 pub mod qutrit;

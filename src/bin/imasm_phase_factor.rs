@@ -1,13 +1,7 @@
 //! A contained encoded numeral enters the resident IMASM arithmetic circuits.
 //! The host holds phase register addresses and reports only after closure.
 
-extern crate alloc;
-
-#[path = "../belnap.rs"]
-mod belnap;
-#[path = "../parasm.rs"]
-mod parasm;
-
+use g_momonados::parasm;
 use std::collections::HashMap;
 use std::time::Instant;
 use vox_core::godel_calculus::{self, Nat};

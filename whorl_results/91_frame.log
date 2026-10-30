@@ -1,0 +1,14 @@
+source                  91
+frame.shift             0
+frame.shifts-tested     1
+frame.a                 13
+frame.b                 3
+frame.ab                39
+frame.r.magnitude       52
+frame.gcd               13
+frame.gcd.even-lane     13
+frame.gcd.odd-lane      1
+frame.gcd.selected      residual-gcd:13
+frame.prime-factor      PASS
+
+--- STDERR ---

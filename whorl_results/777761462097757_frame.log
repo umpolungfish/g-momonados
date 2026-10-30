@@ -1,0 +1,14 @@
+source                  777761462097757
+frame.shift             0
+frame.shifts-tested     50
+frame.a                 10375551
+frame.b                 26468114
+frame.ab                274621266680814
+frame.r.magnitude       503140195416943
+frame.gcd               1
+frame.gcd.even-lane     1
+frame.gcd.odd-lane      1
+frame.gcd.selected      open
+frame.prime-factor      open
+
+--- STDERR ---

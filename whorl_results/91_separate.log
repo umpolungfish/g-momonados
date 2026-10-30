@@ -1,0 +1,25 @@
+source                  91
+source.binary           1011011
+source.word             ⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣
+extraction              IMASM one-factor frame separation
+factor.frame            shiab-gcd
+frame.shift             0
+frame.shifts-tested     1
+frame.a                 13
+frame.b                 3
+frame.ab                39
+frame.r.magnitude       52
+frame.gcd               13
+frame.gcd.even-lane     13
+frame.gcd.odd-lane      1
+frame.gcd.selected      residual-gcd:13
+frame.prime-factor      PASS
+prime.factor            13
+factor.word             ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+factor.prime            PASS
+factor.remainder        0
+factor.return-closure   PASS
+source.frames           7
+factor.frames           4
+
+--- STDERR ---

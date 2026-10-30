@@ -28,6 +28,8 @@ pub mod conventional_translation;
 #[cfg(feature = "hosted")]
 pub mod conventional_spectrum;
 pub mod idempotent_moment;
+#[cfg(feature="hosted")]
+pub mod source_braid_state;
 pub mod idempotent_projector;
 #[cfg(feature="hosted")]
 pub mod godel_complex_carrier;
@@ -53,6 +55,8 @@ pub mod arbitrary_factor;
 #[cfg(feature = "hosted")]
 pub mod runtime_nesting;
 pub mod word_tape;
+#[cfg(feature = "hosted")]
+pub mod source_braid_contraction;
 #[cfg(feature = "hosted")]
 pub mod horn_torus_carrier;
 pub mod reentry_powerset;
@@ -130,3 +134,14 @@ pub mod resident_frame;
 
 #[cfg(feature = "hosted")]
 pub mod codex_isomorphism;
+pub mod godel_winding;
+pub mod godel_semiprime3;
+
+// Prime Whorl Stage 6; operates inside the library's crate-private WordTape boundary.
+#[cfg(feature = "hosted")]
+pub mod whorl_sic_native;
+
+// Prime Whorl Stage 7: genuine source-bound DecisionArena execution/readout.
+#[cfg(feature = "hosted")]
+pub mod whorl_resident_bridge;
+pub mod whorl_resident_replay;

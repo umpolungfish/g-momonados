@@ -1,1 +1,3 @@
-I carry source square-wave well paths through the resident inner-horn return and joint SIC operator.
+I share the canonical SIC frame and enclosing-carrier recovery with Vox.
+
+I make frame and WH operations portable, retain one ququart frame factory and recover arbitrary complex carriers through a common anchor. I check full complex matrix units, cross-frame coherence and stale-phase rejection.

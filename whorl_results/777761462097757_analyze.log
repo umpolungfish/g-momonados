@@ -1,0 +1,53 @@
+family                     cell-binary
+value                      777761462097757
+word                       ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣
+binary                     10110000110101111010110011101010110001011101011101
+bits-le                    10111010111010001101010111001101011110101100001101
+support                    {0,2,3,4,6,8,9,10,12,16,17,19,21,23,24,25,28,29,31,33,34,35,36,38,40,41,46,47,49}
+polynomial                 1 + x^2 + x^3 + x^4 + x^6 + x^8 + x^9 + x^10 + x^12 + x^16 + x^17 + x^19 + x^21 + x^23 + x^24 + x^25 + x^28 + x^29 + x^31 + x^33 + x^34 + x^35 + x^36 + x^38 + x^40 + x^41 + x^46 + x^47 + x^49
+assert.support             PASS
+assert.binary-reverse      PASS
+assert.word-glyph-map      PASS
+assert.roundtrip           PASS
+assert.bitlength           PASS
+primitive.v2               0
+primitive.v2+1             1
+primitive.v2-1             2
+primitive.popcount         29
+primitive.bitlength        50
+primitive.runs             [[0,1),[2,5),[6,7),[8,11),[12,13),[16,18),[19,20),[21,22),[23,26),[28,30),[31,32),[33,37),[38,39),[40,42),[46,48),[49,50)]
+primitive.gaps             [[1,2),[5,6),[7,8),[11,12),[13,16),[18,19),[20,21),[22,23),[26,28),[30,31),[32,33),[37,38),[39,40),[42,46),[48,49)]
+primitive.odd-part         777761462097757
+primitive.shift-factor     0
+composite.decomp-k         1
+composite.decomp-prefix    1
+composite.decomp-remainder 388880731048878
+composite.residue-2^k      1
+word.width                 50
+window.period              none
+negative.factor-bound      >256
+negative.factor-witness    none
+negative.tested-primes     53
+negative.cert-aperture     256
+kernel.object                  cell-binary representation and finite support pattern
+kernel.register.codec          T
+kernel.frame-sweep widths=2..8 preserved-bits=50
+kernel.register.sieve          f
+kernel.sieve.aperture           2^8=256 tested-primes=53
+kernel.register.pattern       f
+kernel.register.joint         Tf
+kernel.factor-pair             unresolved
+kernel.product-closure        open
+kernel.register.semiprime-closure N
+kernel.truth-support           true
+kernel.falsity-support         true
+kernel.factor-bound-support    f
+kernel.frame width=2 groups=25 symbols=[⊥⊤|⊥⊥|⊥⊤|⊥⊤|⊥⊥|⊥⊤|⊥⊤|⊤⊤|⊥⊥|⊤⊥|⊤⊥|⊤⊥|⊥⊥|⊤⊤|⊥⊥|⊤⊥|⊤⊥|⊥⊥|⊥⊤|⊥⊤|⊥⊥|⊤⊤|⊤⊤|⊥⊥|⊤⊥] state=Tf prev≤i=seed prev≤c=seed
+kernel.frame width=3 groups=17 symbols=[⊥⊤⊥|⊥⊥⊤|⊥⊤⊥|⊥⊥⊤|⊥⊤⊤|⊤⊥⊥|⊤⊥⊤|⊥⊤⊥|⊥⊥⊤|⊤⊥⊥|⊤⊥⊤|⊥⊥⊥|⊥⊤⊥|⊤⊥⊥|⊤⊤⊤|⊤⊥⊥|⊤⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=4 groups=13 symbols=[⊥⊤⊥⊥|⊥⊤⊥⊤|⊥⊥⊥⊤|⊥⊤⊤⊤|⊥⊥⊤⊥|⊤⊥⊤⊥|⊥⊥⊤⊤|⊥⊥⊤⊥|⊤⊥⊥⊥|⊥⊤⊥⊤|⊥⊥⊤⊤|⊤⊤⊥⊥|⊤⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=5 groups=10 symbols=[⊥⊤⊥⊥⊥|⊤⊥⊤⊥⊥|⊥⊤⊥⊤⊤|⊤⊥⊥⊤⊥|⊤⊥⊤⊥⊥|⊥⊤⊤⊥⊥|⊤⊥⊤⊥⊥|⊥⊥⊤⊥⊤|⊥⊥⊤⊤⊤|⊤⊥⊥⊤⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=6 groups=9 symbols=[⊥⊤⊥⊥⊥⊤|⊥⊤⊥⊥⊥⊤|⊥⊤⊤⊤⊥⊥|⊤⊥⊤⊥⊤⊥|⊥⊥⊤⊤⊥⊥|⊤⊥⊤⊥⊥⊥|⊥⊤⊥⊤⊥⊥|⊤⊤⊤⊤⊥⊥|⊤⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=7 groups=8 symbols=[⊥⊤⊥⊥⊥⊤⊥|⊤⊥⊥⊥⊤⊥⊤|⊤⊤⊥⊥⊤⊥⊤|⊥⊤⊥⊥⊥⊤⊤|⊥⊥⊤⊥⊤⊥⊥|⊥⊥⊤⊥⊤⊥⊥|⊤⊤⊤⊤⊥⊥⊤|⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=8 groups=7 symbols=[⊥⊤⊥⊥⊥⊤⊥⊤|⊥⊥⊥⊤⊥⊤⊤⊤|⊥⊥⊤⊥⊤⊥⊤⊥|⊥⊥⊤⊤⊥⊥⊤⊥|⊤⊥⊥⊥⊥⊤⊥⊤|⊥⊥⊤⊤⊤⊤⊥⊥|⊤⊥] state=Tf prev≤i=true prev≤c=true
+
+--- STDERR ---

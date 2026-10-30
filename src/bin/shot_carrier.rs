@@ -5,7 +5,7 @@ use std::env;
 use std::process;
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
-use vox::hsoa_winding;
+use vox_core::hsoa_winding;
 
 fn mod_pow(mut a: BigUint, mut e: BigUint, n: &BigUint) -> BigUint {
     a %= n;

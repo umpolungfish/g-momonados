@@ -1,0 +1,40 @@
+source                  1000009
+source.binary           11110100001001001001
+source.word             ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+extraction              IMASM one-factor frame separation
+factor.frame            nested-return
+frame.shift             0
+frame.shifts-tested     20
+frame.a                 905
+frame.b                 786
+frame.ab                711330
+frame.r.magnitude       288679
+frame.gcd               1
+frame.gcd.even-lane     1
+frame.gcd.odd-lane      1
+frame.gcd.selected      open
+frame.prime-factor      open
+glut.decisions           3
+glut.peak-frontier       2
+glut.peak-cells          120
+glut.rejected            1
+glut.splits              2
+glut.correlation-decisions 0
+glut.correlation-conflicts 1
+glut.square-advances     15
+glut.square-cells        1017
+glut.root-marks          0
+glut.root-link-visits    0
+glut.root-links          0
+glut.root-candidates     0
+glut.mask-work           1000
+glut.correlation-work    706
+prime.factor            293
+factor.word             ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣
+factor.prime            PASS
+factor.remainder        0
+factor.return-closure   PASS
+source.frames           20
+factor.frames           9
+
+--- STDERR ---

@@ -8,7 +8,7 @@ autobins = false
 libm = "0.2"
 num-bigint = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }
-imasm_core = { path = "vendor/imasm_core", default-features = false }
+imasm_core = { path = "../MoDoT/imasm_core", default-features = false }
 vox_core = { path = "../Vox", package = "vox", default-features = false }
 # The batched SIXTEEN_3/catalog/crystal GPU kernels this build exists for.
 cudarc = { version = "=0.19.9", optional = true, default-features = false, features = ["driver", "nvrtc", "cuda-12040", "dynamic-loading", "std"] }
@@ -21,7 +21,7 @@ serde = { version = "1", optional = true, features = ["derive"] }
 libm = "0.2"
 num-bigint = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }
-imasm_core = { path = "vendor/imasm_core", default-features = false }
+imasm_core = { path = "../MoDoT/imasm_core", default-features = false }
 vox_core = { path = "../Vox", package = "vox", default-features = false }
 cudarc = { version = "=0.19.9", default-features = false, features = ["driver", "nvrtc", "cuda-12040", "dynamic-loading", "std"] }
 serde_json = "1"
@@ -102,6 +102,16 @@ path = "src/bin/ququart_verify_readout.rs"
 required-features = ["hosted"]
 
 [[bin]]
+name = "whorl-sic-native"
+path = "src/bin/whorl-sic-native.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "whorl-resident"
+path = "src/bin/whorl-resident.rs"
+required-features = ["hosted"]
+
+[[bin]]
 name = "test_source_256"
 path = "src/bin/test_source_256.rs"
 required-features = ["hosted"]
@@ -127,6 +137,11 @@ path = "src/bin/imasm_phase_factor.rs"
 [[bin]]
 name = "semiprime-tool"
 path = "src/semiprime_tool.rs"
+
+# NEW: winding + Belnap bit-braiding pipeline (godel_winding / godel_semiprime3)
+[[bin]]
+name = "semiprime-winding"
+path = "src/bin/semiprime_winding.rs"
 
 [[bin]]
 name = "membrane-factor"
@@ -157,11 +172,16 @@ required-features = ["hosted"]
 [[bin]]
 name = "resident_factor_baked"
 path = "src/bin/resident_factor_baked.rs"
-required-features = ["hosted"]
+required-features = ["resident-static"]
 
 [[bin]]
 name = "shot_carrier"
 path = "src/bin/shot_carrier.rs"
+
+[[bin]]
+name = "horn_factor"
+path = "src/bin/horn_factor.rs"
+required-features = ["hosted"]
 
 [lib]
 name = "g_momonados"
@@ -169,6 +189,8 @@ path = "src/lib.rs"
 
 [features]
 carrier-observation = ["vox_core/carrier-profile"]
+# Opt in only when compiling the static resident binary for a static target.
+resident-static = ["hosted"]
 # G-mOMonadOS is mOMonadOS ported to run as a GPU-native build: hosted is
 # not an opt-in mode here, it is the only mode, on by default so plain
 # `cargo build` (no --target, no --features) produces the binary that
@@ -195,8 +217,3 @@ opt-level = 3
 
 [lints.rust]
 warnings = "deny"
-
-[[bin]]
-name = "horn_factor"
-path = "src/bin/horn_factor.rs"
-required-features = ["hosted"]

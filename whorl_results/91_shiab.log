@@ -1,0 +1,15 @@
+bulk                    91
+bulk.binary             1011011
+bulk.bits-le            1101101
+bulk.word               ⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣
+boundary                61
+boundary.binary         111101
+boundary.bits-le        101111
+boundary.word           ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+δ.even-lane              13
+δ.odd-lane               3
+frame.width             7
+μ(δ(bulk))               91
+closure                  PASS
+
+--- STDERR ---

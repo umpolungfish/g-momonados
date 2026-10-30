@@ -1,7 +1,7 @@
 //! Reproduces the p3 hsoa_shor_state readout for the three known cases.
 
 use num_bigint::BigUint;
-use vox::hsoa_winding;
+use vox_core::hsoa_winding;
 
 fn main() {
     #[cfg(feature = "hosted")]

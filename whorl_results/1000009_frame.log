@@ -1,0 +1,14 @@
+source                  1000009
+frame.shift             0
+frame.shifts-tested     20
+frame.a                 905
+frame.b                 786
+frame.ab                711330
+frame.r.magnitude       288679
+frame.gcd               1
+frame.gcd.even-lane     1
+frame.gcd.odd-lane      1
+frame.gcd.selected      open
+frame.prime-factor      open
+
+--- STDERR ---

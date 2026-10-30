@@ -33,6 +33,11 @@ Hosted CUDA commands use the system dynamic C runtime so the driver can initiali
 on WSL. The parent Cargo configuration keeps static linking as a build default;
 this package overrides it with target-specific flags. `cargo resident-static`
 continues to build the self-contained musl resident executable.
+The `resident_factor_baked` binary requires the explicit `resident-static`
+feature and static linkage, so ordinary hosted builds skip it. The
+`cargo resident-static` alias builds the `resident_prepared` example directly.
+The `ququart_word` launcher uses the sibling `g-momonados` executable's
+`anyon_ququart_word` entry. A normal package build produces both executables.
 
 ```bash
 cd /home/mrnob0dy666/imsgct/G-mOMonadOS

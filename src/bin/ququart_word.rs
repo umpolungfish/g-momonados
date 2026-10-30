@@ -37,13 +37,23 @@ fn main() {
         })
         .collect();
 
-    let refs: Vec<&str> = cleaned.iter().map(String::as_str).collect();
-
-    match g_momonados::anyon_braid_cnot::compile_ququart_fourier(&refs) {
-        Ok(report) => println!("{}", report),
-        Err(error) => {
-            eprintln!("ququart_word: {}", error);
-            std::process::exit(1);
+    // The compiler and its kernel services live in the main executable.
+    // Use its existing argv entry instead of naming a binary-only module
+    // as though it were exported by the library.
+    let result = (|| -> std::io::Result<std::process::ExitStatus> {
+        let executable = std::env::current_exe()?.with_file_name("g-momonados");
+        let mut command = std::process::Command::new(executable);
+        command.arg("anyon_ququart_word").args(&cleaned);
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            Err(command.exec())
         }
+        #[cfg(not(unix))]
+        command.status()
+    })();
+    match result {
+        Ok(status) => std::process::exit(status.code().unwrap_or(1)),
+        Err(error) => { eprintln!("ququart_word: {error}"); std::process::exit(1); }
     }
 }

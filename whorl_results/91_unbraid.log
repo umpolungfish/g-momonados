@@ -1,0 +1,13 @@
+source                    91
+source.word               ⊢≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋⊙⊡⊣
+source.hex-word           ⊢⊤≻⋈≺⊞⊙⊡⊣⊢∈⊤≻⋈⊥≺⋈∋⊙⊡⊣
+Γ lane                    13
+Λ lane                    3
+Γ.word                    ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+Γ.hex-word                ⊢∈⊤≻⋈≺⋈⊞∋⊙⊡⊣
+Λ.word                    ⊢≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+Λ.hex-word                ⊢⊤≻⋈⊥≺⊙⊡⊣
+braid.recovered            91
+ΓΛ-closure                closed
+
+--- STDERR ---

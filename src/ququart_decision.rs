@@ -1391,6 +1391,12 @@ impl DecisionArena {
         }
         root
     }
+    /// Exact complex numerator on a retained source branch, without a
+    /// fixed-point division. The denominator stays on the enclosing frame.
+    pub fn scale_complex_numerator(&mut self,id:usize,scalar:&(BigInt,BigInt))->usize {
+        self.scale_words_numerator(id,&(SignedWordTape::from_bigint(&scalar.0),
+            SignedWordTape::from_bigint(&scalar.1)))
+    }
     pub fn scale(&mut self, id: usize, scalar: &FixedComplex, format: &FixedPointFormat) -> usize {
         self.scale_words(id, &(SignedWordTape::from_bigint(&scalar.re),
             SignedWordTape::from_bigint(&scalar.im)), format.w_bits as usize)
@@ -2719,6 +2725,44 @@ impl DecisionArena {
     pub(crate) fn prepared_record_many(&self, roots: &[usize]) -> serde_json::Value {
         self.register_record_many(roots,false)
     }
+    /// Write the shared amplitude graph without materializing a JSON value
+    /// for every node. The ordinary loader recomputes fixed support exactly.
+    #[cfg(feature = "hosted")]
+    pub(crate) fn write_prepared_many(&self, roots:&[usize], path:&std::path::Path)
+        -> Result<usize,String> {
+        use std::io::Write;
+        if roots.is_empty(){return Err("checkpoint needs retained roots".into());}
+        let mut writer=std::io::BufWriter::new(std::fs::File::create(path).map_err(|e|e.to_string())?);
+        let mut indices=vec![usize::MAX;self.nodes.len()];
+        let mut pending:Vec<_>=roots.iter().rev().map(|&r|(r,false)).collect();
+        let mut count=0;
+        writer.write_all(b"{\"nodes\":[").map_err(|e|e.to_string())?;
+        while let Some((id,returned))=pending.pop(){
+            if id>=indices.len(){return Err("checkpoint root escaped arena".into());}
+            if indices[id]!=usize::MAX{continue;}
+            if !returned {
+                pending.push((id,true));
+                if let Node::Branch{low,high,..}=self.node(id){
+                    pending.push((*high,false));pending.push((*low,false));
+                }
+                continue;
+            }
+            let row=match self.node(id){
+                Node::Leaf(re,im)=>serde_json::json!({"re":re.prepared_record(),"im":im.prepared_record()}),
+                Node::Branch{wire,low,high}=>serde_json::json!({"wire":wire,"low":indices[*low],"high":indices[*high]}),
+            };
+            if count>0{writer.write_all(b",").map_err(|e|e.to_string())?;}
+            serde_json::to_writer(&mut writer,&row).map_err(|e|e.to_string())?;
+            indices[id]=count;count+=1;
+        }
+        write!(&mut writer,"],\"cells\":{},\"root\":{},\"roots\":",self.cells,indices[roots[0]])
+            .map_err(|e|e.to_string())?;
+        serde_json::to_writer(&mut writer,&roots.iter().map(|&r|indices[r]).collect::<Vec<_>>())
+            .map_err(|e|e.to_string())?;
+        writer.write_all(b"}").map_err(|e|e.to_string())?;
+        writer.flush().map_err(|e|e.to_string())?;
+        Ok(count)
+    }
     #[cfg(feature="hosted")]
     pub(crate) fn compiled_record_many(&self,roots:&[usize])->serde_json::Value{
         self.register_record_many(roots,true)
@@ -2907,7 +2951,7 @@ impl DecisionArena {
             .ok_or_else(||String::from("compiled register lost its bank"))).collect::<Result<Vec<_>,_>>()?;
         Ok((arena,roots))
     }
-    #[cfg(test)]
+    /// Exact amplitude at a retained source-bound basis address.
     pub fn amplitude(&self, mut root: usize, value: &BigUint) -> (BigInt, BigInt) {
         loop {
             match self.node(root) {

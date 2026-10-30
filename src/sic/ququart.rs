@@ -1,7 +1,6 @@
 //! Sixteen SIC weights on P({T,F,t,f}), with the three carrier orders.
 //! WH indices use p*4+q. Carrier bits follow the machine: t,f,T,F.
 use super::certificate::negative_eigenvalue_residual;
-use super::wh::WhSic;
 use super::{error, Complex, Operator, Sic, SicCoordinates, SicError, SicFrame, TOLERANCE};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -108,20 +107,7 @@ impl Default for QuquartSic {
 impl QuquartSic {
     /// Appleby, quant-ph/0412001, equation 149, cyclic WH(4).
     pub fn canonical() -> Self {
-        let a = ((5.0 - 5.0f64.sqrt()) / 40.0).sqrt();
-        let c = (2.0 + 2.0f64.sqrt()).sqrt() / 2.0;
-        let s = (2.0 - 2.0f64.sqrt()).sqrt() / 2.0;
-        let u = (2.0 + 5.0f64.sqrt()).sqrt();
-        let wh = WhSic::new(vec![
-            Complex::new(2.0 * a * c, 0.0),
-            Complex::new(a * (1.0 - u) * s, a * (1.0 + u) * c),
-            Complex::new(0.0, 2.0 * a * s),
-            Complex::new(a * (1.0 + u) * s, a * (1.0 - u) * c),
-        ])
-        .unwrap();
-        Self {
-            frame: SicFrame::new((0..16).map(|i| wh.projector(i).unwrap()).collect()).unwrap(),
-        }
+        Self { frame: super::wh::ququart_frame() }
     }
     pub fn frame(&self) -> &SicFrame {
         &self.frame

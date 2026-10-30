@@ -1,0 +1,53 @@
+family                     cell-binary
+value                      1000009
+word                       ⊢≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊤∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋≻⋈∈⊥∋⊙⊡⊣
+binary                     11110100001001001001
+bits-le                    10010010010000101111
+support                    {0,3,6,9,14,16,17,18,19}
+polynomial                 1 + x^3 + x^6 + x^9 + x^14 + x^16 + x^17 + x^18 + x^19
+assert.support             PASS
+assert.binary-reverse      PASS
+assert.word-glyph-map      PASS
+assert.roundtrip           PASS
+assert.bitlength           PASS
+primitive.v2               0
+primitive.v2+1             1
+primitive.v2-1             3
+primitive.popcount         9
+primitive.bitlength        20
+primitive.runs             [[0,1),[3,4),[6,7),[9,10),[14,15),[16,20)]
+primitive.gaps             [[1,3),[4,6),[7,9),[10,14),[15,16)]
+primitive.odd-part         1000009
+primitive.shift-factor     0
+composite.decomp-k         1
+composite.decomp-prefix    1
+composite.decomp-remainder 500004
+composite.residue-2^k      1
+word.width                 20
+window.period              none
+negative.factor-bound      >256
+negative.factor-witness    none
+negative.tested-primes     53
+negative.cert-aperture     256
+kernel.object                  cell-binary representation and finite support pattern
+kernel.register.codec          T
+kernel.frame-sweep widths=2..8 preserved-bits=20
+kernel.register.sieve          f
+kernel.sieve.aperture           2^8=256 tested-primes=53
+kernel.register.pattern       f
+kernel.register.joint         Tf
+kernel.factor-pair             unresolved
+kernel.product-closure        open
+kernel.register.semiprime-closure N
+kernel.truth-support           true
+kernel.falsity-support         true
+kernel.factor-bound-support    f
+kernel.frame width=2 groups=10 symbols=[⊥⊤|⊤⊥|⊤⊤|⊥⊤|⊤⊥|⊤⊤|⊤⊤|⊥⊤|⊥⊥|⊥⊥] state=Tf prev≤i=seed prev≤c=seed
+kernel.frame width=3 groups=7 symbols=[⊥⊤⊤|⊥⊤⊤|⊥⊤⊤|⊥⊤⊤|⊤⊤⊥|⊤⊥⊥|⊥⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=4 groups=5 symbols=[⊥⊤⊤⊥|⊤⊤⊥⊤|⊤⊥⊤⊤|⊤⊤⊥⊤|⊥⊥⊥⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=5 groups=4 symbols=[⊥⊤⊤⊥⊤|⊤⊥⊤⊤⊥|⊤⊤⊤⊤⊥|⊤⊥⊥⊥⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=6 groups=4 symbols=[⊥⊤⊤⊥⊤⊤|⊥⊤⊤⊥⊤⊤|⊤⊤⊥⊤⊥⊥|⊥⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=7 groups=3 symbols=[⊥⊤⊤⊥⊤⊤⊥|⊤⊤⊥⊤⊤⊤⊤|⊥⊤⊥⊥⊥⊥] state=Tf prev≤i=true prev≤c=true
+kernel.frame width=8 groups=3 symbols=[⊥⊤⊤⊥⊤⊤⊥⊤|⊤⊥⊤⊤⊤⊤⊥⊤|⊥⊥⊥⊥] state=Tf prev≤i=true prev≤c=true
+
+--- STDERR ---
