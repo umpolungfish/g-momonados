@@ -139,6 +139,63 @@ pub fn command_line(args:&[String])->Result<(),String>{
                 .parse::<usize>().map_err(|_|"invalid budget".to_string())?;
             emit(&capture(&n,budget)?,out.as_deref())
         },
+        "geo-topo-verify"=>{
+            let p10=args.get(1).ok_or("geo-topo-verify needs stage10 stage11 rescue stage12 paths")?;
+            let p11=args.get(2).ok_or("geo-topo-verify needs Stage 11 report")?;
+            let p12=args.get(3).ok_or("geo-topo-verify needs topology rescue report")?;
+            let p13=args.get(4).ok_or("geo-topo-verify needs Stage 12 certificate")?;
+            let hashes=[crate::whorl_topological_witness::file_sha256(p10)?,
+                crate::whorl_topological_witness::file_sha256(p11)?,
+                crate::whorl_topological_witness::file_sha256(p12)?];
+            let base=load(p10)?;let ordered=load(p11)?;let rescue=load(p12)?;let wit=load(p13)?;
+            emit(&crate::whorl_topological_witness::verify(&base,&ordered,&rescue,&wit,&hashes)?,out.as_deref())
+        },
+        "geo-topo-recover"=>{
+            let p10=args.get(1).ok_or("geo-topo-recover needs stage10 stage11 rescue stage12 source-id")?;
+            let p11=args.get(2).ok_or("geo-topo-recover needs Stage 11 report")?;
+            let p12=args.get(3).ok_or("geo-topo-recover needs topology rescue report")?;
+            let p13=args.get(4).ok_or("geo-topo-recover needs Stage 12 certificate")?;
+            let id=args.get(5).ok_or("geo-topo-recover needs retained source ID")?;
+            let hashes=[crate::whorl_topological_witness::file_sha256(p10)?,
+                crate::whorl_topological_witness::file_sha256(p11)?,
+                crate::whorl_topological_witness::file_sha256(p12)?];
+            let base=load(p10)?;let ordered=load(p11)?;let rescue=load(p12)?;let wit=load(p13)?;
+            emit(&crate::whorl_topological_witness::recover(&base,&ordered,&rescue,&wit,&hashes,id)?,out.as_deref())
+        },
+        "geo-word-verify"=>{
+            let base=load(&args[1])?;
+            let report=load(args.get(2).ok_or("geo-word-verify needs stage11 report path")?)?;
+            emit(&crate::whorl_ordered_geometry::verify(&base,&report)?,out.as_deref())
+        },
+        "geo-word-recover"=>{
+            let base=load(&args[1])?;
+            let report=load(args.get(2).ok_or("geo-word-recover needs stage11 report path")?)?;
+            let id=args.get(3).ok_or("geo-word-recover needs source ID")?;
+            emit(&crate::whorl_ordered_geometry::recover(&base,&report,id)?,out.as_deref())
+        },
+        "geo-verify"=>{
+            let report=load(&args[1])?;
+            emit(&crate::whorl_geometric_transport::verify_certificate(&report)?,out.as_deref())
+        },
+        "geo-recover"=>{
+            let report=load(&args[1])?;
+            let id=args.get(2).ok_or("geo-recover needs a retained source ID")?;
+            emit(&crate::whorl_geometric_transport::recover_source(&report,id)?,out.as_deref())
+        },
+        "geo-transport"=>{
+            let report=load(&args[1])?;
+            let id=args.get(2).ok_or("geo-transport needs a retained source ID")?;
+            let word=value("--word")?.ok_or("geo-transport needs --word M16,M13")?;
+            emit(&crate::whorl_geometric_transport::transport_word(&report,id,&word)?,out.as_deref())
+        },
+        "trace-replay"=>{
+            let report=load(&args[1])?;
+            let budget=value("--budget")?.unwrap_or_else(||"500000".to_string())
+                .parse::<usize>().map_err(|_|"invalid replay budget".to_string())?;
+            let max_bits=value("--max-bits")?.unwrap_or_else(||"64".to_string())
+                .parse::<u64>().map_err(|_|"invalid max-bits".to_string())?;
+            emit(&crate::whorl_execution_replay::verify_execution(&report,budget,max_bits)?,out.as_deref())
+        },
         "replay"=>{
             let report=load(&args[1])?;
             emit(&crate::whorl_resident_replay::verify_snapshot(&report)?,out.as_deref())

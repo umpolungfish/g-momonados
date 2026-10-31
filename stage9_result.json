@@ -1,0 +1,23 @@
+{
+  "claims": "same-implementation deterministic reexecution and full serialized graph comparison; no authenticated origin, source-level formal verification, or independent gate implementation",
+  "factor_verified": true,
+  "full_deterministic_native_report_match": true,
+  "ignored_report_fields": [
+    "preparation_seconds",
+    "reduction_seconds",
+    "contraction_seconds",
+    "readout_and_factor_seconds",
+    "seconds",
+    "seconds_before_serialization",
+    "source_rows[*].seconds"
+  ],
+  "recomputed_collision_count": "525",
+  "recorded_capture_budget_verified": false,
+  "replay_node_budget": 500000,
+  "replayed_rows": 8,
+  "replayed_source": "143",
+  "replayed_source_bits": 8,
+  "retained_snapshot_exact_match": true,
+  "status": "complete",
+  "valid_arithmetic": true
+}

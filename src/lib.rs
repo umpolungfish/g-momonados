@@ -145,3 +145,7 @@ pub mod whorl_sic_native;
 #[cfg(feature = "hosted")]
 pub mod whorl_resident_bridge;
 pub mod whorl_resident_replay;
+pub mod whorl_execution_replay;
+pub mod whorl_geometric_transport;
+pub mod whorl_ordered_geometry;
+pub mod whorl_topological_witness;
