@@ -8,13 +8,12 @@ pub use membrane::*;
 #[allow(dead_code)]
 mod resident_work;
 mod resident_build;
-mod point_build;
+pub mod point_build;
 
 fn numeral(word: &str) -> Result<num_bigint::BigUint, String> {
     godel_calculus::decode_cell_biguint(word)
 }
 use std::{env, fs, path::PathBuf};
-
 
 fn main() {
     println!("cargo:rerun-if-env-changed=IG_ORDER_SITE");
@@ -42,9 +41,8 @@ fn main() {
             let path=fs::canonicalize(path).expect("N-only final switch source must exist");
             println!("cargo:rerun-if-changed={}",path.display());
             let source=fs::read_to_string(path).expect("read N-only final source");
-            let n=point_build::source(&source).expect("decode N-only final source");
-            // Defer to runtime - skip compile-time factorization
-            fs::write(out.join("point_final.json"),b"null").unwrap();
+            let _n=point_build::source(&source).expect("decode N-only final source");
+            fs::write(out.join("point_final.json"), source.as_bytes()).unwrap();
         },
         None=>{fs::write(out.join("point_final.json"),b"null").unwrap();}
     }
@@ -60,17 +58,16 @@ fn main() {
         (Some(path),None)=>{
             let path=fs::canonicalize(path).expect("N-only point source file must exist");
             println!("cargo:rerun-if-changed={}",path.display());
-            let n=point_build::source(&fs::read_to_string(path).expect("read N-only point source")).expect("read exact point source");
-            // Defer to runtime
+            let _n=point_build::source(&fs::read_to_string(path).expect("read N-only point source")).expect("read exact point source");
             fs::write(out.join("point_prepared.rs"),
-                "fn compiled_point_switch()->Result<g_momonados::point_build::PreparedPointSwitch,String>{Err(\"deferred to runtime\".into())}\n").unwrap();
+                "fn compiled_point_switch()->Result<g_momonados::conventional_spectrum::PreparedPointSwitch,String>{Err(\"deferred to runtime\".into())}\n").unwrap();
         },
         (None,Some(path))=>{
             let path=fs::canonicalize(path).expect("held carrier file must exist");
             println!("cargo:rerun-if-changed={}",path.display());
         },
         (None,None)=>fs::write(out.join("point_prepared.rs"),
-            "fn compiled_point_switch()->Result<g_momonados::point_build::PreparedPointSwitch,String>{Err(\"compile with POINT_CARRIER_SOURCE_FILE pointing to N alone\".into())}\n").unwrap(),
+            "fn compiled_point_switch()->Result<g_momonados::conventional_spectrum::PreparedPointSwitch,String>{Err(\"compile with POINT_CARRIER_SOURCE_FILE pointing to N alone\".into())}\n").unwrap(),
         _=>unreachable!(),
     }
     println!("cargo:rerun-if-env-changed=RESIDENT_SOURCE_FILE");

@@ -55,6 +55,10 @@ pub mod arbitrary_factor;
 #[cfg(feature = "hosted")]
 pub mod runtime_nesting;
 pub mod word_tape;
+
+#[cfg(feature = "hosted")]
+#[path = "../point_build.rs"]
+pub mod point_build;
 #[cfg(feature = "hosted")]
 pub mod source_braid_contraction;
 #[cfg(feature = "hosted")]
