@@ -12,7 +12,7 @@
 
 use crate::word_tape::WordTape;
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 /// Default maximum number of carrier rounds for the dedicated CLI entry point.
@@ -46,8 +46,6 @@ pub fn factor_word(source_word: &str, max_rounds: u64) -> Result<String, String>
     // Cross into Vox through the native parity cells. No decimal conversion
     // or BigUint adapter is called on this path.
     let source_cells = source.to_imasm_tape();
-    let _vox_word = vox_core::morphism_factor::emit_numeral(&source_cells);
-
     // Use the complete resident carrier, but impose a caller-visible bound.
     let tower = vox_core::morphism_factor::construct_carrier(
         vox_core::morphism_factor::NINE_ARM,
