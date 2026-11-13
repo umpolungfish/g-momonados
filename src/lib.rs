@@ -108,6 +108,8 @@ pub mod vox;
 pub mod period_finding_ecdlp;
 pub mod secp256k1_unwinder;
 pub mod factor_membrane;
+/// Separate bounded IMASM-word-only factorization entry point.
+pub mod pure_topological_factor;
 
 #[cfg(feature = "hosted")]
 pub mod membrane_family;

@@ -708,6 +708,34 @@ fn main() {
             println!("{}", gpu_gnfs::run_factor(&argv[1], bound));
             return;
         }
+        if matches!(head, "pure_factor" | "pure-factor") {
+            if argv.len() < 2 || argv[1] == "help" {
+                println!("{}", g_momonados::pure_topological_factor::help());
+                return;
+            }
+            if argv.len() > 3 {
+                eprintln!("{}", g_momonados::pure_topological_factor::help());
+                std::process::exit(2);
+            }
+            let max_rounds = match argv.get(2) {
+                Some(value) => match value.parse::<u64>() {
+                    Ok(rounds) if rounds > 0 => rounds,
+                    _ => {
+                        eprintln!("carrier-round-budget must be a positive u64");
+                        std::process::exit(2);
+                    }
+                },
+                None => g_momonados::pure_topological_factor::DEFAULT_ROUND_BUDGET,
+            };
+            match g_momonados::pure_topological_factor::factor_word(&argv[1], max_rounds) {
+                Ok(report) => println!("{}", report),
+                Err(error) => {
+                    eprintln!("{}", error);
+                    std::process::exit(2);
+                }
+            }
+            return;
+        }
         if matches!(head, "factor_membrane" | "membrane" | "fmembrane") {
             let refs: Vec<&str> = argv[1..].iter().map(|x| x.as_str()).collect();
             println!("{}", factor_membrane::repl_factor_membrane(&refs));
