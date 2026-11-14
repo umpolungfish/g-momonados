@@ -452,3 +452,41 @@ extern "C" __global__ void glut_belnap_relations(
  for(unsigned g=0;g<gates;++g)if(held[g]){evidence=3;++count;}
  receipt[0]=evidence;receipt[1]=sweeps;receipt[2]=updates;receipt[3]=count;
 }
+
+// Source-bound preparation for the GLUT factor continuation. The four-argument
+// membrane_prepare in membrane_family_gpu.cuh serves the word-factor device;
+// this eight-argument entry binds the N-only limbs, the numbered source word
+// payload and the isqrt frontier start in one kernel and returns the binding
+// receipt [source_bits, shape_valid, source_equal] the host gate requires.
+extern "C" __global__ void glut_membrane_source_prepare(
+    const unsigned *nval, const unsigned *payload, unsigned payload_len, int limbs,
+    unsigned *n, unsigned *root, unsigned *hi, unsigned *binding) {
+  if (blockIdx.x || threadIdx.x) return;
+  binding[0] = 0; binding[1] = 0; binding[2] = 0;
+  if (limbs <= 0 || limbs > MF_LIMBS || payload_len < 5u) return;
+  if (!nval[limbs - 1]) return;                 // a zero top limb is not a bound source
+  for (int i = 0; i < limbs; ++i) n[i] = nval[i];
+  unsigned bits = (unsigned)limbs * 32u - (unsigned)__clz(nval[limbs - 1]);
+  binding[0] = bits;
+  // Every payload op stays inside the classic 16-token space.
+  for (unsigned i = 0; i < payload_len; ++i) if (payload[i] > 15u) return;
+  // The numeral word opens with VINIT and closes with TANCH.
+  if (payload[0] != 0u || payload[payload_len - 1] != 1u) return;
+  // One 5-glyph block per source bit (A FW D C L I N K F S P L I T E V A L F S/EVALT F F U S E)
+  // plus the opening and closing frames: 5*bits + 4 tokens. This ties the
+  // payload to the same bit length as the bound limbs; the encoder owns
+  // per-bit polarity, the kernel owns the length identity.
+  if (payload_len != 5u * bits + 4u) return;
+  binding[1] = 1;
+  unsigned wide[MF_WIDE] = {0}, rootw[MF_WIDE] = {0}, rem[MF_WIDE + 1] = {0};
+  for (int i = 0; i < limbs; ++i) wide[i] = nval[i];
+  mf_isqrt(wide, limbs, rootw, rem);
+  for (int i = 0; i < limbs; ++i) root[i] = rootw[i];
+  unsigned carry = 0;
+  for (int i = limbs - 1; i >= 0; --i) {
+    unsigned next = nval[i] & 1u;
+    hi[i] = (nval[i] >> 1) | (carry << 31);
+    carry = next;
+  }
+  binding[2] = 1;   // limbs copied byte-exact and payload length tied to the bit count
+}

@@ -104,3 +104,23 @@ required-features = ["hosted"]
 name = "anyon_generator"
 path = "src/bin/anyon_generator.rs"
 required-features = ["hosted"]
+
+[[bin]]
+name = "whorl-resident"
+path = "src/bin/whorl-resident.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "whorl-sic-native"
+path = "src/bin/whorl-sic-native.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "whorl_resident_bridge"
+path = "src/bin/whorl_resident_bridge.rs"
+required-features = ["hosted"]
+
+[[bin]]
+name = "semiprime_winding"
+path = "src/bin/semiprime_winding.rs"
+required-features = ["hosted"]

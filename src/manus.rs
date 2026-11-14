@@ -135,24 +135,135 @@ fn token_style(t: Token) -> &'static str {
 pub const HUD_HEIGHT: u16 = 9;
 
 /// Draw the full HUD. Occupies rows 1–9. Content starts at row 10.
-pub fn draw_hud(_k: &Kernel, _program_name: &str, _width: u16) {
-    // HUD fully disabled — no terminal rendering, no cursor moves
+pub fn draw_hud(k: &Kernel, program_name: &str, width: u16) {
+    cursor_goto(1, 1);
+    clear_below();
+
+    styled(BOLD_WHITE, "═══ mOMonadOS Watch HUD ═══
+");
+
+    styled(BOLD_CYAN, "prog: ");
+    styled(WHITE, program_name);
+    serial::write_str("  ");
+    styled(BOLD_CYAN, "phase: ");
+    match k.phase {
+        crate::kernel::Phase::Boot => styled(YELLOW, "Boot"),
+        crate::kernel::Phase::Think => styled(GREEN, "Think"),
+        crate::kernel::Phase::Act => styled(CYAN, "Act"),
+        crate::kernel::Phase::Halt => styled(RED, "Halt"),
+        _ => styled(WHITE, "?"),
+    }
+    serial::write_str("  ");
+    styled(BOLD_CYAN, "tick: ");
+    write_u64(k.tick_count);
+    serial::write_str("  ");
+    styled(BOLD_CYAN, "ip: ");
+    write_usize(k.ip);
+    serial::write_str(" / ");
+    write_usize(k.program.len());
+    serial::write_str("
+");
+
+    styled(BOLD_CYAN, "regs: ");
+    for i in 0..8 {
+        let v = k.registers.read(i);
+        serial::write_str(b4_style(v));
+        write_u64(i as u64);
+        serial::write_byte(b':');
+        serial::write_str(v.name());
+        serial::write_str(RESET);
+        if i < 7 { serial::write_str(" "); }
+    }
+    serial::write_str("
+");
+
+    styled(BOLD_CYAN, "stack: ");
+    write_usize(k.stack.depth());
+    serial::write_str("  top: ");
+    let top = k.stack.peek();
+    serial::write_str(b4_style(top));
+    serial::write_str(top.name());
+    serial::write_str(RESET);
+    serial::write_str("  ");
+    styled(BOLD_CYAN, "fork: ");
+    write_usize(k.fork_depth());
+    serial::write_str("  ");
+    if k.halted {
+        styled(BOLD_RED, "HALTED");
+    } else {
+        styled(GREEN, "live");
+    }
+    serial::write_str("
+");
+
+    styled(BOLD_CYAN, "mem:  ");
+    let mem_cells = 16usize.min(width as usize / 3);
+    for i in 0..mem_cells {
+        let v = k.memory.read(i);
+        serial::write_str(b4_style(v));
+        serial::write_str(v.name());
+        serial::write_str(RESET);
+        if i < mem_cells - 1 { serial::write_str(" "); }
+    }
+    serial::write_str("
+");
+
+    hr("─", width);
+    serial::write_str("
+");
+
+    if let Some(snap) = &k.snapshot {
+        styled(BOLD_CYAN, "snap: ");
+        styled(WHITE, snap.tier_name());
+        serial::write_str("  frob: ");
+        write_u64(snap.frobenius_order as u64);
+        serial::write_str("  div: ");
+        write_usize(snap.token_diversity);
+        serial::write_str("  wind: ");
+        write_u64(snap.winding_count as u64);
+        serial::write_str("
+");
+    } else {
+        styled(BOLD_CYAN, "snap: ");
+        styled(DIM, "none (tick first)");
+        serial::write_str("
+");
+    }
+
+    styled(BOLD_CYAN, "chiral: ");
+    if k.chirality { styled(MAGENTA, "flipped") } else { styled(GREEN, "canonical") };
+    serial::write_str("  dial: ");
+    write_u64(k.active_dialect as u64);
+    serial::write_str("
+");
+
+    styled(BOLD_WHITE, "ESC to stop  |  ");
+    styled(DIM, "rows 1–9 HUD");
+    serial::write_str("
+");
 }
 
 /// Initialize display: clear screen, hide cursor, draw HUD.
-pub fn display_init(_k: &Kernel, _program_name: &str, _width: u16) {
-    // HUD fully disabled — no alt-screen, no clear, no cursor moves
+pub fn display_init(k: &Kernel, program_name: &str, width: u16) {
+    enter_alt_screen();
+    cls();
+    cursor_hide();
+    draw_hud(k, program_name, width);
 }
 
 /// Shutdown display: exit alt screen, show cursor.
-/// HUD fully disabled — no alt-screen to leave, no cursor to restore.
 pub fn display_shutdown() {
-    // no-op
+    exit_alt_screen();
+    cursor_show();
+    cls();
 }
 
 /// Refresh HUD only (no full clear — faster).
-pub fn display_refresh(_k: &Kernel, _program_name: &str, _width: u16) {
-    // HUD fully disabled — no refresh
+pub fn display_refresh(k: &Kernel, program_name: &str, width: u16) {
+    draw_hud(k, program_name, width);
+    draw_activity(k, HUD_HEIGHT + 2, width.saturating_sub(2));
+    serial::write_str("
+");
 }
 
 // ─── Continuous execution with periodic display refresh ───────
@@ -167,11 +278,13 @@ pub fn run_with_display<F: FnMut() -> bool>(
     width: u16,
     refresh_every: u64,
     mut should_stop: F,
+    max_ticks: Option<u64>,
 ) -> u64 {
     let start = k.tick_count;
     let mut since_refresh = refresh_every.saturating_sub(1);
+    let stop_at = max_ticks.map(|m| start.saturating_add(m));
 
-    while !k.halted && !should_stop() {
+    while !k.halted && !should_stop() && stop_at.map_or(true, |l| k.tick_count < l) {
         k.tick();
         since_refresh += 1;
         if since_refresh >= refresh_every {

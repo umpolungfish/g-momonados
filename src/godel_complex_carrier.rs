@@ -147,7 +147,15 @@ fn live_clink_l9_word()->Result<String,String>{
     let path=std::path::PathBuf::from(home).join(".imscrbgrmr/catalog.json");
     let catalog:Value=serde_json::from_slice(&std::fs::read(path).map_err(|e|format!("read referenced catalog: {e}"))?)
         .map_err(|e|format!("parse referenced catalog: {e}"))?;
-    let entries=catalog["imscriptions"].as_array().ok_or("referenced catalog omitted imscriptions")?;
+    // The referenced catalog is a list of imscription entries; older
+    // wrapped objects carrying an "imscriptions" key stay readable too.
+    let entries=match &catalog {
+        Value::Array(entries) => entries.iter().cloned().collect::<Vec<Value>>(),
+        Value::Object(mapping) => mapping.get("imscriptions")
+            .and_then(|value| value.as_array())
+            .ok_or("referenced catalog omitted imscriptions")?.clone(),
+        _ => return Err("referenced catalog omitted imscriptions".into()),
+    };
     let entry=entries.iter().find(|entry|entry["name"]=="clink_l9").ok_or("referenced catalog omitted clink_l9")?;
     let order=["⊢","⊣","≻","≺","⋈","⊤","∈","∋","⊙","⊥","⊞","⊡"];
     let mut word=String::new();

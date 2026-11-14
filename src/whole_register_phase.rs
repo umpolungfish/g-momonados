@@ -1294,4 +1294,62 @@ mod tests {
         )
         .is_err());
     }
+
+    /// Bounded probe for the re-entry hint: doubling the register base
+    /// halves the exponent the phase register must resolve. Each
+    /// configuration keeps the same source and streaming nested-work
+    /// radix; the only changed field is the explicit phase width. The
+    /// 224-bit target is the manifest control whose factors stay in the
+    /// manifest; closure product verification is checked independently here.
+    #[test]
+    #[ignore = "bounded phase-width re-entry probe; hosted release"]
+    fn phase_width_reentry_probe_224() {
+        use std::time::Instant;
+        let n = BigUint::parse_bytes(b"20081688351384395424817150810872467282895583086213350947131699678973", 10).unwrap();
+        let base = BigUint::from(2u8);
+        let mut widths: Vec<usize> = Vec::new();
+        for reentry in [8usize, 4, 2] {
+            widths.push(n.bits() as usize + reentry);
+        }
+        widths.push(2 * n.bits() as usize); // baseline register, measured last
+        for width in widths {
+            // One shot costs about 3*width nested operations per phase wire
+            // (three toggles per register cell plus the modular adds), and
+            // each advance call applies 32 operations, so a complete
+            // register traversal needs about 0.1*width^2 calls. The doubled
+            // bound and call-bound report keep the probe from exiting early.
+            let call_bound = (0.2 * (width as f64) * (width as f64)).ceil() as u32 + 256;
+            let width_started = Instant::now();
+            let mut executor = WholeRegisterPhaseExecutor::prepare(
+                n.clone(), base.clone(), Some(width)).expect("narrow phase preparation");
+            executor.use_streaming_nested_work(8).expect("streaming arm");
+            let mut hits = 0u32;
+            let mut calls = 0u32;
+            while calls < call_bound {
+                calls += 1;
+                if calls % 64 == 0 {
+                    if let Some((wire, cursor, peak)) = executor.streaming_progress() {
+                        eprintln!("width={} call={} progress wire={wire} cursor={cursor} peak={peak}",
+                            width, calls);
+                    }
+                }
+                let started = Instant::now();
+                let Some(shot) = executor.advance_streaming_next().expect("streaming shot")
+                    else { continue; };
+                if let Some(closure) = &shot.closure {
+                    let (p, q) = closure.factors();
+                    assert_eq!(p * q, n, "shot closure product");
+                    hits += 1;
+                }
+                eprintln!("width={} call={calls} shot_seconds={:.3} fraction={}/{} hits={} peak={:?}",
+                    width, started.elapsed().as_secs_f64(),
+                    shot.phase.numerator, shot.phase.denominator, hits,
+                    executor.streaming_progress().map(|(_, cursor, peak)| (cursor, peak)));
+            }
+            eprintln!("probe width-{} calls={} (bound {}) total_seconds={:.3} hits={}", width,
+                calls, call_bound, width_started.elapsed().as_secs_f64(), hits);
+            assert!(hits > 0, "width {} exhausted {} calls without a fired shot; \
+                the traversal bound is too small or the arm is stuck", width, calls);
+        }
+    }
 }

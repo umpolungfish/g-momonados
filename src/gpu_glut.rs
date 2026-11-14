@@ -249,7 +249,7 @@ pub fn run(n:&BigUint)->Result<String,String> {
  let admission_read=module.load_function("glut_admission_read").map_err(|e|format!("GLUT Admission return: {e}"))?;
  let verify_port=module.load_function("glut_verify_carries").map_err(|e|format!("GLUT Verify port: {e}"))?;
  let transport=module.load_function("glut_carrier_transport").map_err(|e|format!("GLUT enclosing transport: {e}"))?;
- let prepare=module.load_function("membrane_prepare").map_err(|e|format!("GLUT source preparation: {e}"))?;
+ let prepare=module.load_function("glut_membrane_source_prepare").map_err(|e|format!("GLUT source preparation: {e}"))?;
  let stream=ctx.default_stream();
  macro_rules! upload {($v:expr)=>{stream.clone_htod($v).map_err(|e|format!("GLUT upload: {e}"))?};}
  macro_rules! zeros {($t:ty,$len:expr)=>{stream.alloc_zeros::<$t>($len).map_err(|e|format!("GLUT allocation: {e}"))?};}

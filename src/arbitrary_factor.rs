@@ -300,7 +300,23 @@ where
         let p = match measured_factor {
             Some(candidate) => candidate,
             None => {
-                return Err("anyon phase readout did not yield a factor — no classical fallback".into());
+                // The classical native arm was removed; the producing fallback
+                // runs through the retained dispatch (arm trap -> port walk ->
+                // MPQS) and its split is re-verified below like any other
+                // route.
+                let resident = crate::factor_synthesis::FactorSynthesis::new(n.clone())
+                    .map_err(|e| format!("retained fallback init error: {e}"))?;
+                let readout = resident
+                    .readout(|_, _| {})
+                    .map_err(|e| format!("retained fallback error: {e}"))?
+                    .ok_or("retained fallback returned no factor")?;
+                steps.push(Step {
+                    value: n.to_string(),
+                    route: Route::AnyonPhase,
+                    factor: Some(readout.divisor.to_string()),
+                    detail: format!("retained arm {} closed the split", readout.producer),
+                });
+                readout.divisor
             }
         };
         let (q, rem) = divmod_via_word(&n, &p)

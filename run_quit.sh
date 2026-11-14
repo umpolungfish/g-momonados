@@ -24,7 +24,7 @@ PROFILE="${PROFILE:-release}"
 # An inherited Cargo build.target writes beneath target/<triple>/, not target/.
 # Bind the build and invocation to the same explicit host target.
 GM_TARGET="${GM_TARGET:-$(rustc -vV | sed -n 's/^host: //p')}"
-BIN="target/x86_64-unknown-linux-gnu/${GM_TARGET}/${PROFILE}/g-momonados"
+BIN="./target/$GM_TARGET/release/g-momonados"
 JOIN_AWK="$(dirname "$0")/join_digit_continuations.awk"
 
 PROFILE_FLAG=()

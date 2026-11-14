@@ -15,6 +15,7 @@ use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::Ordering;
 
 #[path = "../../../p4rakernel/bridge/client.rs"]
 #[allow(dead_code)]
@@ -86,12 +87,14 @@ struct ProgressDevice {
     digits: usize,
     expected: usize,
     shots: u64,
+    started: std::time::Instant,
 }
 impl QuquartPhaseDevice for ProgressDevice {
     fn begin(&mut self, n: &BigUint, base: &BigUint, digits: usize) -> Result<(), String> {
         self.inner.begin(n, base, digits)?;
         self.digits = 0;
         self.expected = digits;
+        self.started = std::time::Instant::now();
         self.shots += 1;
         send(&mut self.stream, json!({"event":"shot_started", "source":self.source,
             "shot":self.shots, "phase_digits_total":digits}))
@@ -106,8 +109,14 @@ impl QuquartPhaseDevice for ProgressDevice {
         self.inner.feedback(numerator, digits)
     }
     fn measure_phase_digit(&mut self) -> Result<QuquartDigit, String> {
+        let digit_started = std::time::Instant::now();
         let digit = self.inner.measure_phase_digit()?;
         self.digits += 1;
+        let counters = &g_momonados::ququart_folded_work::VOX_QUQUART_COUNTERS;
+        eprintln!("[anyon] shot={} digit={}/{} took {:?} nested_ops={} fourier={} cmul={} bags={:?} total={:?}",
+            self.shots, self.digits, self.expected, digit_started.elapsed(),
+            counters[0].load(Ordering::Relaxed), counters[1].load(Ordering::Relaxed),
+            counters[2].load(Ordering::Relaxed), self.inner.bag_profile(), self.started.elapsed());
         send(&mut self.stream, json!({"event":"phase_measured", "source":self.source,
             "shot":self.shots, "phase_digits_completed":self.digits,
             "phase_digits_total":self.expected, "digit":digit as u8}))?;
@@ -134,22 +143,27 @@ fn factor(stream: &mut UnixStream, request: &Value, directory: &Path) -> Result<
     if source.bits() < 200 || base < BigUint::from(2u8) || shot_limit == 0 {
         return Err("factor requires a source of at least 200 bits, base >= 2, and positive shot budget".into());
     }
+    let stage_started = std::time::Instant::now();
     let operator = directory.join(format!(
         "rsa_physical_ququart_radix16_{}_input.json", source.bits()));
     let prepared: Value = serde_json::from_str(
         &std::fs::read_to_string(&operator).map_err(|e| format!("{}: {e}", operator.display()))?
     ).map_err(|e| e.to_string())?;
+    eprintln!("[anyon] {} operator loaded at {:?}", source.bits(), stage_started.elapsed());
     if prepared.get("prepared_operator").is_none() {
         return Err("factor requires a contracted physical operator".into());
     }
     let y_fixed_point = lean_kernel::ensure_default()
         .map_err(|error| format!("Lean Y/re-entry admission: {error}"))?;
+    eprintln!("[anyon] lean admission ok (y_fixed_point={y_fixed_point}) at {:?}", stage_started.elapsed());
     let (bound_source, matrix, metrics) = support::contract(&prepared)?;
+    eprintln!("[anyon] operator contracted at {:?}", stage_started.elapsed());
     if bound_source != source {
         return Err("physical operator belongs to a different source".into());
     }
     let mut prepared = prepared;
     let schedule = g_momonados::ququart_factor::QuquartPowerSchedule::prepare(&source, &base)?;
+    eprintln!("[anyon] power schedule ready ({} powers) at {:?}", schedule.powers().len(), stage_started.elapsed());
     let orientations = y_reentry_orientation_word(&prepared, y_fixed_point, schedule.powers().len())?;
     prepared["base_word"] = json!(word(&base));
     prepared["seed_word"] = json!(word(&BigUint::from(1729u32)));
@@ -163,6 +177,7 @@ fn factor(stream: &mut UnixStream, request: &Value, directory: &Path) -> Result<
     let radix = prepared["radix_word"].as_str().ok_or("physical operator lacks the work radix")?;
     let inner = QuquartFoldedWorkDevice::new_interleaved_radix(
         source.clone(), matrix, 1729, radix)?;
+    eprintln!("[anyon] interleaved radix device constructed at {:?}", stage_started.elapsed());
     send(stream, json!({"event":"started", "source":source.to_string(),
         "source_bits":source.bits(), "backend":BACKEND,
         "physical_exchanges":metrics.exchanges, "producer_pid":std::process::id(),
@@ -170,6 +185,7 @@ fn factor(stream: &mut UnixStream, request: &Value, directory: &Path) -> Result<
     let device = ProgressDevice {
         inner, stream:stream.try_clone().map_err(|e| e.to_string())?,
         source:source.to_string(), digits:0, expected:0, shots:0,
+        started: std::time::Instant::now(),
     };
     let mut executor = QuquartFactorExecutor::new(device);
     for _ in 0..shot_limit {

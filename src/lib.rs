@@ -101,6 +101,7 @@ pub mod tokens;
 pub mod word_nesting;
 pub mod token_refinement;
 pub mod factor_relation;
+pub mod binary_membrane;
 #[cfg(feature = "hosted")]
 pub mod gpu_graph;
 pub mod braid_protocol;
@@ -131,6 +132,8 @@ mod godel_calculus_tests {
 
 pub mod ququart_decision;
 pub mod ququart_folded_work;
+pub mod ququart_symbolic;
+pub mod arm_trap;
 pub mod whole_register_phase;
 pub mod factor_synthesis;
 pub mod resident_glut;

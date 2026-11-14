@@ -122,7 +122,7 @@ pub struct FixedComplex {
 
 use crate::word_tape::{SignedWordTape, WordTape};
 
-fn word_round_div(value: &SignedWordTape, divisor: &SignedWordTape) -> SignedWordTape {
+pub(crate) fn word_round_div(value: &SignedWordTape, divisor: &SignedWordTape) -> SignedWordTape {
     let half = divisor.abs().shr(1);
     let rounded = value.abs().add(&half).div(&divisor.abs());
     if value.is_negative() ^ divisor.is_negative() { rounded.negate() } else { rounded }
@@ -147,12 +147,12 @@ fn word_arctan_reciprocal(denominator: u64, scale: &SignedWordTape) -> SignedWor
     sum
 }
 
-fn word_pi(scale: &SignedWordTape) -> SignedWordTape {
+pub(crate) fn word_pi(scale: &SignedWordTape) -> SignedWordTape {
     word_arctan_reciprocal(5, scale).mul(&SignedWordTape::from_small(16))
         .sub(&word_arctan_reciprocal(239, scale).mul(&SignedWordTape::from_small(4)))
 }
 
-fn word_sincos(angle: &SignedWordTape, scale: &SignedWordTape) -> (SignedWordTape, SignedWordTape) {
+pub(crate) fn word_sincos(angle: &SignedWordTape, scale: &SignedWordTape) -> (SignedWordTape, SignedWordTape) {
     let angle_squared = word_round_div(&angle.mul(angle), scale);
     let mut sine_sum = angle.clone();
     let mut sine_term = angle.clone();

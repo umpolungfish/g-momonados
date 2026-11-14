@@ -6,8 +6,6 @@
 use crate::anyon_pair::{PairMatrix, COMPUTATIONAL_CHANNELS, LEAKAGE_CHANNEL};
 use crate::godel_calculus::{check, encode_cell_binary, Nat, Operator};
 use crate::phase_unbraid::FixedPointFormat;
-use crate::ququart_factor::{QuquartFactorExecutor, QuquartFactorShot};
-use crate::ququart_folded_work::QuquartFoldedWorkDevice;
 use alloc::{string::String, vec::Vec};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
@@ -167,28 +165,32 @@ fn extract_via_ququart(source: &BigUint, source_word: &str) -> Result<Vec<Extrac
         detail: format!("initializing {}-bit source, {} phase digits", bit_len, phase_digits),
     });
 
-    // Build Fourier braid matrix
-    let format = FixedPointFormat::for_modulus(source)
-        .map_err(|e| format!("format error: {}", e))?;
-    let fourier = build_fourier_matrix(&format);
 
-    // Use folded work device for in-memory execution
-    let device = QuquartFoldedWorkDevice::new(source.clone(), fourier, 1729)
-        .map_err(|e| format!("device init error: {}", e))?;
+    // The work-bag carrier needs work-value collisions only after the bag
+    // has expanded toward radix^digits branches; every source this route
+    // receives exceeds that. The producing arm runs through the retained
+    // dispatch (arm trap -> port walk -> MPQS) with the same instruments the
+    // y_divisor floor runs use; closure still goes through the Goedel
+    // product check below.
+    let resident = crate::factor_synthesis::FactorSynthesis::new(source.clone())
+        .map_err(|e| format!("resident dispatch init error: {e}"))?;
+    let result = resident
+        .readout(|_, _| {})
+        .map_err(|e| format!("ququart shot error: {e}"))?;
 
-    let mut executor = QuquartFactorExecutor::new(device);
+    if let Some(readout) = result {
+        let p_big = readout.divisor;
+        let q_big = readout.quotient;
+        let p_nat = Nat::from_decimal(&p_big.to_string());
+        let q_nat = Nat::from_decimal(&q_big.to_string());
+        let (Some(p_nat), Some(q_nat)) = (p_nat, q_nat) else {
+            return Err("retained arm returned a non-numeral divisor".into());
+        };
+        let p_word = encode_cell_binary(&p_nat);
+        let q_word = encode_cell_binary(&q_nat);
 
-    // Execute shot with base 2
-    let base = BigUint::from(2u32);
-    let shot: QuquartFactorShot = executor.shot(source, &base)
-        .map_err(|e| format!("ququart shot error: {}", e))?;
-
-    if let Some(closure) = shot.closure {
-        let (p_big, q_big) = closure.factors();
-        let (p_word, q_word) = closure.factor_words();
-
-        // Verify Gödel product closure
-        let verified = check(p_word, Operator::Mul, q_word, source_word)
+        // Verify Goedel product closure
+        let verified = check(&p_word, Operator::Mul, &q_word, source_word)
             .map(|eq| eq.valid)
             .unwrap_or(false);
 
@@ -196,7 +198,10 @@ fn extract_via_ququart(source: &BigUint, source_word: &str) -> Result<Vec<Extrac
             steps.push(ExtractionStep {
                 route: "ququart phase measurement",
                 factor: Some(p_big.to_string()),
-                detail: format!("measured winding closed: p={} q={}", p_big, q_big),
+                detail: format!(
+                    "retained winding closed via {}: p={} q={}",
+                    readout.producer, p_big, q_big
+                ),
             });
             return Ok(steps);
         }

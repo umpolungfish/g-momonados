@@ -352,9 +352,11 @@ fn belnap_invariants() {
     assert_eq!(T.truth_or(F), T);
     assert_ne!(T.truth_and(F), T.band(F));
     assert_ne!(T.truth_or(F), T.bor(F));
-    // B absorbs N on both truth operations; F and T absorb respectively.
-    assert_eq!(B.truth_and(N), B);
-    assert_eq!(B.truth_or(N), B);
+    // B/N on the truth axis is the kernel-checked Lean table
+    // (Belnap.lean: band B N = F, bor B N = T): B ∧ N inherits the false
+    // arm, B ∨ N the true one.
+    assert_eq!(B.truth_and(N), F);
+    assert_eq!(B.truth_or(N), T);
     for &x in &[N, T, F, B] {
         assert_eq!(F.truth_and(x), F);
         assert_eq!(T.truth_or(x), T);

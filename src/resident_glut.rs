@@ -1095,17 +1095,39 @@ impl ResidentGlut {
     pub fn readout(mut self, observe: impl FnMut(usize, usize)) -> Result<Option<GlutReadout>, String> {
         let trace = std::env::var_os("GM_FACTOR_TRACE").is_some();
         let trace_started = std::time::Instant::now();
+        // Cheapest-decisive arm: the mu/delta winding trap. Bounded k winding
+        // and probe window; falls through to the retained arms on a miss.
+        let trap_enabled = std::env::var_os("GM_TRAP_OFF").is_none();
+        if trap_enabled {
+            let trap_k = std::env::var("GM_TRAP_K").ok()
+                .and_then(|bound| bound.parse::<u64>().ok()).unwrap_or(64);
+            let trap_window = std::env::var("GM_TRAP_WINDOW").ok()
+                .and_then(|bound| bound.parse::<u64>().ok()).unwrap_or(32);
+            let trap_started = std::time::Instant::now();
+            if let Some(divisor) = crate::arm_trap::trap_arms(&self.source.to_biguint(), trap_k, trap_window) {
+                return self.readout_source_divisor(divisor, "arm-trap-mu-delta");
+            }
+            if trace {
+                eprintln!("factor-trace elapsed={:.3} stage=arm-trap-miss k={trap_k} window={trap_window} seconds={:.3}",
+                    trace_started.elapsed().as_secs_f64(), trap_started.elapsed().as_secs_f64());
+            }
+        }
         let mut retained = crate::factor_synthesis::RetainedArmProbe::new(self.source.to_biguint())?;
         let expected_source = self.source.clone();
         let expected_tape = self.tape.clone();
         let mut port_calls = 0u64;
         let mut native_return=None;
-        if let Some(returned) = vox_core::morphism_factor::source_carrier_divisor_with_port_and_observer(
+        let port_bound_retained = std::env::var("GM_FACTOR_PORT_BOUND").ok()
+            .and_then(|bound| bound.parse::<u64>().ok()).unwrap_or(48);
+        let walked = vox_core::morphism_factor::source_carrier_divisor_with_port_and_observer(
             &self.tape, |source_tape| {
                 if source_tape != expected_tape {
                     return Err(String::from("resident source port changed its N-only binding"));
                 }
                 port_calls = port_calls.saturating_add(1);
+                if port_calls > port_bound_retained {
+                    return Err(String::from("retained-port-walk-bound"));
+                }
                 if trace {
                     eprintln!("factor-trace elapsed={:.3} stage=retained-arm-port count={port_calls}",
                         trace_started.elapsed().as_secs_f64());
@@ -1143,14 +1165,32 @@ impl ResidentGlut {
                     eprintln!("factor-trace elapsed={:.3} stage={} count={count}",
                         trace_started.elapsed().as_secs_f64(), stage);
                 }
-            })? {
-            let divisor = WordTape::from_parity_cells(&returned.divisor)
-                .ok_or("source carrier boundary numeral conversion failed")?;
-            self.native_membrane=native_return;
-            self.retained_probe=Some(Box::new(retained));
-            return self.readout_source_word_divisor(divisor, returned.producer);
+            });
+        match walked {
+            Err(error) if error == "retained-port-walk-bound" => {
+                if trace {
+                    eprintln!("factor-trace elapsed={:.3} stage=mpqs-escalation ports={port_calls}",
+                        trace_started.elapsed().as_secs_f64());
+                }
+                let (bound, _m) = vox_core::sieve::sieve_params(&self.tape);
+                if let Some(divisor_tape) = vox_core::sieve::mpqs(&self.tape, bound, 32_768, 32) {
+                    let divisor = num_bigint::BigUint::parse_bytes(
+                        vox_core::morphism_factor::dec_of(&divisor_tape).as_bytes(), 10)
+                        .ok_or("mpqs arm returned a non-numeral tape")?;
+                    return self.readout_source_divisor(divisor, "mpqs-relation-source");
+                }
+                self.readout_lowered(observe)
+            }
+            Ok(Some(returned)) => {
+                let divisor = WordTape::from_parity_cells(&returned.divisor)
+                    .ok_or("source carrier boundary numeral conversion failed")?;
+                self.native_membrane=native_return;
+                self.retained_probe=Some(Box::new(retained));
+                self.readout_source_word_divisor(divisor, returned.producer)
+            }
+            Ok(None) => self.readout_lowered(observe),
+            Err(error) => Err(error),
         }
-        self.readout_lowered(observe)
     }
 
     pub fn readout_source_carrier(self) -> Result<Option<GlutReadout>, String> {

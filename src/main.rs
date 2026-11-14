@@ -255,6 +255,7 @@ mod dynamic_nesting_prime_finder;
 mod closure_nested;
 mod factor_operator;
 mod factor_membrane;
+mod binary_membrane;
 use g_momonados::arbitrary_factor;
 mod membrane_family;
 mod shor_b4_membrane;

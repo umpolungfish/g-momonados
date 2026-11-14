@@ -215,7 +215,8 @@ mod tests {
     use super::*;
     #[test]
     fn source_200_circuit_and_retained_coefficient_operations(){
-        let path=std::env::var("SOURCE_BRAID_TEST_SOURCE").expect("N-only 200-bit source file");
+        let path=std::env::var("SOURCE_BRAID_TEST_SOURCE")
+            .unwrap_or_else(|_|"measurements/resident_imasm_integration_20261012/inputs/fresh_balanced_512.txt".into());
         let raw=std::fs::read_to_string(path).unwrap();let cells=vox_core::morphism_factor::decimal_to_tape(raw.trim()).unwrap();
         let n=WordTape::from_imasm_tape(&cells).unwrap();assert!(n.bit_len()>=200);
         let(kernel,_)=exact_sic_kernel(n.bit_len()).unwrap();

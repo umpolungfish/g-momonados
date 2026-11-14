@@ -1,9 +1,12 @@
-//! Full ququart control coupled to shared work-register decision branches.
-//! Modular operations execute reversible gates; no residue table or period is supplied.
+//! Full ququart control coupled to shared work-register branches carried as
+//! exact sparse basis records. Modular operations execute reversible gates;
+//! no residue table or period is supplied. Every root is a deduplicated bag
+//! of resolved work-basis values; the only superposition enters through the
+//! five-root Fourier mixing, so each operation acts per branch with exact
+//! fixed-point complex numerators instead of rebuilding decision diagrams.
 use crate::anyon_pair::{PairMatrix, COMPUTATIONAL_CHANNELS, LEAKAGE_CHANNEL};
 use crate::anyon_ququart::{FixedQuquartSic, QuquartDigit, QuquartSicOutcome};
 use crate::phase_unbraid::{FixedComplex, FixedPointFormat};
-use crate::ququart_decision::DecisionArena;
 use crate::ququart_factor::QuquartPhaseDevice;
 use crate::reversible_modular::{NestedOperation, ModularMultiply};
 #[cfg(test)]
@@ -11,7 +14,7 @@ use crate::reversible_modular::ElementaryGate;
 use alloc::{string::String, vec::Vec};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
-use crate::word_tape::WordTape;
+use crate::word_tape::{SignedWordTape, WordTape};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 // Read by Vox while the native process is stopped. These counters observe the
@@ -26,6 +29,235 @@ pub static VOX_QUQUART_COUNTERS: [AtomicU64; 8] = [
 pub static VOX_NESTED_OPERATION_COUNTERS: [AtomicU64; 4] = [
     AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
 ];
+
+/// One retained basis branch: the complete work-register value over the arena
+/// wires and its exact fixed-point complex numerator on that branch.
+#[derive(Clone, PartialEq)]
+struct WorkBranch {
+    value: BigUint,
+    re: SignedWordTape,
+    im: SignedWordTape,
+}
+
+impl Default for WorkBranch {
+    fn default() -> Self {
+        Self { value: BigUint::default(), re: SignedWordTape::zero(), im: SignedWordTape::zero() }
+    }
+}
+
+/// The executing ququart carrier. Every root is a bag of resolved basis
+/// branches kept sorted and deduplicated by value; amplitudes add exactly and
+/// complex scalars round per branch exactly as the diagram leaves did.
+#[derive(Clone, Default, PartialEq)]
+struct WorkBag(Vec<WorkBranch>);
+
+impl WorkBag {
+    fn zero() -> Self { Self(Vec::new()) }
+
+    fn basis(value: &BigUint, scale: &BigInt) -> Self {
+        WorkBag(alloc::vec![WorkBranch {
+            value: value.clone(),
+            re: SignedWordTape::from_bigint(scale),
+            im: SignedWordTape::zero(),
+        }])
+    }
+
+    /// Merge in branch order; equal values add their amplitudes and zero
+    /// results drop, matching diagram summation at shared leaves.
+    fn merge(mut self, mut other: WorkBag) -> Self {
+        self.0.append(&mut other.0);
+        self.0.sort_by(|a, b| a.value.cmp(&b.value));
+        let mut out: Vec<WorkBranch> = Vec::with_capacity(self.0.len());
+        for branch in self.0 {
+            if branch.re.is_zero() && branch.im.is_zero() { continue; }
+            match out.last_mut() {
+                Some(last) if last.value == branch.value => {
+                    last.re = last.re.add(&branch.re);
+                    last.im = last.im.add(&branch.im);
+                }
+                _ => out.push(branch),
+            }
+        }
+        out.retain(|b| !(b.re.is_zero() && b.im.is_zero()));
+        WorkBag(out)
+    }
+
+    /// Drop branches whose amplitude became exactly zero. Per-branch maps
+    /// preserve the sorted order, so only the zero leaves need clearing.
+    fn deduped(self) -> Self {
+        let mut out = self.0;
+        out.retain(|b| !(b.re.is_zero() && b.im.is_zero()));
+        WorkBag(out)
+    }
+
+    /// The common fixed-point complex scalar product used by the diagram
+    /// scale: real = re*sr - im*si, imaginary = re*si + im*sr, rounded per
+    /// branch with the same shift the leaves apply.
+    fn scale(self, scalar: &FixedComplex, format: &FixedPointFormat) -> Self {
+        if scalar.re.is_zero() && scalar.im.is_zero() { return Self::zero(); }
+        let sr = SignedWordTape::from_bigint(&scalar.re);
+        let si = SignedWordTape::from_bigint(&scalar.im);
+        WorkBag(self.0.into_iter().map(|branch| WorkBranch {
+            re: branch.re.mul(&sr).sub(&branch.im.mul(&si)).rounded_shr(format.w_bits as usize),
+            im: branch.re.mul(&si).add(&branch.im.mul(&sr)).rounded_shr(format.w_bits as usize),
+            value: branch.value,
+        }).collect()).deduped()
+    }
+
+    fn mass(&self) -> BigUint {
+        self.0.iter().map(|branch| {
+            let re = branch.re.to_bigint();
+            let im = branch.im.to_bigint();
+            (&re * &re + &im * &im).to_biguint().unwrap()
+        }).fold(BigUint::zero(), |a, b| a + b)
+    }
+
+    fn amplitude(&self, value: &BigUint) -> (BigInt, BigInt) {
+        match self.0.binary_search_by(|branch| branch.value.cmp(value)) {
+            Ok(index) => (self.0[index].re.to_bigint(), self.0[index].im.to_bigint()),
+            Err(_) => (BigInt::zero(), BigInt::zero()),
+        }
+    }
+
+    /// Whether at least one branch satisfies every literal. Wire arguments
+    /// arrive already mapped to arena-bit coordinates.
+    fn controls_satisfiable(&self, controls: &[(usize, bool)]) -> bool {
+        self.0.iter().any(|branch| controls.iter().all(
+            |&(wire, want)| branch.value.bit(wire as u64) == want))
+    }
+
+    fn wire_is_zero(&self, wire: usize) -> bool {
+        self.0.iter().all(|branch| !branch.value.bit(wire as u64))
+    }
+
+    /// (branches matching every literal, the remaining branches).
+    fn split_literals(&self, controls: &[(usize, bool)]) -> (Self, Self) {
+        let mut matched = Vec::new();
+        let mut rest = Vec::new();
+        for branch in &self.0 {
+            if controls.iter().all(
+                |&(wire, want)| branch.value.bit(wire as u64) == want) {
+                matched.push(branch.clone());
+            } else {
+                rest.push(branch.clone());
+            }
+        }
+        (WorkBag(matched), WorkBag(rest))
+    }
+
+    /// Toggle one arena wire on every branch. Toggling is a value bijection,
+    /// so the bag stays collision-free without a re-deduplication.
+    fn toggle_bit(self, wire: usize) -> Self {
+        WorkBag(self.0.into_iter().map(|mut branch| {
+            branch.value ^= BigUint::one() << wire as u64;
+            branch
+        }).collect())
+    }
+
+    /// `(field + value) mod 2^field_len` on the register coordinates of every
+    /// branch, the same wrapping ripple-carry addition the diagram emitted.
+    fn add_field(self, register: &[usize], value: &BigUint) -> Self {
+        if value.is_zero() { return self; }
+        let len = register.len();
+        let mask = (BigUint::one() << len) - BigUint::one();
+        WorkBag(self.0.into_iter().map(|mut branch| {
+            let mut field = BigUint::zero();
+            for (index, &wire) in register.iter().enumerate() {
+                if branch.value.bit(wire as u64) { field |= BigUint::one() << index as u64; }
+            }
+            field = (&field + value) & &mask;
+            let mut set = BigUint::zero();
+            for bit in 0..len {
+                if field.bit(bit as u64) { set |= BigUint::one() << bit as u64; }
+            }
+            for (index, &wire) in register.iter().enumerate() {
+                branch.value.set_bit(wire as u64, set.bit(index as u64));
+            }
+            branch
+        }).collect())
+    }
+
+    /// Toggle the flag wire exactly where the register field is below value,
+    /// reproducing the diagram's XOR'd less-than readout.
+    fn compare_field(self, register: &[usize], value: &BigUint, flag: usize) -> Self {
+        if value.is_zero() { return self; }
+        WorkBag(self.0.into_iter().map(|mut branch| {
+            let field = {
+                let mut field = BigUint::zero();
+                for (index, &wire) in register.iter().enumerate() {
+                    if branch.value.bit(wire as u64) {
+                        field |= BigUint::one() << index as u64;
+                    }
+                }
+                field
+            };
+            if field < *value { branch.value ^= BigUint::one() << flag as u64; }
+            branch
+        }).collect())
+    }
+
+    /// `field' = (field + digit * value) mod modulus` per branch. Branches
+    /// whose digit bank is zero or whose field sits outside the modulus
+    /// interval pass through unchanged, exactly as the diagram cut them.
+    fn modular_digit_add_field(self, register: &[usize], digit: &[usize],
+        value: &BigUint, modulus: &BigUint) -> Self {
+        let reduced = value % modulus;
+        if reduced.is_zero() { return self; }
+        WorkBag(self.0.into_iter().map(|mut branch| {
+            let mut field = BigUint::zero();
+            for (index, &wire) in register.iter().enumerate() {
+                if branch.value.bit(wire as u64) { field |= BigUint::one() << index as u64; }
+            }
+            let mut place = BigUint::zero();
+            for (index, &wire) in digit.iter().enumerate() {
+                if branch.value.bit(wire as u64) {
+                    place += BigUint::one() << index as u64;
+                }
+            }
+            if place.is_zero() || field >= *modulus { return branch; }
+            let mut addend = &reduced * &place;
+            addend %= modulus;
+            if addend.is_zero() { return branch; }
+            field += addend;
+            if field >= *modulus { field -= modulus; }
+            for (index, &wire) in register.iter().enumerate() {
+                branch.value.set_bit(wire as u64, field.bit(index as u64));
+            }
+            branch
+        }).collect())
+    }
+
+    /// Entry i,j of the shared-work Gram trace, summed over branches with
+    /// equal values: Re = lr*rr + li*ri, Im = lr*ri - li*rr.
+    fn control_gram(roots: &[Self; 4]) -> [(BigInt, BigInt); 16] {
+        core::array::from_fn(|index| {
+            let left = &roots[index / 4];
+            let right = &roots[index % 4];
+            let mut re = BigInt::zero();
+            let mut im = BigInt::zero();
+            let (mut i, mut j) = (0usize, 0usize);
+            while i < left.0.len() && j < right.0.len() {
+                match left.0[i].value.cmp(&right.0[j].value) {
+                    core::cmp::Ordering::Less => i += 1,
+                    core::cmp::Ordering::Greater => j += 1,
+                    core::cmp::Ordering::Equal => {
+                        let lr = left.0[i].re.to_bigint();
+                        let li = left.0[i].im.to_bigint();
+                        let rr = right.0[j].re.to_bigint();
+                        let ri = right.0[j].im.to_bigint();
+                        re += &lr * &rr;
+                        re += &li * &ri;
+                        im += &lr * &ri;
+                        im -= &li * &rr;
+                        i += 1;
+                        j += 1;
+                    }
+                }
+            }
+            (re, im)
+        })
+    }
+}
 
 pub struct PreparedModularWork {
     pub source: BigUint,
@@ -131,8 +363,8 @@ pub struct QuquartFoldedWorkDevice {
     format: FixedPointFormat,
     fourier: PairMatrix,
     sic: FixedQuquartSic,
-    arena: DecisionArena,
-    roots: [usize; 5],
+    cells: usize,
+    roots: [WorkBag; 5],
     random: u64,
     active: bool,
     measured: Option<QuquartDigit>,
@@ -152,15 +384,13 @@ impl QuquartFoldedWorkDevice {
         let format = FixedPointFormat::for_modulus(&source)?;
         let sic = FixedQuquartSic::new(&format)?;
         let cells = ModularMultiply::new(&source)?.elementary_qubits() - 1;
-        let mut arena = DecisionArena::new(cells);
-        let zero = arena.zero();
         Ok(Self {
             format,
             source,
             fourier,
             sic,
-            arena,
-            roots: [zero; 5],
+            cells,
+            roots: core::array::from_fn(|_| WorkBag::zero()),
             random: seed.max(1),
             active: false,
             measured: None,
@@ -186,8 +416,8 @@ impl QuquartFoldedWorkDevice {
     /// Execute every source-bound stage on a correlated complex state, then
     /// return through the inverse of each adjacent operation. Expected forward
     /// roots are constructed independently from the modular permutation. Root
-    /// equality compares the complete canonical diagrams, including workspace
-    /// and the fifth fusion channel. This audit emits no measured phase digits.
+    /// equality compares the complete carrier bags, including workspace and
+    /// the fifth fusion channel. This audit emits no measured phase digits.
     pub fn audit_frobenius_stack(&mut self, base: &BigUint)
         -> Result<Vec<FrobeniusStageWitness>, String>
     {
@@ -201,7 +431,7 @@ impl QuquartFoldedWorkDevice {
         let arithmetic = ModularMultiply::new(&self.source)?;
         let mut witnesses = Vec::new();
         for (height, multiplier) in schedule.powers().iter().enumerate() {
-            self.arena = DecisionArena::new(self.arena.cells);
+            self.roots = core::array::from_fn(|_| WorkBag::zero());
             self.roots = self.audit_roots(&BigUint::one());
             self.active = true;
             self.measured = None;
@@ -244,20 +474,20 @@ impl QuquartFoldedWorkDevice {
         Ok(witnesses)
     }
 
-    fn audit_roots(&mut self, multiplier: &BigUint) -> [usize; 5] {
-        let zero = self.arena.zero();
-        let mut roots = [zero; 5];
+    fn audit_roots(&mut self, multiplier: &BigUint) -> [WorkBag; 5] {
+        let mut roots = core::array::from_fn(|_| WorkBag::zero());
         let residues = [BigUint::one(), &self.source - 1u8, &self.source - 2u8];
-        for (channel, root) in roots.iter_mut().enumerate() {
+        for channel in 0..5usize {
             let digit = COMPUTATIONAL_CHANNELS.iter().position(|&c| c == channel);
             let power = multiplier.modpow(&BigUint::from(digit.unwrap_or(0)), &self.source);
             for (index, residue) in residues.iter().enumerate() {
                 let image = residue * &power % &self.source;
-                let basis = self.arena.basis(&self.work_address(&image), self.format.scale());
                 let scalar = FixedComplex { re: BigInt::from(3 + 11 * channel + index),
                     im: -BigInt::from(7 + 13 * channel + 3 * index) };
-                let basis = self.arena.scale(basis, &scalar, &self.format);
-                *root = self.arena.sum(*root, basis);
+                let bag = WorkBag::basis(&self.work_address(&image), &self.format.scale())
+                    .scale(&scalar, &self.format);
+                roots[channel] = core::mem::replace(&mut roots[channel], WorkBag::zero())
+                    .merge(bag);
             }
         }
         roots
@@ -290,13 +520,13 @@ impl QuquartFoldedWorkDevice {
     }
     fn require_clean_workspace(&self) -> Result<(),String> {
         let width = self.source.bits() as usize;
-        for (channel,&root) in self.roots.iter().enumerate() {
+        for (channel, root) in self.roots.iter().enumerate() {
             // Check the whole allocated stack: work accumulator, borrow flag,
             // ripple carries, and control-lowering ancilla. The fifth fusion
             // channel carries workspace too, even outside the computation.
-            for logical in width+2..self.arena.cells+2 {
+            for logical in width+2..self.cells+2 {
                 let wire = self.work_wire(logical)-2;
-                if !self.arena.wire_is_zero(root,wire) {
+                if !root.wire_is_zero(wire) {
                     let word = |value:usize| crate::godel_calculus::encode_cell_binary(
                         &crate::godel_calculus::Nat::from_bits_le(
                             (0..usize::BITS).map(|bit| value & (1usize << bit) != 0).collect()));
@@ -323,11 +553,18 @@ impl QuquartFoldedWorkDevice {
         }
     }
     fn fold(&mut self) {
-        self.arena.fold(&mut self.roots);
+        for root in &mut self.roots {
+            *root = core::mem::take(root).deduped();
+        }
         self.nested_since_fold = 0;
-        self.peak_nodes = self.peak_nodes.max(self.arena.retained_nodes());
-        VOX_QUQUART_COUNTERS[4].store(self.arena.retained_nodes() as u64, Ordering::Relaxed);
+        let retained: usize = self.roots.iter().map(|root| root.0.len()).sum();
+        self.peak_nodes = self.peak_nodes.max(retained);
+        VOX_QUQUART_COUNTERS[4].store(retained as u64, Ordering::Relaxed);
         VOX_QUQUART_COUNTERS[5].store(self.peak_nodes as u64, Ordering::Relaxed);
+    }
+    /// Live branch count per root, for execution telemetry only.
+    pub fn bag_profile(&self) -> [usize; 5] {
+        core::array::from_fn(|index| self.roots[index].0.len())
     }
     #[cfg(test)]
     fn apply_gate(&mut self, gate: ElementaryGate) -> Result<(), String> {
@@ -340,10 +577,10 @@ impl QuquartFoldedWorkDevice {
                 target,
             } => (target, alloc::vec![first, second]),
         };
-        if target >= self.arena.cells + 2
+        if target >= self.cells + 2
             || controls
                 .iter()
-                .any(|&q| q >= self.arena.cells + 2 || q == target)
+                .any(|&q| q >= self.cells + 2 || q == target)
         {
             return Err("reversible gate has invalid ququart work wires".into());
         }
@@ -353,16 +590,18 @@ impl QuquartFoldedWorkDevice {
             .map(|&q| q - 2)
             .collect();
         work.sort_unstable();
-        let old = self.roots;
+        let work: Vec<(usize, bool)> = work.iter().map(|&wire| (wire, true)).collect();
+        let old: [WorkBag; 5] = core::array::from_fn(|index| core::mem::take(&mut self.roots[index]));
         for (digit, &channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+            self.roots[channel] = old[channel].clone();
             if controls.iter().any(|&q| q < 2 && digit & (1 << q) == 0) {
                 continue;
             }
             self.roots[channel] = if target < 2 {
-                let changed = old[COMPUTATIONAL_CHANNELS[digit ^ (1 << target)]];
-                self.arena.conditional(old[channel], changed, &work)
+                old[COMPUTATIONAL_CHANNELS[digit ^ (1 << target)]].clone()
             } else {
-                self.arena.controlled_flip(old[channel], target - 2, &work)
+                let (enabled, rest) = old[channel].split_literals(&work);
+                rest.merge(enabled.toggle_bit(target - 2))
             };
         }
         Ok(())
@@ -404,7 +643,7 @@ impl QuquartFoldedWorkDevice {
                 (controls, alloc::vec![*flag])
             }
         };
-        let extent = self.arena.cells + 2;
+        let extent = self.cells + 2;
         if let NestedOperation::ModularAdd { register,digit,controls,.. } = &operation {
             if digit.is_empty() || digit.iter().any(|&wire| wire < 2 || wire >= extent || register.contains(&wire))
                 || digit.windows(2).any(|pair| pair[0] >= pair[1])
@@ -430,36 +669,47 @@ impl QuquartFoldedWorkDevice {
         if work.windows(2).any(|pair| pair[0].0 == pair[1].0) {
             return Err("nested arithmetic controls must address distinct wires".into());
         }
-        let old = self.roots;
-        for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
+        let old: [WorkBag; 5] = core::array::from_fn(|index| core::mem::take(&mut self.roots[index]));
+        for (digit, &channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
             let incoming = match &operation {
                 NestedOperation::Toggle(gate) if gate.target < 2 =>
-                    old[COMPUTATIONAL_CHANNELS[digit ^ (1 << gate.target)]],
-                _ => old[channel],
+                    old[COMPUTATIONAL_CHANNELS[digit ^ (1 << gate.target)]].clone(),
+                _ => old[channel].clone(),
             };
-            if controls.iter().any(|&(wire,value)| wire < 2 && (digit & (1 << wire) != 0) != value)
-                || (!self.arena.controls_possible(old[channel],&work)
-                    && !self.arena.controls_possible(incoming,&work)) {
+            if controls.iter().any(|&(wire,value)| wire < 2 && (digit & (1 << wire) != 0) != value) {
+                self.roots[channel] = old[channel].clone();
+                continue;
+            }
+            if !old[channel].controls_satisfiable(&work) && !incoming.controls_satisfiable(&work) {
+                self.roots[channel] = old[channel].clone();
                 continue;
             }
             self.roots[channel] = match &operation {
                 NestedOperation::Toggle(gate) => {
-                    let changed = if gate.target < 2 {
+                    if gate.target < 2 {
                         incoming
                     } else {
-                        let zero = self.arena.zero();
-                        let enabled = self.arena.conditional_literals(zero,old[channel],&work);
-                        self.arena.flip(enabled,gate.target-2)
-                    };
-                    self.arena.conditional_literals(old[channel],changed,&work)
+                        let (enabled, rest) = old[channel].split_literals(&work);
+                        rest.merge(enabled.toggle_bit(gate.target - 2))
+                    }
                 }
-                NestedOperation::ModularAdd { register,digit,value,modulus,.. } => self.arena.modular_digit_add(
-                    old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),
-                    &digit.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,modulus,&work),
-                NestedOperation::Add { register,value,.. } => self.arena.add_constant(
-                    old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,&work),
-                NestedOperation::Compare { register,value,flag,.. } => self.arena.compare_constant(
-                    old[channel],&register.iter().map(|wire| wire-2).collect::<Vec<_>>(),value,&work,flag-2),
+                NestedOperation::ModularAdd { register,digit,value,modulus,.. } => {
+                    let (enabled, rest) = old[channel].split_literals(&work);
+                    rest.merge(enabled.modular_digit_add_field(
+                        &register.iter().map(|wire| wire-2).collect::<Vec<_>>(),
+                        &digit.iter().map(|wire| wire-2).collect::<Vec<_>>(),
+                        value, modulus))
+                }
+                NestedOperation::Add { register,value,.. } => {
+                    let (enabled, rest) = old[channel].split_literals(&work);
+                    rest.merge(enabled.add_field(
+                        &register.iter().map(|wire| wire-2).collect::<Vec<_>>(), value))
+                }
+                NestedOperation::Compare { register,value,flag,.. } => {
+                    let (enabled, rest) = old[channel].split_literals(&work);
+                    rest.merge(enabled.compare_field(
+                        &register.iter().map(|wire| wire-2).collect::<Vec<_>>(), value, flag-2))
+                }
             };
         }
         self.nested_since_fold += 1;
@@ -472,28 +722,26 @@ impl QuquartFoldedWorkDevice {
         if self.count >= self.expected {
             return Err("ququart phase has extra SIC measurements".into());
         }
-        let gram = self.arena.control_gram(&core::array::from_fn(|digit|
-            self.roots[COMPUTATIONAL_CHANNELS[digit]]));
+        let gram = WorkBag::control_gram(&core::array::from_fn(|digit|
+            self.roots[COMPUTATIONAL_CHANNELS[digit]].clone()));
         let gram_masses = self.sic.gram_masses(&gram)?;
         let reconstruction = self.sic.certify_gram_frame(&gram, &gram_masses)?;
-        let old = self.roots;
-        let zero = self.arena.zero();
-        let mut branches = [zero; 16];
+        let old: [WorkBag; 5] = core::array::from_fn(|index| self.roots[index].clone());
+        let mut branches: [Option<WorkBag>; 16] = core::array::from_fn(|_| None);
         let mut masses: [BigUint; 17] = core::array::from_fn(|_| BigUint::zero());
         for (outcome, ray) in self.sic.rays().iter().enumerate() {
-            let mut branch = zero;
+            let mut branch = WorkBag::zero();
             for (component, &channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
                 let scalar = crate::phase_unbraid::FixedComplex {
                     re: ray[component].re.clone(),
                     im: -&ray[component].im,
                 };
-                let projected = self.arena.scale(old[channel], &scalar, &self.format);
-                branch = self.arena.sum(branch, projected);
+                branch = branch.merge(old[channel].clone().scale(&scalar, &self.format));
             }
-            masses[outcome] = self.arena.mass(branch);
-            branches[outcome] = branch;
+            masses[outcome] = branch.mass();
+            branches[outcome] = Some(branch);
         }
-        masses[16] = self.arena.mass(old[LEAKAGE_CHANNEL]) * 4u8;
+        masses[16] = self.roots[LEAKAGE_CHANNEL].mass() * 4u8;
         let sample_masses: [BigUint; 16] = core::array::from_fn(|index| masses[index].clone());
         let projection_residual = gram_masses.iter().zip(&sample_masses).map(|(analytic, sampled)|
             if analytic >= sampled { analytic - sampled } else { sampled - analytic })
@@ -513,8 +761,7 @@ impl QuquartFoldedWorkDevice {
             outcome: measured, reconstruction,
         });
         if outcome == 16 {
-            let z = self.arena.zero();
-            self.roots = [z; 5];
+            self.roots = core::array::from_fn(|_| WorkBag::zero());
             self.fold();
             self.count += 1;
             return Ok(QuquartSicOutcome::OutsideCarrier);
@@ -523,15 +770,30 @@ impl QuquartFoldedWorkDevice {
         if norm.is_zero() {
             return Err("selected SIC outcome has zero Born mass".into());
         }
-        let normalized = self.arena.normalize(branches[outcome], &norm, &self.format.scale());
-        let z = self.arena.zero();
-        self.roots = [z; 5];
+        let normalized = branches[outcome].take().unwrap()
+            .normalize(&norm, &self.format.scale());
+        self.roots = core::array::from_fn(|_| WorkBag::zero());
         self.roots[COMPUTATIONAL_CHANNELS[0]] = normalized;
         self.fold();
         self.count += 1;
         Ok(measured)
     }
 }
+
+impl WorkBag {
+    /// Per-branch normalized readout: each numerator is rescaled by
+    /// scale/norm with the same signed-word division the diagram used.
+    fn normalize(self, norm: &BigInt, scale: &BigInt) -> Self {
+        let norm = SignedWordTape::from_bigint(norm);
+        let scale = SignedWordTape::from_bigint(scale);
+        WorkBag(self.0.into_iter().map(|branch| WorkBranch {
+            re: branch.re.mul(&scale).div(&norm),
+            im: branch.im.mul(&scale).div(&norm),
+            value: branch.value,
+        }).collect()).deduped()
+    }
+}
+
 impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
     fn measure_sic_outcome(&mut self) -> Result<QuquartSicOutcome, String> {
         QuquartFoldedWorkDevice::measure_sic_outcome(self)
@@ -552,12 +814,9 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         let register = crate::anyon_fusion_kernel::PreparedRegister::uniform(source, |bytes| {
             Self::entropy(&mut self.random, bytes)
         })?;
-        self.arena = DecisionArena::new(self.arena.cells);
-        let z = self.arena.zero();
-        self.roots = [z; 5];
-        let address = self.work_address(register.residue());
-        self.roots[COMPUTATIONAL_CHANNELS[0]] =
-            self.arena.basis(&address, self.format.scale());
+        self.roots = core::array::from_fn(|_| WorkBag::zero());
+        self.roots[COMPUTATIONAL_CHANNELS[0]] = WorkBag::basis(
+            &self.work_address(register.residue()), &self.format.scale());
         self.active = true;
         self.measured = None;
         self.expected = digits;
@@ -572,14 +831,12 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         } else {
             self.fourier.clone()
         };
-        let old = self.roots;
+        let old: [WorkBag; 5] = core::array::from_fn(|index| core::mem::take(&mut self.roots[index]));
         for row in 0..5 {
-            let mut sum = self.arena.zero();
-            for (col, &root) in old.iter().enumerate() {
-                let term = self
-                    .arena
-                    .scale(root, &matrix.0[5 * row + col], &self.format);
-                sum = self.arena.sum(sum, term);
+            let mut sum = WorkBag::zero();
+            for (col, root) in old.iter().enumerate() {
+                let term = root.clone().scale(&matrix.0[5 * row + col], &self.format);
+                sum = sum.merge(term);
             }
             self.roots[row] = sum;
         }
@@ -620,7 +877,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
                 &denominator,
                 &self.format,
             )?;
-            self.roots[channel] = self.arena.scale(self.roots[channel], &phase, &self.format);
+            self.roots[channel] = core::mem::take(&mut self.roots[channel]).scale(&phase, &self.format);
         }
         self.fold();
         Ok(())
@@ -631,15 +888,14 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
             return Err("ququart phase has extra measurements".into());
         }
         let masses: [BigUint; 5] = core::array::from_fn(|digit| {
-            self.arena.mass(
-                self.roots[if digit < 4 {
-                    COMPUTATIONAL_CHANNELS[digit]
-                } else {
-                    LEAKAGE_CHANNEL
-                }],
-            )
+            self.roots[if digit < 4 {
+                COMPUTATIONAL_CHANNELS[digit]
+            } else {
+                LEAKAGE_CHANNEL
+            }].mass()
         });
-        let gram = self.arena.control_gram(&core::array::from_fn(|digit| self.roots[COMPUTATIONAL_CHANNELS[digit]]));
+        let gram = WorkBag::control_gram(&core::array::from_fn(|digit|
+            self.roots[COMPUTATIONAL_CHANNELS[digit]].clone()));
         let sic_masses = self.sic.gram_masses(&gram)?;
         let reconstruction = self.sic.certify_gram_frame(&gram,&sic_masses)?;
         for digit in 0..4 {
@@ -658,11 +914,8 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         if norm.is_zero() {
             return Err("selected ququart has zero Born mass".into());
         }
-        let root = self
-            .arena
-            .normalize(self.roots[selected], &norm, &self.format.scale());
-        let z = self.arena.zero();
-        self.roots = [z; 5];
+        let root = self.roots[selected].clone().normalize(&norm, &self.format.scale());
+        self.roots = core::array::from_fn(|_| WorkBag::zero());
         self.roots[selected] = root;
         let digit = QuquartDigit::try_from(outcome as u8)?;
         self.sic_witnesses.push(SicControlWitness { gram, masses:sic_masses, digit, reconstruction });
@@ -676,9 +929,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         if !self.active || self.measured != Some(digit) {
             return Err("ququart reset differs from its measurement".into());
         }
-        let root = self.roots[COMPUTATIONAL_CHANNELS[digit as usize]];
-        let z = self.arena.zero();
-        self.roots = [z; 5];
+        let root = core::mem::take(&mut self.roots[COMPUTATIONAL_CHANNELS[digit as usize]]);
         self.roots[COMPUTATIONAL_CHANNELS[0]] = root;
         self.measured = None;
         self.fold();
@@ -693,9 +944,7 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
         Ok(())
     }
     fn abort(&mut self) {
-        self.arena = DecisionArena::new(self.arena.cells);
-        let z = self.arena.zero();
-        self.roots = [z; 5];
+        self.roots = core::array::from_fn(|_| WorkBag::zero());
         self.active = false;
         self.measured = None;
     }
@@ -704,6 +953,9 @@ impl QuquartPhaseDevice for QuquartFoldedWorkDevice {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::phase_unbraid::{FixedComplex, FixedPointFormat};
+    use num_bigint::BigInt;
+
     #[test]
     fn rsa_200_and_256_bit_prepared_work_is_checked_before_resident_entry() {
         let sources: Vec<_> = [
@@ -746,21 +998,20 @@ mod tests {
             for interleaved in [false,true] {
                 let mut device = QuquartFoldedWorkDevice::new(n.clone(),PairMatrix::identity(&format),1729).unwrap();
                 device.interleaved_work = interleaved;
-                let clean = device.arena.basis(&device.work_address(&(&n-1u8)),format.scale());
+                let clean = WorkBag::basis(&device.work_address(&(&n-1u8)), &format.scale());
                 for channel in 0..5 {
-                    device.roots[channel] = clean;
+                    device.roots[channel] = clean.clone();
                 }
                 assert!(device.require_clean_workspace().is_ok());
                 // Exercise every workspace height, including the previously
                 // unchecked borrow flag and the top control-lowering ancilla.
-                for logical in n.bits() as usize+2..device.arena.cells+2 {
-                    let dirty_wire = device.work_wire(logical)-2;
-                    let dirty = device.arena.flip(clean,dirty_wire);
+                for logical in n.bits() as usize+2..device.cells+2 {
+                    let dirty = clean.clone().toggle_bit(device.work_wire(logical)-2);
                     for channel in 0..5 {
-                        device.roots[channel] = dirty;
+                        device.roots[channel] = dirty.clone();
                         assert!(device.require_clean_workspace().is_err(),
                             "upper workspace in channel {channel} was not checked");
-                        device.roots[channel] = clean;
+                        device.roots[channel] = clean.clone();
                     }
                 }
                 assert!(device.require_clean_workspace().is_ok());
@@ -789,20 +1040,18 @@ mod tests {
         device.interleaved_work = interleaved;
         device.digit_bits = digit_bits;
         device.begin(&n,&BigUint::from(2u8),1).unwrap();
-        device.arena = DecisionArena::new(device.arena.cells);
-        let z = device.arena.zero();
-        device.roots = [z;5];
+        device.roots = core::array::from_fn(|_| WorkBag::zero());
         let residues = [&n-1u8,&n-2u8];
         for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
             for (index,residue) in residues.iter().enumerate() {
-                let basis = device.arena.basis(&device.work_address(residue),format.scale());
                 let scalar = FixedComplex { re: BigInt::from(3+5*digit+index), im: BigInt::from(7+3*digit+2*index) };
-                let basis = device.arena.scale(basis,&scalar,&format);
-                device.roots[channel] = device.arena.sum(device.roots[channel],basis);
+                let branch = WorkBag::basis(&device.work_address(residue), &format.scale())
+                    .scale(&scalar, &format);
+                device.roots[channel] = device.roots[channel].clone().merge(branch);
             }
         }
         device.fold();
-        let masses: Vec<_> = COMPUTATIONAL_CHANNELS.iter().map(|&c| device.arena.mass(device.roots[c])).collect();
+        let masses: Vec<_> = COMPUTATIONAL_CHANNELS.iter().map(|&c| device.roots[c].mass()).collect();
         let schedule = crate::ququart_factor::QuquartPowerSchedule::prepare(&n,&BigUint::from(2u8)).unwrap();
         let multiplier = &schedule.powers()[64];
         device.controlled_multiply(multiplier).unwrap();
@@ -810,15 +1059,15 @@ mod tests {
         for (digit,&channel) in COMPUTATIONAL_CHANNELS.iter().enumerate() {
             for (index,residue) in residues.iter().enumerate() {
                 let image = residue*&power%&n;
-                assert_eq!(device.arena.amplitude(device.roots[channel],&device.work_address(&image)),
+                assert_eq!(device.roots[channel].amplitude(&device.work_address(&image)),
                     (BigInt::from(3+5*digit+index),BigInt::from(7+3*digit+2*index)));
             }
             // Exact mass at the clean-work addresses exhausts the channel:
             // no amplitude can remain in any arithmetic or carry ancilla.
-            assert_eq!(device.arena.mass(device.roots[channel]),masses[digit]);
+            assert_eq!(device.roots[channel].mass(),masses[digit]);
             power = power*multiplier%&n;
         }
-        assert!(device.arena.mass(device.roots[LEAKAGE_CHANNEL]).is_zero());
+        assert!(device.roots[LEAKAGE_CHANNEL].mass().is_zero());
         println!("source_bits={} interleaved={} digit_bits={} control_channels={} complex_coherence_preserved=true workspace_clean=true",n.bits(),interleaved,digit_bits,COMPUTATIONAL_CHANNELS.len());
         }
         }
@@ -852,12 +1101,11 @@ mod tests {
             .max().unwrap();
         assert_eq!(measured_residual, witness.projection_residual);
         assert!(BigInt::from(measured_residual) <= witness.reconstruction.tolerance);
-        let selected = device.roots[COMPUTATIONAL_CHANNELS[0]];
-        assert_eq!(device.arena.mass(selected), format.scale().to_biguint().unwrap().pow(2));
+        assert_eq!(device.roots[COMPUTATIONAL_CHANNELS[0]].mass(), format.scale().to_biguint().unwrap().pow(2));
         for &channel in &COMPUTATIONAL_CHANNELS[1..] {
-            assert!(device.arena.mass(device.roots[channel]).is_zero());
+            assert!(device.roots[channel].mass().is_zero());
         }
-        assert!(device.arena.mass(device.roots[LEAKAGE_CHANNEL]).is_zero());
+        assert!(device.roots[LEAKAGE_CHANNEL].mass().is_zero());
     }
 
     #[test]
@@ -918,11 +1166,11 @@ mod tests {
                 image ^= BigUint::one() << 2usize;
             }
             if digit & 2 != 0 && image.bit(0) { image ^= BigUint::one() << 3usize; }
-            let (re, im) = device.arena.amplitude(device.roots[channel], &image);
+            let (re, im) = device.roots[channel].amplitude(&image.clone());
             assert_eq!(re, format.scale() / 2u8);
             assert!(im.is_zero());
             assert_eq!(
-                device.arena.mass(device.roots[channel]),
+                device.roots[channel].mass(),
                 (format.scale() / 2u8).pow(2).to_biguint().unwrap()
             );
         }
@@ -940,13 +1188,13 @@ mod tests {
             })
             .unwrap();
         device.fourier(true).unwrap();
-        let (re, im) = device
-            .arena
-            .amplitude(device.roots[COMPUTATIONAL_CHANNELS[0]], x);
+        let (re, im) = device.roots[COMPUTATIONAL_CHANNELS[0]].amplitude(x);
         assert_eq!(re, format.scale());
         assert!(im.is_zero());
         for &channel in &COMPUTATIONAL_CHANNELS[1..] {
-            assert!(device.arena.mass(device.roots[channel]).is_zero());
+            assert!(device.roots[channel].mass().is_zero());
         }
     }
+
+
 }

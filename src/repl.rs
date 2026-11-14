@@ -21,6 +21,7 @@ use crate::{
     riemann_sic,
     riemann_hilbert, bip39_sic_grover, redteam,
     witness_vessel, ask, ovm, pk2sk,
+    binary_membrane,
 };
 use crate::tokens::{canonical_name, canonical_count, continuous_name, continuous_count, novel_name, novel_count, shunted_name, shunted_count, compound_name, compound_index, compound_program, compound_count};
 use crate::crystal::{CrystalStore, decode, encode, indices_from_program, TOTAL};
@@ -1537,6 +1538,14 @@ pub fn repl_seeded(k: &mut Kernel, seed: alloc::collections::VecDeque<String>) {
                 let args: Vec<&str> = rest.iter().map(|x| x.as_str()).collect();
                 sprintln!("{}", crate::factor_membrane::repl_factor_membrane(&args));
             }
+
+            "binary_membrane" | "bmembrane" => {
+                let tail: Vec<&str> = parts.collect();
+                let rest: Vec<String> = tail.join(" ").split_whitespace().map(|s| s.to_string()).collect();
+                let args: Vec<&str> = rest.iter().map(|x| x.as_str()).collect();
+                sprintln!("{}", crate::binary_membrane::repl_binary_membrane(&args));
+            }
+
             "shor_b4" | "shor_b4_membrane" | "key_membrane" => {
                 let tail: Vec<&str> = parts.collect();
                 let rest: Vec<String> = tail.join(" ").split_whitespace().map(|s| s.to_string()).collect();
@@ -4772,14 +4781,14 @@ Stopped after {} ticks.", ran);
                 }
             }
             "watch" => {
-                let arg = parts.next().unwrap_or("").trim();
-                let refresh: u64 = arg.parse().ok().unwrap_or(10);
+                let max_ticks: Option<u64> = parts.next().and_then(|s| s.trim().parse().ok()).or(Some(100));
+                let refresh: u64 = parts.next().and_then(|s| s.trim().parse().ok()).unwrap_or(10);
                 let name = if k.snapshot.is_some() { "current" } else { "(none)" };
                 let width: u16 = 80;
                 manus::display_init(&k, name, width);
                 sprintln!("Watching. ESC to stop (refresh every {} ticks)...", refresh);
                 let ran = manus::run_with_display(k, name, width, refresh,
-                    || interrupts::escape_pressed());
+                    || interrupts::escape_pressed(), max_ticks);
                 manus::display_shutdown();
                 sprintln!();
                 sprintln!("Stopped after {} ticks.", ran);
